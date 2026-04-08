@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./build/docker",
+    "rootDir": "./src",
+    "resolveJsonModule": true,
+    "declaration": false,
+    "noImplicitAny": false
+  },
+  "include": [
+    "src/core/**/*.ts",
+    "src/docker/**/*.ts"
+  ],
+  "exclude": [
+    "src/main",
+    "src/renderer",
+    "node_modules"
+  ]
+}

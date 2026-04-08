@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  douyu-keep:
+    build: .
+    container_name: douyu-keep
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config
+    environment:
+      - TZ=Asia/Shanghai
+      - CONFIG_PATH=/app/config/config.json
+      - PUPPETEER_ARGS=--no-sandbox

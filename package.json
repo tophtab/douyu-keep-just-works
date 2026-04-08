@@ -16,11 +16,13 @@
     "build:win": "node scripts/build.js && electron-builder --win",
     "build:mac": "node scripts/build.js && electron-builder --mac",
     "build:linux": "node scripts/build.js && electron-builder --linux",
+    "build:docker": "tsc -p tsconfig.docker.json",
     "up": "taze major -I"
   },
   "dependencies": {
     "auto-launch": "^5.0.6",
     "axios": "^1.4.0",
+    "puppeteer": "^21.0.0",
     "cron": "^2.4.0",
     "cron-parser": "^4.8.1",
     "dayjs": "^1.11.9",

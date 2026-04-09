@@ -40,6 +40,8 @@ services:
     image: curtion/douyu-keep:latest
     container_name: douyu-keep
     restart: unless-stopped
+    ports:
+      - '3000:3000'
     volumes:
       - ./config:/app/config
     environment:
@@ -51,6 +53,10 @@ services:
 ```bash
 docker compose up -d
 ```
+
+打开浏览器访问 `http://localhost:3000` 即可通过 WebUI 管理配置、查看日志和手动触发任务。
+
+> 如果没有预先创建 `config.json`，也可以启动后直接在 WebUI 中配置。
 
 查看日志：
 
@@ -68,6 +74,17 @@ docker compose logs -f
 | `model` | 分配模式：`1` 按百分比，`2` 按固定数量（`number: -1` 表示剩余全部） |
 | `send` | 房间配置，key 为房间号 |
 | `time` / `timeValue` | 可选，限制赠送日期（仅 keepalive 支持） |
+
+## 5. WebUI 管理面板
+
+Docker 版内置 Web 管理面板（端口 3000），支持：
+
+- **配置管理** — 在线编辑 cookie、房间列表、cron 表达式，保存后立即生效
+- **运行状态** — 实时查看保活/双倍卡任务状态和下次执行时间
+- **日志查看** — 滚动查看最近日志，支持清空
+- **手动触发** — 一键手动执行保活或双倍卡任务
+
+可通过 `WEB_PORT` 环境变量修改端口（默认 3000）。
 
 # 开发
 

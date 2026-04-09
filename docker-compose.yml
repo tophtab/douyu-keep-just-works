@@ -5,6 +5,8 @@ services:
     build: .
     container_name: douyu-keep
     restart: unless-stopped
+    ports:
+      - '3000:3000'
     volumes:
       - ./config:/app/config
     environment:

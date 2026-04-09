@@ -28,6 +28,13 @@ textarea{resize:vertical;min-height:60px;font-family:monospace}
 .btn-green{background:var(--green);color:#000}
 .btn-sm{padding:4px 10px;font-size:12px}
 .btn:disabled{opacity:.5;cursor:not-allowed}
+.fans-list{max-height:300px;overflow-y:auto;margin:8px 0}
+.fan-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:4px;cursor:pointer}
+.fan-item:hover{background:var(--accent)}
+.fan-item input{width:auto}
+.fan-item .fan-info{flex:1;font-size:13px}
+.fan-item .fan-level{color:var(--blue);font-size:12px}
+.fan-item .fan-intimacy{color:var(--muted);font-size:12px}
 .card{background:var(--card);border-radius:8px;padding:16px;margin:8px 0}
 .card .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
 .card .status-dot.on{background:var(--green)}.card .status-dot.off{background:var(--red)}
@@ -78,6 +85,12 @@ textarea{resize:vertical;min-height:60px;font-family:monospace}
       <div id="dc-rooms"></div>
       <button class="btn btn-sm btn-primary mt" onclick="addRoom('dc')">+ 添加房间</button>
     </div>
+  </div>
+  <div class="section">
+    <h3>粉丝牌列表</h3>
+    <button class="btn btn-primary" onclick="fetchFans()" id="fetch-fans-btn">获取粉丝牌列表</button>
+    <div class="fans-list" id="fans-list" style="display:none"></div>
+    <button class="btn btn-green mt" onclick="applySelectedFans()" id="apply-fans-btn" style="display:none">应用选中的房间到保活任务</button>
   </div>
   <button class="btn btn-green mt" onclick="saveConfig()" style="width:100%;padding:12px">保存配置并启动</button>
 </div>
@@ -203,6 +216,33 @@ async function trigger(type){
     const r=await fetch('/api/trigger/'+type,{method:'POST'});const d=await r.json();
     if(d.ok)toast('执行完成',true);else toast(d.error||'执行失败',false);
   }catch(e){toast('请求失败',false)}
+}
+let fansData=[];
+async function fetchFans(){
+  const btn=document.getElementById('fetch-fans-btn');
+  btn.disabled=true;btn.textContent='获取中...';
+  try{
+    const r=await fetch('/api/fans');if(!r.ok){const e=await r.json();throw new Error(e.error||'获取失败')}
+    fansData=await r.json();
+    const list=document.getElementById('fans-list');
+    list.style.display='';document.getElementById('apply-fans-btn').style.display='';
+    list.innerHTML=fansData.map((f,i)=>'<label class="fan-item"><input type="checkbox" value="'+i+'" checked>'
+      +'<span class="fan-info">'+f.name+' (房间: '+f.roomId+')</span>'
+      +'<span class="fan-level">Lv.'+f.level+'</span>'
+      +'<span class="fan-intimacy">亲密度: '+f.intimacy+' | 今日: '+f.today+'</span></label>').join('');
+    toast('获取到 '+fansData.length+' 个粉丝牌',true);
+  }catch(e){toast(e.message,false)}
+  btn.disabled=false;btn.textContent='获取粉丝牌列表';
+}
+function applySelectedFans(){
+  const checks=document.querySelectorAll('#fans-list input:checked');
+  const prefix='ka';
+  document.getElementById(prefix+'-rooms').innerHTML='';
+  checks.forEach(cb=>{
+    const f=fansData[+cb.value];
+    addRoom(prefix,{roomId:f.roomId,percentage:100,number:1});
+  });
+  toast('已应用 '+checks.length+' 个房间到保活任务',true);
 }
 loadConfig();
 setInterval(()=>{

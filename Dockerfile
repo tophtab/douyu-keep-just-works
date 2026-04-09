@@ -17,5 +17,8 @@ RUN mkdir -p /app/config
 
 ENV CONFIG_PATH=/app/config/config.json
 ENV TZ=Asia/Shanghai
+ENV WEB_PORT=3000
+
+EXPOSE 3000
 
 CMD ["node", "dist/docker/index.js"]

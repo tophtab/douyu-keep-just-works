@@ -1,0 +1,9 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Docker Web UI layout and composition patterns"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "UI flow and local state handling for step-based configuration"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Shared config and API payload shapes"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "HTTP route validation and error response consistency"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Keep runtime wiring thin and boundary validation explicit"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "This feature changes UI, API, persistence, and scheduler behavior together"}

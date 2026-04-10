@@ -1,0 +1,9 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check-backend.md", "reason": "Backend check spec"}
+{"file": ".opencode/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Review Docker Web UI composition changes"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Review UI flow and state transitions"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Review route validation and error paths"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Review shared payload and config shape usage"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Review runtime boundaries and behavior regressions"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Review boundary contracts and round-trip behavior"}

@@ -51,3 +51,53 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: Docker medal-driven keepalive and double-card WebUI
+
+**Date**: 2026-04-10
+**Task**: Docker medal-driven keepalive and double-card WebUI
+
+### Summary
+
+Reworked the Docker WebUI around medal-driven sync for keepalive and double-card, added theme preference support, and documented the new cross-layer contract.
+
+### Main Changes
+
+| Area | Description |
+|------|-------------|
+| Medal sync | Added shared Docker medal reconciliation logic so keepalive and double-card room config follow medal-list additions/removals while preserving existing values for unchanged rooms. |
+| Double-card behavior | Added persisted `enabled` state so checked rooms control double-card detection and send candidacy independently from keepalive membership. |
+| WebUI | Rebuilt the Docker WebUI into separate Cookie / Keepalive / Double Card / Medals / Logs sections and removed the old manual medal-import flow. |
+| Theme | Added persisted Docker WebUI theme mode support for `light`, `dark`, and `system`. |
+| Spec/docs | Added executable cross-layer contract documentation and updated README/config example for the new Docker config semantics. |
+
+**Updated Files**:
+- `src/core/medal-sync.ts`
+- `src/core/types.ts`
+- `src/core/job.ts`
+- `src/docker/index.ts`
+- `src/docker/server.ts`
+- `src/docker/html.ts`
+- `README.md`
+- `config.example.json`
+- `.trellis/spec/guides/docker-medal-sync-contract.md`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bcd9808` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

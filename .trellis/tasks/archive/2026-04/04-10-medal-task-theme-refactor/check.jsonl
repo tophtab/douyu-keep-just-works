@@ -1,0 +1,6 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check-backend.md", "reason": "Backend check spec"}
+{"file": ".opencode/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Final review for visible loading, navigation, and save behavior"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Review config compatibility and boundary validation after implementation"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Ensure new sync paths do not log secrets and keep logging consistent"}

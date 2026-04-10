@@ -1,0 +1,10 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Shared theme and sync types belong in src/core/types.ts"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "View-level Docker Web UI changes in html.ts should stay direct and readable"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Persisted config must be normalized when medal list changes"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Shared medal sync logic should live in src/core instead of route handlers"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Keep medal sync failures at the route/runtime boundary with actionable Chinese messages"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Web UI changes must keep loading, error, and save states visible"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Preserve config compatibility and validate payloads before saving"}

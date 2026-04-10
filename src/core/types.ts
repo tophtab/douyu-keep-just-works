@@ -7,6 +7,11 @@ export interface Fans {
   today: number
 }
 
+export interface FanStatus extends Fans {
+  doubleActive: boolean
+  doubleExpireTime?: number
+}
+
 export interface SendGift {
   roomId: number
   number: number

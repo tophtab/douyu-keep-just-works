@@ -226,3 +226,42 @@ Restructured the Docker WebUI overview and theme system, then repaired GitHub Ac
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: WSL local verification workflow
+
+**Date**: 2026-04-11
+**Task**: WSL local verification workflow
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Description |
+|------|-------------|
+| WSL setup | Added `.nvmrc` and documented npm-first WSL setup in `README.md` |
+| Local verification | Added `build:compile` and `verify:wsl` scripts so routine checks can run in WSL without Docker |
+| Validation | Verified `nvm install`, `npm ci --ignore-scripts`, and `npm run verify:wsl` in WSL |
+| Packaging note | Documented that full `npm run build` in WSL still requires `rpm` / `rpmbuild` |
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9b7d7f4` | (see git log) |
+| `14615d8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

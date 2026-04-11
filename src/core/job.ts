@@ -29,6 +29,7 @@ async function loadGiftNumber(cookie: string, log: Logger, prefix?: string): Pro
 }
 
 export async function executeCollectGiftJob(cookie: string, log: Logger): Promise<number> {
+  log('开始执行领取任务')
   log('正在领取荧光棒...')
   await collectGiftViaPage(cookie)
 
@@ -74,6 +75,7 @@ async function sendGifts(jobs: sendConfig, cookie: string, log: Logger): Promise
 }
 
 export async function executeKeepaliveJob(config: JobConfig, cookie: string, log: Logger): Promise<void> {
+  log('开始执行保活任务')
   const number = await loadGiftNumber(cookie, log, '正在获取当前荧光棒数量...')
   if (number === 0) {
     return
@@ -97,6 +99,7 @@ export async function executeKeepaliveJob(config: JobConfig, cookie: string, log
 }
 
 export async function executeDoubleCardJob(config: DoubleCardConfig, cookie: string, log: Logger): Promise<void> {
+  log('开始执行双倍任务')
   const number = await loadGiftNumber(cookie, log, '正在获取当前荧光棒数量...')
   if (number === 0) {
     return
@@ -118,12 +121,15 @@ export async function executeDoubleCardJob(config: DoubleCardConfig, cookie: str
     return
   }
 
+  log(`开始检测双倍状态，待检测房间数: ${Object.keys(activeSend).length}`)
   const doubleCardRooms: Record<string, boolean> = {}
   for (const item of Object.values(activeSend)) {
     const doubleInfo = await checkDoubleCard(item.roomId, cookie)
     doubleCardRooms[String(item.roomId)] = doubleInfo.active
     if (doubleInfo.active) {
       log(`房间${item.roomId}检测到双倍亲密度卡生效`)
+    } else {
+      log(`房间${item.roomId}未检测到双倍亲密度卡`)
     }
   }
 
@@ -136,9 +142,10 @@ export async function executeDoubleCardJob(config: DoubleCardConfig, cookie: str
   }
 
   if (jobs === null) {
-    log('未检测到双倍卡，荧光棒已保留')
+    log('双倍状态检测完成，未检测到可执行的双倍房间，本次不执行赠送')
     return
   }
 
+  log('双倍状态检测完成，检测到可执行房间，开始执行双倍赠送')
   await sendGifts(jobs, cookie, log)
 }

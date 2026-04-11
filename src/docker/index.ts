@@ -158,7 +158,7 @@ function startScheduledTask(
   job.start()
   statuses[type].running = true
   statuses[type].nextRun = job.nextDate().toISO()
-  logSystem(`${label}已启动, cron: ${cron}${summary ? `, ${summary}` : ''}`)
+  logSystem(`${label}已启动, cron: ${cron}, 下次执行: ${statuses[type].nextRun}${summary ? `, ${summary}` : ''}`)
 }
 
 function startJobs(config: DockerConfig): void {
@@ -324,7 +324,12 @@ function main(): void {
 
       assertDockerConfigCrons(nextConfig)
       saveConfigToDisk(nextConfig)
-      applyConfig(nextConfig, hasTaskPayload ? 'tasks_saved' : 'ui_saved')
+      if (hasTaskPayload) {
+        applyConfig(nextConfig, 'tasks_saved')
+      } else {
+        currentConfig = nextConfig
+        logSystem('界面偏好已更新')
+      }
       if (needsFanSync && nextConfig.cookie) {
         return await syncConfigWithFans('tasks_saved')
       }

@@ -4,7 +4,7 @@ export interface LogEntry {
   message: string
 }
 
-const MAX_LOGS = 500
+export const MAX_LOGS = 500
 const logs: LogEntry[] = []
 const LOG_TIMEZONE = 'Asia/Shanghai'
 

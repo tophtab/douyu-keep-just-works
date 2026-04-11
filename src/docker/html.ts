@@ -46,27 +46,30 @@ body::before{
 }
 body[data-theme="dark"]{
   --bg:#000;
-  --bg-alt:#07131b;
-  --surface:rgba(10,12,15,.78);
-  --surface-strong:rgba(8,8,8,.94);
-  --surface-soft:rgba(14,18,24,.84);
-  --line:rgba(110,148,182,.14);
-  --line-strong:rgba(128,182,230,.22);
+  --bg-alt:#000;
+  --surface:rgba(10,10,10,.92);
+  --surface-strong:rgba(4,4,4,.98);
+  --surface-soft:rgba(16,12,24,.92);
+  --line:rgba(116,92,176,.16);
+  --line-strong:rgba(132,108,198,.26);
   --text:#edf7ff;
-  --muted:#8da5bf;
-  --accent:#8e3b57;
-  --accent-2:#5f2740;
-  --accent-soft:rgba(142,59,87,.16);
-  --accent-gradient:linear-gradient(135deg,#6f2d47 0%,#4b1f33 100%);
+  --muted:#9f96bf;
+  --accent:#c86ee8;
+  --accent-2:#5c245f;
+  --accent-soft:rgba(200,110,232,.18);
+  --accent-gradient:linear-gradient(135deg,#a64ed6 0%,#52205b 100%);
   --success:#27b27f;
   --danger:#ff6b6b;
   --warning:#f8b84c;
   --shadow:0 30px 70px rgba(0,0,0,.58);
   --btn-shadow:0 18px 34px rgba(0,0,0,.38);
   background:
-    radial-gradient(circle at top left, rgba(111,45,71,.22), transparent 24%),
-    radial-gradient(circle at top right, rgba(95,39,64,.16), transparent 18%),
-    linear-gradient(180deg, #000 0%, #020406 48%, #04090d 100%);
+    radial-gradient(circle at top left, rgba(166,78,214,.16), transparent 24%),
+    radial-gradient(circle at top right, rgba(92,36,95,.16), transparent 20%),
+    linear-gradient(180deg, #000 0%, #000 100%);
+}
+body[data-theme="dark"]::before{
+  background:linear-gradient(180deg, rgba(255,255,255,.02), transparent 18%, transparent 84%, rgba(166,78,214,.06));
 }
 .shell{
   position:relative;
@@ -202,7 +205,7 @@ body[data-theme="dark"]{
 }
 .section-title{
   margin:8px 0 6px;
-  font-size:20px;
+  font-size:22px;
   line-height:1.2;
 }
 .subtle{
@@ -263,7 +266,7 @@ body[data-theme="dark"]{
 }
 .task-card-title{
   margin:0;
-  font-size:19px;
+  font-size:22px;
 }
 .task-card-pills{
   display:flex;
@@ -355,13 +358,13 @@ textarea{
   min-width:0;
 }
 .switch-title{
-  font-size:15px;
+  font-size:18px;
   font-weight:700;
 }
 .switch-note{
   margin-top:4px;
   color:var(--muted);
-  font-size:12px;
+  font-size:13px;
   line-height:1.65;
 }
 .switch-control{
@@ -407,6 +410,30 @@ textarea{
   color:var(--muted);
   font-size:13px;
   line-height:1.7;
+}
+.label-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:6px;
+}
+.label-row .field-label{
+  margin-bottom:0;
+}
+.help-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:18px;
+  height:18px;
+  border-radius:999px;
+  border:1px solid var(--line-strong);
+  background:var(--surface-soft);
+  color:var(--accent);
+  font-size:12px;
+  font-weight:800;
+  line-height:1;
+  cursor:help;
 }
 .cron-preview{
   margin-top:8px;
@@ -503,7 +530,37 @@ textarea{
   font-size:12px;
   line-height:1.8;
 }
-.log-line{margin-bottom:6px}
+.log-line{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  margin-bottom:8px;
+  padding:8px 10px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--surface-soft);
+}
+.log-stamp{
+  color:var(--muted);
+  white-space:nowrap;
+}
+.log-tag{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:42px;
+  padding:0 8px;
+  border-radius:999px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-weight:700;
+}
+.log-message{
+  flex:1;
+  min-width:0;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
 .muted{
   color:var(--muted);
 }
@@ -639,13 +696,13 @@ textarea{
       </div>
 
       <div class="panel" style="margin-top:16px">
-        <h3 class="section-title">领取任务</h3>
-        <p class="subtle">领取任务独立运行，不再嵌入保活或双倍链路。</p>
+        <h3 class="section-title">启动领取任务</h3>
+        <p class="subtle">在这里设置自动领取时间，也可以手动触发领取。</p>
         <div class="field-block" style="margin-top:14px">
           <div class="switch-field">
             <div class="switch-copy">
-              <div class="switch-title">启用领取任务</div>
-              <div class="switch-note">关闭后仅保留 Cookie，不执行领取调度。</div>
+              <div class="switch-title">启动领取任务</div>
+              <div class="switch-note">打开后按 cron 自动领取荧光棒，关闭后仅保留 Cookie。</div>
             </div>
             <label class="switch-control">
               <input class="switch-input" type="checkbox" id="collect-enable">
@@ -739,7 +796,10 @@ textarea{
             <div class="helper cron-preview" id="double-cron-preview">正在计算未来执行时间...</div>
           </div>
           <div class="field-block">
-            <label class="field-label" for="double-model">分配模式</label>
+            <div class="label-row">
+              <label class="field-label" for="double-model">分配模式</label>
+              <span class="help-icon" title="双倍任务在百分比模式下，只会对当前检测到正在生效双倍的房间重新分配。多个房间开双倍时，会按这些房间原本配置的百分比重新归一化后再分配；只有一个房间开双倍时，本次荧光棒会全部送给这个房间；如果没有房间开双倍，本次就不送。">?</span>
+            </div>
             <select id="double-model">
               <option value="1">按百分比</option>
               <option value="2">按固定数量</option>
@@ -756,6 +816,7 @@ textarea{
     <section class="page" id="page-logs">
       <div class="panel">
         <h3 class="section-title">运行日志</h3>
+        <p class="subtle" id="logs-summary" style="margin-top:10px">仅保留最近 500 条日志，正在加载...</p>
         <div class="actions" style="margin-top:14px">
           <button class="btn btn-secondary" data-action="refresh-logs">手动刷新</button>
           <button class="btn btn-danger" data-action="clear-logs">清空日志</button>
@@ -801,7 +862,8 @@ textarea{
     cookie: '',
     ui: { themeMode: 'system' },
     collectGift: { cron: '0 10 0,1 * * *' },
-    keepalive: { cron: '0 0 8 */6 * *', model: 1, send: {} }
+    keepalive: { cron: '0 0 8 */6 * *', model: 2, send: {} },
+    doubleCard: { cron: '0 0 14,16,20 * * *', model: 1, send: {}, enabled: {} }
   };
 
   function createEmptyCronPreview() {
@@ -818,6 +880,7 @@ textarea{
     overview: null,
     managed: null,
     logs: [],
+    logsRefreshedAt: null,
     fansStatus: [],
     fansStatusLoading: false,
     fansStatusLoaded: false,
@@ -1160,7 +1223,13 @@ textarea{
     var html = [];
     var i;
     for (i = 0; i < logs.length; i += 1) {
-      html.push('<div class="log-line"><span class="muted">[' + escapeHtml(formatDate(logs[i].timestamp)) + ']</span> [' + escapeHtml(logs[i].category) + '] ' + escapeHtml(logs[i].message) + '</div>');
+      html.push(
+        '<div class="log-line">'
+        + '<span class="log-stamp">[' + escapeHtml(formatDate(logs[i].timestamp)) + ']</span>'
+        + '<span class="log-tag">' + escapeHtml(logs[i].category) + '</span>'
+        + '<span class="log-message">' + escapeHtml(logs[i].message) + '</span>'
+        + '</div>'
+      );
     }
     target.innerHTML = html.join('');
     target.scrollTop = target.scrollHeight;
@@ -1187,14 +1256,14 @@ textarea{
 
   function renderKeepalivePage() {
     var rawConfig = getRawConfig();
-    var config = getManagedConfig().keepalive || rawConfig.keepalive || { cron: '0 0 8 */6 * *', model: 1, send: {} };
+    var config = getManagedConfig().keepalive || rawConfig.keepalive || { cron: '0 0 8 */6 * *', model: 2, send: {} };
     var fans = getManagedFans();
     byId('keepalive-task-card').innerHTML = state.overview
       ? buildTaskCard('保活', state.overview.keepaliveConfigured, state.overview.status.keepalive, '房间数', state.overview.keepaliveRooms)
       : buildLoadingTaskCard('保活');
     byId('keepalive-enable').checked = Boolean(getManagedConfig().keepalive || rawConfig.keepalive);
     byId('keepalive-cron').value = config.cron || '0 0 8 */6 * *';
-    byId('keepalive-model').value = String(config.model || 1);
+    byId('keepalive-model').value = String(config.model || 2);
     void loadCronPreview('keepalive', byId('keepalive-cron').value, 'keepalive-cron-preview');
 
     if (!rawConfig.cookie) {
@@ -1221,13 +1290,13 @@ textarea{
 
   function renderDoublePage() {
     var rawConfig = getRawConfig();
-    var config = getManagedConfig().doubleCard || rawConfig.doubleCard || { cron: '0 0 */4 * * *', model: 1, send: {}, enabled: {} };
+    var config = getManagedConfig().doubleCard || rawConfig.doubleCard || { cron: '0 0 14,16,20 * * *', model: 1, send: {}, enabled: {} };
     var fans = getManagedFans();
     byId('double-task-card').innerHTML = state.overview
       ? buildTaskCard('双倍', state.overview.doubleCardConfigured, state.overview.status.doubleCard, '房间数', state.overview.doubleCardRooms)
       : buildLoadingTaskCard('双倍');
     byId('double-enable').checked = Boolean(getManagedConfig().doubleCard || rawConfig.doubleCard);
-    byId('double-cron').value = config.cron || '0 0 */4 * * *';
+    byId('double-cron').value = config.cron || '0 0 14,16,20 * * *';
     byId('double-model').value = String(config.model || 1);
     void loadCronPreview('doubleCard', byId('double-cron').value, 'double-cron-preview');
 
@@ -1299,6 +1368,8 @@ textarea{
   }
 
   function renderLogsPage() {
+    var refreshedAt = state.logsRefreshedAt ? formatDate(state.logsRefreshedAt) : '尚未刷新';
+    byId('logs-summary').textContent = '当前 ' + (state.logs ? state.logs.length : 0) + ' 条日志，仅保留最近 500 条。最近刷新：' + refreshedAt;
     renderLogBox('full-log-box', state.logs || []);
   }
 
@@ -1347,6 +1418,7 @@ textarea{
   function loadLogs() {
     return requestJson('/api/logs').then(function (data) {
       state.logs = data;
+      state.logsRefreshedAt = new Date().toISOString();
       renderLogsPage();
     }).catch(function (error) {
       toast('加载日志失败：' + error.message, false);

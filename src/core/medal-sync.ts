@@ -2,7 +2,7 @@ import type { CollectGiftConfig, DockerConfig, DoubleCardConfig, Fans, JobConfig
 
 const DEFAULT_COLLECT_GIFT_CRON = '0 10 0,1 * * *'
 const DEFAULT_KEEPALIVE_CRON = '0 0 8 */6 * *'
-const DEFAULT_DOUBLE_CARD_CRON = '0 0 */4 * * *'
+const DEFAULT_DOUBLE_CARD_CRON = '0 0 14,16,20 * * *'
 const DEFAULT_THEME_MODE: ThemeMode = 'system'
 const DEFAULT_GIFT_ID = 268
 
@@ -48,8 +48,8 @@ function normalizeCollectGiftConfig(config: CollectGiftConfig | undefined): Coll
 export function createDefaultKeepaliveConfig(fans: Fans[]): JobConfig {
   return {
     cron: DEFAULT_KEEPALIVE_CRON,
-    model: 1,
-    send: mergeSendConfig(undefined, fans, 1),
+    model: 2,
+    send: mergeSendConfig(undefined, fans, 2),
   }
 }
 

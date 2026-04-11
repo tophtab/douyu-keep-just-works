@@ -76,9 +76,9 @@ docker compose logs -f
 | `cookie` | 斗鱼登录 cookie，需包含 `acf_uid`、`dy_did`、`acf_stk` 等字段 |
 | `ui.themeMode` | WebUI 主题模式：`light`、`dark`、`system` |
 | `collectGift.cron` | 领取任务的 cron 表达式（6位，含秒），默认 `0 10 0,1 * * *` 表示每天 00:10 和 01:10 各尝试一次 |
-| `keepalive.cron` | 保活任务的 cron 表达式（6位，含秒），如 `0 0 8 * * *` 表示每天8点 |
-| `doubleCard.cron` | 双倍检测的 cron 表达式，如 `0 0 */4 * * *` 表示每4小时 |
-| `model` | 分配模式：`1` 按百分比，`2` 按固定数量（`number: -1` 表示剩余全部） |
+| `keepalive.cron` | 保活任务的 cron 表达式（6位，含秒），默认 `0 0 8 */6 * *` 表示每 6 天的 08:00 执行一次 |
+| `doubleCard.cron` | 双倍检测的 cron 表达式，默认 `0 0 14,16,20 * * *` 表示每天 14:00、16:00、20:00 执行 |
+| `model` | 分配模式：`1` 按百分比，`2` 按固定数量（保活默认是固定数量，`number: -1` 表示剩余全部） |
 | `send` | 房间配置，key 为房间号 |
 | `doubleCard.enabled` | 双倍任务勾选状态，`true` 表示该房间参与双倍检测与赠送候选集 |
 

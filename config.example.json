@@ -7,27 +7,27 @@
     "cron": "0 10 0,1 * * *"
   },
   "keepalive": {
-    "cron": "0 0 8 * * *",
-    "model": 1,
+    "cron": "0 0 8 */6 * *",
+    "model": 2,
     "send": {
       "123456": {
         "roomId": 123456,
-        "number": -1,
+        "number": 1,
         "giftId": 268,
-        "percentage": 50,
+        "percentage": 0,
         "count": 0
       },
       "789012": {
         "roomId": 789012,
         "number": -1,
         "giftId": 268,
-        "percentage": 50,
+        "percentage": 0,
         "count": 0
       }
     }
   },
   "doubleCard": {
-    "cron": "0 0 */4 * * *",
+    "cron": "0 0 14,16,20 * * *",
     "model": 1,
     "enabled": {
       "123456": true,

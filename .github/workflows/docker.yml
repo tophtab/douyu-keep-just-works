@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 18
           cache: 'npm'
@@ -29,7 +29,8 @@ jobs:
       - name: Read Docker version tag
         id: version
         run: |
-          node -e "const version=require('./package.json').version; const parts=version.split('.'); if (parts.length < 2) throw new Error('Invalid package.json version'); console.log('minor=' + parts[0] + '.' + parts[1]);" >> \"$GITHUB_OUTPUT\"
+          VERSION=$(node -p "const parts=require('./package.json').version.split('.'); if (parts.length < 2) throw new Error('Invalid package.json version'); parts[0] + '.' + parts[1]")
+          echo "minor=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Docker meta
         id: meta

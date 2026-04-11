@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 4
+- **Total Sessions**: 5
 - **Last Active**: 2026-04-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~184 | Active |
+| `journal-1.md` | ~228 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits |
 |---|------|-------|---------|
+| 5 | 2026-04-11 | Harden Docker Runtime Validation | `48b3dfe`, `e695b2d` |
 | 4 | 2026-04-11 | Docker WebUI restructure and CI workflow repair | `3c07ab8`, `ce2c566` |
 | 3 | 2026-04-11 | Docker Web UI rewrite and Docker tag policy | `1c57866`, `6cfb6ec` |
 | 2 | 2026-04-10 | Docker medal-driven keepalive and double-card WebUI | `bcd9808` |

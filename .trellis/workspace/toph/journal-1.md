@@ -182,3 +182,47 @@ Restructured the Docker WebUI overview and theme system, then repaired GitHub Ac
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: Harden Docker Runtime Validation
+
+**Date**: 2026-04-11
+**Task**: Harden Docker Runtime Validation
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Description |
+|------|-------------|
+| Docker runtime | Added cron expression validation before config writes and task restarts |
+| Scheduler | Added per-task execution locks to prevent overlapping scheduled and manual runs |
+| Gift allocation | Fixed percentage-based allocation so runtime send counts cannot go negative |
+| Double card | Stopped converting request failures into false inactive results |
+| Task tracking | Archived `04-11-backend-runtime-bug-fixes` after commit and verification |
+
+**Verification**:
+- `npm run build:docker`
+- Manual Docker WebUI startup and runtime checks in WSL
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `48b3dfe` | (see git log) |
+| `e695b2d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

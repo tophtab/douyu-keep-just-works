@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 9
+- **Total Sessions**: 10
 - **Last Active**: 2026-04-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~377 | Active |
+| `journal-1.md` | ~409 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits |
 |---|------|-------|---------|
+| 10 | 2026-04-12 | Add agent workflow files and ignore local config | `e12eb55` |
 | 9 | 2026-04-12 | Rename project to douyu-keep-just-works | `7095cd0` |
 | 8 | 2026-04-12 | Refine double-card weight mode and log readability | `7c9a8df` |
 | 7 | 2026-04-11 | Refine Docker task UI, defaults, and logging | `36ff513`, `207f321` |

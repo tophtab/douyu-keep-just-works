@@ -375,3 +375,35 @@ Renamed project branding and Docker metadata to douyu-keep-just-works, refreshed
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: Add agent workflow files and ignore local config
+
+**Date**: 2026-04-12
+**Task**: Add agent workflow files and ignore local config
+
+### Summary
+
+Added project-level AGENTS and .agents workflow files for AI collaboration, and updated .gitignore to ignore local runtime config so cookie-bearing config files are not accidentally committed.
+
+### Main Changes
+
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e12eb55` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 11
+- **Total Sessions**: 12
 - **Last Active**: 2026-04-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~441 | Active |
+| `journal-1.md` | ~481 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits |
 |---|------|-------|---------|
+| 12 | 2026-04-12 | Remove Docker Hub minor tag | `aca7e62` |
 | 11 | 2026-04-12 | Refine Docker UI and version workflow | `bb17b76` |
 | 10 | 2026-04-12 | Add agent workflow files and ignore local config | `e12eb55` |
 | 9 | 2026-04-12 | Rename project to douyu-keep-just-works | `7095cd0` |

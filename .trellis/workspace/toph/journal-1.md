@@ -439,3 +439,43 @@ Refined Docker task controls, added repo lint/type-check/test scripts, fixed CI 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: Remove Docker Hub minor tag
+
+**Date**: 2026-04-12
+**Task**: Remove Docker Hub minor tag
+
+### Summary
+
+Updated Docker publish workflow to stop generating major.minor tags and keep only patch tags plus latest.
+
+### Main Changes
+
+| Item | Description |
+|------|-------------|
+| CI | Removed the Docker Hub `major.minor` tag from the publish workflow |
+| Cleanup | Removed the now-unused `minor` workflow output |
+| Verification | Confirmed `pnpm lint`, `pnpm type-check`, and `pnpm test` all passed |
+
+**Updated Files**:
+- `.github/workflows/docker.yml`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `aca7e62` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

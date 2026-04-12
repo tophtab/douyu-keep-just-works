@@ -298,3 +298,48 @@ Refined the Docker WebUI task pages, updated default cron/model behavior, remove
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: Refine double-card weight mode and log readability
+
+**Date**: 2026-04-12
+**Task**: Refine double-card weight mode and log readability
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Description |
+|------|-------------|
+| Double-card model | Renamed the user-facing double-card mode from proportional wording to weight wording and aligned persisted config on `weight` with migration from old `percentage` values. |
+| Docker WebUI | Refined the double-card page copy, moved quick-fill actions into the explanation panel, adjusted dark theme accent color, and updated the default double-card cron to `0 20 14,17,20,23 * * *`. |
+| Logging | Reformatted scheduler startup logs so `nextRun` timestamps read as `YYYY-MM-DD HH:mm:ss  (UTC+08:00)`. |
+| Contract docs | Updated the Docker medal sync contract to document `weight`, migration behavior, validation rules, and verification expectations. |
+
+**Verification**:
+- `npm run build:docker`
+- `npm run build:compile`
+
+**Notes**:
+- Archived completed task `04-12-proportional-allocation-mode` after the user tested and committed the code.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7c9a8df` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

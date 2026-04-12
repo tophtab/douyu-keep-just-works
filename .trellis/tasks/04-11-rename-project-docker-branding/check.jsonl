@@ -1,0 +1,5 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check-backend.md", "reason": "Backend check spec"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Review runtime naming edits stay in the correct layer"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Review branding changes for behavior regressions"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Review the about view update against current frontend conventions"}

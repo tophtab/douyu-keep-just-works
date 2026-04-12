@@ -1,0 +1,6 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check-backend.md", "reason": "Backend check spec"}
+{"file": ".opencode/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend review checklist and expected verification commands."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend review checklist and build expectations for shared/Docker code."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer consistency check for config semantics and user-facing behavior."}

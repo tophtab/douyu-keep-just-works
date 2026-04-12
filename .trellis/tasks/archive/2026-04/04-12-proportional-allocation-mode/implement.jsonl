@@ -1,0 +1,10 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Keep Docker/renderer UI copy and interaction patterns direct and local."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Preserve current UI patterns and verify manual flows/build expectations."}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Keep shared allocation logic in src/core and runtime/UI wiring in Docker/renderer."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Keep boundary validation explicit with clear Chinese error messages."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Keep double-card mode semantics aligned across shared logic, HTTP/UI, and persisted config."}
+{"file": "src/core/gift.ts", "reason": "Existing weighted redistribution logic for double-card task."}
+{"file": "src/docker/html.ts", "reason": "Current Docker WebUI forms, copy, and save payload flow for keepalive/double-card tasks."}

@@ -1,0 +1,5 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Keep Docker/runtime naming changes scoped to the right layers"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Preserve behavior while changing branding and metadata"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Keep the about view aligned with existing Vue SFC patterns"}

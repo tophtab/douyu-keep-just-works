@@ -3,7 +3,7 @@ import express from 'express'
 import type { CollectGiftConfig, DockerConfig, DoubleCardConfig, FanStatus, Fans, JobConfig } from '../core/types'
 import type { LogEntry } from './logger'
 import { getNextCronRuns, validateCronExpression } from './cron'
-import { getHtml } from './html'
+import { DOCKER_WEBUI_PAGE_ROUTES, getHtml } from './html'
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -38,9 +38,21 @@ export interface AppContext {
 
 const AUTH_COOKIE_NAME = 'dykw_session'
 const AUTH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
+const DOCKER_WEBUI_PAGE_PATHS = new Set<string>(Object.values(DOCKER_WEBUI_PAGE_ROUTES))
 
 function isTaskActive(config: { active?: boolean } | null | undefined): boolean {
   return Boolean(config && config.active !== false)
+}
+
+function normalizePagePath(path: string): string {
+  if (!path || path === '/') {
+    return '/'
+  }
+  return path.replace(/\/+$/, '') || '/'
+}
+
+function isDockerWebUiPagePath(path: string): boolean {
+  return DOCKER_WEBUI_PAGE_PATHS.has(normalizePagePath(path))
 }
 
 function maskCookie(cookie: string): string {
@@ -221,7 +233,11 @@ export function createServer(ctx: AppContext): express.Express {
     return null
   }
 
-  app.get('/', (_req, res) => {
+  app.get('*', (req, res, next) => {
+    if (!isDockerWebUiPagePath(req.path)) {
+      next()
+      return
+    }
     res.type('html').send(getHtml())
   })
 
@@ -248,7 +264,12 @@ export function createServer(ctx: AppContext): express.Express {
   })
 
   app.use((req, res, next) => {
-    if (req.path === '/' || req.path === '/api/auth/status' || req.path === '/api/auth/login' || req.path === '/api/auth/logout') {
+    if (
+      isDockerWebUiPagePath(req.path)
+      || req.path === '/api/auth/status'
+      || req.path === '/api/auth/login'
+      || req.path === '/api/auth/logout'
+    ) {
       next()
       return
     }

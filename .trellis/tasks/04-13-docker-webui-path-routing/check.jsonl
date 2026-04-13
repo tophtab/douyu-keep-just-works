@@ -1,0 +1,8 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check-backend.md", "reason": "Backend check spec"}
+{"file": ".opencode/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify Docker route behavior keeps auth and API handling intact"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Verify page navigation, loading, and no UI regressions after route sync"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Verify pathname contract is consistent across Express, auth redirects, and UI state"}
+{"file": "src/docker/server.ts", "reason": "Review final allowed page route list and auth middleware behavior"}
+{"file": "src/docker/html.ts", "reason": "Review final pathname-to-tab mapping and history navigation behavior"}

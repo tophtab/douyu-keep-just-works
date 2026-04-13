@@ -1,3 +1,11 @@
+export const DOCKER_WEBUI_PAGE_ROUTES = {
+  'overview': '/',
+  'cookie': '/Configurations/CookieConfig',
+  'keepalive': '/Configurations/DailyJobConfig',
+  'double-card': '/Configurations/DoubleCardConfig',
+  'logs': '/Logs',
+} as const
+
 export function getHtml(): string {
   return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -990,6 +998,7 @@ textarea{
 
 <script>
 (function () {
+  var TAB_ROUTE_MAP = ${JSON.stringify(DOCKER_WEBUI_PAGE_ROUTES)};
   var PAGE_META = {
     overview: {
       title: '概况',
@@ -1013,6 +1022,51 @@ textarea{
     }
   };
 
+  function normalizePagePath(path) {
+    if (!path || path === '/') {
+      return '/';
+    }
+    return path.replace(/\/+$/, '') || '/';
+  }
+
+  function getTabByPath(path) {
+    var normalizedPath = normalizePagePath(path);
+    var tabs = Object.keys(TAB_ROUTE_MAP);
+    var i;
+    for (i = 0; i < tabs.length; i += 1) {
+      if (TAB_ROUTE_MAP[tabs[i]] === normalizedPath) {
+        return tabs[i];
+      }
+    }
+    return 'overview';
+  }
+
+  function getPathByTab(tab) {
+    return TAB_ROUTE_MAP[tab] || TAB_ROUTE_MAP.overview;
+  }
+
+  function syncPathWithTab(tab, replace) {
+    if (!window.history || !window.history.pushState || !window.history.replaceState) {
+      return;
+    }
+
+    var nextPath = getPathByTab(tab);
+    var currentPath = normalizePagePath(window.location.pathname);
+    if (currentPath === nextPath && window.location.pathname === nextPath) {
+      return;
+    }
+
+    try {
+      if (replace) {
+        window.history.replaceState(null, '', nextPath);
+        return;
+      }
+      window.history.pushState(null, '', nextPath);
+    } catch (error) {
+      // Ignore history API failures and keep the UI usable.
+    }
+  }
+
   var DEFAULT_RAW_CONFIG = {
     cookie: '',
     ui: { themeMode: 'system' },
@@ -1030,7 +1084,7 @@ textarea{
   }
 
   var state = {
-    activeTab: 'overview',
+    activeTab: getTabByPath(window.location.pathname),
     auth: {
       checked: false,
       authenticated: false,
@@ -1217,30 +1271,47 @@ textarea{
     });
   }
 
-  function setActiveTab(tab) {
-    state.activeTab = tab;
+  function setActiveTab(tab, options) {
+    var nextTab = PAGE_META[tab] ? tab : 'overview';
+    var shouldSyncPath = !options || options.syncPath !== false;
+    var replacePath = Boolean(options && options.replacePath);
+
+    state.activeTab = nextTab;
     var buttons = document.querySelectorAll('.tab-btn');
     var i;
     for (i = 0; i < buttons.length; i += 1) {
       var button = buttons[i];
-      button.classList.toggle('active', button.getAttribute('data-tab') === tab);
+      button.classList.toggle('active', button.getAttribute('data-tab') === nextTab);
     }
 
     var pages = document.querySelectorAll('.page');
     for (i = 0; i < pages.length; i += 1) {
       var page = pages[i];
-      page.classList.toggle('active', page.id === 'page-' + tab);
+      page.classList.toggle('active', page.id === 'page-' + nextTab);
     }
 
-    byId('page-title').textContent = PAGE_META[tab].title;
-    byId('page-subtitle').textContent = PAGE_META[tab].subtitle;
+    byId('page-title').textContent = PAGE_META[nextTab].title;
+    byId('page-subtitle').textContent = PAGE_META[nextTab].subtitle;
 
-    if (tab === 'overview' && getRawConfig().cookie && !state.fansStatusLoaded) {
+    if (shouldSyncPath) {
+      syncPathWithTab(nextTab, replacePath);
+    }
+
+    if (nextTab === 'overview' && getRawConfig().cookie && !state.fansStatusLoaded) {
       loadFansStatus(false);
     }
-    if (tab === 'logs') {
+    if (nextTab === 'logs') {
       loadLogs();
     }
+  }
+
+  function syncTabWithCurrentPath() {
+    var nextTab = getTabByPath(window.location.pathname);
+    if (!state.auth.authenticated) {
+      state.activeTab = nextTab;
+      return;
+    }
+    setActiveTab(nextTab, { syncPath: false });
   }
 
   function buildStatusPill(label, kind) {
@@ -1772,6 +1843,8 @@ textarea{
 
       renderAll();
       return Promise.resolve();
+    }).then(function () {
+      setActiveTab(state.activeTab, { replacePath: true });
     });
   }
 
@@ -2360,6 +2433,7 @@ textarea{
       updateDoubleModeUi();
     }
   });
+  window.addEventListener('popstate', syncTabWithCurrentPath);
 
   if (window.matchMedia) {
     try {

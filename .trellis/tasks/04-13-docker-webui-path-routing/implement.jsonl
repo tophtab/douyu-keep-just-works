@@ -1,0 +1,10 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Client-side active tab and pathname synchronization uses local UI state patterns"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend route/tab changes must preserve loading and navigation behavior"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Docker routes should stay lightweight and preserve existing API contracts"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Server route handling should keep auth and redirect semantics explicit"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Pathname-based navigation crosses Express route handling and in-page UI state"}
+{"file": "src/docker/server.ts", "reason": "Existing Docker WebUI entry route and auth middleware patterns"}
+{"file": "src/docker/html.ts", "reason": "Existing single-HTML page sections and tab-switching logic"}

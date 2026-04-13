@@ -2,7 +2,7 @@
 
 > 一个给斗鱼粉丝牌保活、荧光棒领取和双倍卡处理准备的工具。
 >
-> 核心理念很朴素：少开会，少玄学，少手动点按钮。能跑、能用、能把活干完，就算赢。
+> 核心理念：It just works.
 
 [下载 Releases](https://github.com/tophtab/douyu-keep-just-works/releases)
 
@@ -22,7 +22,7 @@
 - 支持双倍亲密度检测，并按勾选房间参与赠送
 - 支持 Windows、macOS，以及适合 NAS / 服务器的 Docker WebUI 版
 
-## Why it just works
+## Why it just works?
 
 取自 Todd Howard 那句著名的 `It just works.`。
 

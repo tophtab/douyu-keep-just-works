@@ -1,0 +1,4 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Verify loading, success, and failure states still surface correctly"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Review the WebUI handlers for direct readable orchestration"}

@@ -1999,7 +1999,7 @@ textarea{
     });
   }
 
-  function saveCollectConfig() {
+  function saveCollectConfig(options) {
     byId('collect-enable').checked = true;
     var payload = {
       collectGift: { active: true, cron: byId('collect-cron').value.trim() }
@@ -2013,6 +2013,9 @@ textarea{
       toast('领取任务已保存并启用', true);
       refreshOverviewSurface(false);
     }).catch(function (error) {
+      if (options && options.revertCheckboxOnError) {
+        byId('collect-enable').checked = false;
+      }
       if (isUnauthorizedError(error)) {
         return;
       }
@@ -2080,7 +2083,7 @@ textarea{
     return result;
   }
 
-  function saveKeepaliveConfig() {
+  function saveKeepaliveConfig(options) {
     byId('keepalive-enable').checked = true;
     var payload = {
       keepalive: buildSendPayload('keepalive-value', false)
@@ -2094,6 +2097,9 @@ textarea{
       toast('保活任务已保存并启用', true);
       refreshOverviewSurface(false);
     }).catch(function (error) {
+      if (options && options.revertCheckboxOnError) {
+        byId('keepalive-enable').checked = false;
+      }
       if (isUnauthorizedError(error)) {
         return;
       }
@@ -2126,7 +2132,7 @@ textarea{
     });
   }
 
-  function saveDoubleConfig() {
+  function saveDoubleConfig(options) {
     byId('double-enable').checked = true;
     var nextConfig = buildSendPayload('double-value', true);
     if (nextConfig.model === 1) {
@@ -2154,6 +2160,9 @@ textarea{
       toast('双倍任务已保存并启用', true);
       refreshOverviewSurface(false);
     }).catch(function (error) {
+      if (options && options.revertCheckboxOnError) {
+        byId('double-enable').checked = false;
+      }
       if (isUnauthorizedError(error)) {
         return;
       }
@@ -2309,6 +2318,14 @@ textarea{
     }
   });
 
+  function handleTaskToggleChange(event, enableTask, disableTask) {
+    if (event.target.checked) {
+      enableTask({ revertCheckboxOnError: true });
+      return;
+    }
+    disableTask();
+  }
+
   byId('login-form').addEventListener('submit', function (event) {
     event.preventDefault();
     submitLogin();
@@ -2318,25 +2335,19 @@ textarea{
     void loadCronPreview('collectGift', event.target.value, 'collect-cron-preview');
   });
   byId('collect-enable').addEventListener('change', function (event) {
-    if (!event.target.checked) {
-      disableCollectConfig();
-    }
+    handleTaskToggleChange(event, saveCollectConfig, disableCollectConfig);
   });
   byId('keepalive-cron').addEventListener('input', function (event) {
     void loadCronPreview('keepalive', event.target.value, 'keepalive-cron-preview');
   });
   byId('keepalive-enable').addEventListener('change', function (event) {
-    if (!event.target.checked) {
-      disableKeepaliveConfig();
-    }
+    handleTaskToggleChange(event, saveKeepaliveConfig, disableKeepaliveConfig);
   });
   byId('double-cron').addEventListener('input', function (event) {
     void loadCronPreview('doubleCard', event.target.value, 'double-cron-preview');
   });
   byId('double-enable').addEventListener('change', function (event) {
-    if (!event.target.checked) {
-      disableDoubleConfig();
-    }
+    handleTaskToggleChange(event, saveDoubleConfig, disableDoubleConfig);
   });
   byId('double-model').addEventListener('change', updateDoubleModeUi);
   document.addEventListener('input', function (event) {

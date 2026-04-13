@@ -646,3 +646,44 @@ Verified the bootstrap guideline docs against the current codebase, marked remai
 ### Next Steps
 
 - None - task complete
+
+
+## Session 17: Support Docker WebUI path routing
+
+**Date**: 2026-04-13
+**Task**: Support Docker WebUI path routing
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Description |
+|------|-------------|
+| Docker WebUI server | Added explicit pathname allowlist so `/`, `/Configurations/CookieConfig`, `/Configurations/DailyJobConfig`, `/Configurations/DoubleCardConfig`, and `/Logs` all return the single WebUI HTML entry while preserving auth guards. |
+| Docker WebUI client | Bound the existing tab-based UI to `location.pathname`, including initial page selection, URL updates on sidebar navigation, and browser back/forward support. |
+| Verification | Confirmed `npm run lint`, `npm run type-check`, and `npm run test` pass for the final change set. |
+
+**Updated Files**:
+- `src/docker/server.ts`
+- `src/docker/html.ts`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c2d8ced` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

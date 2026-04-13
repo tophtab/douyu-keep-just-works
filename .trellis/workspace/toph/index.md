@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 16
+- **Total Sessions**: 17
 - **Last Active**: 2026-04-13
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~648 | Active |
+| `journal-1.md` | ~689 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits |
 |---|------|-------|---------|
+| 17 | 2026-04-13 | Support Docker WebUI path routing | `c2d8ced` |
 | 16 | 2026-04-13 | Archive bootstrap guidelines task | `9dbea67` |
 | 15 | 2026-04-13 | Auto-save Docker task toggles | `606358a` |
 | 14 | 2026-04-13 | Fix keepalive remainder allocation | `b77d678` |

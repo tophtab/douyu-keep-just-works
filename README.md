@@ -9,7 +9,7 @@
 **原作者**: Curtion  
 **共同维护**: tophtab
 
-![WEBUI预览](./doc/image.png)
+![WEBUI预览](./doc/webui.png)
 ![首页预览](./doc/home.png)
 ![配置预览](./doc/config.png)
 

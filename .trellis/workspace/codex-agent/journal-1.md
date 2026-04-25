@@ -373,3 +373,56 @@ Fixed Douyu business error handling for gift sends, made fan badge parsing error
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: Replace browser collect flow with danmu websocket
+
+**Date**: 2026-04-26
+**Task**: Replace browser collect flow with danmu websocket
+**Branch**: `master`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+|------|---------|
+| Collect gift runtime | Replaced Puppeteer/Chromium page open flow with Douyu danmu WebSocket login + h5ck room-entry flow. |
+| Room selection | Collect job now loads the user's fans medal list and randomly enters one medal room instead of hard-coding a public room. |
+| Docker build | Removed Chromium install and Puppeteer env/dependency path; runtime image now uses lightweight `ws` dependency only. |
+| Local workflow | Added Makefile helpers so local Docker testing mirrors the GitHub buildx workflow, while compose defaults to Docker Hub images. |
+| Verification | Real-cookie test increased glow sticks from 529 to 620; later run confirmed random medal-room entry path. Ran lint, type-check, test, Docker build, compose config, and local container boot checks. |
+| Spec sync | Updated backend directory-structure spec with browserless collect-gift contract, error matrix, and Docker validation requirements. |
+
+**Updated Files**:
+- `.github/workflows/docker.yml`
+- `.trellis/spec/backend/directory-structure.md`
+- `Dockerfile`
+- `Makefile`
+- `README.md`
+- `docker-compose.yml`
+- `package.json`
+- `package-lock.json`
+- `src/core/collect-gift.ts`
+- `src/core/job.ts`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8b5b0b6` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

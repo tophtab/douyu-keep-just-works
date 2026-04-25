@@ -464,3 +464,50 @@ Fixed Douyu business error handling for gift sends, made fan badge parsing error
 ### Next Steps
 
 - None - task complete
+
+
+## Session 11: Selective scheduler reload and cron defaults
+
+**Date**: 2026-04-26
+**Task**: Selective scheduler reload and cron defaults
+**Branch**: `master`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Description |
+|------|-------------|
+| Scheduler reload | Reworked Docker runtime config application to reload only affected schedulers instead of stopping and restarting every active task on each save. |
+| Task save flow | Changed keepalive/double-card save flow to reconcile fans against the pending config first, avoiding duplicate reload cycles and duplicate startup logs. |
+| Defaults | Updated default `collectGift` cron to `0 10 3,5 * * *` and default `doubleCard` cron to `0 20 17,20,22,23 * * *` across runtime defaults, WebUI fallbacks, and example config. |
+| Spec sync | Updated the Docker medal-sync contract to document selective scheduler reload behavior and the new default cron values. |
+
+**Updated Files**:
+- `src/docker/index.ts`
+- `src/core/medal-sync.ts`
+- `src/docker/html.ts`
+- `config.example.json`
+- `.trellis/spec/guides/docker-medal-sync-contract.md`
+- `src/templates/markdown/spec/guides/docker-medal-sync-contract.md`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6e1edce` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

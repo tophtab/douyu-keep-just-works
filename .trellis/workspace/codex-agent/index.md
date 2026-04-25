@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 10
+- **Total Sessions**: 11
 - **Last Active**: 2026-04-26
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~466 | Active |
+| `journal-1.md` | ~513 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 11 | 2026-04-26 | Selective scheduler reload and cron defaults | `6e1edce` | `master` |
 | 10 | 2026-04-26 | Fix cron preview flicker | `4472d12` | `master` |
 | 9 | 2026-04-26 | Replace browser collect flow with danmu websocket | `8b5b0b6` | `master` |
 | 8 | 2026-04-25 | Fix Douyu API failure handling | `e5c5c85` | `master` |

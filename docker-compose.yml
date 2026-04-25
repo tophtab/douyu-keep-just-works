@@ -1,7 +1,6 @@
 services:
   douyu-keep-just-works:
-    image: tophtab/douyu-keep-just-works:latest
-    build: .
+    image: ${DOCKER_IMAGE:-tophtab/douyu-keep-just-works}:${DOCKER_TAG:-latest}
     container_name: douyu-keep-just-works
     restart: unless-stopped
     ports:

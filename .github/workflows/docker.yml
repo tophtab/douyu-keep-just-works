@@ -22,12 +22,10 @@ jobs:
           node-version: 18
           cache: 'npm'
 
-      - name: Build TypeScript
+      - name: Validate TypeScript
         run: |
           npm ci --ignore-scripts
-          npx tsc -p tsconfig.docker.json
-        env:
-          PUPPETEER_SKIP_DOWNLOAD: 'true'
+          npm run type-check
 
       - name: Read Docker version tags
         id: version
@@ -89,6 +87,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

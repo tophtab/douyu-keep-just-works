@@ -140,3 +140,76 @@ electron-builder.json
 src/core/<shared-domain>.ts
 src/docker/<runtime-boundary>.ts
 ```
+
+## Scenario: Browserless Collect-Gift Runtime
+
+### 1. Scope / Trigger
+
+- Trigger: Any change to `src/core/collect-gift.ts`, Docker runtime dependencies, or the Docker image browser/system packages.
+- Scope: The Docker runtime claims daily glow sticks by simulating Douyu live-room entry through the danmu WebSocket protocol, not by launching a browser.
+
+### 2. Signatures
+
+```typescript
+export async function collectGiftViaDanmu(cookie: string, roomId: number | string): Promise<void>
+```
+
+```json
+{
+  "dependencies": {
+    "ws": "<current>"
+  }
+}
+```
+
+### 3. Contracts
+
+- `executeCollectGiftJob()` fetches the user's fans medal rooms with `getFansList()`, randomly selects one room, then calls `collectGiftViaDanmu(cookie, roomId)` before querying backpack status.
+- `collectGiftViaDanmu()` opens `wss://wsproxy.douyu.com:6672`, sends `loginreq`, then sends `h5ckreq` after a successful `loginres`.
+- A collect attempt succeeds only after receiving `type@=h5ckres`.
+- The collect room must come from the current fans medal room list; do not hard-code a public room id.
+- Runtime dependencies must stay lightweight: use `ws` for the WebSocket connection.
+- The Docker image must not install Chromium or Puppeteer for collect-gift behavior unless the browser-based path is explicitly restored.
+- Cookie values must only be sent to Douyu request headers/protocol payloads; never log full cookies.
+
+### 4. Validation & Error Matrix
+
+| Case | Expected result |
+|------|-----------------|
+| WebSocket handshake fails | Throw `领取荧光棒失败: <connection error>` |
+| No expected Douyu response before timeout | Throw timeout error and close the socket |
+| Fans medal list cannot be loaded | Throw collect failure before opening WebSocket |
+| Fans medal list is empty | Throw collect failure before opening WebSocket |
+| Selected room id is invalid | Throw invalid fans room error before opening WebSocket |
+| `loginres` does not include `roomgroup@=1` | Throw Cookie danmu auth failure, including missing required cookie key names when known |
+| `h5ckres` received | Resolve and let caller query backpack count |
+| Docker image build | Runtime `node_modules` includes `ws`; Chromium/Puppeteer are absent |
+
+### 5. Good/Base/Bad Cases
+
+- Good: Keep Douyu packet encoding/decoding in `src/core/collect-gift.ts`; choose the room from `getFansList()` in `src/core/job.ts`.
+- Base: If Douyu changes the room-entry protocol, update `collectGiftViaDanmu()` and preserve explicit timeout/auth errors.
+- Bad: Re-add `puppeteer`, install Chromium in `Dockerfile`, or hide WebSocket failures by treating them as a successful collect.
+
+### 6. Tests Required
+
+- Run `npm run type-check`.
+- Run `npm run lint`.
+- Run `npm run build:docker`.
+- Run `make docker-build` and verify Docker history has no Chromium install layer.
+- Start the local image with `make docker-up` and verify the WebUI boots.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```dockerfile
+RUN apt-get update && apt-get install -y chromium --no-install-recommends
+```
+
+#### Correct
+
+```typescript
+const fans = await getFansList(cookie)
+await collectGiftViaDanmu(cookie, fans[0].roomId)
+```

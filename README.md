@@ -20,6 +20,8 @@
 
 ## Docker 部署
 
+默认部署使用 GitHub Workflow 发布到 Docker Hub 的镜像。
+
 ```yaml
 services:
   douyu-keep-just-works:
@@ -45,6 +47,35 @@ docker compose up -d
 
 ```bash
 docker compose logs -f
+```
+
+## 本地 Docker 测试
+
+GitHub Workflow 是标准构建入口，最终会通过仓库根目录的 `Dockerfile` 构建并推送镜像。本地测试使用 `Makefile` 复现同一条 buildx 构建路径：
+
+```bash
+make docker-check
+make docker-build
+make docker-up
+```
+
+默认本地镜像 tag 是 `tophtab/douyu-keep-just-works:local`。如需测试其它 tag：
+
+```bash
+make docker-build TAG=test
+make docker-up TAG=test
+```
+
+查看本地测试容器日志：
+
+```bash
+make docker-logs
+```
+
+停止本地测试容器：
+
+```bash
+make docker-down
 ```
 
 

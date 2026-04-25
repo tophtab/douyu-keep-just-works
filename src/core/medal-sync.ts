@@ -4,7 +4,8 @@ import type { CollectGiftConfig, CookieCloudConfig, DockerConfig, DoubleCardConf
 const DEFAULT_COLLECT_GIFT_CRON = '0 10 0,1 * * *'
 const DEFAULT_KEEPALIVE_CRON = '0 0 8 */6 * *'
 const DEFAULT_DOUBLE_CARD_CRON = '0 20 14,17,20,23 * * *'
-const DEFAULT_YUBA_CHECK_IN_CRON = '0 30 0 * * *'
+const DEFAULT_YUBA_CHECK_IN_CRON = '0 23 0 * * *'
+const DEFAULT_COOKIE_CLOUD_SYNC_CRON = '0 5 0 * * *'
 const DEFAULT_THEME_MODE: ThemeMode = 'system'
 const DEFAULT_GIFT_ID = 268
 
@@ -96,7 +97,15 @@ function normalizeYubaCheckInConfig(config: YubaCheckInConfig | undefined): Yuba
 }
 
 function normalizeCookieCloud(config: CookieCloudConfig | undefined): CookieCloudConfig | undefined {
-  return normalizeCookieCloudConfig(config)
+  const normalized = normalizeCookieCloudConfig(config)
+  if (!normalized) {
+    return undefined
+  }
+
+  return {
+    ...normalized,
+    cron: normalized.cron || DEFAULT_COOKIE_CLOUD_SYNC_CRON,
+  }
 }
 
 function normalizeManualCookies(config: DockerConfig): ManualCookieConfig | undefined {

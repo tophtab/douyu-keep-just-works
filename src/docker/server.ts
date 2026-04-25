@@ -317,6 +317,14 @@ export function createServer(ctx: AppContext): express.Express {
     if (config.cryptoType !== undefined && config.cryptoType !== 'legacy') {
       return 'CookieCloud 加密算法无效'
     }
+    if (config.cron !== undefined) {
+      const cronError = validateCronConfig('cookieCloud', {
+        cron: config.cron,
+      })
+      if (cronError) {
+        return cronError
+      }
+    }
     if (config.active === true) {
       if (!String(config.endpoint || '').trim()) {
         return 'CookieCloud endpoint 不能为空'

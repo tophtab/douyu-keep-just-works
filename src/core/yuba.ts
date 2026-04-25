@@ -5,8 +5,10 @@ import type { YubaCheckInResult, YubaFollowedGroup, YubaGroupHead, YubaGroupStat
 const YUBA_HOST = 'https://yuba.douyu.com'
 const FOLLOWED_GROUP_PAGE_LIMIT = 50
 const MULTIPART_BOUNDARY_PREFIX = '----DouyuKeepBoundary'
-const YUBA_SIGN_INTERVAL_MIN_MS = 1800
-const YUBA_SIGN_INTERVAL_MAX_MS = 3200
+const YUBA_SIGN_INTERVAL_MIN_MS = 5000
+const YUBA_SIGN_INTERVAL_MAX_MS = 8000
+const YUBA_SIGN_EXP_FALLBACK_MAX_DELTA = 30
+type YubaBody = Record<string, unknown>
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -21,18 +23,18 @@ function readString(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback
 }
 
-function parseYubaBody(response: unknown, fallbackMessage: string): Record<string, any> {
+function parseYubaBody(response: unknown, fallbackMessage: string): YubaBody {
   if (typeof response !== 'object' || response === null) {
     throw new Error(fallbackMessage)
   }
-  return response as Record<string, any>
+  return response as YubaBody
 }
 
-function getYubaErrorCode(body: Record<string, any>): number {
+function getYubaErrorCode(body: YubaBody): number {
   return readNumber(body.error ?? body.status_code, 0)
 }
 
-function getYubaErrorMessage(body: Record<string, any>, fallbackMessage: string): string {
+function getYubaErrorMessage(body: YubaBody, fallbackMessage: string): string {
   return readString(body.msg ?? body.message, fallbackMessage) || fallbackMessage
 }
 
@@ -85,7 +87,7 @@ export async function getFollowedYubaGroups(cookie: string): Promise<YubaFollowe
     }
 
     const payload = typeof body.data === 'object' && body.data !== null
-      ? body.data as Record<string, any>
+      ? body.data as YubaBody
       : {}
     const list = Array.isArray(payload.list) ? payload.list : []
 
@@ -124,7 +126,7 @@ export async function getYubaGroupHead(groupId: number, cookie: string): Promise
     throw new Error(getYubaErrorMessage(body, `获取鱼吧${groupId}信息失败`))
   }
 
-  const payload = body.data as Record<string, any>
+  const payload = body.data as YubaBody
   return {
     groupId,
     groupName: readString(payload.group_name ?? payload.groupName, String(groupId)),
@@ -205,6 +207,9 @@ export async function signYubaGroup(groupId: number, curExp: number, cookie: str
   if (statusCode === 3004 || errorCode === 3004 || message.includes('Gee')) {
     throw new Error('鱼吧签到触发 Gee 验证，当前纯 HTTP 方案无法继续执行')
   }
+  if (statusCode === 4206 || errorCode === 4206 || message.includes('未登录')) {
+    throw new Error('鱼吧签到接口返回未登录，请检查鱼吧登录态是否失效')
+  }
   if (message.includes('今日已签到') || message.includes('已经签到') || message.includes('已签到')) {
     return 'already_signed'
   }
@@ -215,6 +220,32 @@ export async function signYubaGroup(groupId: number, curExp: number, cookie: str
     return 'signed'
   }
   throw new Error(getYubaErrorMessage(body, `鱼吧${groupId}签到失败`))
+}
+
+async function retryYubaSignWithExpFallback(groupId: number, baseExp: number, cookie: string): Promise<{
+  result: 'signed' | 'already_signed'
+  usedExp: number
+} | null> {
+  const normalizedBaseExp = Math.max(0, baseExp)
+  const maxDelta = Math.min(YUBA_SIGN_EXP_FALLBACK_MAX_DELTA, normalizedBaseExp)
+
+  for (let delta = 1; delta <= maxDelta; delta += 1) {
+    const candidateExp = normalizedBaseExp - delta
+
+    try {
+      return {
+        result: await signYubaGroup(groupId, candidateExp, cookie),
+        usedExp: candidateExp,
+      }
+    } catch (error) {
+      const message = errorMessage(error)
+      if (!shouldRetryYubaSign(message)) {
+        throw error
+      }
+    }
+  }
+
+  return null
 }
 
 function shouldStopAfterYubaFailure(message: string): boolean {
@@ -266,6 +297,7 @@ export async function executeFollowedYubaCheckIn(cookie: string, log: (message: 
     try {
       let head = await getYubaGroupHead(group.groupId, cookie)
       let result: 'signed' | 'already_signed'
+      let fallbackExpUsed: number | null = null
 
       try {
         result = await signYubaGroup(group.groupId, head.groupExp, cookie)
@@ -277,7 +309,27 @@ export async function executeFollowedYubaCheckIn(cookie: string, log: (message: 
 
         log(`鱼吧 ${head.groupName}(${group.groupId}) 首次签到失败，正在刷新经验值后重试`)
         head = await getYubaGroupHead(group.groupId, cookie)
-        result = await signYubaGroup(group.groupId, head.groupExp, cookie)
+
+        try {
+          result = await signYubaGroup(group.groupId, head.groupExp, cookie)
+        } catch (retryError) {
+          const retryMessage = errorMessage(retryError)
+          if (!shouldRetryYubaSign(retryMessage)) {
+            throw retryError
+          }
+
+          const fallbackResult = await retryYubaSignWithExpFallback(group.groupId, head.groupExp, cookie)
+          if (!fallbackResult) {
+            throw retryError
+          }
+
+          result = fallbackResult.result
+          fallbackExpUsed = fallbackResult.usedExp
+        }
+      }
+
+      if (fallbackExpUsed !== null) {
+        log(`鱼吧 ${head.groupName}(${group.groupId}) 回退经验值 ${head.groupExp} -> ${fallbackExpUsed} 后恢复签到`)
       }
 
       if (result === 'already_signed') {

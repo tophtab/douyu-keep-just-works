@@ -26,6 +26,7 @@ export interface CookieCloudConfig {
   endpoint: string
   uuid: string
   password: string
+  cron?: string
   cryptoType?: CookieCloudCryptoType
 }
 

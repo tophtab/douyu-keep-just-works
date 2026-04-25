@@ -856,7 +856,7 @@ textarea{
 
       <div class="panel">
         <h3 class="section-title">登录 Cookie</h3>
-        <p class="subtle">运行时优先使用 CookieCloud；手填 Cookie 只作为兜底。直播和鱼吧的手填 Cookie 分开保存，避免同名字段互相覆盖。启用 CookieCloud 后，最新同步结果会直接回填到这里并写入配置。</p>
+        <p class="subtle">运行时只使用本地登录 Cookie 快照。直播和鱼吧的 Cookie 分开保存，避免同名字段互相覆盖。启用 CookieCloud 后，系统会先同步到这里，再由各任务读取这两份本地值。</p>
         <div class="grid cols-2" style="margin-top:14px">
           <div class="field-block" style="margin-top:0">
             <label class="field-label" for="main-cookie-input">斗鱼直播的 Cookie</label>
@@ -893,6 +893,11 @@ textarea{
           <div class="field-block">
             <label class="field-label" for="cookie-cloud-uuid">UUID</label>
             <input id="cookie-cloud-uuid" type="text" placeholder="CookieCloud UUID">
+          </div>
+          <div class="field-block">
+            <label class="field-label" for="cookie-cloud-cron">同步 Cron</label>
+            <input id="cookie-cloud-cron" type="text" placeholder="0 5 0 * * *">
+            <div class="helper cron-preview" id="cookie-cloud-cron-preview">正在计算未来执行时间...</div>
           </div>
           <div class="field-block">
             <label class="field-label" for="cookie-cloud-password">密码</label>
@@ -1184,11 +1189,12 @@ textarea{
       endpoint: '',
       uuid: '',
       password: '',
+      cron: '0 5 0 * * *',
       cryptoType: 'legacy'
     },
     ui: { themeMode: 'system' },
     collectGift: { active: true, cron: '0 10 0,1 * * *' },
-    yubaCheckIn: { active: false, cron: '0 30 0 * * *', mode: 'followed' },
+    yubaCheckIn: { active: false, cron: '0 23 0 * * *', mode: 'followed' },
     keepalive: { active: true, cron: '0 0 8 */6 * *', model: 2, send: {} },
     doubleCard: { active: true, cron: '0 20 14,17,20,23 * * *', model: 1, send: {}, enabled: {} }
   };
@@ -1226,12 +1232,14 @@ textarea{
     managedLoading: false,
     themeMode: 'system',
     cronPreview: {
+      cookieCloud: createEmptyCronPreview(),
       collectGift: createEmptyCronPreview(),
       yubaCheckIn: createEmptyCronPreview(),
       keepalive: createEmptyCronPreview(),
       doubleCard: createEmptyCronPreview()
     },
     cronPreviewSeq: {
+      cookieCloud: 0,
       collectGift: 0,
       yubaCheckIn: 0,
       keepalive: 0,
@@ -1321,6 +1329,7 @@ textarea{
       endpoint: '',
       uuid: '',
       password: '',
+      cron: '0 5 0 * * *',
       cryptoType: 'legacy'
     };
   }
@@ -1357,12 +1366,12 @@ textarea{
       var config = getRawConfig();
       var cookieCloud = getCookieCloudConfig(config);
       if (!cookieCloud.active) {
-        return '启用后会在运行前从 CookieCloud 拉取浏览器同步的 Cookie 集；当前应用只提取斗鱼主站和鱼吧相关 Cookie，并回填到上方两个登录 Cookie 输入框。CookieCloud 服务端可能持有浏览器同步的多域 Cookie，但本应用只会把斗鱼主站和鱼吧两份 Cookie 写入本地配置。';
+        return '启用后会先从 CookieCloud 提取斗鱼主站和鱼吧相关 Cookie，并同步到上方两个本地登录 Cookie 输入框。运行时不会临时再拉 CookieCloud，而是直接使用这里保存的本地快照。';
       }
       if (!String(cookieCloud.endpoint || '').trim() || !String(cookieCloud.uuid || '').trim() || !String(cookieCloud.password || '').trim()) {
         return 'CookieCloud 已启用，但 endpoint / UUID / 密码 还没填完整。';
       }
-      return 'CookieCloud 已启用。点击“立即校验”可检查主站和鱼吧请求所需 Cookie 是否齐全，并把最新结果回填到登录 Cookie。';
+      return 'CookieCloud 已启用。系统会在启动时同步一次，并按这里配置的同步 Cron 自动刷新本地登录 Cookie。点击“立即校验”可检查当前同步结果是否齐全。';
     }
 
     var sourceLabel = result.source === 'cookieCloud' ? 'CookieCloud' : '手填 Cookie';
@@ -1805,7 +1814,9 @@ textarea{
     byId('cookie-cloud-enable').checked = cookieCloud.active === true;
     byId('cookie-cloud-endpoint').value = cookieCloud.endpoint || '';
     byId('cookie-cloud-uuid').value = cookieCloud.uuid || '';
+    byId('cookie-cloud-cron').value = cookieCloud.cron || '0 5 0 * * *';
     byId('cookie-cloud-password').value = cookieCloud.password || '';
+    void loadCronPreview('cookieCloud', byId('cookie-cloud-cron').value, 'cookie-cloud-cron-preview');
     renderCookieCheck();
   }
 
@@ -1827,7 +1838,7 @@ textarea{
 
   function renderYubaPage() {
     var rawConfig = getRawConfig();
-    var config = rawConfig.yubaCheckIn || { active: false, cron: '0 30 0 * * *', mode: 'followed' };
+    var config = rawConfig.yubaCheckIn || { active: false, cron: '0 23 0 * * *', mode: 'followed' };
     byId('yuba-task-card').innerHTML = state.overview
       ? buildTaskCard(
         '鱼吧签到',
@@ -1838,7 +1849,7 @@ textarea{
       )
       : buildLoadingTaskCard('鱼吧签到');
     byId('yuba-enable').checked = isTaskActive(config);
-    byId('yuba-cron').value = config.cron || '0 30 0 * * *';
+    byId('yuba-cron').value = config.cron || '0 23 0 * * *';
     byId('yuba-mode').value = config.mode || 'followed';
     void loadCronPreview('yubaCheckIn', byId('yuba-cron').value, 'yuba-cron-preview');
 
@@ -2172,7 +2183,7 @@ textarea{
       }
       renderLoginPage();
       if (showToast) {
-        toast(data && data.data && data.data.updated ? 'CookieCloud 已同步到登录 Cookie' : '登录 Cookie 已是最新同步结果', true);
+        toast(data && data.data && data.data.updated ? 'CookieCloud 已同步到本地登录 Cookie' : '本地登录 Cookie 已是最新同步结果', true);
       }
       return data;
     }).catch(function (error) {
@@ -2515,6 +2526,7 @@ textarea{
         active: shouldEnable,
         endpoint: byId('cookie-cloud-endpoint').value.trim(),
         uuid: byId('cookie-cloud-uuid').value.trim(),
+        cron: byId('cookie-cloud-cron').value.trim(),
         password: byId('cookie-cloud-password').value.trim(),
         cryptoType: 'legacy'
       }
@@ -2671,14 +2683,14 @@ textarea{
   }
 
   function disableYubaConfig() {
-    var currentConfig = getRawConfig().yubaCheckIn || { active: false, cron: '0 30 0 * * *', mode: 'followed' };
+    var currentConfig = getRawConfig().yubaCheckIn || { active: false, cron: '0 23 0 * * *', mode: 'followed' };
     requestJson('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         yubaCheckIn: {
           active: false,
-          cron: currentConfig.cron || '0 30 0 * * *',
+          cron: currentConfig.cron || '0 23 0 * * *',
           mode: currentConfig.mode || 'followed'
         }
       })
@@ -2999,6 +3011,9 @@ textarea{
   });
   byId('collect-enable').addEventListener('change', function (event) {
     handleTaskToggleChange(event, saveCollectConfig, disableCollectConfig);
+  });
+  byId('cookie-cloud-cron').addEventListener('input', function (event) {
+    void loadCronPreview('cookieCloud', event.target.value, 'cookie-cloud-cron-preview');
   });
   byId('cookie-cloud-enable').addEventListener('change', function (event) {
     handleTaskToggleChange(event, saveCookieCloudToggle, disableCookieCloud);

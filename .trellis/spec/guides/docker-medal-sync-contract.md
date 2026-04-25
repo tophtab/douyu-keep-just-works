@@ -167,7 +167,7 @@ Field rules:
 - `yubaCheckIn.mode`
   - currently only `followed` is valid
 - `yubaCheckIn.cron`
-  - omitted old config is normalized to default `0 30 0 * * *`
+  - omitted old config is normalized to default `0 23 0 * * *`
 - `yubaCheckIn.active === false`
   - task remains persisted but scheduler must not start
 
@@ -243,7 +243,7 @@ Request payload:
   },
   "yubaCheckIn": {
     "active": true,
-    "cron": "0 30 0 * * *",
+    "cron": "0 23 0 * * *",
     "mode": "followed"
   }
 }
@@ -476,7 +476,10 @@ File: `src/core/medal-sync.ts`
 ### Cookie Source
 
 - runtime resolves cookies per target hostname instead of using one shared literal cookie for all Douyu domains
-- when CookieCloud is enabled, runtime tries CookieCloud first and falls back to manual cookies only when CookieCloud has no matching cookie for that hostname
+- when CookieCloud is enabled, runtime syncs the latest Douyu main / yuba cookies into local `manualCookies` and tasks read only that persisted local snapshot
+- runtime does not fetch CookieCloud inline during task execution; CookieCloud is a sync source, not the task-time credential source
+- on startup, CookieCloud runs an immediate sync into local cookies
+- when CookieCloud is enabled, a daily sync job runs from `cookieCloud.cron`; the default is `0 5 0 * * *` (`00:05` Asia/Shanghai)
 - `persistEffectiveCookies()` writes the latest effective main / yuba cookies back into `manualCookies`
 - CookieCloud cache is keyed by `endpoint|uuid|password|cryptoType`; current runtime always normalizes `cryptoType` to `legacy`, and the cache remains valid for `60s`
 
@@ -492,6 +495,7 @@ File: `src/core/medal-sync.ts`
 - `wbapi/web/group/head.data.is_signed` is display-only and must not be treated as the authority for skipping sign attempts
 - the authoritative sign result is `ybapi/topic/sign` itself
 - `status_code = 1001` only counts as already signed when the response message explicitly says `今天已经签到过了` / `今日已签到`; a generic `签到失败` must remain a failure
+- when a generic `签到失败` persists after refreshing `group/head`, runtime may probe lower `cur_exp` values within a bounded fallback window before treating the group as failed
 - batch sign runs sequentially, not concurrently
 - batch sign inserts a jittered delay between groups to reduce rate-pattern failures
 - groups that return `被关闭` / `不存在` during batch sign should be skipped and not counted as task failures
@@ -526,6 +530,7 @@ File: `src/core/medal-sync.ts`
 | yuba sign | `topic/sign` returns `1001` + `message = 今天已经签到过了` | count as `alreadySigned` |
 | yuba sign | `topic/sign` returns `1001` + generic `message = 签到失败` | keep as failure, do not rewrite to `alreadySigned` |
 | yuba sign | stale `cur_exp` causes generic sign failure | refresh `group/head`, retry once with the latest `group_exp` |
+| yuba sign | refreshed `group_exp` still yields generic sign failure but a slightly lower exp is accepted | probe lower `cur_exp` values within the bounded fallback window and recover if one succeeds |
 | yuba sign | group is closed or removed and upstream says `被关闭` / `不存在` | skip the group, do not increment `failedCount` |
 | yuba group head | one group closed or forbidden | row returns `error`, whole status API still returns `200` |
 | medal fetch | Douyu request fails | `500 { error }`, persisted config remains unchanged |

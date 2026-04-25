@@ -196,6 +196,7 @@ export function normalizeCookieCloudConfig(config: CookieCloudConfig | undefined
     endpoint: normalizeEndpoint(config.endpoint || ''),
     uuid: normalizeString(config.uuid),
     password: normalizeString(config.password),
+    cron: normalizeString(config.cron || ''),
     cryptoType: normalizeCookieCloudCryptoType(),
   }
 }

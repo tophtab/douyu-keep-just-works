@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 6
+- **Total Sessions**: 7
 - **Last Active**: 2026-04-25
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~293 | Active |
+| `journal-1.md` | ~342 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 7 | 2026-04-25 | Remove legacy desktop runtime | `6702f65` | `master` |
 | 6 | 2026-04-25 | CookieCloud sync and yuba scheduling cleanup | `b8a7056` | `master` |
 | 5 | 2026-04-24 | Stabilize yuba check-in flow | `89c8208` | `master` |
 | 4 | 2026-04-24 | Stabilize Docker build and glow-stick fallback | `8e5144f` | `master` |

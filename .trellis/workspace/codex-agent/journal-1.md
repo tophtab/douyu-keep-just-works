@@ -291,3 +291,52 @@ Upgraded the Docker/WebUI build chain to remove Sass legacy API and renderer chu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: Remove legacy desktop runtime
+
+**Date**: 2026-04-25
+**Task**: Remove legacy desktop runtime
+**Branch**: `master`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+|------|---------|
+| Runtime cleanup | Removed legacy Electron main process, Vue renderer, desktop build scripts, Electron/Vite/UnoCSS configs, and Yarn metadata. |
+| Package cleanup | Simplified npm scripts to Docker-only build/type-check/lint/start flows and pruned desktop/frontend dependencies from package-lock. |
+| Documentation/spec sync | Updated README and Trellis backend/frontend specs to document Docker-only runtime boundaries and prevent reintroducing desktop-only paths. |
+| Verification | Ran lint, type-check, test/build, audit, diff checks, stale desktop reference search, and local WebUI smoke test on port 51417. |
+
+**Key commit**: `6702f65 chore: remove legacy desktop runtime`
+
+**Validation performed**:
+- `npm run lint`
+- `npm run type-check`
+- `npm test`
+- `npm audit --audit-level=moderate`
+- `git diff --check`
+- Local WebUI smoke test returned `200 OK` at `http://127.0.0.1:51417/`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6702f65` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

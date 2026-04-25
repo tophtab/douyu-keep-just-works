@@ -36,6 +36,51 @@ export function getCookieValue(cookie: string, name: string): string | undefined
   return parseCookieRecord(cookie)[name]
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function readResponseNumber(value: unknown): number | undefined {
+  if (value === null || value === undefined || value === '') {
+    return undefined
+  }
+
+  const parsed = typeof value === 'number' ? value : Number(String(value).trim())
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
+function readResponseString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function getDouyuResponseMessage(data: Record<string, unknown>, fallback: string): string {
+  const nestedData = isRecord(data.data) ? data.data : {}
+  return readResponseString(data.msg)
+    || readResponseString(data.message)
+    || readResponseString(data.error_msg)
+    || readResponseString(nestedData.msg)
+    || readResponseString(nestedData.message)
+    || fallback
+}
+
+function assertDouyuBusinessSuccess(data: unknown, action: string): Record<string, unknown> {
+  if (!isRecord(data)) {
+    throw new Error(`${action}失败，返回数据格式异常`)
+  }
+
+  const errorCode = readResponseNumber(data.error)
+  if (errorCode !== undefined && errorCode !== 0) {
+    throw new Error(`${action}失败，接口返回错误码 ${errorCode}: ${getDouyuResponseMessage(data, '无错误信息')}`)
+  }
+
+  const code = readResponseNumber(data.code ?? data.status_code)
+  if (code !== undefined && code !== 0 && code !== 200) {
+    throw new Error(`${action}失败，接口返回状态码 ${code}: ${getDouyuResponseMessage(data, '无错误信息')}`)
+  }
+
+  return data
+}
+
 function getMissingBackpackCookieKeys(cookie: string): string[] {
   return BACKPACK_REQUIRED_COOKIE_KEYS.filter(name => !getCookieValue(cookie, name))
 }
@@ -151,7 +196,8 @@ export async function sendGift(args: sendArgs, job: SendGift, cookie: string): P
       'Content-Type': 'application/x-www-form-urlencoded',
     },
   })
-  return JSON.stringify(res.data)
+  const data = assertDouyuBusinessSuccess(res.data, '赠送荧光棒')
+  return JSON.stringify(data)
 }
 
 export async function getDid(roomId: string, cookie: string): Promise<string> {
@@ -173,16 +219,32 @@ export async function getFansList(cookie: string): Promise<Fans[]> {
   const res = await axios.get('https://www.douyu.com/member/cp/getFansBadgeList', {
     headers: makeHeaders(cookie),
   })
-  const table = res.data.match(/fans-badge-list">([\S\s]*?)<\/table>/)[1]
+  if (typeof res.data !== 'string') {
+    throw new TypeError('获取粉丝牌列表失败，返回数据格式异常')
+  }
+
+  const table = res.data.match(/fans-badge-list">([\S\s]*?)<\/table>/)?.[1]
+  if (!table) {
+    throw new Error('获取粉丝牌列表失败，未找到粉丝牌表格，请检查主站 Cookie 是否有效')
+  }
+
   const list = table.match(/<tr([\s\S]*?)<\/tr>/g)
   list?.shift()
-  const fans: Fans[] = list?.map((item: any) => {
+  const fans: Fans[] = list?.map((item: string) => {
     const tds = item.match(/<td([\s\S]*?)<\/td>/g)
+    const name = item.match(/data-anchor_name="([\S\s]+?)"/)?.[1]
+    const roomId = item.match(/data-fans-room="(\d+)"/)?.[1]
+    const level = item.match(/data-fans-level="(\d+)"/)?.[1]
+    const rank = item.match(/data-fans-rank="(\d+)"/)?.[1]
+    if (!tds || tds.length < 4 || !name || !roomId || !level || !rank) {
+      throw new Error('获取粉丝牌列表失败，返回数据格式异常')
+    }
+
     return {
-      name: String(item.match(/data-anchor_name="([\S\s]+?)"/)[1]),
-      roomId: Number(item.match(/data-fans-room="(\d+)"/)[1]),
-      level: Number(item.match(/data-fans-level="(\d+)"/)[1]),
-      rank: Number(item.match(/data-fans-rank="(\d+)"/)[1]),
+      name: String(name),
+      roomId: Number(roomId),
+      level: Number(level),
+      rank: Number(rank),
       intimacy: String(tds[2].replace(/<([\s\S]*?)>/g, '').trim()),
       today: Number(tds[3].replace(/<([\s\S]*?)>/g, '').trim()),
     }

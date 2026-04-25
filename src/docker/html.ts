@@ -2544,8 +2544,6 @@ textarea{
       if (!options || !options.quietSuccess) {
         toast(shouldEnable ? 'CookieCloud 已保存并启用' : 'CookieCloud 配置已保存', true);
       }
-      return refreshOverviewSurface(false);
-    }).then(function () {
       if (payload.cookieCloud.active) {
         return syncCookieCloudToLoginCookies(false).then(function () {
           return checkCookieSource(false);
@@ -2553,6 +2551,8 @@ textarea{
       }
       renderLoginPage();
       return null;
+    }).then(function () {
+      return refreshOverviewSurface(false);
     }).catch(function (error) {
       if (options && options.revertCheckboxTo !== undefined) {
         checkbox.checked = options.revertCheckboxTo;

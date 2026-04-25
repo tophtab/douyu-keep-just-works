@@ -750,11 +750,19 @@ function main(): void {
         }
       })
       const statuses = await Promise.all(fans.map(async (fan): Promise<FanStatus> => {
-        const doubleInfo = await checkDoubleCard(fan.roomId, cookie)
-        return {
-          ...fan,
-          doubleActive: doubleInfo.active,
-          doubleExpireTime: doubleInfo.expireTime,
+        try {
+          const doubleInfo = await checkDoubleCard(fan.roomId, cookie)
+          return {
+            ...fan,
+            doubleActive: doubleInfo.active,
+            doubleExpireTime: doubleInfo.expireTime,
+          }
+        } catch (error: unknown) {
+          logSystem(`加载房间${fan.roomId}双倍状态失败: ${errorMessage(error)}`)
+          return {
+            ...fan,
+            doubleActive: false,
+          }
         }
       }))
       return {

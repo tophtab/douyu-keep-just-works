@@ -974,7 +974,6 @@ textarea{
             </select>
           </div>
         </div>
-        <div class="helper">依赖当前 Cookie 中的鱼吧登录态和 <code>acf_yb_t</code>。如触发 Gee 或登录失效，本轮任务会停止并在日志中提示。</div>
         <div class="actions" style="margin-top:14px">
           <button class="btn btn-success" data-action="save-yuba">保存并启用</button>
           <button class="btn btn-secondary" data-action="trigger" data-trigger="yubaCheckIn">立即签到</button>
@@ -1016,10 +1015,11 @@ textarea{
             </select>
           </div>
         </div>
-        <div id="keepalive-table-wrap" style="margin-top:16px"></div>
         <div class="actions" style="margin-top:14px">
           <button class="btn btn-success" data-action="save-keepalive">保存并启用</button>
+          <button class="btn btn-secondary" data-action="trigger" data-trigger="keepalive">立即保活</button>
         </div>
+        <div id="keepalive-table-wrap" style="margin-top:16px"></div>
       </div>
     </section>
 
@@ -1059,6 +1059,10 @@ textarea{
             </select>
           </div>
         </div>
+        <div class="actions" style="margin-top:14px">
+          <button class="btn btn-success" data-action="save-double">保存并启用</button>
+          <button class="btn btn-secondary" data-action="trigger" data-trigger="doubleCard">立即检测</button>
+        </div>
         <div class="status-box" style="margin-top:16px">
           <div class="split-inline">
             <div class="split-inline-copy">
@@ -1073,9 +1077,6 @@ textarea{
           </div>
         </div>
         <div id="double-table-wrap" style="margin-top:16px"></div>
-        <div class="actions" style="margin-top:14px">
-          <button class="btn btn-success" data-action="save-double">保存并启用</button>
-        </div>
       </div>
     </section>
 
@@ -2879,14 +2880,24 @@ textarea{
       method: 'POST'
     }).then(function () {
       toast('执行完成', true);
-      loadOverview();
-      loadLogs();
-      if (state.activeTab === 'overview') {
-        loadFansStatus(false);
+      var reloads = [
+        loadOverview(),
+        loadLogs()
+      ];
+      if (state.activeTab === 'overview' || type === 'collectGift' || type === 'keepalive' || type === 'doubleCard') {
+        reloads.push(loadFansStatus(false));
       }
       if (state.activeTab === 'yuba' || type === 'yubaCheckIn') {
-        loadYubaStatus(false);
+        reloads.push(loadYubaStatus(false));
       }
+      Promise.all(reloads).then(function () {
+        if (state.activeTab === 'keepalive') {
+          renderKeepalivePage();
+        }
+        if (state.activeTab === 'double-card') {
+          renderDoublePage();
+        }
+      });
     }).catch(function (error) {
       if (isUnauthorizedError(error)) {
         return;

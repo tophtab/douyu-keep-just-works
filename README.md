@@ -58,7 +58,9 @@ docker compose logs -f
 
 ## 声明
 
-仅供个人学习与研究
+本项目仅供个人学习、技术研究与非商业性技术交流使用，仅提供代码与部署方式参考。
+
+使用者应自行确认其使用行为符合目标平台规则及当地法律法规，作者不对因使用本项目产生的任何直接或间接后果负责。
 
 ## 致谢
 
@@ -68,3 +70,4 @@ docker compose logs -f
 - https://github.com/qianfeiqianlan/yuba-check-in
 - https://github.com/qianjiachun/douyuEx
 - 每日荧光棒领取的非浏览器模拟方案：https://nicelee.top/blog/2021/09/28/python-douyu-danmu/
+- 感谢 LINUX DO 社区的交流与支持：https://linux.do/

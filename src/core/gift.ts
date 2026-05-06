@@ -61,7 +61,7 @@ export async function computeGiftCountOfProportion(number: number, send: sendCon
   const totalWeight = sendSort.reduce((sum, item) => sum + item.weight, 0)
 
   if (totalWeight <= 0) {
-    return Promise.reject(new Error('双倍卡房间按比例配置无效'))
+    return Promise.reject(new Error('按权重模式至少需要一个房间填写大于 0 的权重值'))
   }
 
   for (let i = 0; i < sendSort.length; i++) {

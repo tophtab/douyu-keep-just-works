@@ -664,6 +664,20 @@ Expected:
 - double-card weight values do not need to sum to `100`
 - WebUI preview may show derived percentages, but persisted payload keeps the raw proportion values
 
+### Good: Weight-Mode Proportion Allocation
+
+- keepalive, double-card, or expiring-gift runs with `model = 1`
+- room A has `weight = 1`
+- room B has `weight = 3`
+- current gift budget is `8`
+
+Expected:
+
+- runtime treats weights as raw proportions, not literal percentages
+- runtime allocates roughly `2 / 6`, with normal floor/remainder handling for uneven totals
+- total weight may be below or above `100`
+- double-card may first filter to checked and currently double-active rooms, but the filtered room set still uses the same raw proportion allocator
+
 ### Base: Keepalive Fixed-Count Without Remainder Room
 
 - keepalive fixed-count mode
@@ -815,6 +829,7 @@ Manual assertions:
 - keepalive fixed-count mode defaults new rows to `1`
 - keepalive fixed-count mode with all rows set to `1` sends only those explicit counts and preserves any remainder
 - keepalive fixed-count mode with exactly one row set to `-1` sends the remainder only to that row
+- keepalive weight mode accepts raw weights such as `1 / 3` and allocates by total weight, not `/100`
 - after medal reconciliation, keepalive rooms match medal list
 - unchanged keepalive room values remain untouched
 - disabling keepalive preserves the previously saved cron / model / send config after page refresh
@@ -833,6 +848,7 @@ Manual assertions:
 - expiring-gift can be enabled, disabled, and manually triggered from `临期任务`
 - expiring-gift skips when the earliest visible fluorescent-stick expiry is outside the configured threshold
 - expiring-gift sends current visible fluorescent-stick inventory once when the earliest expiry is inside the configured threshold
+- expiring-gift weight mode accepts raw weights such as `1 / 3` and allocates each due gift group by total weight, not `/100`
 - yuba page loads followed-group rows and sorts by current exp descending
 - yuba page displays `经验值` as `当前经验/下级经验`
 - CookieCloud-to-login persistence updates the login Cookie textareas instead of a second synthetic field
@@ -847,6 +863,7 @@ Manual assertions:
 - tie yuba status loading to medal reconciliation
 - make one failing yuba group break the entire yuba status list
 - document the old combined `登录与领取` page after the WebUI has already split it
+- route keepalive or expiring-gift weight mode through percentage math such as `weight / 100`
 
 ### Correct
 
@@ -855,6 +872,7 @@ Manual assertions:
 - tolerate per-group yuba failures via row-level `error`
 - reconcile expiring-gift room config through the same medal-list path as keepalive
 - keep the WebUI contract aligned with the split pages: `登录` / `领取任务` / `鱼吧签到`
+- route keepalive, double-card, and expiring-gift weight mode through a shared total-weight proportion allocator after any task-specific room filtering
 
 ---
 

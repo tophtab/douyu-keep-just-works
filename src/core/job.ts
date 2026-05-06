@@ -1,7 +1,7 @@
 import { GLOW_STICK_GIFT_ID, getBackpackStatus, getDid, getFansList, getGiftNumber, parseDyAndSidFromCookie, sendGift, sleep } from './api'
 import { collectGiftViaDanmu } from './collect-gift'
 import { checkDoubleCard } from './double-card'
-import { computeGiftCountOfNumber, computeGiftCountOfPercentage, computeGiftCountWithDoubleCard } from './gift'
+import { computeGiftCountOfNumber, computeGiftCountOfProportion, computeGiftCountWithDoubleCard } from './gift'
 import type { BackpackGiftRow, BackpackStatus, DoubleCardConfig, ExpiringGiftConfig, ExpiringGiftSelection, JobConfig, Logger, YubaCheckInConfig, sendArgs, sendConfig } from './types'
 import { executeFollowedYubaCheckInWithDyToken, formatYubaModeLabel } from './yuba'
 
@@ -196,7 +196,7 @@ export async function executeKeepaliveJob(config: JobConfig, cookie: string, log
   let jobs: sendConfig = {}
   try {
     if (model === 1) {
-      jobs = await computeGiftCountOfPercentage(number, JSON.parse(JSON.stringify(send)))
+      jobs = await computeGiftCountOfProportion(number, JSON.parse(JSON.stringify(send)))
     } else {
       jobs = await computeGiftCountOfNumber(number, JSON.parse(JSON.stringify(send)))
     }
@@ -370,7 +370,7 @@ export async function executeExpiringGiftJob(config: ExpiringGiftConfig, cookie:
     let jobs: sendConfig = {}
     try {
       if (model === 1) {
-        jobs = await computeGiftCountOfPercentage(giftCount, JSON.parse(JSON.stringify(send)))
+        jobs = await computeGiftCountOfProportion(giftCount, JSON.parse(JSON.stringify(send)))
       } else {
         jobs = await computeGiftCountOfNumber(giftCount, JSON.parse(JSON.stringify(send)))
       }

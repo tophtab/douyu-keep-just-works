@@ -983,3 +983,36 @@ Expanded expiring backpack gift handling and added double-card gift scope select
 ### Next Steps
 
 - None - task complete
+
+
+## Session 25: Fix weight allocation proportion mode
+
+**Date**: 2026-05-06
+**Task**: Fix weight allocation proportion mode
+**Branch**: `master`
+
+### Summary
+
+Archived the weight-allocation proportion fix after verification; README/poster experiment was fully reverted and left no product-file diff.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9575cce` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

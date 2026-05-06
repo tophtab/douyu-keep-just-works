@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 24
+- **Total Sessions**: 25
 - **Last Active**: 2026-05-06
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~985 | Active |
+| `journal-1.md` | ~1018 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 25 | 2026-05-06 | Fix weight allocation proportion mode | `9575cce` | `master` |
 | 24 | 2026-05-06 | Expand expiring gift release scopes | `cba58a8`, `58b5325` | `master` |
 | 23 | 2026-05-06 | Adjust expiring gift defaults | `df99d83`, `fc628bd` | `master` |
 | 22 | 2026-05-01 | Release 2.3.0 | `2588411` | `master` |

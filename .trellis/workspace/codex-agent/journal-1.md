@@ -915,3 +915,37 @@ Bumped package metadata to 2.3.0, pushed master, and published the v2.3.0 releas
 ### Next Steps
 
 - None - task complete
+
+
+## Session 23: Adjust expiring gift defaults
+
+**Date**: 2026-05-06
+**Task**: Adjust expiring gift defaults
+**Branch**: `master`
+
+### Summary
+
+Adjusted expiring gift task defaults to run daily at 23:45, use weight-based allocation by default, and seed first-room-only default weights while preserving saved configs.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `df99d83` | (see git log) |
+| `fc628bd` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

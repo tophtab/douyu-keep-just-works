@@ -65,7 +65,7 @@
   },
   "expiringGift": {
     "active": false,
-    "cron": "0 0 */6 * * *",
+    "cron": "0 45 23 * * *",
     "thresholdHours": 24,
     "model": 2,
     "send": {

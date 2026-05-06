@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend/Docker runtime conventions for config defaults and scheduler wiring."}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Docker-only runtime boundaries and where config/UI code belongs."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Persisted Docker config default and normalization behavior."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Quality rules before implementation."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Current UI changes are in Docker WebUI and should follow backend runtime guidance."}
+{"file": ".trellis/spec/guides/docker-medal-sync-contract.md", "reason": "Executable contract for medal-driven Docker config, expiringGift defaults, and allocation wording."}

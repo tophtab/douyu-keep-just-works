@@ -4,7 +4,7 @@ import type { CollectGiftConfig, CookieCloudConfig, DockerConfig, DoubleCardConf
 const DEFAULT_COLLECT_GIFT_CRON = '0 10 3,5 * * *'
 const DEFAULT_KEEPALIVE_CRON = '0 0 8 */6 * *'
 const DEFAULT_DOUBLE_CARD_CRON = '0 20 17,20,22,23 * * *'
-const DEFAULT_EXPIRING_GIFT_CRON = '0 0 */6 * * *'
+const DEFAULT_EXPIRING_GIFT_CRON = '0 45 23 * * *'
 const DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS = 24
 const DEFAULT_YUBA_CHECK_IN_CRON = '0 23 0 * * *'
 const DEFAULT_COOKIE_CLOUD_SYNC_CRON = '0 5 0 * * *'

@@ -150,6 +150,9 @@ Field rules:
   - task is independent and has no medal-room payload
 - `keepalive.send`
   - room set must match the current medal list after reconciliation
+- `keepalive.model === 1`
+  - the persisted `weight` field is treated as a proportion weight, not a literal percent total
+  - proportion weights may be any non-negative number and do not need to sum to `100`
 - `keepalive.model === 2`
   - `number >= 0` means the room receives exactly that fixed amount
   - `number = -1` is a sentinel meaning "receive the remainder after all explicit fixed counts"
@@ -173,13 +176,13 @@ Field rules:
   - `true` means the room participates in double-card detection and send candidate selection
   - missing value behaves as `false`
 - `expiringGift.cron`
-  - omitted old config is normalized to the default `0 0 */6 * * *`
+  - omitted old config is normalized to the default `0 45 23 * * *`
 - `expiringGift.thresholdHours`
   - positive number of hours before earliest visible fluorescent-stick expiry
   - omitted or invalid values normalize to `24`
 - `expiringGift.send`
   - room set must match the current medal list after reconciliation
-  - gifting reuses the existing keepalive allocation modes: `model = 1` percentage, `model = 2` fixed count
+  - gifting reuses the existing keepalive allocation modes: `model = 1` weight-based allocation, `model = 2` fixed count
   - manual trigger with no configured room payload returns `400 { "error": "临期任务未配置" }`
 - `expiringGift` runtime behavior
   - each run loads current fluorescent-stick count and earliest visible expiry via `getGiftStatus(cookie, roomIds)`
@@ -265,7 +268,7 @@ Request payload:
   },
   "expiringGift": {
     "active": false,
-    "cron": "0 0 */6 * * *",
+    "cron": "0 45 23 * * *",
     "thresholdHours": 24,
     "model": 2,
     "send": {

@@ -1187,7 +1187,7 @@ textarea{
           <div class="field-block">
             <label class="field-label" for="keepalive-model">分配模式</label>
             <select id="keepalive-model">
-              <option value="1">按百分比</option>
+              <option value="1">按权重</option>
               <option value="2">按固定数量</option>
             </select>
           </div>
@@ -1289,7 +1289,7 @@ textarea{
           <div class="field-block">
             <label class="field-label" for="expiring-model">分配模式</label>
             <select id="expiring-model">
-              <option value="1">按百分比</option>
+              <option value="1">按权重</option>
               <option value="2">按固定数量</option>
             </select>
           </div>
@@ -1424,7 +1424,7 @@ textarea{
     yubaCheckIn: { active: false, cron: '0 23 0 * * *', mode: 'followed' },
     keepalive: { active: true, cron: '0 0 8 */6 * *', model: 2, send: {} },
     doubleCard: { active: true, cron: '0 20 17,20,22,23 * * *', model: 1, send: {}, enabled: {} },
-    expiringGift: { active: false, cron: '0 0 */6 * * *', thresholdHours: 24, model: 2, send: {} }
+    expiringGift: { active: false, cron: '0 45 23 * * *', thresholdHours: 24, model: 2, send: {} }
   };
 
   function createEmptyCronPreview() {
@@ -2247,7 +2247,7 @@ textarea{
 
   function renderExpiringGiftPage() {
     var rawConfig = getRawConfig();
-    var config = getManagedConfig().expiringGift || rawConfig.expiringGift || { active: false, cron: '0 0 */6 * * *', thresholdHours: 24, model: 2, send: {} };
+    var config = getManagedConfig().expiringGift || rawConfig.expiringGift || { active: false, cron: '0 45 23 * * *', thresholdHours: 24, model: 2, send: {} };
     var fans = getManagedFans();
     byId('expiring-task-card').innerHTML = state.overview
       ? buildTaskCard(
@@ -2259,7 +2259,7 @@ textarea{
       )
       : buildLoadingTaskCard('临期');
     byId('expiring-enable').checked = isTaskActive(getManagedConfig().expiringGift || rawConfig.expiringGift);
-    byId('expiring-cron').value = config.cron || '0 0 */6 * * *';
+    byId('expiring-cron').value = config.cron || '0 45 23 * * *';
     byId('expiring-threshold-hours').value = String(config.thresholdHours || 24);
     byId('expiring-model').value = String(config.model || 2);
     void ensureCronPreview('expiringGift', byId('expiring-cron').value, 'expiring-cron-preview');
@@ -2318,7 +2318,7 @@ textarea{
     if (withEnabled) {
       header += '<th>参与</th>';
     }
-    header += '<th>主播名称</th><th>房间号</th><th>等级</th><th>排名</th><th>今日亲密度</th><th>亲密度</th><th>' + (model === 2 ? '数量' : (withEnabled ? '权重值' : '百分比')) + '</th></tr>';
+    header += '<th>主播名称</th><th>房间号</th><th>等级</th><th>排名</th><th>今日亲密度</th><th>亲密度</th><th>' + (model === 2 ? '数量' : '权重值') + '</th></tr>';
 
     return '<div class="table-shell"><table class="table"><thead>' + header + '</thead><tbody>' + rows.join('') + '</tbody></table></div>';
   }
@@ -3191,14 +3191,14 @@ textarea{
   }
 
   function disableExpiringGiftConfig() {
-    var currentConfig = getManagedConfig().expiringGift || getRawConfig().expiringGift || { active: false, cron: '0 0 */6 * * *', thresholdHours: 24, model: 2, send: {} };
+    var currentConfig = getManagedConfig().expiringGift || getRawConfig().expiringGift || { active: false, cron: '0 45 23 * * *', thresholdHours: 24, model: 2, send: {} };
     requestJson('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         expiringGift: {
           active: false,
-          cron: currentConfig.cron || '0 0 */6 * * *',
+          cron: currentConfig.cron || '0 45 23 * * *',
           thresholdHours: Number(currentConfig.thresholdHours || 24),
           model: Number(currentConfig.model || 2),
           send: currentConfig.send || {}

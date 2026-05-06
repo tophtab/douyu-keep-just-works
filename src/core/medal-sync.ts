@@ -1,5 +1,5 @@
 import { normalizeCookieCloudConfig } from './cookie-cloud'
-import type { CollectGiftConfig, CookieCloudConfig, DockerConfig, DoubleCardConfig, ExpiringGiftConfig, Fans, JobConfig, ManualCookieConfig, SendGift, ThemeMode, YubaCheckInConfig, sendConfig } from './types'
+import type { CollectGiftConfig, CookieCloudConfig, DockerConfig, DoubleCardConfig, DoubleCardGiftScope, ExpiringGiftConfig, Fans, JobConfig, ManualCookieConfig, SendGift, ThemeMode, YubaCheckInConfig, sendConfig } from './types'
 
 const DEFAULT_COLLECT_GIFT_CRON = '0 10 3,5 * * *'
 const DEFAULT_KEEPALIVE_CRON = '0 0 8 */6 * *'
@@ -10,6 +10,7 @@ const DEFAULT_YUBA_CHECK_IN_CRON = '0 23 0 * * *'
 const DEFAULT_COOKIE_CLOUD_SYNC_CRON = '0 5 0 * * *'
 const DEFAULT_THEME_MODE: ThemeMode = 'system'
 const DEFAULT_GIFT_ID = 268
+const DEFAULT_DOUBLE_CARD_GIFT_SCOPE: DoubleCardGiftScope = 'glowStick'
 
 function resolveTaskActive(active: boolean | undefined): boolean {
   return active !== false
@@ -183,11 +184,16 @@ function buildEnabledMap(roomKeys: string[], config: DoubleCardConfig | undefine
   return enabled
 }
 
+function normalizeDoubleCardGiftScope(value: DoubleCardGiftScope | undefined): DoubleCardGiftScope {
+  return value === 'limitedTime' ? 'limitedTime' : DEFAULT_DOUBLE_CARD_GIFT_SCOPE
+}
+
 export function createDefaultDoubleCardConfig(fans: Fans[]): DoubleCardConfig {
   return {
     active: true,
     cron: DEFAULT_DOUBLE_CARD_CRON,
     model: 1,
+    giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
     send: mergeSendConfig(undefined, fans, 1),
     enabled: buildEnabledMap(fans.map(fan => String(fan.roomId)), undefined),
   }
@@ -203,6 +209,7 @@ export function reconcileDoubleCardConfig(config: DoubleCardConfig | undefined, 
     active: resolveTaskActive(config.active),
     cron: config.cron || DEFAULT_DOUBLE_CARD_CRON,
     model,
+    giftScope: normalizeDoubleCardGiftScope(config.giftScope),
     send: mergeSendConfig(config.send, fans, model),
     enabled: buildEnabledMap(fans.map(fan => String(fan.roomId)), config),
   }
@@ -269,6 +276,7 @@ function normalizeDoubleCardConfig(config: DoubleCardConfig | undefined): Double
     active: resolveTaskActive(config.active),
     cron: config.cron || DEFAULT_DOUBLE_CARD_CRON,
     model,
+    giftScope: normalizeDoubleCardGiftScope(config.giftScope),
     send,
     enabled: buildEnabledMap(Object.keys(send), config),
   }

@@ -13,9 +13,43 @@ export interface FanStatus extends Fans {
 }
 
 export interface GiftStatus {
-  count: number
+  count?: number
   expireTime?: number
   error?: string
+  rows?: BackpackGiftRow[]
+  totalRows?: number
+}
+
+export interface BackpackGiftRow {
+  giftId: number
+  name: string
+  count: number
+  expiry?: number
+  expiryDays?: number
+  expireTime?: number
+  batchInfoPresent: boolean
+  isValuable: boolean
+  price: number
+  intimacy: number
+}
+
+export interface BackpackStatus {
+  rows: BackpackGiftRow[]
+  totalRows: number
+  glowStickCount: number
+  glowStickExpireTime?: number
+}
+
+export interface ExpiringGiftSelection {
+  candidates: BackpackGiftRow[]
+  totalRows: number
+  skippedNotExpiring: number
+  skippedNoExpireTime: number
+  skippedUnsafe: number
+  budgetCount: number
+  earliestExpireTime?: number
+  giftCounts: Record<string, number>
+  giftNames: Record<string, string>
 }
 
 export type CookieCloudCryptoType = 'legacy'
@@ -128,6 +162,7 @@ export type sendConfig = Record<string, SendGift>
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type YubaCheckInMode = 'followed'
+export type DoubleCardGiftScope = 'glowStick' | 'limitedTime'
 
 export interface Config {
   boot: boolean
@@ -173,6 +208,7 @@ export interface JobConfig {
 
 export interface DoubleCardConfig extends JobConfig {
   enabled?: Record<string, boolean>
+  giftScope?: DoubleCardGiftScope
 }
 
 export interface ExpiringGiftConfig extends JobConfig {

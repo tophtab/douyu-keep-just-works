@@ -214,6 +214,80 @@ const fans = await getFansList(cookie)
 await collectGiftViaDanmu(cookie, fans[0].roomId)
 ```
 
+## Scenario: Row-Level Backpack Status and Expiring Gift Budget
+
+### 1. Scope / Trigger
+
+- Trigger: Any change to Douyu backpack parsing, `/api/fans/status` gift fields, or expiring-gift send budgeting.
+- Scope: Backpack parsing belongs in `src/core/api.ts`; expiring candidate selection belongs in `src/core/job.ts`; Docker routes and WebUI must consume normalized fields instead of raw Douyu payloads.
+
+### 2. Signatures
+
+```typescript
+export async function getBackpackStatus(cookie: string, candidateRoomIds?: number[]): Promise<BackpackStatus>
+export async function getGiftStatus(cookie: string, candidateRoomIds?: number[]): Promise<GiftStatus>
+export function selectExpiringGiftCandidates(status: BackpackStatus, options: {
+  thresholdHours: number
+  now?: number
+}): ExpiringGiftSelection
+```
+
+### 3. Contracts
+
+- `getBackpackStatus()` returns normalized row data only: `giftId`, `name`, `count`, optional `expiry`/`expiryDays`, optional absolute millisecond `expireTime`, `batchInfoPresent`, `isValuable`, `price`, and `intimacy`.
+- Absolute expiry fields must be normalized from known Douyu fields such as `expireTime`, `expire_time`, `expireAt`, `expiresAt`, `met`, or `endTime`. Unix seconds are converted to milliseconds.
+- `getGiftStatus()` remains backward-compatible by returning the glow-stick summary as `count` and earliest glow-stick `expireTime`, while also exposing `rows` and `totalRows` for observability.
+- `/api/fans/status` may return `gift.error` when backpack lookup fails after the fan list succeeds; failure must not be converted to `count: 0`.
+- Expiring-gift jobs must budget from selected expiring rows, not from all visible glow-stick inventory after the earliest row enters the threshold.
+- Automatic expiring-gift sending has no gift-ID whitelist. Any positive-count row with a normalized absolute `expireTime` inside `thresholdHours` is a candidate.
+- Candidate counts are grouped by `giftId`; each group uses the existing room allocation settings and generated send jobs must set that group's `giftId`.
+- The send API cannot target a backpack batch. Logs and UI must describe that only the candidate count is limited; Douyu controls the actual deduction order.
+
+### 4. Validation & Error Matrix
+
+| Case | Expected result |
+|------|-----------------|
+| Backpack body has non-zero Douyu `error`/`code` | Throw an actionable backpack error with upstream code/message |
+| Backpack list is malformed | Throw an actionable format error |
+| Row has no positive `count` | Exclude from expiring selection |
+| Row has no absolute `expireTime` | Count as skipped without expiry; do not auto-send |
+| Row expires after `thresholdHours` | Count as skipped not-expiring; do not include in budget |
+| Multiple rows share `giftId` | Sum only candidate row counts for the send budget |
+| Multiple candidate `giftId` values exist | Compute allocation separately per gift group and send each group with its own `giftId` |
+
+### 5. Good/Base/Bad Cases
+
+- Good: Parse every backpack `data.list[]` item once in `src/core/api.ts`, then reuse normalized rows for summary cards, WebUI tables, and expiring selection.
+- Base: Single visible gift row behaves like the MVP: when it enters the threshold, its full visible count becomes the budget.
+- Bad: Use `status.count` from `getGiftStatus()` as the expiring send budget after only `status.expireTime` enters the threshold.
+
+### 6. Tests Required
+
+- Run `npm run lint`.
+- Run `npm run type-check`.
+- Run `npm run build:docker`.
+- For parser/selection changes, cover or manually verify: single gift row, multiple rows with only one expiring, multiple candidate gift IDs, missing absolute expiry, malformed backpack response, and Douyu business-error response.
+- For WebUI changes, verify the expiring table shows per-row threshold status and auto-release status without a skip/release reason column, raw cookies, or raw backpack payloads.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+if (status.expireTime && status.expireTime - Date.now() <= thresholdMs) {
+  jobs = await computeGiftCountOfPercentage(status.count, send)
+}
+```
+
+#### Correct
+
+```typescript
+const selection = selectExpiringGiftCandidates(backpackStatus, {
+  thresholdHours,
+})
+jobs = await computeGiftCountOfPercentage(selection.budgetCount, send)
+```
+
 ## Scenario: Docker-Only Edge/Latest Publishing
 
 ### 1. Scope / Trigger

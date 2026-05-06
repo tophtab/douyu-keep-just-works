@@ -953,9 +953,8 @@ function main(): void {
       const fanRoomIds = fans.map(fan => fan.roomId)
       const gift = await getGiftStatus(cookie, fanRoomIds).catch((error: unknown): GiftStatus => {
         const message = errorMessage(error)
-        logSystem(`加载粉丝牌状态时无法获取荧光棒库存: ${message}`)
+        logSystem(`加载粉丝牌状态时无法获取背包明细: ${message}`)
         return {
-          count: 0,
           error: message,
         }
       })

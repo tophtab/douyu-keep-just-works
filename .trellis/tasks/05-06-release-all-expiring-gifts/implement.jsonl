@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend checklist for shared core logic and Docker runtime changes."}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Defines core/docker boundaries and the row-level backpack status plus expiring gift budget contract."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Gift sending and Douyu API failures must preserve explicit error semantics."}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Release flow logs must remain useful without exposing secrets or changing log structure."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Implementation must follow project TypeScript quality and Docker build expectations."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Current WebUI changes belong in Docker html.ts and must not reintroduce legacy frontend paths."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "The task changes selection defaults and should reuse existing allocation/helpers instead of duplicating logic."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Selection changes flow through core jobs, Docker status data, and WebUI display."}

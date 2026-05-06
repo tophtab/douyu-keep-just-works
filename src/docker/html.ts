@@ -616,12 +616,6 @@ textarea{
   font-size:13px;
   line-height:1.7;
 }
-.label-row{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  margin-bottom:6px;
-}
 .split-inline{
   display:flex;
   justify-content:space-between;
@@ -637,24 +631,6 @@ textarea{
   flex-wrap:wrap;
   justify-content:flex-end;
   gap:10px;
-}
-.label-row .field-label{
-  margin-bottom:0;
-}
-.help-icon{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:18px;
-  height:18px;
-  border-radius:999px;
-  border:1px solid var(--line-strong);
-  background:var(--surface-soft);
-  color:var(--accent);
-  font-size:12px;
-  font-weight:800;
-  line-height:1;
-  cursor:help;
 }
 .cron-preview{
   margin-top:8px;
@@ -714,6 +690,9 @@ textarea{
 }
 .yuba-status-table{
   min-width:820px;
+}
+.backpack-table{
+  min-width:980px;
 }
 .fans-status-table col:nth-child(1),
 .yuba-status-table col:nth-child(1){
@@ -1219,17 +1198,21 @@ textarea{
             </label>
           </div>
         </div>
-        <div class="grid cols-2">
+        <div class="grid cols-3">
           <div class="field-block">
             <label class="field-label" for="double-cron">Cron 表达式</label>
             <input id="double-cron" type="text">
             <div class="helper cron-preview" id="double-cron-preview">正在计算未来执行时间...</div>
           </div>
           <div class="field-block">
-            <div class="label-row">
-              <label class="field-label" for="double-model">分配模式</label>
-              <span class="help-icon" title="双倍任务在按权重模式下，不要求总和等于 100。没有房间开双倍时本次不送；只有 1 个房间开双倍时本次全部送给它；多个房间开双倍时，只会在这些房间里按你填写的权重值重新分配。">?</span>
-            </div>
+            <label class="field-label" for="double-gift-scope">礼物范围</label>
+            <select id="double-gift-scope">
+              <option value="glowStick">全部荧光棒</option>
+              <option value="limitedTime">限时礼物</option>
+            </select>
+          </div>
+          <div class="field-block">
+            <label class="field-label" for="double-model">分配模式</label>
             <select id="double-model">
               <option value="1">按权重</option>
               <option value="2">按固定数量</option>
@@ -1268,7 +1251,7 @@ textarea{
           <div class="switch-field">
             <div class="switch-copy">
               <div class="switch-title">启用临期任务</div>
-              <div class="switch-note">达到临期阈值后，按房间配置一次性赠送当前可用荧光棒。</div>
+              <div class="switch-note">达到临期阈值后，按房间配置释放有明确过期时间的临期背包礼物。</div>
             </div>
             <label class="switch-control">
               <input class="switch-input" type="checkbox" id="expiring-enable">
@@ -1298,6 +1281,7 @@ textarea{
           <button class="btn btn-success" data-action="save-expiring">保存并启用</button>
           <button class="btn btn-secondary" data-action="trigger" data-trigger="expiringGift">立即执行</button>
         </div>
+        <div id="expiring-backpack-wrap" style="margin-top:16px"></div>
         <div id="expiring-table-wrap" style="margin-top:16px"></div>
       </div>
     </section>
@@ -1352,7 +1336,7 @@ textarea{
     },
     'expiring-gift': {
       title: '临期任务',
-      subtitle: '在荧光棒接近过期时，按配置一次性赠送当前可用库存。'
+      subtitle: '在礼物接近过期时，只按临期候选数量释放背包礼物。'
     },
     logs: {
       title: '运行日志',
@@ -1423,7 +1407,7 @@ textarea{
     collectGift: { active: true, cron: '0 10 3,5 * * *' },
     yubaCheckIn: { active: false, cron: '0 23 0 * * *', mode: 'followed' },
     keepalive: { active: true, cron: '0 0 8 */6 * *', model: 2, send: {} },
-    doubleCard: { active: true, cron: '0 20 17,20,22,23 * * *', model: 1, send: {}, enabled: {} },
+    doubleCard: { active: true, cron: '0 20 17,20,22,23 * * *', model: 1, giftScope: 'glowStick', send: {}, enabled: {} },
     expiringGift: { active: false, cron: '0 45 23 * * *', thresholdHours: 24, model: 1, send: {} }
   };
 
@@ -1764,6 +1748,9 @@ textarea{
     if (nextTab === 'overview' && hasCookieSourceConfigured(getRawConfig()) && !state.fansStatusLoaded) {
       loadFansStatus(false);
     }
+    if (nextTab === 'expiring-gift' && hasCookieSourceConfigured(getRawConfig()) && !state.fansStatusLoaded) {
+      loadFansStatus(false);
+    }
     if (nextTab === 'logs') {
       loadLogs();
     }
@@ -1790,6 +1777,77 @@ textarea{
     return ''
       + '<div class="strip-metric"><div class="mini-label">当前荧光棒</div><div class="mini-value">' + escapeHtml(countValue) + '</div></div>'
       + '<div class="strip-metric"><div class="mini-label">过期时间</div><div class="mini-value">' + escapeHtml(expireValue) + '</div></div>';
+  }
+
+  function formatRemainingTime(expireTime) {
+    if (!expireTime) {
+      return '-';
+    }
+    var remainingMs = expireTime - Date.now();
+    var remainingHours = Math.max(0, remainingMs / (60 * 60 * 1000));
+    if (remainingHours >= 48) {
+      return (remainingHours / 24).toFixed(1).replace(/\\.0$/, '') + ' 天';
+    }
+    return remainingHours.toFixed(1).replace(/\\.0$/, '') + ' 小时';
+  }
+
+  function getExpiringThresholdHours() {
+    var thresholdNode = byId('expiring-threshold-hours');
+    var inputValue = thresholdNode ? Number(thresholdNode.value) : NaN;
+    if (Number.isFinite(inputValue) && inputValue > 0) {
+      return inputValue;
+    }
+    var rawConfig = getRawConfig();
+    var config = getManagedConfig().expiringGift || rawConfig.expiringGift || {};
+    var value = Number(config.thresholdHours || 24);
+    return Number.isFinite(value) && value > 0 ? value : 24;
+  }
+
+  function describeBackpackRow(row, thresholdHours) {
+    var count = Number(row && row.count || 0);
+    var expireTime = Number(row && row.expireTime || 0);
+    if (count <= 0) {
+      return { inThreshold: false, autoRelease: false };
+    }
+    if (!expireTime) {
+      return { inThreshold: false, autoRelease: false };
+    }
+    var inThreshold = expireTime - Date.now() <= thresholdHours * 60 * 60 * 1000;
+    return { inThreshold: inThreshold, autoRelease: inThreshold };
+  }
+
+  function buildBackpackRowsTable(giftStatus) {
+    if (!giftStatus) {
+      return '<div class="empty">尚未加载背包明细。点击顶部“刷新”后会展示可见礼物行。</div>';
+    }
+    if (giftStatus.error) {
+      return '<div class="empty">背包明细暂不可用：' + escapeHtml(giftStatus.error) + '</div>';
+    }
+    var rows = giftStatus.rows || [];
+    if (!rows.length) {
+      return '<div class="empty">当前背包没有可展示的礼物行。</div>';
+    }
+
+    var thresholdHours = getExpiringThresholdHours();
+    var body = [];
+    var i;
+    for (i = 0; i < rows.length; i += 1) {
+      var row = rows[i];
+      var rowState = describeBackpackRow(row, thresholdHours);
+      body.push('<tr>');
+      body.push('<td>' + escapeHtml(i + 1) + '</td>');
+      body.push('<td>' + escapeHtml(row.name || '未知礼物') + '</td>');
+      body.push('<td>' + escapeHtml(row.giftId) + '</td>');
+      body.push('<td>' + escapeHtml(row.count) + '</td>');
+      body.push('<td>' + escapeHtml(row.expireTime ? formatDate(row.expireTime) : '-') + '</td>');
+      body.push('<td>' + escapeHtml(formatRemainingTime(row.expireTime)) + '</td>');
+      body.push('<td>' + buildStatusPill(rowState.inThreshold ? '是' : '否', rowState.inThreshold ? 'warn' : 'off') + '</td>');
+      body.push('<td>' + buildStatusPill(rowState.autoRelease ? '释放' : '跳过', rowState.autoRelease ? 'ok' : 'off') + '</td>');
+      body.push('</tr>');
+    }
+
+    return ''
+      + '<div class="table-shell"><table class="table table-fixed backpack-table"><thead><tr><th>序号</th><th>礼物</th><th>ID</th><th>数量</th><th>过期时间</th><th>剩余</th><th>临期</th><th>自动释放</th></tr></thead><tbody>' + body.join('') + '</tbody></table></div>';
   }
 
   function buildSummaryStatusCell(label, enabled, enabledText, disabledText) {
@@ -2036,14 +2094,14 @@ textarea{
 
     if (!state.fansStatus.length) {
       byId('overview-fans-note').textContent = state.giftStatus && state.giftStatus.error
-        ? ('当前没有可展示的粉丝牌数据。荧光棒库存暂不可用：' + state.giftStatus.error)
+        ? ('当前没有可展示的粉丝牌数据。背包明细暂不可用：' + state.giftStatus.error)
         : '当前没有可展示的粉丝牌数据。';
       byId('overview-fans-table-wrap').innerHTML = '<div class="empty">当前没有可展示的粉丝牌数据。</div>';
       return;
     }
 
     byId('overview-fans-note').textContent = state.giftStatus && state.giftStatus.error
-      ? ('当前共 ' + state.fansStatus.length + ' 个粉丝牌房间。荧光棒库存暂不可用：' + state.giftStatus.error)
+      ? ('当前共 ' + state.fansStatus.length + ' 个粉丝牌房间。背包明细暂不可用：' + state.giftStatus.error)
       : ('当前共 ' + state.fansStatus.length + ' 个粉丝牌房间，右侧已显示荧光棒库存与过期时间。');
     byId('overview-fans-table-wrap').innerHTML = buildFansStatusTable(state.fansStatus);
   }
@@ -2201,7 +2259,7 @@ textarea{
 
   function renderDoublePage() {
     var rawConfig = getRawConfig();
-    var config = getManagedConfig().doubleCard || rawConfig.doubleCard || { active: true, cron: '0 20 17,20,22,23 * * *', model: 1, send: {}, enabled: {} };
+    var config = getManagedConfig().doubleCard || rawConfig.doubleCard || { active: true, cron: '0 20 17,20,22,23 * * *', model: 1, giftScope: 'glowStick', send: {}, enabled: {} };
     var fans = getManagedFans();
     byId('double-task-card').innerHTML = state.overview
       ? buildTaskCard('双倍', state.overview.doubleCardConfigured, state.overview.status.doubleCard, '房间数', state.overview.doubleCardRooms)
@@ -2209,6 +2267,7 @@ textarea{
     byId('double-enable').checked = isTaskActive(getManagedConfig().doubleCard || rawConfig.doubleCard);
     byId('double-cron').value = config.cron || '0 20 17,20,22,23 * * *';
     byId('double-model').value = String(config.model || 1);
+    byId('double-gift-scope').value = config.giftScope === 'limitedTime' ? 'limitedTime' : 'glowStick';
     void ensureCronPreview('doubleCard', byId('double-cron').value, 'double-cron-preview');
 
     if (!hasCookieSourceConfigured(rawConfig)) {
@@ -2265,24 +2324,28 @@ textarea{
     void ensureCronPreview('expiringGift', byId('expiring-cron').value, 'expiring-cron-preview');
 
     if (!hasCookieSourceConfigured(rawConfig)) {
-      byId('expiring-note').textContent = '请先保存 Cookie 或启用 CookieCloud。没有登录凭证时无法同步粉丝牌，也无法读取荧光棒库存和过期时间。';
+      byId('expiring-note').textContent = '请先保存 Cookie 或启用 CookieCloud。没有登录凭证时无法同步粉丝牌，也无法读取背包礼物和过期时间。';
+      byId('expiring-backpack-wrap').innerHTML = '<div class="empty">保存 Cookie 或启用 CookieCloud 后，这里会展示背包临期明细。</div>';
       byId('expiring-table-wrap').innerHTML = '<div class="empty">保存 Cookie 或启用 CookieCloud 后再同步粉丝牌，这里才会出现临期赠送房间列表。</div>';
       return;
     }
 
     if (state.managedLoading) {
       byId('expiring-note').textContent = '正在同步粉丝牌与临期配置...';
+      byId('expiring-backpack-wrap').innerHTML = '<div class="empty">请稍候，背包明细会在同步后展示。</div>';
       byId('expiring-table-wrap').innerHTML = '<div class="empty">请稍候...</div>';
       return;
     }
 
     if (!fans.length) {
       byId('expiring-note').textContent = '当前没有可用粉丝牌。';
+      byId('expiring-backpack-wrap').innerHTML = buildBackpackRowsTable(state.giftStatus);
       byId('expiring-table-wrap').innerHTML = '<div class="empty">同步后如果仍为空，说明当前账号没有可用粉丝牌数据。</div>';
       return;
     }
 
-    byId('expiring-note').textContent = '当前已同步 ' + fans.length + ' 个粉丝牌房间。临期任务会先检查当前荧光棒最早过期时间，达到阈值后再执行赠送。';
+    byId('expiring-note').textContent = '当前已同步 ' + fans.length + ' 个粉丝牌房间。临期任务会按背包行筛选进入阈值且有明确过期时间的礼物，并按房间配置释放。';
+    byId('expiring-backpack-wrap').innerHTML = buildBackpackRowsTable(state.giftStatus);
     byId('expiring-table-wrap').innerHTML = buildSendTable(fans, config, false, 'expiring-value', { firstWeightOnly: true });
   }
 
@@ -2700,6 +2763,7 @@ textarea{
       state.giftStatus = null;
       state.fansStatusLoaded = false;
       renderOverview();
+      renderExpiringGiftPage();
       if (showToast) {
         toast('请先保存 Cookie 或启用 CookieCloud', false);
       }
@@ -2708,12 +2772,14 @@ textarea{
 
     state.fansStatusLoading = true;
     renderOverview();
+    renderExpiringGiftPage();
     return requestJson('/api/fans/status').then(function (data) {
       state.fansStatus = data && data.fans ? data.fans : [];
       state.giftStatus = data && data.gift ? data.gift : null;
       state.fansStatusLoaded = true;
       state.fansStatusLoading = false;
       renderOverview();
+      renderExpiringGiftPage();
       if (showToast) {
         toast('粉丝牌状态已刷新', true);
       }
@@ -2723,6 +2789,7 @@ textarea{
       state.fansStatus = [];
       state.giftStatus = null;
       renderOverview();
+      renderExpiringGiftPage();
       if (isUnauthorizedError(error)) {
         return;
       }
@@ -3048,6 +3115,7 @@ textarea{
         enabledMap[String(checkboxes[i].getAttribute('data-room-id'))] = Boolean(checkboxes[i].checked);
       }
       result.enabled = enabledMap;
+      result.giftScope = byId('double-gift-scope').value === 'limitedTime' ? 'limitedTime' : 'glowStick';
     }
 
     return result;
@@ -3218,7 +3286,7 @@ textarea{
   }
 
   function disableDoubleConfig() {
-    var currentConfig = getManagedConfig().doubleCard || getRawConfig().doubleCard || { active: true, cron: '0 20 17,20,22,23 * * *', model: 1, send: {}, enabled: {} };
+    var currentConfig = getManagedConfig().doubleCard || getRawConfig().doubleCard || { active: true, cron: '0 20 17,20,22,23 * * *', model: 1, giftScope: 'glowStick', send: {}, enabled: {} };
     requestJson('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3227,6 +3295,7 @@ textarea{
           active: false,
           cron: currentConfig.cron || '0 20 17,20,22,23 * * *',
           model: Number(currentConfig.model || 1),
+          giftScope: currentConfig.giftScope === 'limitedTime' ? 'limitedTime' : 'glowStick',
           send: currentConfig.send || {},
           enabled: currentConfig.enabled || {}
         }
@@ -3447,6 +3516,9 @@ textarea{
   });
   byId('expiring-cron').addEventListener('input', function (event) {
     void loadCronPreview('expiringGift', event.target.value, 'expiring-cron-preview');
+  });
+  byId('expiring-threshold-hours').addEventListener('input', function () {
+    byId('expiring-backpack-wrap').innerHTML = buildBackpackRowsTable(state.giftStatus);
   });
   byId('expiring-enable').addEventListener('change', function (event) {
     handleTaskToggleChange(event, saveExpiringGiftConfig, disableExpiringGiftConfig);

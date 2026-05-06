@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend checklist for core job, gift allocation, Docker runtime, and quality expectations."}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Defines boundaries for src/core job logic, Docker WebUI runtime, and backpack status contracts."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Double-card gift sending and backpack lookup failures must preserve explicit actionable errors."}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Double-card logs must explain gift groups and room-level send behavior without exposing secrets."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Implementation must follow TypeScript quality and required lint/type-check expectations."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "WebUI changes belong in Docker html.ts and must not reintroduce legacy frontend paths."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "The task should reuse existing backpack grouping and allocation helpers instead of duplicating logic."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Gift scope config flows through config defaults, runtime job logic, API data, and WebUI controls."}

@@ -1,8 +1,8 @@
 import axios from 'axios'
-import type { Fans, GiftStatus, SendGift, sendArgs } from './types'
+import type { BackpackGiftRow, BackpackStatus, Fans, GiftStatus, SendGift, sendArgs } from './types'
 
 export const DOUYU_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.188'
-const GLOW_STICK_GIFT_ID = 268
+export const GLOW_STICK_GIFT_ID = 268
 const BACKPACK_REQUIRED_COOKIE_KEYS = ['acf_auth', 'acf_stk']
 export const DEFAULT_BACKPACK_ROOM_IDS = [217331, 557171]
 
@@ -51,6 +51,13 @@ function readResponseNumber(value: unknown): number | undefined {
 
 function readResponseString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function readBackpackString(value: unknown): string {
+  if (value === null || value === undefined) {
+    return ''
+  }
+  return String(value).trim()
 }
 
 function getDouyuResponseMessage(data: Record<string, unknown>, fallback: string): string {
@@ -110,7 +117,76 @@ function normalizeUnixTimestamp(value: unknown): number | undefined {
   return parsed < 1e12 ? parsed * 1000 : parsed
 }
 
-export async function getGiftStatus(cookie: string, candidateRoomIds: number[] = []): Promise<GiftStatus> {
+function hasBatchInfo(value: unknown): boolean {
+  if (!isRecord(value)) {
+    return false
+  }
+  return Object.keys(value).length > 0
+}
+
+function readBackpackNumber(value: unknown, fallback = 0): number {
+  const parsed = readResponseNumber(value)
+  return parsed === undefined ? fallback : parsed
+}
+
+function readBackpackBoolean(value: unknown): boolean {
+  if (typeof value === 'boolean') {
+    return value
+  }
+  if (typeof value === 'number') {
+    return value !== 0
+  }
+  const text = readBackpackString(value).toLowerCase()
+  return text === '1' || text === 'true' || text === 'yes'
+}
+
+function normalizeBackpackRow(item: Record<string, unknown>): BackpackGiftRow {
+  const expiry = readResponseNumber(item.expiry)
+  const expireTime = normalizeUnixTimestamp(
+    item.expireTime
+    ?? item.expire_time
+    ?? item.expireAt
+    ?? item.expiresAt
+    ?? item.met
+    ?? item.endTime,
+  )
+
+  return {
+    giftId: readBackpackNumber(item.id),
+    name: readBackpackString(item.name),
+    count: readBackpackNumber(item.count),
+    ...(expiry !== undefined ? { expiry, expiryDays: expiry } : {}),
+    ...(expireTime !== undefined ? { expireTime } : {}),
+    batchInfoPresent: hasBatchInfo(item.batchInfo),
+    isValuable: readBackpackBoolean(item.isValuable),
+    price: readBackpackNumber(item.price),
+    intimacy: readBackpackNumber(item.intimate ?? item.intimacy),
+  }
+}
+
+function summarizeGlowSticks(rows: BackpackGiftRow[]): Pick<BackpackStatus, 'glowStickCount' | 'glowStickExpireTime'> {
+  const expireTimes: number[] = []
+  let glowStickCount = 0
+
+  for (const row of rows) {
+    if (row.giftId !== GLOW_STICK_GIFT_ID) {
+      continue
+    }
+    if (Number.isFinite(row.count) && row.count > 0) {
+      glowStickCount += row.count
+    }
+    if (row.expireTime) {
+      expireTimes.push(row.expireTime)
+    }
+  }
+
+  return {
+    glowStickCount,
+    glowStickExpireTime: expireTimes.length ? Math.min(...expireTimes) : undefined,
+  }
+}
+
+export async function getBackpackStatus(cookie: string, candidateRoomIds: number[] = []): Promise<BackpackStatus> {
   let lastError: Error | null = null
 
   for (const endpoint of buildBackpackEndpoints(candidateRoomIds)) {
@@ -119,67 +195,52 @@ export async function getGiftStatus(cookie: string, candidateRoomIds: number[] =
         headers: makeHeaders(cookie),
       })
 
-      if (typeof data?.error === 'number' && data.error !== 0) {
+      const dataRecord = isRecord(data) ? data : null
+      const errorCode = dataRecord ? readResponseNumber(dataRecord.error) : undefined
+      if (errorCode !== undefined && errorCode !== 0) {
         const missingKeys = getMissingBackpackCookieKeys(cookie)
-        if (data.error === 9 && missingKeys.length > 0) {
-          throw new Error(`获取荧光棒数量失败，主站 Cookie 缺少 ${missingKeys.join(', ')}，无法访问背包接口`)
+        if (errorCode === 9 && missingKeys.length > 0) {
+          throw new Error(`获取背包明细失败，主站 Cookie 缺少 ${missingKeys.join(', ')}，无法访问背包接口`)
         }
-        throw new Error(`获取荧光棒数量失败，接口返回错误码 ${data.error}`)
+        throw new Error(`获取背包明细失败，接口返回错误码 ${errorCode}: ${getDouyuResponseMessage(dataRecord || {}, '无错误信息')}`)
       }
 
       if (!data?.data || !Array.isArray(data.data.list)) {
-        throw new Error('获取荧光棒数量失败，返回数据格式异常')
+        throw new Error('获取背包明细失败，返回数据格式异常')
       }
 
-      const glowStickItems = data.data.list.filter((item: unknown): item is Record<string, unknown> => {
-        if (typeof item !== 'object' || item === null) {
-          return false
-        }
-        const record = item as Record<string, unknown>
-        return Number(record.id) === GLOW_STICK_GIFT_ID
-      })
-      if (!glowStickItems.length) {
-        return { count: 0 }
-      }
-
-      let count = 0
-      const expireTimes: number[] = []
-
-      for (const item of glowStickItems) {
-        const itemCount = Number(item?.count ?? 0)
-        if (Number.isFinite(itemCount) && itemCount > 0) {
-          count += itemCount
-        }
-
-        const expireTime = normalizeUnixTimestamp(
-          item?.expireTime
-          ?? item?.expire_time
-          ?? item?.expireAt
-          ?? item?.expiresAt
-          ?? item?.met
-          ?? item?.endTime,
-        )
-        if (expireTime) {
-          expireTimes.push(expireTime)
-        }
-      }
+      const rows = data.data.list
+        .filter((item: unknown): item is Record<string, unknown> => isRecord(item))
+        .map(normalizeBackpackRow)
+      const summary = summarizeGlowSticks(rows)
 
       return {
-        count,
-        // Backpack responses may contain multiple stacks. Show the earliest expiry if several exist.
-        expireTime: expireTimes.length ? Math.min(...expireTimes) : undefined,
+        rows,
+        totalRows: rows.length,
+        ...summary,
       }
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
     }
   }
 
-  throw (lastError || new Error('获取荧光棒数量失败'))
+  throw (lastError || new Error('获取背包明细失败'))
+}
+
+export async function getGiftStatus(cookie: string, candidateRoomIds: number[] = []): Promise<GiftStatus> {
+  const status = await getBackpackStatus(cookie, candidateRoomIds)
+  return {
+    count: status.glowStickCount,
+    // Backpack responses may contain multiple stacks. Show the earliest expiry if several exist.
+    expireTime: status.glowStickExpireTime,
+    rows: status.rows,
+    totalRows: status.totalRows,
+  }
 }
 
 export async function getGiftNumber(cookie: string, candidateRoomIds: number[] = []): Promise<number> {
   const status = await getGiftStatus(cookie, candidateRoomIds)
-  return status.count
+  return status.count ?? 0
 }
 
 export async function sendGift(args: sendArgs, job: SendGift, cookie: string): Promise<string> {
@@ -196,7 +257,7 @@ export async function sendGift(args: sendArgs, job: SendGift, cookie: string): P
       'Content-Type': 'application/x-www-form-urlencoded',
     },
   })
-  const data = assertDouyuBusinessSuccess(res.data, '赠送荧光棒')
+  const data = assertDouyuBusinessSuccess(res.data, `赠送礼物(ID ${job.giftId})`)
   return JSON.stringify(data)
 }
 

@@ -289,6 +289,9 @@ export function createServer(ctx: AppContext): express.Express {
     if (config.enabled !== undefined && (typeof config.enabled !== 'object' || Array.isArray(config.enabled))) {
       return 'doubleCard 勾选配置无效'
     }
+    if (config.giftScope !== undefined && config.giftScope !== 'glowStick' && config.giftScope !== 'limitedTime') {
+      return 'doubleCard 礼物范围无效'
+    }
 
     const enabledKeys = Object.entries(config.enabled || {})
       .filter(([, enabled]) => Boolean(enabled))

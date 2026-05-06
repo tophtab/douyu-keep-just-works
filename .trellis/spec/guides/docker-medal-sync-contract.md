@@ -171,6 +171,11 @@ Field rules:
   - when multiple rooms are currently double-active, runtime redistributes only among those active rooms using their saved weights
   - when exactly one room is currently double-active, runtime sends the full batch to that room
   - when zero rooms are currently double-active, runtime skips sending for that run
+- `doubleCard.giftScope`
+  - valid values are `glowStick` and `limitedTime`
+  - omitted old config normalizes to `glowStick`
+  - `glowStick` preserves the legacy behavior of budgeting from total visible fluorescent sticks
+  - `limitedTime` budgets from positive-count backpack rows that have an absolute expiry, grouped and sent by `giftId`
 - `doubleCard.enabled`
   - key is room id string
   - `true` means the room participates in double-card detection and send candidate selection
@@ -302,7 +307,7 @@ Allowed omission/removal rules:
 - omit `keepalive` to preserve current keepalive config
 - send `"keepalive": { "active": false, "cron": "...", "model": 2, "send": { ... } }` to disable keepalive while preserving room config
 - omit `doubleCard` to preserve current double-card config
-- send `"doubleCard": { "active": false, "cron": "...", "model": 1, "enabled": { ... }, "send": { ... } }` to disable double-card while preserving room config
+- send `"doubleCard": { "active": false, "cron": "...", "model": 1, "giftScope": "glowStick", "enabled": { ... }, "send": { ... } }` to disable double-card while preserving room config
 - omit `expiringGift` to preserve current expiring-gift config
 - send `"expiringGift": { "active": false, "cron": "...", "thresholdHours": 24, "model": 1, "send": { ... } }` to disable expiring-gift while preserving room config
 - omit `yubaCheckIn` to preserve current yuba-check-in config
@@ -525,6 +530,7 @@ File: `src/core/medal-sync.ts`
 ### Double Card
 
 - if `doubleCard` is missing in old persisted config, normalize its cron fallback to `0 20 17,20,22,23 * * *`
+- if `doubleCard.giftScope` is missing or invalid in old persisted config, normalize it to `glowStick`
 
 ### Expiring Gift
 
@@ -587,6 +593,7 @@ File: `src/core/medal-sync.ts`
 | `POST /api/config` | fixed-count mode has any room `number < -1` | `400 { error }` |
 | `POST /api/config` | fixed-count mode has more than one room with `number = -1` | `400 { error }` |
 | `POST /api/config` | `doubleCard.enabled` present but not object | `400 { error }` |
+| `POST /api/config` | `doubleCard.giftScope` is present but not `glowStick` or `limitedTime` | `400 { "error": "doubleCard 礼物范围无效" }` |
 | `POST /api/config` | `doubleCard.model === 1` and all enabled rooms have weight `<= 0` | `400 { error }` |
 | `POST /api/config` | `doubleCard.model === 1` and any room `weight` is negative / non-numeric | `400 { error }` |
 | `POST /api/config` | `expiringGift.thresholdHours <= 0` or non-numeric | `400 { "error": "expiringGift 临期阈值无效" }` |

@@ -949,3 +949,37 @@ Adjusted expiring gift task defaults to run daily at 23:45, use weight-based all
 ### Next Steps
 
 - None - task complete
+
+
+## Session 24: Expand expiring gift release scopes
+
+**Date**: 2026-05-06
+**Task**: Expand expiring gift release scopes
+**Branch**: `master`
+
+### Summary
+
+Expanded expiring backpack gift handling and added double-card gift scope selection; updated Trellis workflow state and contracts.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cba58a8` | (see git log) |
+| `58b5325` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

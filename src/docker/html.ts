@@ -1424,7 +1424,7 @@ textarea{
     yubaCheckIn: { active: false, cron: '0 23 0 * * *', mode: 'followed' },
     keepalive: { active: true, cron: '0 0 8 */6 * *', model: 2, send: {} },
     doubleCard: { active: true, cron: '0 20 17,20,22,23 * * *', model: 1, send: {}, enabled: {} },
-    expiringGift: { active: false, cron: '0 45 23 * * *', thresholdHours: 24, model: 2, send: {} }
+    expiringGift: { active: false, cron: '0 45 23 * * *', thresholdHours: 24, model: 1, send: {} }
   };
 
   function createEmptyCronPreview() {
@@ -2247,7 +2247,7 @@ textarea{
 
   function renderExpiringGiftPage() {
     var rawConfig = getRawConfig();
-    var config = getManagedConfig().expiringGift || rawConfig.expiringGift || { active: false, cron: '0 45 23 * * *', thresholdHours: 24, model: 2, send: {} };
+    var config = getManagedConfig().expiringGift || rawConfig.expiringGift || { active: false, cron: '0 45 23 * * *', thresholdHours: 24, model: 1, send: {} };
     var fans = getManagedFans();
     byId('expiring-task-card').innerHTML = state.overview
       ? buildTaskCard(
@@ -2261,7 +2261,7 @@ textarea{
     byId('expiring-enable').checked = isTaskActive(getManagedConfig().expiringGift || rawConfig.expiringGift);
     byId('expiring-cron').value = config.cron || '0 45 23 * * *';
     byId('expiring-threshold-hours').value = String(config.thresholdHours || 24);
-    byId('expiring-model').value = String(config.model || 2);
+    byId('expiring-model').value = String(config.model || 1);
     void ensureCronPreview('expiringGift', byId('expiring-cron').value, 'expiring-cron-preview');
 
     if (!hasCookieSourceConfigured(rawConfig)) {
@@ -2283,20 +2283,21 @@ textarea{
     }
 
     byId('expiring-note').textContent = '当前已同步 ' + fans.length + ' 个粉丝牌房间。临期任务会先检查当前荧光棒最早过期时间，达到阈值后再执行赠送。';
-    byId('expiring-table-wrap').innerHTML = buildSendTable(fans, config, false, 'expiring-value');
+    byId('expiring-table-wrap').innerHTML = buildSendTable(fans, config, false, 'expiring-value', { firstWeightOnly: true });
   }
 
-  function buildSendTable(fans, config, withEnabled, valueClass) {
+  function buildSendTable(fans, config, withEnabled, valueClass, options) {
     var model = Number(config.model || 1);
     var rows = [];
     var i;
     for (i = 0; i < fans.length; i += 1) {
       var fan = fans[i];
       var key = String(fan.roomId);
+      var defaultWeight = options && options.firstWeightOnly ? (i === 0 ? 1 : 0) : 1;
       var sendItem = config.send && config.send[key] ? config.send[key] : {
         roomId: fan.roomId,
         number: model === 2 ? 1 : 0,
-        weight: model === 1 ? 1 : 0
+        weight: model === 1 ? defaultWeight : 0
       };
       var value = model === 2 ? Number(sendItem.number || 0) : Number(sendItem.weight || 0);
       rows.push('<tr>');
@@ -3055,7 +3056,7 @@ textarea{
   function buildExpiringGiftPayload() {
     var fans = getManagedFans();
     var send = {};
-    var model = Number(byId('expiring-model').value || 2);
+    var model = Number(byId('expiring-model').value || 1);
     var i;
     for (i = 0; i < fans.length; i += 1) {
       var roomId = fans[i].roomId;
@@ -3191,7 +3192,7 @@ textarea{
   }
 
   function disableExpiringGiftConfig() {
-    var currentConfig = getManagedConfig().expiringGift || getRawConfig().expiringGift || { active: false, cron: '0 45 23 * * *', thresholdHours: 24, model: 2, send: {} };
+    var currentConfig = getManagedConfig().expiringGift || getRawConfig().expiringGift || { active: false, cron: '0 45 23 * * *', thresholdHours: 24, model: 1, send: {} };
     requestJson('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3200,7 +3201,7 @@ textarea{
           active: false,
           cron: currentConfig.cron || '0 45 23 * * *',
           thresholdHours: Number(currentConfig.thresholdHours || 24),
-          model: Number(currentConfig.model || 2),
+          model: Number(currentConfig.model || 1),
           send: currentConfig.send || {}
         }
       })

@@ -180,9 +180,13 @@ Field rules:
 - `expiringGift.thresholdHours`
   - positive number of hours before earliest visible fluorescent-stick expiry
   - omitted or invalid values normalize to `24`
+- `expiringGift.model`
+  - omitted or invalid values normalize to weight-based allocation (`model = 1`)
+  - existing saved `model = 2` values are preserved and continue to use fixed-count behavior
 - `expiringGift.send`
   - room set must match the current medal list after reconciliation
   - gifting reuses the existing keepalive allocation modes: `model = 1` weight-based allocation, `model = 2` fixed count
+  - default weight-mode room rows seed the first synchronized fan-medal room with `weight = 1` and all other rooms with `weight = 0`
   - manual trigger with no configured room payload returns `400 { "error": "临期任务未配置" }`
 - `expiringGift` runtime behavior
   - each run loads current fluorescent-stick count and earliest visible expiry via `getGiftStatus(cookie, roomIds)`
@@ -270,13 +274,13 @@ Request payload:
     "active": false,
     "cron": "0 45 23 * * *",
     "thresholdHours": 24,
-    "model": 2,
+    "model": 1,
     "send": {
       "123456": {
         "roomId": 123456,
         "giftId": 268,
-        "number": -1,
-        "weight": 0,
+        "number": 0,
+        "weight": 1,
         "count": 0
       }
     }
@@ -300,7 +304,7 @@ Allowed omission/removal rules:
 - omit `doubleCard` to preserve current double-card config
 - send `"doubleCard": { "active": false, "cron": "...", "model": 1, "enabled": { ... }, "send": { ... } }` to disable double-card while preserving room config
 - omit `expiringGift` to preserve current expiring-gift config
-- send `"expiringGift": { "active": false, "cron": "...", "thresholdHours": 24, "model": 2, "send": { ... } }` to disable expiring-gift while preserving room config
+- send `"expiringGift": { "active": false, "cron": "...", "thresholdHours": 24, "model": 1, "send": { ... } }` to disable expiring-gift while preserving room config
 - omit `yubaCheckIn` to preserve current yuba-check-in config
 - send `"yubaCheckIn": { "active": false, "cron": "...", "mode": "followed" }` to disable the yuba scheduler while preserving cron / mode
 - send only `ui` to update theme preference without touching task configs
@@ -527,7 +531,7 @@ File: `src/core/medal-sync.ts`
 - if `expiringGift` is not configured, do nothing
 - if medal room already exists in `expiringGift.send`, preserve the old send item
 - if medal room is new:
-  - `model === 1` -> default `weight = 1`
+  - `model === 1` -> first synchronized fan-medal room defaults to `weight = 1`; all other new rooms default to `weight = 0`
   - `model === 2` -> default `number = 1`
 - rooms removed from the medal list must be removed from `expiringGift.send`
 - `thresholdHours` defaults to `24` and must remain positive after normalize/reconcile
@@ -633,7 +637,7 @@ Expected:
 - double-card preserves `100`, `200` send values
 - double-card preserves existing enabled map
 - double-card adds room `300` with default send value and `enabled.300 = false`
-- expiring-gift preserves `100`, `200` values and adds `300` with default values
+- expiring-gift preserves `100`, `200` values and adds `300` with the model-specific default value
 - if rooms `100` and `200` are both double-active at runtime, gifts are redistributed using weight `1:3`
 
 ### Base

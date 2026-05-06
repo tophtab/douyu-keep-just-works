@@ -35,6 +35,16 @@ function createDefaultSendItem(roomId: number, model: 1 | 2): SendGift {
   }
 }
 
+function createDefaultExpiringGiftSendItem(roomId: number, model: 1 | 2, index: number): SendGift {
+  return {
+    roomId,
+    giftId: DEFAULT_GIFT_ID,
+    number: model === 2 ? 1 : 0,
+    weight: model === 1 && index === 0 ? 1 : 0,
+    count: 0,
+  }
+}
+
 function normalizeSendItem(item: Partial<SendGift> | undefined, roomId: number, model: 1 | 2): SendGift {
   return {
     roomId,
@@ -56,6 +66,19 @@ function mergeSendConfig(send: sendConfig | undefined, fans: Fans[], model: 1 | 
       ? normalizeSendItem(send[key], fan.roomId, model)
       : createDefaultSendItem(fan.roomId, model)
   }
+
+  return next
+}
+
+function mergeExpiringGiftSendConfig(send: sendConfig | undefined, fans: Fans[], model: 1 | 2): sendConfig {
+  const next: sendConfig = {}
+
+  fans.forEach((fan, index) => {
+    const key = String(fan.roomId)
+    next[key] = send?.[key]
+      ? normalizeSendItem(send[key], fan.roomId, model)
+      : createDefaultExpiringGiftSendItem(fan.roomId, model, index)
+  })
 
   return next
 }
@@ -190,8 +213,8 @@ export function createDefaultExpiringGiftConfig(fans: Fans[]): ExpiringGiftConfi
     active: false,
     cron: DEFAULT_EXPIRING_GIFT_CRON,
     thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
-    model: 2,
-    send: mergeSendConfig(undefined, fans, 2),
+    model: 1,
+    send: mergeExpiringGiftSendConfig(undefined, fans, 1),
   }
 }
 
@@ -206,7 +229,7 @@ export function reconcileExpiringGiftConfig(config: ExpiringGiftConfig | undefin
     cron: config.cron || DEFAULT_EXPIRING_GIFT_CRON,
     thresholdHours: normalizeThresholdHours(config.thresholdHours),
     model,
-    send: mergeSendConfig(config.send, fans, model),
+    send: mergeExpiringGiftSendConfig(config.send, fans, model),
   }
 }
 

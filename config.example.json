@@ -67,18 +67,18 @@
     "active": false,
     "cron": "0 45 23 * * *",
     "thresholdHours": 24,
-    "model": 2,
+    "model": 1,
     "send": {
       "123456": {
         "roomId": 123456,
-        "number": 1,
+        "number": 0,
         "giftId": 268,
-        "weight": 0,
+        "weight": 1,
         "count": 0
       },
       "789012": {
         "roomId": 789012,
-        "number": -1,
+        "number": 0,
         "giftId": 268,
         "weight": 0,
         "count": 0

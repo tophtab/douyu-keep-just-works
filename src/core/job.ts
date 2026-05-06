@@ -1,8 +1,8 @@
-import { getDid, getFansList, getGiftNumber, parseDyAndSidFromCookie, sendGift, sleep } from './api'
+import { getDid, getFansList, getGiftNumber, getGiftStatus, parseDyAndSidFromCookie, sendGift, sleep } from './api'
 import { collectGiftViaDanmu } from './collect-gift'
 import { checkDoubleCard } from './double-card'
 import { computeGiftCountOfNumber, computeGiftCountOfPercentage, computeGiftCountWithDoubleCard } from './gift'
-import type { DoubleCardConfig, JobConfig, Logger, YubaCheckInConfig, sendArgs, sendConfig } from './types'
+import type { DoubleCardConfig, ExpiringGiftConfig, GiftStatus, JobConfig, Logger, YubaCheckInConfig, sendArgs, sendConfig } from './types'
 import { executeFollowedYubaCheckInWithDyToken, formatYubaModeLabel } from './yuba'
 
 function errorMessage(error: unknown): string {
@@ -27,6 +27,38 @@ async function loadGiftNumber(cookie: string, log: Logger, prefix?: string, cand
     log(`荧光棒数量为${number}`)
   }
   return number
+}
+
+async function loadGiftStatus(cookie: string, log: Logger, prefix?: string, candidateRoomIds: number[] = []): Promise<GiftStatus | null> {
+  if (prefix) {
+    log(prefix)
+  }
+
+  try {
+    const status = await getGiftStatus(cookie, candidateRoomIds)
+    if (status.count === 0) {
+      log('荧光棒数量为0, 结束任务')
+    } else {
+      log(`荧光棒数量为${status.count}`)
+    }
+    return status
+  } catch (error) {
+    log(`获取荧光棒库存失败: ${errorMessage(error)}`)
+    return null
+  }
+}
+
+function formatShanghaiTime(value: number): string {
+  return new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(new Date(value)).replace(/\//g, '-')
 }
 
 function pickCollectRoomId(roomIds: number[]): number {
@@ -167,6 +199,56 @@ export async function executeDoubleCardJob(config: DoubleCardConfig, cookie: str
   }
 
   log('双倍状态检测完成，检测到可执行房间，开始执行双倍赠送')
+  await sendGifts(jobs, cookie, log)
+}
+
+export async function executeExpiringGiftJob(config: ExpiringGiftConfig, cookie: string, log: Logger): Promise<void> {
+  log('开始执行临期任务')
+  if (!Object.keys(config.send || {}).length) {
+    log('临期任务未配置赠送房间，跳过本次任务')
+    return
+  }
+
+  const roomIds = Object.values(config.send).map(item => item.roomId)
+  const status = await loadGiftStatus(cookie, log, '正在获取当前荧光棒库存和过期时间...', roomIds)
+  if (!status || status.count === 0) {
+    return
+  }
+
+  if (!status.expireTime) {
+    log('当前荧光棒未返回可用过期时间，跳过临期赠送')
+    return
+  }
+
+  const thresholdHours = typeof config.thresholdHours === 'number' && Number.isFinite(config.thresholdHours) && config.thresholdHours > 0
+    ? config.thresholdHours
+    : 24
+  const remainingMs = status.expireTime - Date.now()
+  const remainingHours = Math.max(0, remainingMs / (60 * 60 * 1000))
+  log(`最早可见过期时间: ${formatShanghaiTime(status.expireTime)}，距离过期约 ${remainingHours.toFixed(1)} 小时，阈值 ${thresholdHours} 小时`)
+
+  if (remainingMs > thresholdHours * 60 * 60 * 1000) {
+    log('尚未达到临期阈值，跳过本次赠送')
+    return
+  }
+
+  await sleep(2000)
+
+  const { model, send } = config
+  let jobs: sendConfig = {}
+  try {
+    if (model === 1) {
+      jobs = await computeGiftCountOfPercentage(status.count, JSON.parse(JSON.stringify(send)))
+    } else {
+      jobs = await computeGiftCountOfNumber(status.count, JSON.parse(JSON.stringify(send)))
+    }
+  } catch (error: unknown) {
+    log(`计算临期赠送数量失败: ${errorMessage(error)}`)
+    return
+  }
+
+  const targetCount = Object.values(jobs).filter(item => (item.count || 0) > 0).length
+  log(`已达到临期阈值，准备向 ${targetCount} 个房间赠送当前可用荧光棒`)
   await sendGifts(jobs, cookie, log)
 }
 

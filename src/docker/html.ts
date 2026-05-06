@@ -6,6 +6,7 @@ export const DOCKER_WEBUI_PAGE_ROUTES = {
   'collect': '/Configurations/CollectGiftConfig',
   'keepalive': '/Configurations/DailyJobConfig',
   'double-card': '/Configurations/DoubleCardConfig',
+  'expiring-gift': '/Configurations/ExpiringGiftConfig',
   'yuba': '/Configurations/YubaCheckInConfig',
   'logs': '/Logs',
 } as const
@@ -920,7 +921,7 @@ textarea{
       <h1 class="brand-title">${APP_NAME}</h1>
       <span class="version-label">${APP_VERSION_LABEL}</span>
     </div>
-    <p class="brand-copy">更聚焦的 Docker 管理台。先看概况，再分别管理登录、领取、保活、双倍和鱼吧签到任务。</p>
+    <p class="brand-copy">更聚焦的 Docker 管理台。先看概况，再分别管理登录、领取、保活、双倍、临期和鱼吧签到任务。</p>
 
     <div class="tab-list">
       <button class="tab-btn active" data-action="tab" data-tab="overview">概况</button>
@@ -928,6 +929,7 @@ textarea{
       <button class="tab-btn" data-action="tab" data-tab="collect">领取任务</button>
       <button class="tab-btn" data-action="tab" data-tab="keepalive">保活任务</button>
       <button class="tab-btn" data-action="tab" data-tab="double-card">双倍任务</button>
+      <button class="tab-btn" data-action="tab" data-tab="expiring-gift">临期任务</button>
       <button class="tab-btn" data-action="tab" data-tab="yuba">鱼吧签到</button>
       <button class="tab-btn" data-action="tab" data-tab="logs">运行日志</button>
     </div>
@@ -1255,6 +1257,51 @@ textarea{
       </div>
     </section>
 
+    <section class="page" id="page-expiring-gift">
+      <div class="task-card" id="expiring-task-card">
+        <div class="task-card-title">临期状态</div>
+      </div>
+      <div class="status-box" id="expiring-note" style="margin-top:14px">等待加载...</div>
+
+      <div class="panel" style="margin-top:16px">
+        <div class="field-block">
+          <div class="switch-field">
+            <div class="switch-copy">
+              <div class="switch-title">启用临期任务</div>
+              <div class="switch-note">达到临期阈值后，按房间配置一次性赠送当前可用荧光棒。</div>
+            </div>
+            <label class="switch-control">
+              <input class="switch-input" type="checkbox" id="expiring-enable">
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="grid cols-3">
+          <div class="field-block">
+            <label class="field-label" for="expiring-cron">Cron 表达式</label>
+            <input id="expiring-cron" type="text">
+            <div class="helper cron-preview" id="expiring-cron-preview">正在计算未来执行时间...</div>
+          </div>
+          <div class="field-block">
+            <label class="field-label" for="expiring-threshold-hours">临期阈值（小时）</label>
+            <input id="expiring-threshold-hours" type="number" min="1" step="1">
+          </div>
+          <div class="field-block">
+            <label class="field-label" for="expiring-model">分配模式</label>
+            <select id="expiring-model">
+              <option value="1">按百分比</option>
+              <option value="2">按固定数量</option>
+            </select>
+          </div>
+        </div>
+        <div class="actions" style="margin-top:14px">
+          <button class="btn btn-success" data-action="save-expiring">保存并启用</button>
+          <button class="btn btn-secondary" data-action="trigger" data-trigger="expiringGift">立即执行</button>
+        </div>
+        <div id="expiring-table-wrap" style="margin-top:16px"></div>
+      </div>
+    </section>
+
     <section class="page" id="page-logs">
       <div class="panel">
         <h3 class="section-title">运行日志</h3>
@@ -1303,9 +1350,13 @@ textarea{
       title: '双倍任务',
       subtitle: '查看双倍状态，并维护参与勾选与分配值。'
     },
+    'expiring-gift': {
+      title: '临期任务',
+      subtitle: '在荧光棒接近过期时，按配置一次性赠送当前可用库存。'
+    },
     logs: {
       title: '运行日志',
-      subtitle: '查看系统、领取、鱼吧签到、保活和双倍任务的执行记录。'
+      subtitle: '查看系统、领取、鱼吧签到、保活、双倍和临期任务的执行记录。'
     }
   };
 
@@ -1372,7 +1423,8 @@ textarea{
     collectGift: { active: true, cron: '0 10 3,5 * * *' },
     yubaCheckIn: { active: false, cron: '0 23 0 * * *', mode: 'followed' },
     keepalive: { active: true, cron: '0 0 8 */6 * *', model: 2, send: {} },
-    doubleCard: { active: true, cron: '0 20 17,20,22,23 * * *', model: 1, send: {}, enabled: {} }
+    doubleCard: { active: true, cron: '0 20 17,20,22,23 * * *', model: 1, send: {}, enabled: {} },
+    expiringGift: { active: false, cron: '0 0 */6 * * *', thresholdHours: 24, model: 2, send: {} }
   };
 
   function createEmptyCronPreview() {
@@ -1413,14 +1465,16 @@ textarea{
       collectGift: createEmptyCronPreview(),
       yubaCheckIn: createEmptyCronPreview(),
       keepalive: createEmptyCronPreview(),
-      doubleCard: createEmptyCronPreview()
+      doubleCard: createEmptyCronPreview(),
+      expiringGift: createEmptyCronPreview()
     },
     cronPreviewSeq: {
       cookieCloud: 0,
       collectGift: 0,
       yubaCheckIn: 0,
       keepalive: 0,
-      doubleCard: 0
+      doubleCard: 0,
+      expiringGift: 0
     }
   };
 
@@ -1934,6 +1988,7 @@ textarea{
         + '<div class="strip-metric"><div class="mini-label">领取</div><div class="mini-value">-</div></div>'
         + '<div class="strip-metric"><div class="mini-label">保活</div><div class="mini-value">-</div></div>'
         + '<div class="strip-metric"><div class="mini-label">双倍</div><div class="mini-value">-</div></div>'
+        + '<div class="strip-metric"><div class="mini-label">临期</div><div class="mini-value">-</div></div>'
         + '<div class="strip-metric"><div class="mini-label">鱼吧签到</div><div class="mini-value">-</div></div>';
       byId('overview-gift-summary').innerHTML = buildOverviewGiftSummary('-', '-');
       byId('overview-fans-note').textContent = '正在加载粉丝牌状态...';
@@ -1946,6 +2001,7 @@ textarea{
       + buildSummaryStatusCell('领取', overview.collectGiftConfigured, '已开启', '未开启')
       + buildSummaryStatusCell('保活', overview.keepaliveConfigured, '已开启', '未开启')
       + buildSummaryStatusCell('双倍', overview.doubleCardConfigured, '已开启', '未开启')
+      + buildSummaryStatusCell('临期', overview.expiringGiftConfigured, '已开启', '未开启')
       + buildSummaryStatusCell('鱼吧签到', overview.yubaCheckInConfigured, '已开启', '未开启');
 
     if (!hasCookieSourceConfigured(rawConfig)) {
@@ -2189,6 +2245,47 @@ textarea{
     updateDoubleModeUi();
   }
 
+  function renderExpiringGiftPage() {
+    var rawConfig = getRawConfig();
+    var config = getManagedConfig().expiringGift || rawConfig.expiringGift || { active: false, cron: '0 0 */6 * * *', thresholdHours: 24, model: 2, send: {} };
+    var fans = getManagedFans();
+    byId('expiring-task-card').innerHTML = state.overview
+      ? buildTaskCard(
+        '临期',
+        state.overview.expiringGiftConfigured,
+        state.overview.status.expiringGift,
+        '阈值',
+        String(config.thresholdHours || 24) + ' 小时'
+      )
+      : buildLoadingTaskCard('临期');
+    byId('expiring-enable').checked = isTaskActive(getManagedConfig().expiringGift || rawConfig.expiringGift);
+    byId('expiring-cron').value = config.cron || '0 0 */6 * * *';
+    byId('expiring-threshold-hours').value = String(config.thresholdHours || 24);
+    byId('expiring-model').value = String(config.model || 2);
+    void ensureCronPreview('expiringGift', byId('expiring-cron').value, 'expiring-cron-preview');
+
+    if (!hasCookieSourceConfigured(rawConfig)) {
+      byId('expiring-note').textContent = '请先保存 Cookie 或启用 CookieCloud。没有登录凭证时无法同步粉丝牌，也无法读取荧光棒库存和过期时间。';
+      byId('expiring-table-wrap').innerHTML = '<div class="empty">保存 Cookie 或启用 CookieCloud 后再同步粉丝牌，这里才会出现临期赠送房间列表。</div>';
+      return;
+    }
+
+    if (state.managedLoading) {
+      byId('expiring-note').textContent = '正在同步粉丝牌与临期配置...';
+      byId('expiring-table-wrap').innerHTML = '<div class="empty">请稍候...</div>';
+      return;
+    }
+
+    if (!fans.length) {
+      byId('expiring-note').textContent = '当前没有可用粉丝牌。';
+      byId('expiring-table-wrap').innerHTML = '<div class="empty">同步后如果仍为空，说明当前账号没有可用粉丝牌数据。</div>';
+      return;
+    }
+
+    byId('expiring-note').textContent = '当前已同步 ' + fans.length + ' 个粉丝牌房间。临期任务会先检查当前荧光棒最早过期时间，达到阈值后再执行赠送。';
+    byId('expiring-table-wrap').innerHTML = buildSendTable(fans, config, false, 'expiring-value');
+  }
+
   function buildSendTable(fans, config, withEnabled, valueClass) {
     var model = Number(config.model || 1);
     var rows = [];
@@ -2376,6 +2473,7 @@ textarea{
     renderYubaPage();
     renderKeepalivePage();
     renderDoublePage();
+    renderExpiringGiftPage();
     renderLogsPage();
   }
 
@@ -2954,6 +3052,33 @@ textarea{
     return result;
   }
 
+  function buildExpiringGiftPayload() {
+    var fans = getManagedFans();
+    var send = {};
+    var model = Number(byId('expiring-model').value || 2);
+    var i;
+    for (i = 0; i < fans.length; i += 1) {
+      var roomId = fans[i].roomId;
+      var input = document.querySelector('.expiring-value[data-room-id="' + roomId + '"]');
+      var value = input ? Number(input.value) : 0;
+      send[String(roomId)] = {
+        roomId: roomId,
+        giftId: 268,
+        number: model === 2 ? value : 0,
+        weight: model === 1 ? value : 0,
+        count: 0
+      };
+    }
+
+    return {
+      active: true,
+      cron: byId('expiring-cron').value.trim(),
+      thresholdHours: Number(byId('expiring-threshold-hours').value || 24),
+      model: model,
+      send: send
+    };
+  }
+
   function saveKeepaliveConfig(options) {
     byId('keepalive-enable').checked = true;
     var payload = {
@@ -3041,6 +3166,56 @@ textarea{
     });
   }
 
+  function saveExpiringGiftConfig(options) {
+    byId('expiring-enable').checked = true;
+    var payload = {
+      expiringGift: buildExpiringGiftPayload()
+    };
+
+    requestJson('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function () {
+      toast('临期任务已保存并启用', true);
+      refreshOverviewSurface(false);
+    }).catch(function (error) {
+      if (options && options.revertCheckboxOnError) {
+        byId('expiring-enable').checked = false;
+      }
+      if (isUnauthorizedError(error)) {
+        return;
+      }
+      toast('保存并启用临期任务失败：' + error.message, false);
+    });
+  }
+
+  function disableExpiringGiftConfig() {
+    var currentConfig = getManagedConfig().expiringGift || getRawConfig().expiringGift || { active: false, cron: '0 0 */6 * * *', thresholdHours: 24, model: 2, send: {} };
+    requestJson('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        expiringGift: {
+          active: false,
+          cron: currentConfig.cron || '0 0 */6 * * *',
+          thresholdHours: Number(currentConfig.thresholdHours || 24),
+          model: Number(currentConfig.model || 2),
+          send: currentConfig.send || {}
+        }
+      })
+    }).then(function () {
+      toast('临期任务已停用', true);
+      refreshOverviewSurface(false);
+    }).catch(function (error) {
+      byId('expiring-enable').checked = true;
+      if (isUnauthorizedError(error)) {
+        return;
+      }
+      toast('停用临期任务失败：' + error.message, false);
+    });
+  }
+
   function disableDoubleConfig() {
     var currentConfig = getManagedConfig().doubleCard || getRawConfig().doubleCard || { active: true, cron: '0 20 17,20,22,23 * * *', model: 1, send: {}, enabled: {} };
     requestJson('/api/config', {
@@ -3076,7 +3251,7 @@ textarea{
         loadOverview(),
         loadLogs()
       ];
-      if (state.activeTab === 'overview' || type === 'collectGift' || type === 'keepalive' || type === 'doubleCard') {
+      if (state.activeTab === 'overview' || type === 'collectGift' || type === 'keepalive' || type === 'doubleCard' || type === 'expiringGift') {
         reloads.push(loadFansStatus(false));
       }
       if (state.activeTab === 'yuba' || type === 'yubaCheckIn') {
@@ -3088,6 +3263,9 @@ textarea{
         }
         if (state.activeTab === 'double-card') {
           renderDoublePage();
+        }
+        if (state.activeTab === 'expiring-gift') {
+          renderExpiringGiftPage();
         }
       });
     }).catch(function (error) {
@@ -3207,6 +3385,10 @@ textarea{
       saveDoubleConfig();
       return;
     }
+    if (action === 'save-expiring') {
+      saveExpiringGiftConfig();
+      return;
+    }
     if (action === 'double-fill-equal') {
       applyDoubleRatioPreset('equal');
       return;
@@ -3261,6 +3443,12 @@ textarea{
   });
   byId('double-enable').addEventListener('change', function (event) {
     handleTaskToggleChange(event, saveDoubleConfig, disableDoubleConfig);
+  });
+  byId('expiring-cron').addEventListener('input', function (event) {
+    void loadCronPreview('expiringGift', event.target.value, 'expiring-cron-preview');
+  });
+  byId('expiring-enable').addEventListener('change', function (event) {
+    handleTaskToggleChange(event, saveExpiringGiftConfig, disableExpiringGiftConfig);
   });
   byId('double-model').addEventListener('change', updateDoubleModeUi);
   document.addEventListener('input', function (event) {

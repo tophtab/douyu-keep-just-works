@@ -1,9 +1,11 @@
 import { normalizeCookieCloudConfig } from './cookie-cloud'
-import type { CollectGiftConfig, CookieCloudConfig, DockerConfig, DoubleCardConfig, Fans, JobConfig, ManualCookieConfig, SendGift, ThemeMode, YubaCheckInConfig, sendConfig } from './types'
+import type { CollectGiftConfig, CookieCloudConfig, DockerConfig, DoubleCardConfig, ExpiringGiftConfig, Fans, JobConfig, ManualCookieConfig, SendGift, ThemeMode, YubaCheckInConfig, sendConfig } from './types'
 
 const DEFAULT_COLLECT_GIFT_CRON = '0 10 3,5 * * *'
 const DEFAULT_KEEPALIVE_CRON = '0 0 8 */6 * *'
 const DEFAULT_DOUBLE_CARD_CRON = '0 20 17,20,22,23 * * *'
+const DEFAULT_EXPIRING_GIFT_CRON = '0 0 */6 * * *'
+const DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS = 24
 const DEFAULT_YUBA_CHECK_IN_CRON = '0 23 0 * * *'
 const DEFAULT_COOKIE_CLOUD_SYNC_CRON = '0 5 0 * * *'
 const DEFAULT_THEME_MODE: ThemeMode = 'system'
@@ -183,6 +185,37 @@ export function reconcileDoubleCardConfig(config: DoubleCardConfig | undefined, 
   }
 }
 
+export function createDefaultExpiringGiftConfig(fans: Fans[]): ExpiringGiftConfig {
+  return {
+    active: false,
+    cron: DEFAULT_EXPIRING_GIFT_CRON,
+    thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
+    model: 2,
+    send: mergeSendConfig(undefined, fans, 2),
+  }
+}
+
+export function reconcileExpiringGiftConfig(config: ExpiringGiftConfig | undefined, fans: Fans[]): ExpiringGiftConfig | undefined {
+  if (!config) {
+    return undefined
+  }
+
+  const model = config.model === 2 ? 2 : 1
+  return {
+    active: resolveTaskActive(config.active),
+    cron: config.cron || DEFAULT_EXPIRING_GIFT_CRON,
+    thresholdHours: normalizeThresholdHours(config.thresholdHours),
+    model,
+    send: mergeSendConfig(config.send, fans, model),
+  }
+}
+
+function normalizeThresholdHours(value: number | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? value
+    : DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS
+}
+
 function normalizeKeepaliveConfig(config: JobConfig | undefined): JobConfig | undefined {
   if (!config) {
     return undefined
@@ -218,6 +251,24 @@ function normalizeDoubleCardConfig(config: DoubleCardConfig | undefined): Double
   }
 }
 
+function normalizeExpiringGiftConfig(config: ExpiringGiftConfig | undefined): ExpiringGiftConfig | undefined {
+  if (!config) {
+    return undefined
+  }
+
+  const model = config.model === 2 ? 2 : 1
+  return {
+    active: resolveTaskActive(config.active),
+    cron: config.cron || DEFAULT_EXPIRING_GIFT_CRON,
+    thresholdHours: normalizeThresholdHours(config.thresholdHours),
+    model,
+    send: Object.entries(config.send || {}).reduce((acc, [key, item]) => {
+      acc[key] = normalizeSendItem(item, Number(key), model)
+      return acc
+    }, {} as sendConfig),
+  }
+}
+
 export function normalizeDockerConfig(config: DockerConfig, options: { ensureCollectGift?: boolean } = {}): DockerConfig {
   const collectGift = normalizeCollectGiftConfig(config.collectGift)
   const cookieCloud = normalizeCookieCloud(config.cookieCloud)
@@ -235,6 +286,7 @@ export function normalizeDockerConfig(config: DockerConfig, options: { ensureCol
       : (options.ensureCollectGift ? { collectGift: createDefaultCollectGiftConfig() } : {})),
     keepalive: normalizeKeepaliveConfig(config.keepalive),
     doubleCard: normalizeDoubleCardConfig(config.doubleCard),
+    expiringGift: normalizeExpiringGiftConfig(config.expiringGift),
     ...(yubaCheckIn ? { yubaCheckIn } : {}),
   }
 }
@@ -254,6 +306,7 @@ export function reconcileDockerConfig(config: DockerConfig, fans: Fans[]): Docke
     ...(collectGift ? { collectGift } : {}),
     keepalive: reconcileKeepaliveConfig(config.keepalive, fans),
     doubleCard: reconcileDoubleCardConfig(config.doubleCard, fans),
+    expiringGift: reconcileExpiringGiftConfig(config.expiringGift, fans),
     ...(yubaCheckIn ? { yubaCheckIn } : {}),
   }
 }
@@ -266,6 +319,7 @@ export function createDefaultDockerConfig(): DockerConfig {
     },
     collectGift: createDefaultCollectGiftConfig(),
     keepalive: createDefaultKeepaliveConfig([]),
+    expiringGift: createDefaultExpiringGiftConfig([]),
     yubaCheckIn: createDefaultYubaCheckInConfig(),
   }
 }

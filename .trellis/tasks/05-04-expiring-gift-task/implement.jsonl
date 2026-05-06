@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend guideline index for Docker runtime task, config, scheduler, and API changes"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Runtime boundaries and module organization for core and Docker code"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Docker config persistence shape changes for expiringGift"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Route, scheduler, and upstream API error behavior"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "User-visible task logs and diagnostics for skip/send decisions"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend quality bar before implementation handoff"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Current UI guidance points Docker WebUI changes back to backend rules"}
+{"file": ".trellis/spec/guides/docker-medal-sync-contract.md", "reason": "Executable contract for fans sync, backpack gift status, and config reconciliation"}
+{"file": ".trellis/spec/guides/docker-webui-auth-contract.md", "reason": "Cookie/backpack and Docker WebUI API contract relevant to gift status fetching"}

@@ -63,6 +63,28 @@
       }
     }
   },
+  "expiringGift": {
+    "active": false,
+    "cron": "0 0 */6 * * *",
+    "thresholdHours": 24,
+    "model": 2,
+    "send": {
+      "123456": {
+        "roomId": 123456,
+        "number": 1,
+        "giftId": 268,
+        "weight": 0,
+        "count": 0
+      },
+      "789012": {
+        "roomId": 789012,
+        "number": -1,
+        "giftId": 268,
+        "weight": 0,
+        "count": 0
+      }
+    }
+  },
   "yubaCheckIn": {
     "active": false,
     "cron": "0 23 0 * * *",

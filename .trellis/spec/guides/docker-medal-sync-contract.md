@@ -1,6 +1,6 @@
 # Docker Medal Sync Contract
 
-> **Purpose**: Define the executable cross-layer contract for Docker WebUI cookie-source persistence, independent collection, medal-driven keepalive, double-card management, and HTTP-based yuba check-in.
+> **Purpose**: Define the executable cross-layer contract for Docker WebUI cookie-source persistence, independent collection, medal-driven keepalive, double-card management, expiring fluorescent-stick gifting, and HTTP-based yuba check-in.
 
 ---
 
@@ -23,6 +23,7 @@ It applies when the WebUI manages:
 - collect-gift task config
 - keepalive task config
 - double-card task config
+- expiring-gift task config
 - yuba-check-in task config
 - theme preference
 - medal-list-driven reconciliation
@@ -37,7 +38,7 @@ manual cookies / CookieCloud
   -> resolve effective cookie per target hostname
   -> collect scheduler (`collectGift`)
   -> GET medal list (`getFansList`)
-  -> reconcile keepalive + doubleCard config (`reconcileDockerConfig`)
+  -> reconcile keepalive + doubleCard + expiringGift config (`reconcileDockerConfig`)
   -> GET followed yuba groups + group head (`getFollowedYubaStatuses`)
   -> yuba scheduler (`yubaCheckIn`)
   -> save config to disk
@@ -98,6 +99,10 @@ interface DoubleCardConfig extends JobConfig {
   enabled?: Record<string, boolean>
 }
 
+interface ExpiringGiftConfig extends JobConfig {
+  thresholdHours?: number
+}
+
 interface YubaCheckInConfig {
   active?: boolean
   cron: string
@@ -112,6 +117,7 @@ interface DockerConfig {
   collectGift?: CollectGiftConfig
   keepalive?: JobConfig
   doubleCard?: DoubleCardConfig
+  expiringGift?: ExpiringGiftConfig
   yubaCheckIn?: YubaCheckInConfig
 }
 ```
@@ -133,7 +139,7 @@ Field rules:
   - allowed value: `legacy`
   - Docker WebUI persists `legacy` and does not expose an algorithm selector
 - `*.active`
-  - applies to `collectGift`, `keepalive`, `doubleCard`, and `yubaCheckIn`
+  - applies to `collectGift`, `keepalive`, `doubleCard`, `expiringGift`, and `yubaCheckIn`
   - omitted old config defaults to `true` during normalize/load
   - `false` means keep the saved config payload but do not start scheduler wiring for that task
 - `ui.themeMode`
@@ -166,6 +172,19 @@ Field rules:
   - key is room id string
   - `true` means the room participates in double-card detection and send candidate selection
   - missing value behaves as `false`
+- `expiringGift.cron`
+  - omitted old config is normalized to the default `0 0 */6 * * *`
+- `expiringGift.thresholdHours`
+  - positive number of hours before earliest visible fluorescent-stick expiry
+  - omitted or invalid values normalize to `24`
+- `expiringGift.send`
+  - room set must match the current medal list after reconciliation
+  - gifting reuses the existing keepalive allocation modes: `model = 1` percentage, `model = 2` fixed count
+  - manual trigger with no configured room payload returns `400 { "error": "临期任务未配置" }`
+- `expiringGift` runtime behavior
+  - each run loads current fluorescent-stick count and earliest visible expiry via `getGiftStatus(cookie, roomIds)`
+  - if count is `0`, expiry is missing, or remaining time is greater than `thresholdHours`, the run logs a skip reason and does not send
+  - once within threshold, the task allocates against the current total visible count and sends glow sticks once using the saved room config
 - `yubaCheckIn.mode`
   - currently only `followed` is valid
 - `yubaCheckIn.cron`
@@ -188,6 +207,7 @@ Purpose:
 - save collect-gift config
 - save keepalive config
 - save double-card config
+- save expiring-gift config
 - save yuba-check-in config
 - save UI preference
 - trigger post-save medal reconciliation when medal-driven task config is present and cookie exists
@@ -243,6 +263,21 @@ Request payload:
       }
     }
   },
+  "expiringGift": {
+    "active": false,
+    "cron": "0 0 */6 * * *",
+    "thresholdHours": 24,
+    "model": 2,
+    "send": {
+      "123456": {
+        "roomId": 123456,
+        "giftId": 268,
+        "number": -1,
+        "weight": 0,
+        "count": 0
+      }
+    }
+  },
   "yubaCheckIn": {
     "active": true,
     "cron": "0 23 0 * * *",
@@ -261,6 +296,8 @@ Allowed omission/removal rules:
 - send `"keepalive": { "active": false, "cron": "...", "model": 2, "send": { ... } }` to disable keepalive while preserving room config
 - omit `doubleCard` to preserve current double-card config
 - send `"doubleCard": { "active": false, "cron": "...", "model": 1, "enabled": { ... }, "send": { ... } }` to disable double-card while preserving room config
+- omit `expiringGift` to preserve current expiring-gift config
+- send `"expiringGift": { "active": false, "cron": "...", "thresholdHours": 24, "model": 2, "send": { ... } }` to disable expiring-gift while preserving room config
 - omit `yubaCheckIn` to preserve current yuba-check-in config
 - send `"yubaCheckIn": { "active": false, "cron": "...", "mode": "followed" }` to disable the yuba scheduler while preserving cron / mode
 - send only `ui` to update theme preference without touching task configs
@@ -280,7 +317,7 @@ Success response:
 Notes:
 
 - `data.fans` may be empty when saving UI-only changes or when task config is saved before cookie exists
-- when keepalive or double-card config is saved and cookie exists, response config reflects post-reconciliation state
+- when keepalive, double-card, or expiring-gift config is saved and cookie exists, response config reflects post-reconciliation state
 - saving only `collectGift`, `yubaCheckIn`, cookie-source fields, or `ui` does not trigger medal reconciliation
 - disabling a task through `active: false` must not clear its persisted cron / model / send / enabled payload
 - saving `manualCookies` or `cookieCloud` must restart runtime cookie resolution state without mutating medal-room config
@@ -292,7 +329,7 @@ File: `src/docker/server.ts`
 Purpose:
 
 - fetch the latest medal list using the effective main-site cookie
-- reconcile keepalive and double-card room config against the medal list
+- reconcile keepalive, double-card, and expiring-gift room config against the medal list
 - persist the updated config
 
 Request payload:
@@ -429,6 +466,7 @@ Supported `type` values:
 - `keepalive`
 - `doubleCard`
 - `yubaCheckIn`
+- `expiringGift`
 
 Rules:
 
@@ -436,7 +474,7 @@ Rules:
 - runtime lock conflicts return `400 { "error": "任务正在执行中，请稍后再试" }`
 - unconfigured tasks return `400 { "error": "<任务名>未配置" }`
 - yuba trigger must resolve cookies for `https://yuba.douyu.com/`
-- collect / keepalive / double-card triggers resolve cookies for `https://www.douyu.com/`
+- collect / keepalive / double-card / expiring-gift triggers resolve cookies for `https://www.douyu.com/`
 
 ---
 
@@ -470,7 +508,7 @@ File: `src/core/medal-sync.ts`
 ### UI Preference
 
 - `ui.themeMode` defaults to `system`
-- saving theme preference must not remove current collect-gift, keepalive, double-card, or yuba-check-in config
+- saving theme preference must not remove current collect-gift, keepalive, double-card, expiring-gift, or yuba-check-in config
 
 ### Collect Gift
 
@@ -480,6 +518,17 @@ File: `src/core/medal-sync.ts`
 ### Double Card
 
 - if `doubleCard` is missing in old persisted config, normalize its cron fallback to `0 20 17,20,22,23 * * *`
+
+### Expiring Gift
+
+- if `expiringGift` is not configured, do nothing
+- if medal room already exists in `expiringGift.send`, preserve the old send item
+- if medal room is new:
+  - `model === 1` -> default `weight = 1`
+  - `model === 2` -> default `number = 1`
+- rooms removed from the medal list must be removed from `expiringGift.send`
+- `thresholdHours` defaults to `24` and must remain positive after normalize/reconcile
+- expiring-gift save participates in medal reconciliation; collect-gift and yuba saves do not
 
 ### Cookie Source
 
@@ -522,9 +571,9 @@ File: `src/core/medal-sync.ts`
 
 | Boundary | Condition | Result |
 |----------|-----------|--------|
-| `POST /api/config` | `collectGift.active` / `keepalive.active` / `doubleCard.active` present but not boolean | `400 { error }` |
+| `POST /api/config` | `collectGift.active` / `keepalive.active` / `doubleCard.active` / `expiringGift.active` present but not boolean | `400 { error }` |
 | `POST /api/config` | `yubaCheckIn.active` present but not boolean | `400 { error }` |
-| `POST /api/config` | invalid `collectGift.cron` / `keepalive.cron` / `doubleCard.cron` missing | `400 { error }` |
+| `POST /api/config` | invalid `collectGift.cron` / `keepalive.cron` / `doubleCard.cron` / `expiringGift.cron` missing | `400 { error }` |
 | `POST /api/config` | invalid `yubaCheckIn.cron` | `400 { error }` |
 | `POST /api/config` | invalid `model` | `400 { error }` |
 | `POST /api/config` | `send` missing or not object | `400 { error }` |
@@ -533,6 +582,7 @@ File: `src/core/medal-sync.ts`
 | `POST /api/config` | `doubleCard.enabled` present but not object | `400 { error }` |
 | `POST /api/config` | `doubleCard.model === 1` and all enabled rooms have weight `<= 0` | `400 { error }` |
 | `POST /api/config` | `doubleCard.model === 1` and any room `weight` is negative / non-numeric | `400 { error }` |
+| `POST /api/config` | `expiringGift.thresholdHours <= 0` or non-numeric | `400 { "error": "expiringGift 临期阈值无效" }` |
 | `POST /api/config` | `manualCookies` present but not object | `400 { "error": "manualCookies 配置无效" }` |
 | `POST /api/config` | `cookieCloud.active` not boolean | `400 { "error": "CookieCloud 启用状态无效" }` |
 | `POST /api/config` | `cookieCloud.cryptoType` present but not `legacy` | `400 { "error": "CookieCloud 加密算法无效" }` |
@@ -542,6 +592,7 @@ File: `src/core/medal-sync.ts`
 | `GET /api/fans/status` | cookie missing | `400 { "error": "请先配置 cookie" }` |
 | `GET /api/yuba/status` | cookie missing | `400 { "error": "请先配置 cookie" }` |
 | `POST /api/trigger/yubaCheckIn` | task missing | `400 { "error": "鱼吧签到任务未配置" }` |
+| `POST /api/trigger/expiringGift` | task missing or has no room payload | `400 { "error": "临期任务未配置" }` |
 | yuba status | main cookie missing any dy-token field: `acf_uid`, `acf_biz`, `acf_stk`, `acf_ct`, `acf_ltkid` | `500 { error }` with actionable missing-key message |
 | yuba status `group/head` | dy-token response is `200` but lacks a rendered table field | try yuba-cookie `group/head` fallback for that row |
 | yuba sign | main cookie missing any dy-token field: `acf_uid`, `acf_biz`, `acf_stk`, `acf_ct`, `acf_ltkid` | runtime failure with actionable error |
@@ -565,6 +616,7 @@ File: `src/core/medal-sync.ts`
 - current config has `collectGift.cron = 0 10 3,5 * * *`
 - current keepalive has rooms `100`, `200`
 - current double-card has rooms `100`, `200`, with `enabled.100 = true`, `enabled.200 = false`
+- current expiring-gift has rooms `100`, `200`
 - `doubleCard.model = 1`
 - `doubleCard.send.100.weight = 1`
 - `doubleCard.send.200.weight = 3`
@@ -578,6 +630,7 @@ Expected:
 - double-card preserves `100`, `200` send values
 - double-card preserves existing enabled map
 - double-card adds room `300` with default send value and `enabled.300 = false`
+- expiring-gift preserves `100`, `200` values and adds `300` with default values
 - if rooms `100` and `200` are both double-active at runtime, gifts are redistributed using weight `1:3`
 
 ### Base
@@ -592,6 +645,7 @@ Expected:
 - saving one task config does not emit restart logs for unrelated active tasks
 - collect-gift save does not mutate medal-driven room payloads
 - yuba config save does not mutate medal-driven room payloads
+- expiring-gift save reconciles only medal-driven room payloads and reloads only affected task schedulers
 - task disable only flips `active` and does not delete user-saved config
 - double-card weight values do not need to sum to `100`
 - WebUI preview may show derived percentages, but persisted payload keeps the raw proportion values
@@ -623,6 +677,28 @@ Expected:
 - keepalive runtime sends `1 / 1 / 82`
 - the room configured with `-1` is the only room allowed to receive the remainder
 
+### Good: Expiring Gift Within Threshold
+
+- expiring-gift is enabled with `thresholdHours = 24`
+- backpack status returns `count = 105` and an earliest expiry 5 hours from now
+- fixed-count room config includes one room with `number = -1`
+
+Expected:
+
+- runtime logs the earliest expiry and remaining hours
+- runtime sends the current visible count using the saved room allocation
+- task logs remain under the `临期` category
+
+### Base: Expiring Gift Not Yet Due
+
+- expiring-gift is enabled with `thresholdHours = 24`
+- backpack status returns `count = 105` and an earliest expiry 5 days from now
+
+Expected:
+
+- runtime logs that the threshold has not been reached
+- no gift send request is made
+
 ### Good: CookieCloud Primary With Manual Fallback
 
 - `cookieCloud.active = true`
@@ -632,7 +708,7 @@ Expected:
 
 Expected:
 
-- collect / keepalive / double-card use CookieCloud main cookie
+- collect / keepalive / double-card / expiring-gift use CookieCloud main cookie
 - yuba status / sign use persisted manual yuba cookie
 - runtime source is effectively hybrid without failing the whole task chain
 
@@ -700,7 +776,7 @@ Expected:
 
 - current run fails with an actionable main-login-token error
 - log output clearly states which dy-token cookie fields are missing
-- keepalive / double-card config remains unchanged
+- keepalive / double-card / expiring-gift config remains unchanged
 
 ---
 
@@ -708,9 +784,9 @@ Expected:
 
 Commands:
 
-- `pnpm lint`
-- `pnpm type-check`
-- `pnpm test`
+- `npm run lint`
+- `npm run type-check`
+- `npm test`
 
 Manual assertions:
 
@@ -731,13 +807,18 @@ Manual assertions:
 - re-enabling keepalive resumes with the preserved user config instead of rebuilding defaults
 - unchanged double-card room values and checked states remain untouched
 - new medal rooms appear in keepalive and double-card
+- new medal rooms appear in expiring-gift
 - new medal rooms are unchecked in double-card
-- removed medal rooms disappear from both task configs
+- removed medal rooms disappear from keepalive, double-card, and expiring-gift task configs
 - keepalive form no longer exposes custom gift timing
 - double-card execution skips when no room is checked
 - double-card weight mode accepts raw weights such as `1 / 2 / 3` without requiring total `100`
 - double-card page shows a weight preview for enabled rooms
 - overview displays collect-gift / keepalive / double-card status using Shanghai-time display
+- overview displays expiring-gift enabled/scheduler status using Shanghai-time display
+- expiring-gift can be enabled, disabled, and manually triggered from `临期任务`
+- expiring-gift skips when the earliest visible fluorescent-stick expiry is outside the configured threshold
+- expiring-gift sends current visible fluorescent-stick inventory once when the earliest expiry is inside the configured threshold
 - yuba page loads followed-group rows and sorts by current exp descending
 - yuba page displays `经验值` as `当前经验/下级经验`
 - CookieCloud-to-login persistence updates the login Cookie textareas instead of a second synthetic field
@@ -758,6 +839,7 @@ Manual assertions:
 - persist `manualCookies.main` and `manualCookies.yuba`, and resolve cookies per target hostname
 - keep yuba fetch/sign flow independent from medal sync
 - tolerate per-group yuba failures via row-level `error`
+- reconcile expiring-gift room config through the same medal-list path as keepalive
 - keep the WebUI contract aligned with the split pages: `登录` / `领取任务` / `鱼吧签到`
 
 ---

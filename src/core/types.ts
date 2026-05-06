@@ -155,6 +155,7 @@ export interface DockerConfig {
   collectGift?: CollectGiftConfig
   keepalive?: JobConfig
   doubleCard?: DoubleCardConfig
+  expiringGift?: ExpiringGiftConfig
   yubaCheckIn?: YubaCheckInConfig
 }
 
@@ -172,6 +173,10 @@ export interface JobConfig {
 
 export interface DoubleCardConfig extends JobConfig {
   enabled?: Record<string, boolean>
+}
+
+export interface ExpiringGiftConfig extends JobConfig {
+  thresholdHours?: number
 }
 
 export interface YubaCheckInConfig {

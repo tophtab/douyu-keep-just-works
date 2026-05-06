@@ -5,9 +5,9 @@ import { CronJob } from 'cron'
 import { getFansList, getGiftStatus, parseCookieRecord } from '../core/api'
 import { buildCookieHeaderForUrl, createCookieDiagnostics, fetchCookieCloudSnapshot, isCookieCloudReady } from '../core/cookie-cloud'
 import { checkDoubleCard } from '../core/double-card'
-import { executeCollectGiftJob, executeDoubleCardJob, executeKeepaliveJob, executeYubaCheckInJob } from '../core/job'
+import { executeCollectGiftJob, executeDoubleCardJob, executeExpiringGiftJob, executeKeepaliveJob, executeYubaCheckInJob } from '../core/job'
 import { createDefaultDockerConfig, normalizeDockerConfig, reconcileDockerConfig } from '../core/medal-sync'
-import type { CollectGiftConfig, CookieCloudConfig, CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, FanStatus, Fans, FansStatusResponse, GiftStatus, JobConfig, ManualCookieConfig, YubaCheckInConfig, YubaStatusResponse } from '../core/types'
+import type { CollectGiftConfig, CookieCloudConfig, CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, FanStatus, Fans, FansStatusResponse, GiftStatus, JobConfig, ManualCookieConfig, YubaCheckInConfig, YubaStatusResponse } from '../core/types'
 import { getFollowedYubaStatusesWithDyToken } from '../core/yuba'
 import { assertDockerConfigCrons } from './cron'
 import { clearLogs, createLogger, getLogs } from './logger'
@@ -27,9 +27,9 @@ const YUBA_DOUYU_URL = 'https://yuba.douyu.com/'
 const COOKIE_CLOUD_CACHE_TTL_MS = 60 * 1000
 const DEFAULT_COOKIE_CLOUD_SYNC_CRON = '0 5 0 * * *'
 
-type TaskType = 'collectGift' | 'keepalive' | 'doubleCard' | 'yubaCheckIn'
+type TaskType = 'collectGift' | 'keepalive' | 'doubleCard' | 'expiringGift' | 'yubaCheckIn'
 type AppStatus = Record<TaskType, JobStatus>
-const TASK_TYPES: TaskType[] = ['collectGift', 'keepalive', 'doubleCard', 'yubaCheckIn']
+const TASK_TYPES: TaskType[] = ['collectGift', 'keepalive', 'doubleCard', 'expiringGift', 'yubaCheckIn']
 
 interface CookieCloudCacheEntry {
   key: string
@@ -51,18 +51,21 @@ const jobs: Record<TaskType, CronJob | null> = {
   collectGift: null,
   keepalive: null,
   doubleCard: null,
+  expiringGift: null,
   yubaCheckIn: null,
 }
 const statuses: AppStatus = {
   collectGift: { running: false, lastRun: null, nextRun: null },
   keepalive: { running: false, lastRun: null, nextRun: null },
   doubleCard: { running: false, lastRun: null, nextRun: null },
+  expiringGift: { running: false, lastRun: null, nextRun: null },
   yubaCheckIn: { running: false, lastRun: null, nextRun: null },
 }
 const activeRuns: Record<TaskType, boolean> = {
   collectGift: false,
   keepalive: false,
   doubleCard: false,
+  expiringGift: false,
   yubaCheckIn: false,
 }
 
@@ -71,6 +74,7 @@ const taskLoggers = {
   collectGift: createLogger('领取'),
   keepalive: createLogger('保活'),
   doubleCard: createLogger('双倍'),
+  expiringGift: createLogger('临期'),
   yubaCheckIn: createLogger('鱼吧'),
 } satisfies Record<TaskType, (message: string) => void>
 
@@ -457,6 +461,8 @@ function getTaskConfig(config: DockerConfig | null | undefined, type: TaskType):
       return config?.keepalive
     case 'doubleCard':
       return config?.doubleCard
+    case 'expiringGift':
+      return config?.expiringGift
     case 'yubaCheckIn':
       return config?.yubaCheckIn
   }
@@ -470,6 +476,8 @@ function getTaskLabel(type: TaskType): string {
       return '保活任务'
     case 'doubleCard':
       return '双倍卡任务'
+    case 'expiringGift':
+      return '临期任务'
     case 'yubaCheckIn':
       return '鱼吧签到任务'
   }
@@ -532,6 +540,23 @@ function startTask(type: TaskType, config: DockerConfig): void {
           await executeDoubleCardJob(doubleCardConfig, cookie, taskLoggers.doubleCard)
         },
         `房间数: ${Object.keys(doubleCardConfig.send).length}`,
+      )
+      return
+    }
+    case 'expiringGift': {
+      const expiringGiftConfig = config.expiringGift
+      if (!expiringGiftConfig || expiringGiftConfig.active === false) {
+        return
+      }
+      startScheduledTask(
+        'expiringGift',
+        '临期任务',
+        expiringGiftConfig.cron,
+        async () => {
+          const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
+          await executeExpiringGiftJob(expiringGiftConfig, cookie, taskLoggers.expiringGift)
+        },
+        `阈值: ${expiringGiftConfig.thresholdHours || 24}小时, 房间数: ${Object.keys(expiringGiftConfig.send).length}`,
       )
       return
     }
@@ -656,7 +681,12 @@ function hasConfiguredJobs(config: DockerConfig): boolean {
   return isTaskActive(config.collectGift)
     || isTaskActive(config.keepalive)
     || isTaskActive(config.doubleCard)
+    || isTaskActive(config.expiringGift)
     || isTaskActive(config.yubaCheckIn)
+}
+
+function hasSendRooms(config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined): boolean {
+  return Object.keys(config?.send || {}).length > 0
 }
 
 function applyConfig(config: DockerConfig, reason: 'startup' | 'cookie_saved' | 'tasks_saved' | 'ui_saved' | 'medal_synced'): void {
@@ -728,6 +758,7 @@ function buildConfigWithPartialUpdate(current: DockerConfig | null, updates: {
   collectGift?: CollectGiftConfig | null
   keepalive?: JobConfig | null
   doubleCard?: DoubleCardConfig | null
+  expiringGift?: ExpiringGiftConfig | null
   yubaCheckIn?: YubaCheckInConfig | null
   ui?: DockerConfig['ui']
 }): DockerConfig {
@@ -749,6 +780,9 @@ function buildConfigWithPartialUpdate(current: DockerConfig | null, updates: {
     ...(updates.doubleCard !== undefined
       ? (updates.doubleCard ? { doubleCard: updates.doubleCard } : {})
       : (current?.doubleCard ? { doubleCard: current.doubleCard } : {})),
+    ...(updates.expiringGift !== undefined
+      ? (updates.expiringGift ? { expiringGift: updates.expiringGift } : {})
+      : (current?.expiringGift ? { expiringGift: current.expiringGift } : {})),
     ...(updates.yubaCheckIn !== undefined
       ? (updates.yubaCheckIn ? { yubaCheckIn: updates.yubaCheckIn } : {})
       : (current?.yubaCheckIn ? { yubaCheckIn: current.yubaCheckIn } : {})),
@@ -794,6 +828,7 @@ function main(): void {
       collectGift?: CollectGiftConfig | null
       keepalive?: JobConfig | null
       doubleCard?: DoubleCardConfig | null
+      expiringGift?: ExpiringGiftConfig | null
       yubaCheckIn?: YubaCheckInConfig | null
       ui?: DockerConfig['ui']
     }) => {
@@ -802,8 +837,9 @@ function main(): void {
       const hasTaskPayload = config.collectGift !== undefined
         || config.keepalive !== undefined
         || config.doubleCard !== undefined
+        || config.expiringGift !== undefined
         || config.yubaCheckIn !== undefined
-      const needsFanSync = config.keepalive !== undefined || config.doubleCard !== undefined
+      const needsFanSync = config.keepalive !== undefined || config.doubleCard !== undefined || config.expiringGift !== undefined
 
       assertDockerConfigCrons(nextConfig)
       if (needsFanSync && hasConfiguredCookieSource(nextConfig)) {
@@ -829,6 +865,7 @@ function main(): void {
       collectGift: { ...statuses.collectGift },
       keepalive: { ...statuses.keepalive },
       doubleCard: { ...statuses.doubleCard },
+      expiringGift: { ...statuses.expiringGift },
       yubaCheckIn: { ...statuses.yubaCheckIn },
     }),
     getLogs: () => getLogs(),
@@ -872,6 +909,20 @@ function main(): void {
         taskLoggers.doubleCard('手动触发执行...')
         const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
         await executeDoubleCardJob(doubleCardConfig, cookie, taskLoggers.doubleCard)
+      }, {
+        onBusy: 'throw',
+        busyMessage: '任务正在执行中，请稍后再试',
+      })
+    },
+    triggerExpiringGift: async () => {
+      if (!currentConfig?.expiringGift || !hasSendRooms(currentConfig.expiringGift)) {
+        throw new Error('临期任务未配置')
+      }
+      const expiringGiftConfig = currentConfig.expiringGift
+      await runTaskWithLock('expiringGift', async () => {
+        taskLoggers.expiringGift('手动触发执行...')
+        const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
+        await executeExpiringGiftJob(expiringGiftConfig, cookie, taskLoggers.expiringGift)
       }, {
         onBusy: 'throw',
         busyMessage: '任务正在执行中，请稍后再试',

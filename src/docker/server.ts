@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import express from 'express'
 import { isCookieCloudReady } from '../core/cookie-cloud'
-import type { CollectGiftConfig, CookieCloudConfig, CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, Fans, FansStatusResponse, JobConfig, ManualCookieConfig, YubaCheckInConfig, YubaStatusResponse } from '../core/types'
+import type { CollectGiftConfig, CookieCloudConfig, CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, ManualCookieConfig, YubaCheckInConfig, YubaStatusResponse } from '../core/types'
 import type { LogEntry } from './logger'
 import { getNextCronRuns, validateCronExpression } from './cron'
 import { DOCKER_WEBUI_PAGE_ROUTES, getHtml } from './html'
@@ -26,11 +26,12 @@ export interface AppContext {
     collectGift?: CollectGiftConfig | null
     keepalive?: JobConfig | null
     doubleCard?: DoubleCardConfig | null
+    expiringGift?: ExpiringGiftConfig | null
     yubaCheckIn?: YubaCheckInConfig | null
     ui?: DockerConfig['ui']
   }): Promise<{ config: DockerConfig; fans: Fans[] }>
   syncWithFans(): Promise<{ config: DockerConfig; fans: Fans[] }>
-  getStatus(): { collectGift: JobStatus; keepalive: JobStatus; doubleCard: JobStatus; yubaCheckIn: JobStatus }
+  getStatus(): { collectGift: JobStatus; keepalive: JobStatus; doubleCard: JobStatus; expiringGift: JobStatus; yubaCheckIn: JobStatus }
   getLogs(): LogEntry[]
   clearLogs(): void
   inspectCookieSource(forceRefresh?: boolean): Promise<CookieDiagnostics>
@@ -43,6 +44,7 @@ export interface AppContext {
   triggerCollectGift(): Promise<void>
   triggerKeepalive(): Promise<void>
   triggerDoubleCard(): Promise<void>
+  triggerExpiringGift(): Promise<void>
   triggerYubaCheckIn(): Promise<void>
   fetchFans(): Promise<Fans[]>
   fetchFansStatus(): Promise<FansStatusResponse>
@@ -227,9 +229,11 @@ export function createServer(ctx: AppContext): express.Express {
       collectGiftConfigured: isTaskActive(config?.collectGift),
       keepaliveConfigured: isTaskActive(config?.keepalive),
       doubleCardConfigured: isTaskActive(config?.doubleCard),
+      expiringGiftConfigured: isTaskActive(config?.expiringGift),
       yubaCheckInConfigured: isTaskActive(config?.yubaCheckIn),
       keepaliveRooms: Object.keys(config?.keepalive?.send || {}).length,
       doubleCardRooms: Object.keys(config?.doubleCard?.send || {}).length,
+      expiringGiftRooms: Object.keys(config?.expiringGift?.send || {}).length,
     }
   }
 
@@ -296,6 +300,20 @@ export function createServer(ctx: AppContext): express.Express {
       }
     }
 
+    return null
+  }
+
+  function validateExpiringGiftConfig(config: ExpiringGiftConfig): string | null {
+    const error = validateJobConfig('expiringGift', config)
+    if (error) {
+      return error
+    }
+    if (
+      config.thresholdHours !== undefined
+      && (!Number.isFinite(config.thresholdHours) || config.thresholdHours <= 0)
+    ) {
+      return 'expiringGift 临期阈值无效'
+    }
     return null
   }
 
@@ -428,6 +446,7 @@ export function createServer(ctx: AppContext): express.Express {
         isTaskActive(config?.collectGift)
         || isTaskActive(config?.keepalive)
         || isTaskActive(config?.doubleCard)
+        || isTaskActive(config?.expiringGift)
         || isTaskActive(config?.yubaCheckIn)
       )),
       status,
@@ -470,6 +489,12 @@ export function createServer(ctx: AppContext): express.Express {
           return res.status(400).json({ error })
         }
       }
+      if (payload.expiringGift) {
+        const error = validateExpiringGiftConfig(payload.expiringGift)
+        if (error) {
+          return res.status(400).json({ error })
+        }
+      }
       if (payload.yubaCheckIn) {
         const error = validateYubaCheckInConfig(payload.yubaCheckIn)
         if (error) {
@@ -496,6 +521,7 @@ export function createServer(ctx: AppContext): express.Express {
         collectGift: payload.collectGift,
         keepalive: payload.keepalive,
         doubleCard: payload.doubleCard,
+        expiringGift: payload.expiringGift,
         yubaCheckIn: payload.yubaCheckIn,
         ui: payload.ui,
       }).then((result) => {
@@ -634,6 +660,8 @@ export function createServer(ctx: AppContext): express.Express {
         await ctx.triggerKeepalive()
       } else if (type === 'doubleCard') {
         await ctx.triggerDoubleCard()
+      } else if (type === 'expiringGift') {
+        await ctx.triggerExpiringGift()
       } else if (type === 'yubaCheckIn') {
         await ctx.triggerYubaCheckIn()
       } else {

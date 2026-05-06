@@ -461,27 +461,31 @@ After the above, remind the user they can run `/finish-work` to wrap up (archive
      a status has no tag block. -->
 
 [workflow-state:no_task]
-No active task.
-Trigger words in the user message that suggest creating a task: 重构 / 抽成 / 独立 / 分发 / 拆出来 / 搞一个 / 做成 / 接入 / 集成 / refactor / rewrite / extract / productize / publish / build X / design Y.
-Task is NOT required if ALL three hold: (a) zero file writes this turn, (b) answer fits in one reply with no multi-round plan, (c) no research beyond reading 1-2 repo files.
-When in doubt and none of the override phrases below apply: prefer creating a task — over-tasking is cheap; under-tasking leaks plans and research into main context.
-Flow: load `trellis-brainstorm` skill → it creates the task via `python3 ./.trellis/scripts/task.py create` and drives requirements Q&A. For research-heavy work (tool comparison, docs, cross-platform survey), spawn `trellis-research` sub-agents via Task tool — NEVER do 3+ inline WebFetch/WebSearch/`gh api` calls in the main conversation.
-User override (per-turn escape hatch): if the user's CURRENT message contains an explicit opt-out phrase ("跳过 trellis" / "别走流程" / "小修一下" / "直接改" / "先别建任务" / "skip trellis" / "no task" / "just do it" / "don't create a task"), honor it for this turn — briefly acknowledge ("好，本轮跳过 trellis 流程"), then proceed without creating a task. The override is per-turn only and does not carry forward; do NOT invent an override the user did not say.
+No active task. **A Direct answer** — pure Q&A / explanation / lookup / chat; no file writes + one-line answer + repo reads ≤ 2 files → AI judges, no override needed.
+**B Create a task** — any implementation / code change / build / refactor work. Entry sequence: (1) `python3 ./.trellis/scripts/task.py create "<title>"` to create the task (status=planning, breadcrumb switches to [workflow-state:planning] for brainstorm + jsonl phase guidance) → (2) load `trellis-brainstorm` skill to discuss requirements with the user and iterate on prd.md → (3) once prd is done and jsonl is curated, run `task.py start <task-dir>` to enter [workflow-state:in_progress] for the implementation skeleton. For research-heavy work, dispatch `trellis-research` sub-agents — main agent must NOT do 3+ inline WebFetch / WebSearch / `gh api` calls. **"It looks small" is NOT grounds for downgrading B to A or C**.
+**C Inline change** (per-turn only, escape hatch for B) — the user's CURRENT message MUST contain one of: "skip trellis" / "no task" / "just do it" / "don't create a task" / "跳过 trellis" / "别走流程" / "小修一下" / "直接改" / "先别建任务" → briefly acknowledge ("ok, skipping trellis flow this turn"), then inline. **Without seeing one of these phrases you must NOT inline on your own**; do not invent an override the user never said.
 [/workflow-state:no_task]
 
 [workflow-state:planning]
-Complete prd.md via trellis-brainstorm skill; then run task.py start.
-Research belongs in `{task_dir}/research/*.md`, written by `trellis-research` sub-agents. Do NOT inline WebFetch/WebSearch in main session — PRD only links to research files.
+Load the `trellis-brainstorm` skill and iterate on prd.md with the user.
+Phase 1.3 (required, once): before `task.py start`, you MUST curate `implement.jsonl` and `check.jsonl` — list the spec / research files sub-agents need so they get the right context injected. You may skip only if the jsonl already has agent-curated entries (the seed `_example` row alone doesn't count).
+Then run `task.py start <task-dir>` to flip status to in_progress.
+Research output **must** land in `{task_dir}/research/*.md`, written by `trellis-research` sub-agents. The main agent should not inline WebFetch / WebSearch — the PRD only links to research files.
 [/workflow-state:planning]
 
 [workflow-state:in_progress]
-Flow: trellis-implement → trellis-check → trellis-update-spec → finish
-Next required action: inspect conversation history + git status, then execute the next uncompleted step in that sequence.
-For agent-capable platforms, the default is to dispatch `trellis-implement` for implementation and `trellis-check` before reporting completion — do not edit code in the main session by default.
-Use the exact Trellis agent type names when spawning sub-agents: `trellis-implement`, `trellis-check`, or `trellis-research`. Generic/default/generalPurpose sub-agents do not receive `implement.jsonl` / `check.jsonl` injection.
-User override (per-turn escape hatch): if the user's CURRENT message explicitly tells the main session to handle it directly ("你直接改" / "别派 sub-agent" / "main session 写就行" / "do it inline" / "不用 sub-agent"), honor it for this turn and edit code directly. Per-turn only; do not carry forward; do NOT invent an override the user did not say.
+**Flow**: trellis-implement → trellis-check → trellis-update-spec → commit (Phase 3.4) → `/trellis:finish-work`.
+**Default (no override)**: dispatch the `trellis-implement` / `trellis-check` sub-agents — the main agent does NOT edit code by default. Phase 3.4 commit (required, once): after trellis-update-spec, or whenever implementation is verifiably complete, the main agent **drives the commit** — state the commit plan in user-facing text, then run `git commit` — BEFORE suggesting `/trellis:finish-work`. `/finish-work` refuses to run on a dirty working tree (paths outside `.trellis/workspace/` and `.trellis/tasks/`).
+**Sub-agent dispatch protocol (all platforms, all sub-agents EXCEPT trellis-research)**: When you spawn `trellis-implement` / `trellis-check`, your dispatch prompt **MUST** start with one line: `Active task: <task path from \`task.py current\`>`. No exceptions. On class-2 platforms (codex / copilot / gemini / qoder) the sub-agent depends on this line because there is no hook to inject task context. On class-1 platforms (claude / cursor / opencode / kiro / codebuddy / droid) the line is normally redundant — the hook injects context directly — but it serves as a critical fallback when the hook fails (Windows + Claude Code PreToolUse silent skip, `--continue` resume, fork distribution, hooks disabled, etc.). `trellis-research` does not need this line because it operates without a task binding.
+**Inline override** (per-turn only, escape hatch for sub-agent dispatch): the user's CURRENT message MUST explicitly contain one of: "do it inline" / "no sub-agent" / "你直接改" / "别派 sub-agent" / "main session 写就行" / "不用 sub-agent". **Without seeing one of these phrases you must NOT inline on your own**; do not invent an override the user never said.
 [/workflow-state:in_progress]
 
 [workflow-state:completed]
-User commits changes; then run task.py finish and task.py archive. If archive is run directly, it still deletes runtime session files that point at the archived task.
+Code committed via Phase 3.4; run `/trellis:finish-work` to wrap up (archive the task + record session).
+If you reach this state with uncommitted code, return to Phase 3.4 first — `/finish-work` refuses to run on a dirty working tree.
+`task.py archive` deletes any runtime session files that still point at the archived task.
 [/workflow-state:completed]
+
+[workflow-state:my-status]
+your per-turn prompt text
+[/workflow-state:my-status]

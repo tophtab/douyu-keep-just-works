@@ -261,6 +261,22 @@ def cmd_create(args: argparse.Namespace) -> int:
 
                 print(colored(f"Linked as child of: {parent_dir.name}", Colors.GREEN), file=sys.stderr)
 
+    # Auto-activate the new task so the per-turn breadcrumb fires planning
+    # state. Best-effort: gracefully degrade if no session identity (CLI run
+    # outside an AI session) — the task is still created, the user can run
+    # task.py start later. Pointer is session-scoped so this never affects
+    # other AI sessions.
+    try:
+        from .active_task import resolve_context_key, set_active_task
+        if resolve_context_key():
+            try:
+                rel_dir = task_dir.relative_to(repo_root).as_posix()
+            except ValueError:
+                rel_dir = str(task_dir)
+            set_active_task(rel_dir, repo_root)
+    except Exception:
+        pass
+
     print(colored(f"Created task: {dir_name}", Colors.GREEN), file=sys.stderr)
     print("", file=sys.stderr)
     print(colored("Next steps:", Colors.BLUE), file=sys.stderr)
@@ -322,23 +338,11 @@ def cmd_archive(args: argparse.Namespace) -> int:
             data["completedAt"] = today
             write_json(task_json_path, data)
 
-            # Handle subtask relationships on archive
-            task_parent = data.get("parent")
+            # Handle subtask relationships on archive.
+            # Keep this task in its parent's children list so progress
+            # counters (children_progress) stay consistent — children
+            # missing from the active set are treated as completed.
             task_children = data.get("children", [])
-
-            # If this is a child, remove from parent's children list
-            if task_parent:
-                parent_dir = find_task_by_name(task_parent, tasks_dir)
-                if parent_dir:
-                    parent_json = parent_dir / FILE_TASK_JSON
-                    if parent_json.is_file():
-                        parent_data = read_json(parent_json)
-                        if parent_data:
-                            parent_children = parent_data.get("children", [])
-                            if dir_name in parent_children:
-                                parent_children.remove(dir_name)
-                                parent_data["children"] = parent_children
-                                write_json(parent_json, parent_data)
 
             # If this is a parent, clear parent field in all children
             if task_children:

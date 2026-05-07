@@ -1127,3 +1127,36 @@ Restored Docker WebUI table column spacing to the preferred 89901c8 scheme, pres
 ### Next Steps
 
 - None - task complete
+
+
+## Session 29: Fix backend failure handling
+
+**Date**: 2026-05-07
+**Task**: Fix backend failure handling
+**Branch**: `master`
+
+### Summary
+
+Fixed backend job failure semantics so backpack lookup failures no longer look like zero inventory, and double-card room status failures are isolated per room. Verified lint, type-check, and docker build test.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1bbd8ee` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

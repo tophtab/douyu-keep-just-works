@@ -9,7 +9,7 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-async function loadGiftNumber(cookie: string, log: Logger, prefix?: string, candidateRoomIds: number[] = []): Promise<number> {
+async function loadGiftNumber(cookie: string, log: Logger, prefix?: string, candidateRoomIds: number[] = []): Promise<number | null> {
   if (prefix) {
     log(prefix)
   }
@@ -18,8 +18,8 @@ async function loadGiftNumber(cookie: string, log: Logger, prefix?: string, cand
   try {
     number = await getGiftNumber(cookie, candidateRoomIds)
   } catch (error) {
-    log(`获取荧光棒数量失败: ${error}`)
-    return 0
+    log(`获取荧光棒数量失败: ${errorMessage(error)}`)
+    return null
   }
   if (number === 0) {
     log('荧光棒数量为0, 结束任务')
@@ -142,7 +142,11 @@ export async function executeCollectGiftJob(cookie: string, log: Logger): Promis
   log(`正在领取荧光棒，随机进入粉丝牌房间${collectRoomId}...`)
   await collectGiftViaDanmu(cookie, collectRoomId)
 
-  return await loadGiftNumber(cookie, log, '领取完成，正在查询当前荧光棒数量...', roomIds)
+  const number = await loadGiftNumber(cookie, log, '领取完成，正在查询当前荧光棒数量...', roomIds)
+  if (number === null) {
+    throw new Error('领取完成，但查询当前荧光棒数量失败')
+  }
+  return number
 }
 
 async function sendGifts(jobs: sendConfig, cookie: string, log: Logger, giftLabel = '荧光棒', completionLabel = '任务'): Promise<void> {
@@ -187,6 +191,9 @@ export async function executeKeepaliveJob(config: JobConfig, cookie: string, log
   log('开始执行保活任务')
   const roomIds = Object.values(config.send).map(item => item.roomId)
   const number = await loadGiftNumber(cookie, log, '正在获取当前荧光棒数量...', roomIds)
+  if (number === null) {
+    throw new Error('保活任务获取荧光棒数量失败')
+  }
   if (number === 0) {
     return
   }
@@ -254,6 +261,9 @@ export async function executeDoubleCardJob(config: DoubleCardConfig, cookie: str
     }
   } else {
     const number = await loadGiftNumber(cookie, log, '正在获取当前荧光棒数量...', roomIds)
+    if (number === null) {
+      throw new Error('双倍任务获取荧光棒数量失败')
+    }
     if (number === 0) {
       return
     }
@@ -269,12 +279,16 @@ export async function executeDoubleCardJob(config: DoubleCardConfig, cookie: str
   log(`开始检测双倍状态，待检测房间数: ${Object.keys(activeSend).length}`)
   const doubleCardRooms: Record<string, boolean> = {}
   for (const item of Object.values(activeSend)) {
-    const doubleInfo = await checkDoubleCard(item.roomId, cookie)
-    doubleCardRooms[String(item.roomId)] = doubleInfo.active
-    if (doubleInfo.active) {
-      log(`房间${item.roomId}检测到双倍亲密度卡生效`)
-    } else {
-      log(`房间${item.roomId}未检测到双倍亲密度卡`)
+    try {
+      const doubleInfo = await checkDoubleCard(item.roomId, cookie)
+      doubleCardRooms[String(item.roomId)] = doubleInfo.active
+      if (doubleInfo.active) {
+        log(`房间${item.roomId}检测到双倍亲密度卡生效`)
+      } else {
+        log(`房间${item.roomId}未检测到双倍亲密度卡`)
+      }
+    } catch (error: unknown) {
+      log(`房间${item.roomId}双倍状态检测失败，跳过该房间: ${errorMessage(error)}`)
     }
   }
 

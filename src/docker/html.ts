@@ -57,6 +57,7 @@ export function getHtml(): string {
   --warning:#b7791f;
   --shadow:0 24px 60px rgba(25,40,68,.12);
   --btn-shadow:0 14px 30px rgba(216,106,24,.2);
+  --focus-ring:0 0 0 4px var(--accent-soft);
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;min-height:100%}
@@ -262,11 +263,18 @@ body[data-theme="dark"]::before{
 }
 .tab-btn:focus-visible,
 .btn:focus-visible,
+.theme-option:focus-visible,
+.page:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
 .inline input[type="checkbox"]:focus-visible,
-.table input[type="checkbox"]:focus-visible{
+.inline input[type="checkbox"]:focus-visible + span,
+.table input[type="checkbox"]:focus-visible,
+.table input[type="number"]:focus-visible{
   outline:none;
   border-color:var(--accent);
-  box-shadow:0 0 0 4px var(--accent-soft);
+  box-shadow:var(--focus-ring);
 }
 .tab-btn.active{
   background:var(--accent-gradient);
@@ -314,7 +322,7 @@ body[data-theme="dark"]::before{
 .theme-option:focus-visible{
   outline:none;
   border-color:var(--accent);
-  box-shadow:0 0 0 4px var(--accent-soft);
+  box-shadow:var(--focus-ring);
 }
 .theme-option.active{
   background:var(--accent-gradient);
@@ -551,7 +559,7 @@ input,textarea,select{
 }
 input:focus,textarea:focus,select:focus{
   border-color:var(--accent);
-  box-shadow:0 0 0 4px var(--accent-soft);
+  box-shadow:var(--focus-ring);
 }
 textarea{
   min-height:150px;
@@ -626,7 +634,7 @@ textarea{
 }
 .switch-input:focus-visible + .switch-slider{
   border-color:var(--accent);
-  box-shadow:0 0 0 4px var(--accent-soft);
+  box-shadow:var(--focus-ring);
 }
 .helper{
   color:var(--muted);
@@ -779,7 +787,8 @@ textarea{
   text-align:center;
 }
 .table .text-cell,
-.table .error-cell{
+.table .error-cell,
+.table .status-cell{
   white-space:normal;
   overflow:visible;
   text-overflow:clip;
@@ -1051,7 +1060,7 @@ textarea{
     </div>
     <p class="brand-copy">更聚焦的 Docker 管理台。先看概况，再分别管理登录、领取、保活、双倍、临期和鱼吧签到任务。</p>
 
-    <div class="tab-list" role="tablist" aria-label="管理台页面">
+    <div class="tab-list" role="tablist" aria-label="管理台页面" aria-orientation="vertical">
       <button class="tab-btn active" type="button" role="tab" id="tab-overview" data-action="tab" data-tab="overview" aria-selected="true" aria-controls="page-overview">概况</button>
       <button class="tab-btn" type="button" role="tab" id="tab-login" data-action="tab" data-tab="login" aria-selected="false" aria-controls="page-login" tabindex="-1">登录</button>
       <button class="tab-btn" type="button" role="tab" id="tab-collect" data-action="tab" data-tab="collect" aria-selected="false" aria-controls="page-collect" tabindex="-1">领取任务</button>
@@ -1154,7 +1163,7 @@ textarea{
       </div>
     </section>
 
-    <section class="page" id="page-login" role="tabpanel" aria-labelledby="tab-login" tabindex="0" aria-hidden="true">
+    <section class="page" id="page-login" role="tabpanel" aria-labelledby="tab-login" tabindex="0" aria-hidden="true" hidden>
       <div class="task-card" id="cookie-login-card" style="margin-bottom:16px">
         <div class="task-card-title">登录状态</div>
       </div>
@@ -1173,7 +1182,7 @@ textarea{
           </div>
         </div>
         <div class="actions">
-          <button class="btn btn-success" data-action="save-cookie">保存手填 Cookie</button>
+          <button class="btn btn-success" type="button" data-action="save-cookie">保存手填 Cookie</button>
         </div>
       </div>
 
@@ -1211,13 +1220,13 @@ textarea{
         </div>
         <div class="status-box" id="cookie-cloud-note" role="status" aria-live="polite" style="margin-top:16px">等待校验…</div>
         <div class="actions cookie-cloud-actions" style="margin-top:16px">
-          <button class="btn btn-success" data-action="save-cookie-cloud">保存并启用</button>
-          <button class="btn btn-secondary" data-action="check-cookie-source">同步并校验</button>
+          <button class="btn btn-success" type="button" data-action="save-cookie-cloud">保存并启用</button>
+          <button class="btn btn-secondary" type="button" data-action="check-cookie-source">同步并校验</button>
         </div>
       </div>
     </section>
 
-    <section class="page" id="page-collect" role="tabpanel" aria-labelledby="tab-collect" tabindex="0" aria-hidden="true">
+    <section class="page" id="page-collect" role="tabpanel" aria-labelledby="tab-collect" tabindex="0" aria-hidden="true" hidden>
       <div class="task-card" id="collect-task-card" style="margin-bottom:16px">
         <div class="task-card-title">领取状态</div>
       </div>
@@ -1241,13 +1250,13 @@ textarea{
           <div class="helper cron-preview" id="collect-cron-preview" role="status" aria-live="polite">正在计算未来执行时间…</div>
         </div>
         <div class="actions">
-          <button class="btn btn-success" data-action="save-collect">保存并启用</button>
-          <button class="btn btn-secondary" data-action="trigger" data-trigger="collectGift">立即领取</button>
+          <button class="btn btn-success" type="button" data-action="save-collect">保存并启用</button>
+          <button class="btn btn-secondary" type="button" data-action="trigger" data-trigger="collectGift">立即领取</button>
         </div>
       </div>
     </section>
 
-    <section class="page" id="page-yuba" role="tabpanel" aria-labelledby="tab-yuba" tabindex="0" aria-hidden="true">
+    <section class="page" id="page-yuba" role="tabpanel" aria-labelledby="tab-yuba" tabindex="0" aria-hidden="true" hidden>
       <div class="task-card" id="yuba-task-card">
         <div class="task-card-title">鱼吧签到状态</div>
       </div>
@@ -1280,14 +1289,14 @@ textarea{
           </div>
         </div>
         <div class="actions" style="margin-top:16px">
-          <button class="btn btn-success" data-action="save-yuba">保存并启用</button>
-          <button class="btn btn-secondary" data-action="trigger" data-trigger="yubaCheckIn">立即签到</button>
+          <button class="btn btn-success" type="button" data-action="save-yuba">保存并启用</button>
+          <button class="btn btn-secondary" type="button" data-action="trigger" data-trigger="yubaCheckIn">立即签到</button>
         </div>
         <div id="yuba-table-wrap" style="margin-top:16px"></div>
       </div>
     </section>
 
-    <section class="page" id="page-keepalive" role="tabpanel" aria-labelledby="tab-keepalive" tabindex="0" aria-hidden="true">
+    <section class="page" id="page-keepalive" role="tabpanel" aria-labelledby="tab-keepalive" tabindex="0" aria-hidden="true" hidden>
       <div class="task-card" id="keepalive-task-card">
         <div class="task-card-title">保活状态</div>
       </div>
@@ -1321,14 +1330,14 @@ textarea{
           </div>
         </div>
         <div class="actions" style="margin-top:16px">
-          <button class="btn btn-success" data-action="save-keepalive">保存并启用</button>
-          <button class="btn btn-secondary" data-action="trigger" data-trigger="keepalive">立即保活</button>
+          <button class="btn btn-success" type="button" data-action="save-keepalive">保存并启用</button>
+          <button class="btn btn-secondary" type="button" data-action="trigger" data-trigger="keepalive">立即保活</button>
         </div>
         <div id="keepalive-table-wrap" style="margin-top:16px"></div>
       </div>
     </section>
 
-    <section class="page" id="page-double-card" role="tabpanel" aria-labelledby="tab-double-card" tabindex="0" aria-hidden="true">
+    <section class="page" id="page-double-card" role="tabpanel" aria-labelledby="tab-double-card" tabindex="0" aria-hidden="true" hidden>
       <div class="task-card" id="double-task-card">
         <div class="task-card-title">双倍状态</div>
       </div>
@@ -1369,8 +1378,8 @@ textarea{
           </div>
         </div>
         <div class="actions" style="margin-top:16px">
-          <button class="btn btn-success" data-action="save-double">保存并启用</button>
-          <button class="btn btn-secondary" data-action="trigger" data-trigger="doubleCard">立即检测</button>
+          <button class="btn btn-success" type="button" data-action="save-double">保存并启用</button>
+          <button class="btn btn-secondary" type="button" data-action="trigger" data-trigger="doubleCard">立即检测</button>
         </div>
         <div class="status-box" style="margin-top:16px">
           <div class="split-inline">
@@ -1389,7 +1398,7 @@ textarea{
       </div>
     </section>
 
-    <section class="page" id="page-expiring-gift" role="tabpanel" aria-labelledby="tab-expiring-gift" tabindex="0" aria-hidden="true">
+    <section class="page" id="page-expiring-gift" role="tabpanel" aria-labelledby="tab-expiring-gift" tabindex="0" aria-hidden="true" hidden>
       <div class="task-card" id="expiring-task-card">
         <div class="task-card-title">临期状态</div>
       </div>
@@ -1427,21 +1436,21 @@ textarea{
           </div>
         </div>
         <div class="actions" style="margin-top:16px">
-          <button class="btn btn-success" data-action="save-expiring">保存并启用</button>
-          <button class="btn btn-secondary" data-action="trigger" data-trigger="expiringGift">立即执行</button>
+          <button class="btn btn-success" type="button" data-action="save-expiring">保存并启用</button>
+          <button class="btn btn-secondary" type="button" data-action="trigger" data-trigger="expiringGift">立即执行</button>
         </div>
         <div id="expiring-backpack-wrap" style="margin-top:16px"></div>
         <div id="expiring-table-wrap" style="margin-top:16px"></div>
       </div>
     </section>
 
-    <section class="page" id="page-logs" role="tabpanel" aria-labelledby="tab-logs" tabindex="0" aria-hidden="true">
+    <section class="page" id="page-logs" role="tabpanel" aria-labelledby="tab-logs" tabindex="0" aria-hidden="true" hidden>
       <div class="panel">
         <h3 class="section-title">运行日志</h3>
         <p class="subtle" id="logs-summary" role="status" aria-live="polite" style="margin-top:10px">仅保留最近 500 条日志，正在加载…</p>
         <div class="actions" style="margin-top:16px">
-          <button class="btn btn-secondary" data-action="refresh-logs">手动刷新</button>
-          <button class="btn btn-danger" data-action="clear-logs">清空日志</button>
+          <button class="btn btn-secondary" type="button" data-action="refresh-logs">手动刷新</button>
+          <button class="btn btn-danger" type="button" data-action="clear-logs">清空日志</button>
           <label class="inline" style="margin-left:4px">
             <input type="checkbox" id="logs-auto-refresh" name="logs-auto-refresh" checked>
             <span>自动刷新</span>
@@ -1707,9 +1716,11 @@ textarea{
     node.textContent = message;
     node.style.display = 'block';
     node.style.background = ok ? '#15803d' : '#dc2626';
+    node.setAttribute('aria-hidden', 'false');
     clearTimeout(window.__toastTimer);
     window.__toastTimer = setTimeout(function () {
       node.style.display = 'none';
+      node.setAttribute('aria-hidden', 'true');
     }, 3200);
   }
 
@@ -1909,6 +1920,7 @@ textarea{
       var active = page.id === 'page-' + nextTab;
       page.classList.toggle('active', active);
       page.setAttribute('aria-hidden', active ? 'false' : 'true');
+      page.hidden = !active;
     }
 
     byId('page-title').textContent = PAGE_META[nextTab].title;

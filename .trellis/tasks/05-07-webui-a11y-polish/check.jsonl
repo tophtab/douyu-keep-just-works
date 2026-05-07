@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Verify current WebUI guidance and avoid legacy frontend patterns."}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Verify Docker runtime boundaries are preserved."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify lint/build quality expectations."}
+{"file": ".trellis/tasks/05-07-webui-a11y-polish/research/web-interface-guidelines-review.md", "reason": "Verify reviewed findings are fixed except the user-excluded clear-logs confirmation/undo."}

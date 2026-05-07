@@ -52,6 +52,51 @@ Before opening a pull request:
 Do not create release commits, git tags, GitHub releases, or publish Docker
 images from a normal contribution branch.
 
+## Release Process
+
+Maintainers should use the standard `npm version <version>` release flow so
+package metadata, lockfile metadata, the release commit, and the git tag stay in
+sync.
+
+Before running `npm version`, update `CHANGELOG.md` with the dated release
+notes and commit any changelog or release-prep changes that should be part of
+the release. For a changelog-only prep commit:
+
+```bash
+git add CHANGELOG.md
+git commit -m "chore: prepare release <version>"
+```
+
+Confirm the working tree is clean, then run the local release checks. Do not
+use `npm version --force`; if npm reports a dirty working tree, stop and commit
+or stash the pending changes first.
+
+```bash
+git status --short
+npm run lint
+npm run type-check
+npm run build:docker
+npm test
+```
+
+Create the package metadata changes, release commit, and tag from that clean
+tree:
+
+```bash
+npm version <version> -m "chore: release %s"
+```
+
+After npm creates the release commit and tag, push the branch and tag
+separately:
+
+```bash
+git push origin master
+git push origin v<version>
+```
+
+The release tag must use `vX.Y.Z` or `VX.Y.Z`. Pushing the tag triggers the
+Docker release workflow, which publishes the version tag and `latest`.
+
 ## Reporting Bugs
 
 For login, cookie, CookieCloud, or task failures, include:

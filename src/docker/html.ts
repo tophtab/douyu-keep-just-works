@@ -694,8 +694,18 @@ textarea{
 .backpack-table{
   min-width:980px;
 }
+.keepalive-table{
+  min-width:760px;
+}
+.double-table{
+  min-width:920px;
+}
+.expiring-table{
+  min-width:760px;
+}
 .fans-status-table col:nth-child(1),
-.yuba-status-table col:nth-child(1){
+.yuba-status-table col:nth-child(1),
+.backpack-table col:nth-child(1){
   width:64px;
 }
 .fans-status-table col:nth-child(8),
@@ -714,8 +724,10 @@ textarea{
   border-bottom:1px solid var(--line);
   text-align:left;
   font-size:13px;
-  vertical-align:top;
-  overflow-wrap:anywhere;
+  vertical-align:middle;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 .table th{
   position:sticky;
@@ -744,7 +756,10 @@ textarea{
   line-height:1.75;
 }
 .empty-action{
-  margin-top:14px;
+  margin-top:16px;
+}
+.empty.empty-with-action{
+  padding-bottom:24px;
 }
 .empty-action .btn{
   font-size:16px;
@@ -769,7 +784,7 @@ textarea{
   gap:10px;
   align-items:flex-start;
   margin-bottom:8px;
-  padding:8px 10px;
+  padding:10px 12px;
   border:1px solid var(--line);
   border-radius:14px;
   background:var(--surface-soft);
@@ -836,7 +851,7 @@ textarea{
   }
   .header{display:block}
   .toolbar{
-    margin-top:14px;
+    margin-top:16px;
   }
   .toast{
     top:18px;
@@ -856,7 +871,7 @@ textarea{
   }
   .split-inline-actions{
     justify-content:flex-start;
-    margin-top:14px;
+    margin-top:16px;
   }
 }
 </style>
@@ -973,7 +988,7 @@ textarea{
           <div class="section-kicker">基础状态</div>
           <h3 class="section-title">概况</h3>
           <p class="subtle">这里只保留登录与任务开关概览，详细状态请进入对应功能页查看。</p>
-          <div class="summary-grid quad" id="overview-basic-summary" style="margin-top:14px">
+          <div class="summary-grid quad" id="overview-basic-summary" style="margin-top:16px">
             <div class="strip-metric">
               <div class="mini-label">登录</div>
               <div class="mini-value">-</div>
@@ -1000,7 +1015,7 @@ textarea{
             </div>
           </div>
           <div class="subtle overview-table-note" id="overview-fans-note">正在加载粉丝牌状态...</div>
-          <div id="overview-fans-table-wrap" style="margin-top:14px"></div>
+          <div id="overview-fans-table-wrap" style="margin-top:16px"></div>
         </div>
       </div>
     </section>
@@ -1013,7 +1028,7 @@ textarea{
       <div class="panel">
         <h3 class="section-title">登录 Cookie</h3>
         <p class="subtle">运行时只使用本地登录 Cookie 快照。直播和鱼吧的 Cookie 分开保存，避免同名字段互相覆盖。启用 CookieCloud 后，系统会先同步到这里，再由各任务读取这两份本地值。</p>
-        <div class="grid cols-2" style="margin-top:14px">
+        <div class="grid cols-2" style="margin-top:16px">
           <div class="field-block" style="margin-top:0">
             <label class="field-label" for="main-cookie-input">斗鱼直播的 Cookie</label>
             <textarea id="main-cookie-input" placeholder="粘贴 www.douyu.com / douyu.com 登录 Cookie"></textarea>
@@ -1060,8 +1075,8 @@ textarea{
             <input id="cookie-cloud-password" type="password" placeholder="CookieCloud Password">
           </div>
         </div>
-        <div class="status-box" id="cookie-cloud-note" style="margin-top:14px">等待校验...</div>
-        <div class="actions cookie-cloud-actions" style="margin-top:14px">
+        <div class="status-box" id="cookie-cloud-note" style="margin-top:16px">等待校验...</div>
+        <div class="actions cookie-cloud-actions" style="margin-top:16px">
           <button class="btn btn-success" data-action="save-cookie-cloud">保存并启用</button>
           <button class="btn btn-secondary" data-action="check-cookie-source">同步并校验</button>
         </div>
@@ -1102,7 +1117,7 @@ textarea{
       <div class="task-card" id="yuba-task-card">
         <div class="task-card-title">鱼吧签到状态</div>
       </div>
-      <div class="status-box" id="yuba-note" style="margin-top:14px">等待加载...</div>
+      <div class="status-box" id="yuba-note" style="margin-top:16px">等待加载...</div>
 
       <div class="panel" style="margin-top:16px">
         <div class="field-block">
@@ -1130,7 +1145,7 @@ textarea{
             </select>
           </div>
         </div>
-        <div class="actions" style="margin-top:14px">
+        <div class="actions" style="margin-top:16px">
           <button class="btn btn-success" data-action="save-yuba">保存并启用</button>
           <button class="btn btn-secondary" data-action="trigger" data-trigger="yubaCheckIn">立即签到</button>
         </div>
@@ -1142,7 +1157,7 @@ textarea{
       <div class="task-card" id="keepalive-task-card">
         <div class="task-card-title">保活状态</div>
       </div>
-      <div class="status-box" id="keepalive-note" style="margin-top:14px">等待加载...</div>
+      <div class="status-box" id="keepalive-note" style="margin-top:16px">等待加载...</div>
 
       <div class="panel" style="margin-top:16px">
         <div class="field-block">
@@ -1171,7 +1186,7 @@ textarea{
             </select>
           </div>
         </div>
-        <div class="actions" style="margin-top:14px">
+        <div class="actions" style="margin-top:16px">
           <button class="btn btn-success" data-action="save-keepalive">保存并启用</button>
           <button class="btn btn-secondary" data-action="trigger" data-trigger="keepalive">立即保活</button>
         </div>
@@ -1183,7 +1198,7 @@ textarea{
       <div class="task-card" id="double-task-card">
         <div class="task-card-title">双倍状态</div>
       </div>
-      <div class="status-box" id="double-note" style="margin-top:14px">等待加载...</div>
+      <div class="status-box" id="double-note" style="margin-top:16px">等待加载...</div>
 
       <div class="panel" style="margin-top:16px">
         <div class="field-block">
@@ -1219,7 +1234,7 @@ textarea{
             </select>
           </div>
         </div>
-        <div class="actions" style="margin-top:14px">
+        <div class="actions" style="margin-top:16px">
           <button class="btn btn-success" data-action="save-double">保存并启用</button>
           <button class="btn btn-secondary" data-action="trigger" data-trigger="doubleCard">立即检测</button>
         </div>
@@ -1244,7 +1259,7 @@ textarea{
       <div class="task-card" id="expiring-task-card">
         <div class="task-card-title">临期状态</div>
       </div>
-      <div class="status-box" id="expiring-note" style="margin-top:14px">等待加载...</div>
+      <div class="status-box" id="expiring-note" style="margin-top:16px">等待加载...</div>
 
       <div class="panel" style="margin-top:16px">
         <div class="field-block">
@@ -1277,7 +1292,7 @@ textarea{
             </select>
           </div>
         </div>
-        <div class="actions" style="margin-top:14px">
+        <div class="actions" style="margin-top:16px">
           <button class="btn btn-success" data-action="save-expiring">保存并启用</button>
           <button class="btn btn-secondary" data-action="trigger" data-trigger="expiringGift">立即执行</button>
         </div>
@@ -1290,7 +1305,7 @@ textarea{
       <div class="panel">
         <h3 class="section-title">运行日志</h3>
         <p class="subtle" id="logs-summary" style="margin-top:10px">仅保留最近 500 条日志，正在加载...</p>
-        <div class="actions" style="margin-top:14px">
+        <div class="actions" style="margin-top:16px">
           <button class="btn btn-secondary" data-action="refresh-logs">手动刷新</button>
           <button class="btn btn-danger" data-action="clear-logs">清空日志</button>
           <label class="inline" style="margin-left:4px">
@@ -1847,7 +1862,7 @@ textarea{
     }
 
     return ''
-      + '<div class="table-shell"><table class="table table-fixed backpack-table"><thead><tr><th>序号</th><th>礼物</th><th>ID</th><th>数量</th><th>过期时间</th><th>剩余</th><th>临期</th><th>自动释放</th></tr></thead><tbody>' + body.join('') + '</tbody></table></div>';
+      + '<div class="table-shell"><table class="table table-fixed backpack-table"><colgroup><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>序号</th><th>礼物</th><th>ID</th><th>数量</th><th>过期时间</th><th>剩余</th><th>临期</th><th>自动释放</th></tr></thead><tbody>' + body.join('') + '</tbody></table></div>';
   }
 
   function buildSummaryStatusCell(label, enabled, enabledText, disabledText) {
@@ -2065,7 +2080,7 @@ textarea{
     if (!hasCookieSourceConfigured(rawConfig)) {
       byId('overview-gift-summary').innerHTML = buildOverviewGiftSummary('未配置', '未配置');
       byId('overview-fans-note').textContent = '请先保存 Cookie 或启用 CookieCloud，概况页才会显示粉丝牌列表。';
-      byId('overview-fans-table-wrap').innerHTML = '<div class="empty">保存 Cookie 或启用 CookieCloud 后再点击顶部“刷新”，这里会直接展示粉丝牌与双倍状态。<div class="empty-action"><button class="btn btn-primary" data-action="tab" data-tab="login">前往登录</button></div></div>';
+      byId('overview-fans-table-wrap').innerHTML = '<div class=”empty empty-with-action”>保存 Cookie 或启用 CookieCloud 后再点击顶部”刷新”，这里会直接展示粉丝牌与双倍状态。<div class=”empty-action”><button class=”btn btn-primary” data-action=”tab” data-tab=”login”>前往登录</button></div></div>';
       return;
     }
 
@@ -2378,13 +2393,26 @@ textarea{
       rows.push('</tr>');
     }
 
+    var colCount = withEnabled ? 9 : 8;
+    var colgroup = '<colgroup>';
+    for (var ci = 0; ci < colCount; ci += 1) {
+      if (ci === 0) colgroup += '<col style="width:64px">';
+      else colgroup += '<col>';
+    }
+    colgroup += '</colgroup>';
+
     var header = '<tr><th>序号</th>';
     if (withEnabled) {
       header += '<th>参与</th>';
     }
     header += '<th>主播名称</th><th>房间号</th><th>等级</th><th>排名</th><th>今日亲密度</th><th>亲密度</th><th>' + (model === 2 ? '数量' : '权重值') + '</th></tr>';
 
-    return '<div class="table-shell"><table class="table"><thead>' + header + '</thead><tbody>' + rows.join('') + '</tbody></table></div>';
+    var tableClass = 'table table-fixed';
+    if (valueClass === 'keepalive-value') tableClass += ' keepalive-table';
+    else if (valueClass === 'double-value') tableClass += ' double-table';
+    else if (valueClass === 'expiring-value') tableClass += ' expiring-table';
+
+    return '<div class="table-shell"><table class="' + tableClass + '">' + colgroup + '<thead>' + header + '</thead><tbody>' + rows.join('') + '</tbody></table></div>';
   }
 
   function formatRatioPercent(value) {

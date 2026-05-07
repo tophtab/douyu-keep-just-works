@@ -18,7 +18,7 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-const CONFIG_PATH = process.env.CONFIG_PATH || '/app/config/config.json'
+const CONFIG_PATH = process.env.CONFIG_PATH || path.resolve('config/config.json')
 const WEB_PORT = Number.parseInt(process.env.WEB_PORT || '51417', 10)
 const WEB_PASSWORD = process.env.WEB_PASSWORD || 'password'
 const DOCKER_TIMEZONE = 'Asia/Shanghai'

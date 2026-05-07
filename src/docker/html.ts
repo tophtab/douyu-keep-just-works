@@ -701,41 +701,73 @@ textarea{
 }
 .table-shell{
   overflow:auto;
+  max-width:100%;
+  scrollbar-gutter:stable both-edges;
 }
 .table{
   width:100%;
   border-collapse:collapse;
   min-width:760px;
+  --table-cell-x:12px;
+  --table-cell-y:10px;
 }
 .table-fixed{
   table-layout:fixed;
 }
 .fans-status-table{
-  min-width:860px;
+  min-width:900px;
 }
 .yuba-status-table{
-  min-width:820px;
+  min-width:860px;
 }
 .backpack-table{
-  min-width:980px;
+  min-width:1040px;
 }
 .keepalive-table{
-  min-width:760px;
+  min-width:900px;
 }
 .double-table{
-  min-width:920px;
+  min-width:980px;
 }
 .expiring-table{
-  min-width:760px;
+  min-width:900px;
 }
 .fans-status-table col:nth-child(1),
 .yuba-status-table col:nth-child(1),
 .backpack-table col:nth-child(1){
-  width:64px;
+  width:56px;
+}
+.fans-status-table col:nth-child(2),
+.yuba-status-table col:nth-child(2),
+.backpack-table col:nth-child(2){
+  width:22%;
+}
+.fans-status-table col:nth-child(3),
+.yuba-status-table col:nth-child(3),
+.backpack-table col:nth-child(3){
+  width:112px;
+}
+.fans-status-table col:nth-child(4),
+.fans-status-table col:nth-child(5),
+.fans-status-table col:nth-child(6),
+.fans-status-table col:nth-child(7),
+.yuba-status-table col:nth-child(4),
+.yuba-status-table col:nth-child(5),
+.yuba-status-table col:nth-child(6),
+.backpack-table col:nth-child(4),
+.backpack-table col:nth-child(6){
+  width:94px;
+}
+.backpack-table col:nth-child(5){
+  width:168px;
 }
 .fans-status-table col:nth-child(8),
 .yuba-status-table col:nth-child(7){
-  width:160px;
+  width:132px;
+}
+.backpack-table col:nth-child(7),
+.backpack-table col:nth-child(8){
+  width:104px;
 }
 .fans-status-table th:last-child,
 .fans-status-table td:last-child,
@@ -745,10 +777,11 @@ textarea{
 }
 .table th,
 .table td{
-  padding:12px;
+  padding:var(--table-cell-y) var(--table-cell-x);
   border-bottom:1px solid var(--line);
   text-align:left;
   font-size:13px;
+  line-height:1.45;
   vertical-align:middle;
   white-space:nowrap;
   overflow:hidden;
@@ -760,30 +793,49 @@ textarea{
   background:var(--surface-strong);
   color:var(--muted);
   font-size:12px;
+  font-weight:800;
   z-index:1;
+}
+.table tbody tr:hover{
+  background:rgba(216,106,24,.06);
 }
 .table tbody tr:nth-child(even){
   background:rgba(255,255,255,.04);
 }
+.table tbody tr:nth-child(even):hover{
+  background:rgba(216,106,24,.08);
+}
 .table input[type="number"]{
-  min-width:96px;
+  min-width:84px;
+  padding:8px 10px;
+  border-radius:12px;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum";
 }
 .table input[type="checkbox"]{
-  width:auto;
+  width:18px;
+  height:18px;
   accent-color:var(--accent);
 }
 .table .num-cell,
 .table .index-cell,
+.table .num-head,
+.table .index-head,
 .log-stamp{
   font-variant-numeric:tabular-nums;
   font-feature-settings:"tnum";
 }
 .table .num-cell,
-.table .index-cell{
+.table .index-cell,
+.table .num-head,
+.table .index-head{
   text-align:right;
 }
 .table .index-cell,
-.table .control-cell{
+.table .control-cell,
+.table .index-head,
+.table .control-head{
   text-align:center;
 }
 .table .text-cell,
@@ -796,6 +848,13 @@ textarea{
 }
 .table .error-cell{
   line-height:1.55;
+}
+.table .control-cell{
+  overflow:visible;
+}
+.table .status-cell .pill{
+  justify-content:center;
+  min-width:72px;
 }
 .overview-table-note{
   margin-top:8px;
@@ -830,11 +889,12 @@ textarea{
   line-height:1.8;
 }
 .log-line{
-  display:flex;
-  gap:10px;
+  display:grid;
+  grid-template-columns:max-content max-content minmax(0,1fr);
+  gap:8px 10px;
   align-items:flex-start;
   margin-bottom:8px;
-  padding:10px 12px;
+  padding:9px 10px;
   border:1px solid var(--line);
   border-radius:14px;
   background:var(--surface-soft);
@@ -855,7 +915,6 @@ textarea{
   font-weight:700;
 }
 .log-message{
-  flex:1;
   min-width:0;
   white-space:pre-wrap;
   word-break:break-word;
@@ -903,6 +962,10 @@ textarea{
   }
 }
 @media (max-width: 720px){
+  .table{
+    --table-cell-x:10px;
+    --table-cell-y:8px;
+  }
   .fans-status-table,
   .yuba-status-table,
   .backpack-table{
@@ -919,14 +982,24 @@ textarea{
   }
   .fans-status-table,
   .fans-status-table tbody,
-  .fans-status-table tr,
-  .fans-status-table td,
   .yuba-status-table,
   .yuba-status-table tbody,
+  .backpack-table,
+  .backpack-table tbody{
+    display:block;
+    width:100%;
+  }
+  .fans-status-table tbody,
+  .yuba-status-table tbody,
+  .backpack-table tbody{
+    display:grid;
+    gap:10px;
+    padding:10px;
+  }
+  .fans-status-table tr,
+  .fans-status-table td,
   .yuba-status-table tr,
   .yuba-status-table td,
-  .backpack-table,
-  .backpack-table tbody,
   .backpack-table tr,
   .backpack-table td{
     display:block;
@@ -935,22 +1008,29 @@ textarea{
   .fans-status-table tr,
   .yuba-status-table tr,
   .backpack-table tr{
-    padding:10px 0;
-    border-bottom:1px solid var(--line);
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:16px;
+    background:var(--surface-soft);
   }
   .fans-status-table td,
   .yuba-status-table td,
   .backpack-table td{
     display:grid;
-    grid-template-columns:minmax(88px, 34%) minmax(0, 1fr);
-    gap:10px;
-    padding:8px 12px;
+    grid-template-columns:minmax(88px, 32%) minmax(0, 1fr);
+    gap:12px;
+    padding:7px 0;
     border-bottom:0;
     white-space:normal;
     overflow:visible;
     text-overflow:clip;
     text-align:left;
     word-break:break-word;
+  }
+  .fans-status-table td + td,
+  .yuba-status-table td + td,
+  .backpack-table td + td{
+    border-top:1px solid var(--line);
   }
   .fans-status-table td::before,
   .yuba-status-table td::before,
@@ -967,6 +1047,12 @@ textarea{
   .backpack-table .num-cell,
   .backpack-table .index-cell{
     text-align:left;
+  }
+  .log-line{
+    grid-template-columns:max-content minmax(0,1fr);
+  }
+  .log-message{
+    grid-column:1 / -1;
   }
 }
 @media (max-width: 1100px){
@@ -1015,6 +1101,14 @@ textarea{
   .split-inline-actions{
     justify-content:flex-start;
     margin-top:16px;
+    width:100%;
+  }
+  .strip-metrics{
+    min-width:0;
+    width:100%;
+  }
+  .overview-gift-summary .strip-metric{
+    min-height:auto;
   }
 }
 </style>
@@ -1828,10 +1922,10 @@ textarea{
     var authShell = byId('auth-shell');
     var appShell = byId('app-shell');
     if (authShell) {
-      authShell.style.display = state.auth.authenticated ? 'none' : 'flex';
+      authShell.style.display = state.auth.authenticated ? 'none' : '';
     }
     if (appShell) {
-      appShell.style.display = state.auth.authenticated ? 'flex' : 'none';
+      appShell.style.display = state.auth.authenticated ? '' : 'none';
     }
 
     var errorNode = byId('login-error');
@@ -2060,6 +2154,14 @@ textarea{
     return '<td' + attrs + '>' + html + '</td>';
   }
 
+  function buildTableHeadCell(label, className) {
+    var attrs = ' scope="col"';
+    if (className) {
+      attrs += ' class="' + escapeHtml(className) + '"';
+    }
+    return '<th' + attrs + '>' + escapeHtml(label) + '</th>';
+  }
+
   function buildTextCell(label, value, className) {
     var text = value == null || value === '' ? '-' : String(value);
     return buildTableCell(label, escapeHtml(text), className || 'text-cell', text);
@@ -2100,7 +2202,16 @@ textarea{
     }
 
     return ''
-      + '<div class="table-shell"><table class="table table-fixed backpack-table"><colgroup><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>序号</th><th>礼物</th><th>ID</th><th>数量</th><th>过期时间</th><th>剩余</th><th>临期</th><th>自动释放</th></tr></thead><tbody>' + body.join('') + '</tbody></table></div>';
+      + '<div class="table-shell"><table class="table table-fixed backpack-table"><colgroup><col><col><col><col><col><col><col><col></colgroup><thead><tr>'
+      + buildTableHeadCell('序号', 'index-head')
+      + buildTableHeadCell('礼物')
+      + buildTableHeadCell('ID', 'num-head')
+      + buildTableHeadCell('数量', 'num-head')
+      + buildTableHeadCell('过期时间', 'num-head')
+      + buildTableHeadCell('剩余', 'num-head')
+      + buildTableHeadCell('临期', 'control-head')
+      + buildTableHeadCell('自动释放', 'control-head')
+      + '</tr></thead><tbody>' + body.join('') + '</tbody></table></div>';
   }
 
   function buildSummaryStatusCell(label, enabled, enabledText, disabledText) {
@@ -2247,6 +2358,16 @@ textarea{
 
   function buildFansStatusTable(items) {
     var colgroup = '<colgroup><col><col><col><col><col><col><col><col></colgroup>';
+    var header = '<tr>'
+      + buildTableHeadCell('序号', 'index-head')
+      + buildTableHeadCell('主播名称')
+      + buildTableHeadCell('房间号', 'num-head')
+      + buildTableHeadCell('等级', 'num-head')
+      + buildTableHeadCell('排名', 'num-head')
+      + buildTableHeadCell('今日亲密度', 'num-head')
+      + buildTableHeadCell('亲密度', 'num-head')
+      + buildTableHeadCell('双倍状态', 'control-head')
+      + '</tr>';
     var rows = [];
     var i;
     for (i = 0; i < items.length; i += 1) {
@@ -2262,11 +2383,20 @@ textarea{
       rows.push(buildTableCell('双倍状态', buildStatusPill(item.doubleActive ? '双倍中' : '未开启', item.doubleActive ? 'ok' : 'off'), 'status-cell'));
       rows.push('</tr>');
     }
-    return '<div class="table-shell"><table class="table table-fixed fans-status-table">' + colgroup + '<thead><tr><th>序号</th><th>主播名称</th><th>房间号</th><th>等级</th><th>排名</th><th>今日亲密度</th><th>亲密度</th><th>双倍状态</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+    return '<div class="table-shell"><table class="table table-fixed fans-status-table">' + colgroup + '<thead>' + header + '</thead><tbody>' + rows.join('') + '</tbody></table></div>';
   }
 
   function buildYubaStatusTable(items) {
     var colgroup = '<colgroup><col><col><col><col><col><col><col></colgroup>';
+    var header = '<tr>'
+      + buildTableHeadCell('序号', 'index-head')
+      + buildTableHeadCell('鱼吧名称')
+      + buildTableHeadCell('鱼吧ID', 'num-head')
+      + buildTableHeadCell('等级', 'num-head')
+      + buildTableHeadCell('排名', 'num-head')
+      + buildTableHeadCell('经验值', 'num-head')
+      + buildTableHeadCell('签到状态', 'control-head')
+      + '</tr>';
     var rows = [];
     var i;
     for (i = 0; i < items.length; i += 1) {
@@ -2287,7 +2417,7 @@ textarea{
         : buildStatusPill(isSigned > 0 ? '已签到' : '未签到', isSigned > 0 ? 'ok' : 'off'), 'status-cell'));
       rows.push('</tr>');
     }
-    return '<div class="table-shell"><table class="table table-fixed yuba-status-table">' + colgroup + '<thead><tr><th>序号</th><th>鱼吧名称</th><th>鱼吧ID</th><th>等级</th><th>排名</th><th>经验值</th><th>签到状态</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+    return '<div class="table-shell"><table class="table table-fixed yuba-status-table">' + colgroup + '<thead>' + header + '</thead><tbody>' + rows.join('') + '</tbody></table></div>';
   }
 
   function renderOverview() {
@@ -2639,20 +2769,34 @@ textarea{
     var colgroup = '<colgroup>';
     for (var ci = 0; ci < colCount; ci += 1) {
       if (withEnabled && ci === 0) {
-        colgroup += '<col style="width:72px">';
+        colgroup += '<col style="width:68px">';
       } else if ((!withEnabled && ci === 0) || (withEnabled && ci === 1)) {
-        colgroup += '<col style="width:64px">';
+        colgroup += '<col style="width:56px">';
+      } else if ((!withEnabled && ci === 1) || (withEnabled && ci === 2)) {
+        colgroup += '<col style="width:22%">';
+      } else if ((!withEnabled && ci === 2) || (withEnabled && ci === 3)) {
+        colgroup += '<col style="width:112px">';
+      } else if ((!withEnabled && ci === 7) || (withEnabled && ci === 8)) {
+        colgroup += '<col style="width:112px">';
       } else {
-        colgroup += '<col>';
+        colgroup += '<col style="width:94px">';
       }
     }
     colgroup += '</colgroup>';
 
     var header = '<tr>';
     if (withEnabled) {
-      header += '<th>参与</th>';
+      header += buildTableHeadCell('参与', 'control-head');
     }
-    header += '<th>序号</th><th>主播名称</th><th>房间号</th><th>等级</th><th>排名</th><th>今日亲密度</th><th>亲密度</th><th>' + (model === 2 ? '数量' : '权重值') + '</th></tr>';
+    header += buildTableHeadCell('序号', 'index-head')
+      + buildTableHeadCell('主播名称')
+      + buildTableHeadCell('房间号', 'num-head')
+      + buildTableHeadCell('等级', 'num-head')
+      + buildTableHeadCell('排名', 'num-head')
+      + buildTableHeadCell('今日亲密度', 'num-head')
+      + buildTableHeadCell('亲密度', 'num-head')
+      + buildTableHeadCell(model === 2 ? '数量' : '权重值', 'control-head')
+      + '</tr>';
 
     var tableClass = 'table table-fixed';
     if (valueClass === 'keepalive-value') tableClass += ' keepalive-table';

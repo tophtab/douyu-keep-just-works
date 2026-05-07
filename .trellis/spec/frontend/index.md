@@ -45,6 +45,7 @@ When changing `src/docker/html.ts`, keep the plain HTML controls accessible:
 - ARIA tab semantics require selected state, controlled panels, and keyboard navigation for arrow/Home/End keys.
 - Dynamically generated table inputs need row-specific accessible names.
 - Tables and log-style lists should use tabular numerals for comparable numbers and timestamps.
+- Docker WebUI tables should define stable column roles and widths together: use scoped headers (`scope="col"`), align numeric headers with numeric cells, center control/status columns, and keep header/body padding on the same rhythm.
 - Read-only status/detail tables should keep key names, row errors, and primary labels readable instead of blindly forcing one-line ellipsis; add a compact mobile representation when horizontal scrolling hurts scanability.
 - Theme changes should keep `color-scheme` and `theme-color` aligned with the resolved theme.
 - Motion and hover transforms must honor `prefers-reduced-motion`.

@@ -27,6 +27,7 @@ Improve the Docker WebUI accessibility and interface polish based on the Web Int
 * Replace loading ellipses `...` with `…` in user-visible loading text touched by this work.
 * Improve list/table scanability without a full redesign:
   * Use tabular numeric alignment for tables/log timestamps and numeric comparison columns.
+  * Tighten table/list visual rhythm: headers and body cells should share predictable padding, numeric/control columns should align consistently, and row height should feel compact but not cramped.
   * Avoid inappropriate truncation of key text such as streamer/fish-bar/gift names and row-level errors.
   * Improve mobile readability for status/detail lists where horizontal scrolling is currently the only option.
   * Keep configuration tables usable for editing and avoid changing saved config behavior.
@@ -40,6 +41,7 @@ Improve the Docker WebUI accessibility and interface polish based on the Web Int
 * [ ] Switches and dynamic table inputs have useful accessible names.
 * [ ] Theme metadata and reduced-motion behavior are present.
 * [ ] List/table rows are easier to scan: key text is not blindly truncated, numeric values align, and small screens have a readable representation where practical.
+* [ ] Table/list alignment and row spacing feel consistent across overview, keepalive, double-card, expiring-gift, yuba, backpack, and logs views.
 * [ ] In the double-card configuration table, "参与" is the first column and "序号" is the second column.
 * [ ] "Clear logs" continues to execute without confirmation and without undo.
 * [ ] `npm run lint` passes.

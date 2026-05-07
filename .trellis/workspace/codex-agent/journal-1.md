@@ -1058,3 +1058,39 @@ Built the fans medal mini-card system (overview dashboard), backpack live-render
 ### Next Steps
 
 - None - task complete
+
+
+## Session 27: WebUI accessibility and table polish
+
+**Date**: 2026-05-07
+**Task**: WebUI accessibility and table polish
+**Branch**: `master`
+
+### Summary
+
+Improved Docker WebUI accessibility, table/list scanability, and balanced table column spacing based on manual review feedback.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `eea74d3` | (see git log) |
+| `ca59df0` | (see git log) |
+| `89901c8` | (see git log) |
+| `f6431aa` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

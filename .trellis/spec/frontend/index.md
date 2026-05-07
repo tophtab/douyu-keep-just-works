@@ -36,6 +36,19 @@ Before changing current UI code:
 
 Do not reintroduce `src/renderer/`, Vue, Vite, Pinia, Vuetify, or Electron renderer IPC unless desktop support is explicitly restored.
 
+## Current Docker WebUI Accessibility Checklist
+
+When changing `src/docker/html.ts`, keep the plain HTML controls accessible:
+
+- Interactive controls need visible `:focus-visible` states, including custom switches and icon-only buttons.
+- Async feedback needs a live region (`role="status"` / `aria-live="polite"`), especially toast and validation/status text.
+- ARIA tab semantics require selected state, controlled panels, and keyboard navigation for arrow/Home/End keys.
+- Dynamically generated table inputs need row-specific accessible names.
+- Tables and log-style lists should use tabular numerals for comparable numbers and timestamps.
+- Read-only status/detail tables should keep key names, row errors, and primary labels readable instead of blindly forcing one-line ellipsis; add a compact mobile representation when horizontal scrolling hurts scanability.
+- Theme changes should keep `color-scheme` and `theme-color` aligned with the resolved theme.
+- Motion and hover transforms must honor `prefers-reduced-motion`.
+
 ---
 
 **Language**: All documentation should be written in **English**.

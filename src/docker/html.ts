@@ -32,10 +32,13 @@ export function getHtml(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark" id="color-scheme-meta">
+<meta name="theme-color" content="#f4ede4" id="theme-color-meta">
 <title>${APP_NAME}</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Ctext x=%2250%25%22 y=%2252%22 text-anchor=%22middle%22 font-size=%2252%22%3E%F0%9F%8E%A3%3C/text%3E%3C/svg%3E">
 <style>
 :root{
+  color-scheme:light dark;
   --bg:#f4ede4;
   --bg-alt:#edf4fb;
   --surface:rgba(255,255,255,.76);
@@ -58,6 +61,7 @@ export function getHtml(): string {
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;min-height:100%}
 body{
+  color-scheme:light;
   font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
   color:var(--text);
   background:
@@ -73,6 +77,7 @@ body::before{
   background:linear-gradient(180deg, rgba(255,255,255,.28), transparent 18%, transparent 82%, rgba(255,255,255,.12));
 }
 body[data-theme="dark"]{
+  color-scheme:dark;
   --bg:#000;
   --bg-alt:#000;
   --surface:rgba(10,10,10,.92);
@@ -254,6 +259,14 @@ body[data-theme="dark"]::before{
   transform:translateX(3px);
   background:rgba(255,255,255,.28);
   border-color:var(--line-strong);
+}
+.tab-btn:focus-visible,
+.btn:focus-visible,
+.inline input[type="checkbox"]:focus-visible,
+.table input[type="checkbox"]:focus-visible{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 4px var(--accent-soft);
 }
 .tab-btn.active{
   background:var(--accent-gradient);
@@ -611,6 +624,10 @@ textarea{
 .switch-input:checked + .switch-slider::after{
   transform:translateX(24px);
 }
+.switch-input:focus-visible + .switch-slider{
+  border-color:var(--accent);
+  box-shadow:0 0 0 4px var(--accent-soft);
+}
 .helper{
   color:var(--muted);
   font-size:13px;
@@ -747,6 +764,30 @@ textarea{
   width:auto;
   accent-color:var(--accent);
 }
+.table .num-cell,
+.table .index-cell,
+.log-stamp{
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum";
+}
+.table .num-cell,
+.table .index-cell{
+  text-align:right;
+}
+.table .index-cell,
+.table .control-cell{
+  text-align:center;
+}
+.table .text-cell,
+.table .error-cell{
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  word-break:break-word;
+}
+.table .error-cell{
+  line-height:1.55;
+}
 .overview-table-note{
   margin-top:8px;
 }
@@ -813,6 +854,17 @@ textarea{
 .muted{
   color:var(--muted);
 }
+.sr-only{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0;
+}
 .toast{
   position:fixed;
   top:88px;
@@ -825,6 +877,88 @@ textarea{
   display:none;
   z-index:999;
   box-shadow:var(--shadow);
+}
+@media (prefers-reduced-motion: reduce){
+  *,
+  *::before,
+  *::after{
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    scroll-behavior:auto !important;
+    transition-duration:.01ms !important;
+  }
+  .tab-btn:hover,
+  .theme-option:hover,
+  .btn:hover{
+    transform:none;
+  }
+}
+@media (max-width: 720px){
+  .fans-status-table,
+  .yuba-status-table,
+  .backpack-table{
+    min-width:0;
+    table-layout:auto;
+  }
+  .fans-status-table thead,
+  .yuba-status-table thead,
+  .backpack-table thead,
+  .fans-status-table colgroup,
+  .yuba-status-table colgroup,
+  .backpack-table colgroup{
+    display:none;
+  }
+  .fans-status-table,
+  .fans-status-table tbody,
+  .fans-status-table tr,
+  .fans-status-table td,
+  .yuba-status-table,
+  .yuba-status-table tbody,
+  .yuba-status-table tr,
+  .yuba-status-table td,
+  .backpack-table,
+  .backpack-table tbody,
+  .backpack-table tr,
+  .backpack-table td{
+    display:block;
+    width:100%;
+  }
+  .fans-status-table tr,
+  .yuba-status-table tr,
+  .backpack-table tr{
+    padding:10px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .fans-status-table td,
+  .yuba-status-table td,
+  .backpack-table td{
+    display:grid;
+    grid-template-columns:minmax(88px, 34%) minmax(0, 1fr);
+    gap:10px;
+    padding:8px 12px;
+    border-bottom:0;
+    white-space:normal;
+    overflow:visible;
+    text-overflow:clip;
+    text-align:left;
+    word-break:break-word;
+  }
+  .fans-status-table td::before,
+  .yuba-status-table td::before,
+  .backpack-table td::before{
+    content:attr(data-label);
+    color:var(--muted);
+    font-size:12px;
+    font-weight:700;
+  }
+  .fans-status-table .num-cell,
+  .fans-status-table .index-cell,
+  .yuba-status-table .num-cell,
+  .yuba-status-table .index-cell,
+  .backpack-table .num-cell,
+  .backpack-table .index-cell{
+    text-align:left;
+  }
 }
 @media (max-width: 1100px){
   .task-grid,
@@ -894,12 +1028,12 @@ textarea{
       <div class="section-kicker">密码验证</div>
       <h2 class="auth-form-title">进入管理台</h2>
       <p class="subtle">输入 WebUI 密码，认证通过后再加载当前配置和状态。</p>
-      <form id="login-form">
+      <form id="login-form" autocomplete="on">
         <div class="field-block" style="margin-top:18px">
           <label class="field-label" for="web-password-input">WebUI 密码</label>
-          <input id="web-password-input" type="password" autocomplete="current-password" placeholder="请输入管理密码">
+          <input id="web-password-input" name="web-password" type="password" autocomplete="current-password" spellcheck="false" placeholder="请输入管理密码">
         </div>
-        <div class="auth-error" id="login-error"></div>
+        <div class="auth-error" id="login-error" role="alert"></div>
         <div class="actions auth-actions">
           <button class="btn btn-success" type="submit" id="login-submit">登录</button>
         </div>
@@ -917,15 +1051,15 @@ textarea{
     </div>
     <p class="brand-copy">更聚焦的 Docker 管理台。先看概况，再分别管理登录、领取、保活、双倍、临期和鱼吧签到任务。</p>
 
-    <div class="tab-list">
-      <button class="tab-btn active" data-action="tab" data-tab="overview">概况</button>
-      <button class="tab-btn" data-action="tab" data-tab="login">登录</button>
-      <button class="tab-btn" data-action="tab" data-tab="collect">领取任务</button>
-      <button class="tab-btn" data-action="tab" data-tab="keepalive">保活任务</button>
-      <button class="tab-btn" data-action="tab" data-tab="double-card">双倍任务</button>
-      <button class="tab-btn" data-action="tab" data-tab="expiring-gift">临期任务</button>
-      <button class="tab-btn" data-action="tab" data-tab="yuba">鱼吧签到</button>
-      <button class="tab-btn" data-action="tab" data-tab="logs">运行日志</button>
+    <div class="tab-list" role="tablist" aria-label="管理台页面">
+      <button class="tab-btn active" type="button" role="tab" id="tab-overview" data-action="tab" data-tab="overview" aria-selected="true" aria-controls="page-overview">概况</button>
+      <button class="tab-btn" type="button" role="tab" id="tab-login" data-action="tab" data-tab="login" aria-selected="false" aria-controls="page-login" tabindex="-1">登录</button>
+      <button class="tab-btn" type="button" role="tab" id="tab-collect" data-action="tab" data-tab="collect" aria-selected="false" aria-controls="page-collect" tabindex="-1">领取任务</button>
+      <button class="tab-btn" type="button" role="tab" id="tab-keepalive" data-action="tab" data-tab="keepalive" aria-selected="false" aria-controls="page-keepalive" tabindex="-1">保活任务</button>
+      <button class="tab-btn" type="button" role="tab" id="tab-double-card" data-action="tab" data-tab="double-card" aria-selected="false" aria-controls="page-double-card" tabindex="-1">双倍任务</button>
+      <button class="tab-btn" type="button" role="tab" id="tab-expiring-gift" data-action="tab" data-tab="expiring-gift" aria-selected="false" aria-controls="page-expiring-gift" tabindex="-1">临期任务</button>
+      <button class="tab-btn" type="button" role="tab" id="tab-yuba" data-action="tab" data-tab="yuba" aria-selected="false" aria-controls="page-yuba" tabindex="-1">鱼吧签到</button>
+      <button class="tab-btn" type="button" role="tab" id="tab-logs" data-action="tab" data-tab="logs" aria-selected="false" aria-controls="page-logs" tabindex="-1">运行日志</button>
     </div>
 
     <div class="theme-box">
@@ -982,7 +1116,7 @@ textarea{
       </div>
     </div>
 
-    <section class="page active" id="page-overview">
+    <section class="page active" id="page-overview" role="tabpanel" aria-labelledby="tab-overview" tabindex="0" aria-hidden="false">
       <div class="overview-stack">
         <div class="panel">
           <div class="section-kicker">基础状态</div>
@@ -1014,13 +1148,13 @@ textarea{
               </div>
             </div>
           </div>
-          <div class="subtle overview-table-note" id="overview-fans-note">正在加载粉丝牌状态...</div>
+          <div class="subtle overview-table-note" id="overview-fans-note" role="status" aria-live="polite">正在加载粉丝牌状态…</div>
           <div id="overview-fans-table-wrap" style="margin-top:16px"></div>
         </div>
       </div>
     </section>
 
-    <section class="page" id="page-login">
+    <section class="page" id="page-login" role="tabpanel" aria-labelledby="tab-login" tabindex="0" aria-hidden="true">
       <div class="task-card" id="cookie-login-card" style="margin-bottom:16px">
         <div class="task-card-title">登录状态</div>
       </div>
@@ -1031,11 +1165,11 @@ textarea{
         <div class="grid cols-2" style="margin-top:16px">
           <div class="field-block" style="margin-top:0">
             <label class="field-label" for="main-cookie-input">斗鱼直播的 Cookie</label>
-            <textarea id="main-cookie-input" placeholder="粘贴 www.douyu.com / douyu.com 登录 Cookie"></textarea>
+            <textarea id="main-cookie-input" name="main-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 www.douyu.com / douyu.com 登录 Cookie"></textarea>
           </div>
           <div class="field-block" style="margin-top:0">
             <label class="field-label" for="yuba-cookie-input">斗鱼鱼吧的 Cookie</label>
-            <textarea id="yuba-cookie-input" placeholder="粘贴 yuba.douyu.com 登录 Cookie"></textarea>
+            <textarea id="yuba-cookie-input" name="yuba-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 yuba.douyu.com 登录 Cookie"></textarea>
           </div>
         </div>
         <div class="actions">
@@ -1051,7 +1185,7 @@ textarea{
           </div>
           <div class="field-block" style="margin:0">
             <label class="switch-control">
-              <input class="switch-input" type="checkbox" id="cookie-cloud-enable">
+              <input class="switch-input" type="checkbox" id="cookie-cloud-enable" name="cookie-cloud-enable" aria-label="启用 CookieCloud 同步">
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -1059,23 +1193,23 @@ textarea{
         <div class="grid cols-2">
           <div class="field-block">
             <label class="field-label" for="cookie-cloud-endpoint">Endpoint</label>
-            <input id="cookie-cloud-endpoint" type="text" placeholder="https://cookiecloud.example.com">
+            <input id="cookie-cloud-endpoint" name="cookie-cloud-endpoint" type="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="https://cookiecloud.example.com">
           </div>
           <div class="field-block">
             <label class="field-label" for="cookie-cloud-uuid">UUID</label>
-            <input id="cookie-cloud-uuid" type="text" placeholder="CookieCloud UUID">
+            <input id="cookie-cloud-uuid" name="cookie-cloud-uuid" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="CookieCloud UUID">
           </div>
           <div class="field-block">
             <label class="field-label" for="cookie-cloud-cron">同步 Cron</label>
-            <input id="cookie-cloud-cron" type="text" placeholder="0 5 0 * * *">
-            <div class="helper cron-preview" id="cookie-cloud-cron-preview">正在计算未来执行时间...</div>
+            <input id="cookie-cloud-cron" name="cookie-cloud-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="0 5 0 * * *">
+            <div class="helper cron-preview" id="cookie-cloud-cron-preview" role="status" aria-live="polite">正在计算未来执行时间…</div>
           </div>
           <div class="field-block">
             <label class="field-label" for="cookie-cloud-password">密码</label>
-            <input id="cookie-cloud-password" type="password" placeholder="CookieCloud Password">
+            <input id="cookie-cloud-password" name="cookie-cloud-password" type="password" autocomplete="current-password" spellcheck="false" placeholder="CookieCloud Password">
           </div>
         </div>
-        <div class="status-box" id="cookie-cloud-note" style="margin-top:16px">等待校验...</div>
+        <div class="status-box" id="cookie-cloud-note" role="status" aria-live="polite" style="margin-top:16px">等待校验…</div>
         <div class="actions cookie-cloud-actions" style="margin-top:16px">
           <button class="btn btn-success" data-action="save-cookie-cloud">保存并启用</button>
           <button class="btn btn-secondary" data-action="check-cookie-source">同步并校验</button>
@@ -1083,7 +1217,7 @@ textarea{
       </div>
     </section>
 
-    <section class="page" id="page-collect">
+    <section class="page" id="page-collect" role="tabpanel" aria-labelledby="tab-collect" tabindex="0" aria-hidden="true">
       <div class="task-card" id="collect-task-card" style="margin-bottom:16px">
         <div class="task-card-title">领取状态</div>
       </div>
@@ -1096,15 +1230,15 @@ textarea{
           </div>
           <div class="field-block" style="margin:0">
             <label class="switch-control">
-              <input class="switch-input" type="checkbox" id="collect-enable">
+              <input class="switch-input" type="checkbox" id="collect-enable" name="collect-enable" aria-label="启用领取任务">
               <span class="switch-slider"></span>
             </label>
           </div>
         </div>
         <div class="field-block">
           <label class="field-label" for="collect-cron">Cron 表达式</label>
-          <input id="collect-cron" type="text">
-          <div class="helper cron-preview" id="collect-cron-preview">正在计算未来执行时间...</div>
+          <input id="collect-cron" name="collect-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+          <div class="helper cron-preview" id="collect-cron-preview" role="status" aria-live="polite">正在计算未来执行时间…</div>
         </div>
         <div class="actions">
           <button class="btn btn-success" data-action="save-collect">保存并启用</button>
@@ -1113,11 +1247,11 @@ textarea{
       </div>
     </section>
 
-    <section class="page" id="page-yuba">
+    <section class="page" id="page-yuba" role="tabpanel" aria-labelledby="tab-yuba" tabindex="0" aria-hidden="true">
       <div class="task-card" id="yuba-task-card">
         <div class="task-card-title">鱼吧签到状态</div>
       </div>
-      <div class="status-box" id="yuba-note" style="margin-top:16px">等待加载...</div>
+      <div class="status-box" id="yuba-note" role="status" aria-live="polite" style="margin-top:16px">等待加载…</div>
 
       <div class="panel" style="margin-top:16px">
         <div class="field-block">
@@ -1127,7 +1261,7 @@ textarea{
               <div class="switch-note">通过当前鱼吧 HTTP 接口签到全部已关注鱼吧，不使用浏览器自动化。</div>
             </div>
             <label class="switch-control">
-              <input class="switch-input" type="checkbox" id="yuba-enable">
+              <input class="switch-input" type="checkbox" id="yuba-enable" name="yuba-enable" aria-label="启用鱼吧签到任务">
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -1135,12 +1269,12 @@ textarea{
         <div class="grid cols-2">
           <div class="field-block">
             <label class="field-label" for="yuba-cron">Cron 表达式</label>
-            <input id="yuba-cron" type="text">
-            <div class="helper cron-preview" id="yuba-cron-preview">正在计算未来执行时间...</div>
+            <input id="yuba-cron" name="yuba-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <div class="helper cron-preview" id="yuba-cron-preview" role="status" aria-live="polite">正在计算未来执行时间…</div>
           </div>
           <div class="field-block">
             <label class="field-label" for="yuba-mode">签到模式</label>
-            <select id="yuba-mode">
+            <select id="yuba-mode" name="yuba-mode">
               <option value="followed">签到全部已关注鱼吧</option>
             </select>
           </div>
@@ -1153,11 +1287,11 @@ textarea{
       </div>
     </section>
 
-    <section class="page" id="page-keepalive">
+    <section class="page" id="page-keepalive" role="tabpanel" aria-labelledby="tab-keepalive" tabindex="0" aria-hidden="true">
       <div class="task-card" id="keepalive-task-card">
         <div class="task-card-title">保活状态</div>
       </div>
-      <div class="status-box" id="keepalive-note" style="margin-top:16px">等待加载...</div>
+      <div class="status-box" id="keepalive-note" role="status" aria-live="polite" style="margin-top:16px">等待加载…</div>
 
       <div class="panel" style="margin-top:16px">
         <div class="field-block">
@@ -1167,7 +1301,7 @@ textarea{
               <div class="switch-note">关闭后保留配置，但不执行保活调度。</div>
             </div>
             <label class="switch-control">
-              <input class="switch-input" type="checkbox" id="keepalive-enable">
+              <input class="switch-input" type="checkbox" id="keepalive-enable" name="keepalive-enable" aria-label="启用保活任务">
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -1175,12 +1309,12 @@ textarea{
         <div class="grid cols-2">
           <div class="field-block">
             <label class="field-label" for="keepalive-cron">Cron 表达式</label>
-            <input id="keepalive-cron" type="text">
-            <div class="helper cron-preview" id="keepalive-cron-preview">正在计算未来执行时间...</div>
+            <input id="keepalive-cron" name="keepalive-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <div class="helper cron-preview" id="keepalive-cron-preview" role="status" aria-live="polite">正在计算未来执行时间…</div>
           </div>
           <div class="field-block">
             <label class="field-label" for="keepalive-model">分配模式</label>
-            <select id="keepalive-model">
+            <select id="keepalive-model" name="keepalive-model">
               <option value="1">按权重</option>
               <option value="2">按固定数量</option>
             </select>
@@ -1194,11 +1328,11 @@ textarea{
       </div>
     </section>
 
-    <section class="page" id="page-double-card">
+    <section class="page" id="page-double-card" role="tabpanel" aria-labelledby="tab-double-card" tabindex="0" aria-hidden="true">
       <div class="task-card" id="double-task-card">
         <div class="task-card-title">双倍状态</div>
       </div>
-      <div class="status-box" id="double-note" style="margin-top:16px">等待加载...</div>
+      <div class="status-box" id="double-note" role="status" aria-live="polite" style="margin-top:16px">等待加载…</div>
 
       <div class="panel" style="margin-top:16px">
         <div class="field-block">
@@ -1208,7 +1342,7 @@ textarea{
               <div class="switch-note">关闭后不执行双倍检测与赠送，但保留当前分配设置。</div>
             </div>
             <label class="switch-control">
-              <input class="switch-input" type="checkbox" id="double-enable">
+              <input class="switch-input" type="checkbox" id="double-enable" name="double-enable" aria-label="启用双倍任务">
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -1216,19 +1350,19 @@ textarea{
         <div class="grid cols-3">
           <div class="field-block">
             <label class="field-label" for="double-cron">Cron 表达式</label>
-            <input id="double-cron" type="text">
-            <div class="helper cron-preview" id="double-cron-preview">正在计算未来执行时间...</div>
+            <input id="double-cron" name="double-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <div class="helper cron-preview" id="double-cron-preview" role="status" aria-live="polite">正在计算未来执行时间…</div>
           </div>
           <div class="field-block">
             <label class="field-label" for="double-gift-scope">礼物范围</label>
-            <select id="double-gift-scope">
+            <select id="double-gift-scope" name="double-gift-scope">
               <option value="glowStick">全部荧光棒</option>
               <option value="limitedTime">限时礼物</option>
             </select>
           </div>
           <div class="field-block">
             <label class="field-label" for="double-model">分配模式</label>
-            <select id="double-model">
+            <select id="double-model" name="double-model">
               <option value="1">按权重</option>
               <option value="2">按固定数量</option>
             </select>
@@ -1243,7 +1377,7 @@ textarea{
             <div class="split-inline-copy">
               <div class="section-kicker">分配说明</div>
               <p class="subtle" id="double-mode-help" style="margin-top:8px">按权重模式会根据当前勾选房间的权重值动态重新分配。</p>
-              <div class="helper" id="double-ratio-preview" style="margin-top:10px">等待计算当前权重预览...</div>
+              <div class="helper" id="double-ratio-preview" role="status" aria-live="polite" style="margin-top:10px">等待计算当前权重预览…</div>
             </div>
             <div class="split-inline-actions" id="double-ratio-tools">
               <button class="btn btn-secondary" type="button" data-action="double-fill-equal">参与房间全部设为 1</button>
@@ -1255,11 +1389,11 @@ textarea{
       </div>
     </section>
 
-    <section class="page" id="page-expiring-gift">
+    <section class="page" id="page-expiring-gift" role="tabpanel" aria-labelledby="tab-expiring-gift" tabindex="0" aria-hidden="true">
       <div class="task-card" id="expiring-task-card">
         <div class="task-card-title">临期状态</div>
       </div>
-      <div class="status-box" id="expiring-note" style="margin-top:16px">等待加载...</div>
+      <div class="status-box" id="expiring-note" role="status" aria-live="polite" style="margin-top:16px">等待加载…</div>
 
       <div class="panel" style="margin-top:16px">
         <div class="field-block">
@@ -1269,7 +1403,7 @@ textarea{
               <div class="switch-note">达到临期阈值后，按房间配置释放有明确过期时间的临期背包礼物。</div>
             </div>
             <label class="switch-control">
-              <input class="switch-input" type="checkbox" id="expiring-enable">
+              <input class="switch-input" type="checkbox" id="expiring-enable" name="expiring-enable" aria-label="启用临期任务">
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -1277,16 +1411,16 @@ textarea{
         <div class="grid cols-3">
           <div class="field-block">
             <label class="field-label" for="expiring-cron">Cron 表达式</label>
-            <input id="expiring-cron" type="text">
-            <div class="helper cron-preview" id="expiring-cron-preview">正在计算未来执行时间...</div>
+            <input id="expiring-cron" name="expiring-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <div class="helper cron-preview" id="expiring-cron-preview" role="status" aria-live="polite">正在计算未来执行时间…</div>
           </div>
           <div class="field-block">
             <label class="field-label" for="expiring-threshold-hours">临期阈值（小时）</label>
-            <input id="expiring-threshold-hours" type="number" min="1" step="1">
+            <input id="expiring-threshold-hours" name="expiring-threshold-hours" type="number" min="1" step="1" inputmode="numeric">
           </div>
           <div class="field-block">
             <label class="field-label" for="expiring-model">分配模式</label>
-            <select id="expiring-model">
+            <select id="expiring-model" name="expiring-model">
               <option value="1">按权重</option>
               <option value="2">按固定数量</option>
             </select>
@@ -1301,15 +1435,15 @@ textarea{
       </div>
     </section>
 
-    <section class="page" id="page-logs">
+    <section class="page" id="page-logs" role="tabpanel" aria-labelledby="tab-logs" tabindex="0" aria-hidden="true">
       <div class="panel">
         <h3 class="section-title">运行日志</h3>
-        <p class="subtle" id="logs-summary" style="margin-top:10px">仅保留最近 500 条日志，正在加载...</p>
+        <p class="subtle" id="logs-summary" role="status" aria-live="polite" style="margin-top:10px">仅保留最近 500 条日志，正在加载…</p>
         <div class="actions" style="margin-top:16px">
           <button class="btn btn-secondary" data-action="refresh-logs">手动刷新</button>
           <button class="btn btn-danger" data-action="clear-logs">清空日志</button>
           <label class="inline" style="margin-left:4px">
-            <input type="checkbox" id="logs-auto-refresh" checked>
+            <input type="checkbox" id="logs-auto-refresh" name="logs-auto-refresh" checked>
             <span>自动刷新</span>
           </label>
         </div>
@@ -1319,7 +1453,8 @@ textarea{
   </main>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="sr-only" id="toast-live" role="status" aria-live="polite" aria-atomic="true"></div>
+<div class="toast" id="toast" aria-hidden="true"></div>
 
 <script>
 (function () {
@@ -1510,6 +1645,17 @@ textarea{
     }
   }
 
+  function setThemeMeta(resolvedTheme) {
+    var themeColor = byId('theme-color-meta');
+    var colorScheme = byId('color-scheme-meta');
+    if (themeColor) {
+      themeColor.setAttribute('content', resolvedTheme === 'dark' ? '#000000' : '#f4ede4');
+    }
+    if (colorScheme) {
+      colorScheme.setAttribute('content', resolvedTheme === 'dark' ? 'dark' : 'light');
+    }
+  }
+
   function isThemeMode(value) {
     return value === 'system' || value === 'light' || value === 'dark';
   }
@@ -1551,6 +1697,13 @@ textarea{
 
   function toast(message, ok) {
     var node = byId('toast');
+    var liveNode = byId('toast-live');
+    if (liveNode) {
+      liveNode.textContent = '';
+      window.setTimeout(function () {
+        liveNode.textContent = message;
+      }, 0);
+    }
     node.textContent = message;
     node.style.display = 'block';
     node.style.background = ok ? '#15803d' : '#dc2626';
@@ -1679,7 +1832,7 @@ textarea{
     var submitNode = byId('login-submit');
     if (submitNode) {
       submitNode.disabled = state.auth.submitting;
-      submitNode.textContent = state.auth.submitting ? '登录中...' : '登录';
+      submitNode.textContent = state.auth.submitting ? '登录中…' : '登录';
     }
 
     var passwordNode = byId('web-password-input');
@@ -1744,13 +1897,18 @@ textarea{
     var i;
     for (i = 0; i < buttons.length; i += 1) {
       var button = buttons[i];
-      button.classList.toggle('active', button.getAttribute('data-tab') === nextTab);
+      var selected = button.getAttribute('data-tab') === nextTab;
+      button.classList.toggle('active', selected);
+      button.setAttribute('aria-selected', selected ? 'true' : 'false');
+      button.setAttribute('tabindex', selected ? '0' : '-1');
     }
 
     var pages = document.querySelectorAll('.page');
     for (i = 0; i < pages.length; i += 1) {
       var page = pages[i];
-      page.classList.toggle('active', page.id === 'page-' + nextTab);
+      var active = page.id === 'page-' + nextTab;
+      page.classList.toggle('active', active);
+      page.setAttribute('aria-hidden', active ? 'false' : 'true');
     }
 
     byId('page-title').textContent = PAGE_META[nextTab].title;
@@ -1768,6 +1926,54 @@ textarea{
     }
     if (nextTab === 'logs') {
       loadLogs();
+    }
+  }
+
+  function focusTabByOffset(currentTab, offset) {
+    var buttons = Array.prototype.slice.call(document.querySelectorAll('.tab-btn[role="tab"]'));
+    var currentIndex = buttons.indexOf(currentTab);
+    if (currentIndex < 0 || !buttons.length) {
+      return;
+    }
+    var nextIndex = (currentIndex + offset + buttons.length) % buttons.length;
+    var nextButton = buttons[nextIndex];
+    setActiveTab(nextButton.getAttribute('data-tab'));
+    nextButton.focus();
+  }
+
+  function focusTabByIndex(index) {
+    var buttons = Array.prototype.slice.call(document.querySelectorAll('.tab-btn[role="tab"]'));
+    var nextButton = buttons[index];
+    if (!nextButton) {
+      return;
+    }
+    setActiveTab(nextButton.getAttribute('data-tab'));
+    nextButton.focus();
+  }
+
+  function handleTabKeydown(event) {
+    if (!event.target || !event.target.matches || !event.target.matches('.tab-btn[role="tab"]')) {
+      return;
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+      event.preventDefault();
+      focusTabByOffset(event.target, 1);
+      return;
+    }
+    if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+      event.preventDefault();
+      focusTabByOffset(event.target, -1);
+      return;
+    }
+    if (event.key === 'Home') {
+      event.preventDefault();
+      focusTabByIndex(0);
+      return;
+    }
+    if (event.key === 'End') {
+      event.preventDefault();
+      var buttons = document.querySelectorAll('.tab-btn[role="tab"]');
+      focusTabByIndex(buttons.length - 1);
     }
   }
 
@@ -1831,6 +2037,26 @@ textarea{
     return { inThreshold: inThreshold, autoRelease: inThreshold };
   }
 
+  function buildTableCell(label, html, className, titleText) {
+    var attrs = ' data-label="' + escapeHtml(label) + '"';
+    if (className) {
+      attrs += ' class="' + escapeHtml(className) + '"';
+    }
+    if (titleText) {
+      attrs += ' title="' + escapeHtml(titleText) + '"';
+    }
+    return '<td' + attrs + '>' + html + '</td>';
+  }
+
+  function buildTextCell(label, value, className) {
+    var text = value == null || value === '' ? '-' : String(value);
+    return buildTableCell(label, escapeHtml(text), className || 'text-cell', text);
+  }
+
+  function buildNumericCell(label, value) {
+    return buildTableCell(label, escapeHtml(value == null || value === '' ? '-' : value), 'num-cell');
+  }
+
   function buildBackpackRowsTable(giftStatus) {
     if (!giftStatus) {
       return '<div class="empty">尚未加载背包明细。点击顶部“刷新”后会展示可见礼物行。</div>';
@@ -1850,14 +2076,14 @@ textarea{
       var row = rows[i];
       var rowState = describeBackpackRow(row, thresholdHours);
       body.push('<tr>');
-      body.push('<td>' + escapeHtml(i + 1) + '</td>');
-      body.push('<td>' + escapeHtml(row.name || '未知礼物') + '</td>');
-      body.push('<td>' + escapeHtml(row.giftId) + '</td>');
-      body.push('<td>' + escapeHtml(row.count) + '</td>');
-      body.push('<td>' + escapeHtml(row.expireTime ? formatDate(row.expireTime) : '-') + '</td>');
-      body.push('<td>' + escapeHtml(formatRemainingTime(row.expireTime)) + '</td>');
-      body.push('<td>' + buildStatusPill(rowState.inThreshold ? '是' : '否', rowState.inThreshold ? 'warn' : 'off') + '</td>');
-      body.push('<td>' + buildStatusPill(rowState.autoRelease ? '释放' : '跳过', rowState.autoRelease ? 'ok' : 'off') + '</td>');
+      body.push(buildTableCell('序号', escapeHtml(i + 1), 'index-cell'));
+      body.push(buildTextCell('礼物', row.name || '未知礼物'));
+      body.push(buildNumericCell('ID', row.giftId));
+      body.push(buildNumericCell('数量', row.count));
+      body.push(buildTableCell('过期时间', escapeHtml(row.expireTime ? formatDate(row.expireTime) : '-'), 'num-cell'));
+      body.push(buildTableCell('剩余', escapeHtml(formatRemainingTime(row.expireTime)), 'num-cell'));
+      body.push(buildTableCell('临期', buildStatusPill(rowState.inThreshold ? '是' : '否', rowState.inThreshold ? 'warn' : 'off'), 'status-cell'));
+      body.push(buildTableCell('自动释放', buildStatusPill(rowState.autoRelease ? '释放' : '跳过', rowState.autoRelease ? 'ok' : 'off'), 'status-cell'));
       body.push('</tr>');
     }
 
@@ -1934,7 +2160,7 @@ textarea{
       return;
     }
     if (preview.loading) {
-      target.textContent = '正在计算未来执行时间...';
+      target.textContent = '正在计算未来执行时间…';
       return;
     }
     if (preview.error) {
@@ -2014,14 +2240,14 @@ textarea{
     for (i = 0; i < items.length; i += 1) {
       var item = items[i];
       rows.push('<tr>');
-      rows.push('<td>' + escapeHtml(i + 1) + '</td>');
-      rows.push('<td>' + escapeHtml(item.name) + '</td>');
-      rows.push('<td>' + escapeHtml(item.roomId) + '</td>');
-      rows.push('<td>' + escapeHtml(item.level) + '</td>');
-      rows.push('<td>' + escapeHtml(item.rank) + '</td>');
-      rows.push('<td>' + escapeHtml(item.today) + '</td>');
-      rows.push('<td>' + escapeHtml(item.intimacy) + '</td>');
-      rows.push('<td>' + buildStatusPill(item.doubleActive ? '双倍中' : '未开启', item.doubleActive ? 'ok' : 'off') + '</td>');
+      rows.push(buildTableCell('序号', escapeHtml(i + 1), 'index-cell'));
+      rows.push(buildTextCell('主播名称', item.name || '未知主播'));
+      rows.push(buildNumericCell('房间号', item.roomId));
+      rows.push(buildNumericCell('等级', item.level));
+      rows.push(buildNumericCell('排名', item.rank));
+      rows.push(buildNumericCell('今日亲密度', item.today));
+      rows.push(buildNumericCell('亲密度', item.intimacy));
+      rows.push(buildTableCell('双倍状态', buildStatusPill(item.doubleActive ? '双倍中' : '未开启', item.doubleActive ? 'ok' : 'off'), 'status-cell'));
       rows.push('</tr>');
     }
     return '<div class="table-shell"><table class="table table-fixed fans-status-table">' + colgroup + '<thead><tr><th>序号</th><th>主播名称</th><th>房间号</th><th>等级</th><th>排名</th><th>今日亲密度</th><th>亲密度</th><th>双倍状态</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
@@ -2038,15 +2264,15 @@ textarea{
       var nextExp = item.nextLevelExp != null ? String(item.nextLevelExp) : '-';
       var expText = currentExp + '/' + nextExp;
       rows.push('<tr>');
-      rows.push('<td>' + escapeHtml(i + 1) + '</td>');
-      rows.push('<td>' + escapeHtml(item.groupName) + '</td>');
-      rows.push('<td>' + escapeHtml(item.groupId) + '</td>');
-      rows.push('<td>' + escapeHtml(item.groupLevel != null ? item.groupLevel : '-') + '</td>');
-      rows.push('<td>' + escapeHtml(item.rank > 0 ? item.rank : '-') + '</td>');
-      rows.push('<td>' + escapeHtml(expText) + '</td>');
-      rows.push('<td>' + (item.error
-        ? buildStatusPill('获取失败', 'warn') + '<div class="helper" style="margin-top:6px">' + escapeHtml(item.error) + '</div>'
-        : buildStatusPill(isSigned > 0 ? '已签到' : '未签到', isSigned > 0 ? 'ok' : 'off')) + '</td>');
+      rows.push(buildTableCell('序号', escapeHtml(i + 1), 'index-cell'));
+      rows.push(buildTextCell('鱼吧名称', item.groupName || '未知鱼吧'));
+      rows.push(buildNumericCell('鱼吧ID', item.groupId));
+      rows.push(buildNumericCell('等级', item.groupLevel != null ? item.groupLevel : '-'));
+      rows.push(buildNumericCell('排名', item.rank > 0 ? item.rank : '-'));
+      rows.push(buildTableCell('经验值', escapeHtml(expText), 'num-cell'));
+      rows.push(buildTableCell('签到状态', item.error
+        ? buildStatusPill('获取失败', 'warn') + '<div class="helper error-cell" style="margin-top:6px">' + escapeHtml(item.error) + '</div>'
+        : buildStatusPill(isSigned > 0 ? '已签到' : '未签到', isSigned > 0 ? 'ok' : 'off'), 'status-cell'));
       rows.push('</tr>');
     }
     return '<div class="table-shell"><table class="table table-fixed yuba-status-table">' + colgroup + '<thead><tr><th>序号</th><th>鱼吧名称</th><th>鱼吧ID</th><th>等级</th><th>排名</th><th>经验值</th><th>签到状态</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
@@ -2064,8 +2290,8 @@ textarea{
         + '<div class="strip-metric"><div class="mini-label">临期</div><div class="mini-value">-</div></div>'
         + '<div class="strip-metric"><div class="mini-label">鱼吧签到</div><div class="mini-value">-</div></div>';
       byId('overview-gift-summary').innerHTML = buildOverviewGiftSummary('-', '-');
-      byId('overview-fans-note').textContent = '正在加载粉丝牌状态...';
-      byId('overview-fans-table-wrap').innerHTML = '<div class="empty">请稍候...</div>';
+      byId('overview-fans-note').textContent = '正在加载粉丝牌状态…';
+      byId('overview-fans-table-wrap').innerHTML = '<div class="empty">请稍候…</div>';
       return;
     }
 
@@ -2080,13 +2306,13 @@ textarea{
     if (!hasCookieSourceConfigured(rawConfig)) {
       byId('overview-gift-summary').innerHTML = buildOverviewGiftSummary('未配置', '未配置');
       byId('overview-fans-note').textContent = '请先保存 Cookie 或启用 CookieCloud，概况页才会显示粉丝牌列表。';
-      byId('overview-fans-table-wrap').innerHTML = '<div class=”empty empty-with-action”>保存 Cookie 或启用 CookieCloud 后再点击顶部”刷新”，这里会直接展示粉丝牌与双倍状态。<div class=”empty-action”><button class=”btn btn-primary” data-action=”tab” data-tab=”login”>前往登录</button></div></div>';
+      byId('overview-fans-table-wrap').innerHTML = '<div class="empty empty-with-action">保存 Cookie 或启用 CookieCloud 后再点击顶部“刷新”，这里会直接展示粉丝牌与双倍状态。<div class="empty-action"><button class="btn btn-primary" type="button" data-action="tab" data-tab="login">前往登录</button></div></div>';
       return;
     }
 
     if (state.managedLoading || state.fansStatusLoading) {
       byId('overview-gift-summary').innerHTML = buildOverviewGiftSummary('同步中', '同步中');
-      byId('overview-fans-note').textContent = '正在同步粉丝牌状态...';
+      byId('overview-fans-note').textContent = '正在同步粉丝牌状态…';
       byId('overview-fans-table-wrap').innerHTML = '<div class="empty">请稍候，列表正在更新。</div>';
       return;
     }
@@ -2205,7 +2431,7 @@ textarea{
     }
 
     if (state.yubaStatusLoading) {
-      byId('yuba-note').textContent = '正在加载已关注鱼吧列表...';
+      byId('yuba-note').textContent = '正在加载已关注鱼吧列表…';
       byId('yuba-table-wrap').innerHTML = '<div class="empty">请稍候，鱼吧等级和经验列表正在更新。</div>';
       return;
     }
@@ -2245,8 +2471,8 @@ textarea{
     }
 
     if (state.managedLoading) {
-      byId('keepalive-note').textContent = '正在同步粉丝牌与保活配置...';
-      byId('keepalive-table-wrap').innerHTML = '<div class="empty">请稍候...</div>';
+      byId('keepalive-note').textContent = '正在同步粉丝牌与保活配置…';
+      byId('keepalive-table-wrap').innerHTML = '<div class="empty">请稍候…</div>';
       return;
     }
 
@@ -2293,8 +2519,8 @@ textarea{
     }
 
     if (state.managedLoading) {
-      byId('double-note').textContent = '正在同步粉丝牌与双倍配置...';
-      byId('double-table-wrap').innerHTML = '<div class="empty">请稍候...</div>';
+      byId('double-note').textContent = '正在同步粉丝牌与双倍配置…';
+      byId('double-table-wrap').innerHTML = '<div class="empty">请稍候…</div>';
       setDoubleModeEmptyState('正在同步双倍任务配置。', '同步完成后，这里会显示当前权重预览。');
       return;
     }
@@ -2346,9 +2572,9 @@ textarea{
     }
 
     if (state.managedLoading) {
-      byId('expiring-note').textContent = '正在同步粉丝牌与临期配置...';
+      byId('expiring-note').textContent = '正在同步粉丝牌与临期配置…';
       byId('expiring-backpack-wrap').innerHTML = '<div class="empty">请稍候，背包明细会在同步后展示。</div>';
-      byId('expiring-table-wrap').innerHTML = '<div class="empty">请稍候...</div>';
+      byId('expiring-table-wrap').innerHTML = '<div class="empty">请稍候…</div>';
       return;
     }
 
@@ -2368,9 +2594,13 @@ textarea{
     var model = Number(config.model || 1);
     var rows = [];
     var i;
+    var taskLabel = valueClass === 'double-value'
+      ? '双倍'
+      : (valueClass === 'expiring-value' ? '临期' : '保活');
     for (i = 0; i < fans.length; i += 1) {
       var fan = fans[i];
       var key = String(fan.roomId);
+      var roomLabel = String(fan.name || '未知主播') + '，房间 ' + key;
       var defaultWeight = options && options.firstWeightOnly ? (i === 0 ? 1 : 0) : 1;
       var sendItem = config.send && config.send[key] ? config.send[key] : {
         roomId: fan.roomId,
@@ -2379,33 +2609,38 @@ textarea{
       };
       var value = model === 2 ? Number(sendItem.number || 0) : Number(sendItem.weight || 0);
       rows.push('<tr>');
-      rows.push('<td>' + escapeHtml(i + 1) + '</td>');
       if (withEnabled) {
-        rows.push('<td><input type="checkbox" class="double-enabled" data-room-id="' + escapeHtml(fan.roomId) + '"' + (config.enabled && config.enabled[key] ? ' checked' : '') + '></td>');
+        rows.push(buildTableCell('参与', '<input type="checkbox" class="double-enabled" name="double-enabled-' + escapeHtml(key) + '" data-room-id="' + escapeHtml(fan.roomId) + '" aria-label="' + escapeHtml('参与双倍任务：' + roomLabel) + '"' + (config.enabled && config.enabled[key] ? ' checked' : '') + '>', 'control-cell'));
       }
-      rows.push('<td>' + escapeHtml(fan.name) + '</td>');
-      rows.push('<td>' + escapeHtml(fan.roomId) + '</td>');
-      rows.push('<td>' + escapeHtml(fan.level) + '</td>');
-      rows.push('<td>' + escapeHtml(fan.rank) + '</td>');
-      rows.push('<td>' + escapeHtml(fan.today) + '</td>');
-      rows.push('<td>' + escapeHtml(fan.intimacy) + '</td>');
-      rows.push('<td><input type="number" class="' + valueClass + '" data-room-id="' + escapeHtml(fan.roomId) + '" data-level="' + escapeHtml(fan.level) + '" value="' + escapeHtml(value) + '"></td>');
+      rows.push(buildTableCell('序号', escapeHtml(i + 1), 'index-cell'));
+      rows.push(buildTextCell('主播名称', fan.name || '未知主播'));
+      rows.push(buildNumericCell('房间号', fan.roomId));
+      rows.push(buildNumericCell('等级', fan.level));
+      rows.push(buildNumericCell('排名', fan.rank));
+      rows.push(buildNumericCell('今日亲密度', fan.today));
+      rows.push(buildNumericCell('亲密度', fan.intimacy));
+      rows.push(buildTableCell(model === 2 ? '数量' : '权重值', '<input type="number" class="' + valueClass + '" name="' + escapeHtml(valueClass + '-' + key) + '" data-room-id="' + escapeHtml(fan.roomId) + '" data-level="' + escapeHtml(fan.level) + '" min="0" step="1" inputmode="numeric" aria-label="' + escapeHtml(taskLabel + (model === 2 ? '数量：' : '权重值：') + roomLabel) + '" value="' + escapeHtml(value) + '">', 'control-cell'));
       rows.push('</tr>');
     }
 
     var colCount = withEnabled ? 9 : 8;
     var colgroup = '<colgroup>';
     for (var ci = 0; ci < colCount; ci += 1) {
-      if (ci === 0) colgroup += '<col style="width:64px">';
-      else colgroup += '<col>';
+      if (withEnabled && ci === 0) {
+        colgroup += '<col style="width:72px">';
+      } else if ((!withEnabled && ci === 0) || (withEnabled && ci === 1)) {
+        colgroup += '<col style="width:64px">';
+      } else {
+        colgroup += '<col>';
+      }
     }
     colgroup += '</colgroup>';
 
-    var header = '<tr><th>序号</th>';
+    var header = '<tr>';
     if (withEnabled) {
       header += '<th>参与</th>';
     }
-    header += '<th>主播名称</th><th>房间号</th><th>等级</th><th>排名</th><th>今日亲密度</th><th>亲密度</th><th>' + (model === 2 ? '数量' : '权重值') + '</th></tr>';
+    header += '<th>序号</th><th>主播名称</th><th>房间号</th><th>等级</th><th>排名</th><th>今日亲密度</th><th>亲密度</th><th>' + (model === 2 ? '数量' : '权重值') + '</th></tr>';
 
     var tableClass = 'table table-fixed';
     if (valueClass === 'keepalive-value') tableClass += ' keepalive-table';
@@ -2552,6 +2787,7 @@ textarea{
     setThemeButtonState(mode);
     var resolved = mode === 'system' ? (getSystemPrefersDark() ? 'dark' : 'light') : mode;
     document.body.setAttribute('data-theme', resolved);
+    setThemeMeta(resolved);
     byId('theme-note').textContent = mode === 'system'
       ? '当前跟随系统，系统为 ' + (getSystemPrefersDark() ? '深色' : '浅色')
       : '当前固定为 ' + (mode === 'dark' ? '深色' : '浅色') + ' 模式';
@@ -3499,6 +3735,7 @@ textarea{
       triggerTask(target.getAttribute('data-trigger'));
     }
   });
+  document.addEventListener('keydown', handleTabKeydown);
 
   function handleTaskToggleChange(event, enableTask, disableTask) {
     if (event.target.checked) {

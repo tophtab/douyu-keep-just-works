@@ -13,6 +13,7 @@ Improve the Docker WebUI accessibility and interface polish based on the Web Int
 * The most important remaining issues are focus visibility, accessible names for icon/switch/table controls, live-region announcements, theme metadata, reduced-motion handling, and form attribute polish.
 * Follow-up list review found room to improve table/list scanability, especially long text handling, numeric alignment, mobile readability, and task-specific column emphasis.
 * The user specifically requested swapping the "序号" and "参与" columns in the double-card list so participation comes first.
+* The user specifically requested reducing the visual gap between "主播名称" and "房间号", "鱼吧名称" and "鱼吧ID", and backpack "礼物" and "ID".
 
 ## Requirements
 
@@ -31,6 +32,7 @@ Improve the Docker WebUI accessibility and interface polish based on the Web Int
   * Avoid inappropriate truncation of key text such as streamer/fish-bar/gift names and row-level errors.
   * Improve mobile readability for status/detail lists where horizontal scrolling is currently the only option.
   * Keep configuration tables usable for editing and avoid changing saved config behavior.
+  * Tighten identity-to-ID column pairs so text columns remain readable without using overly wide fixed/percentage widths.
 * In the double-card configuration table, swap the first two columns so "参与" appears before "序号".
 
 ## Acceptance Criteria

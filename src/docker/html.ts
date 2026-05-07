@@ -715,22 +715,22 @@ textarea{
   table-layout:fixed;
 }
 .fans-status-table{
-  min-width:900px;
+  min-width:824px;
 }
 .yuba-status-table{
-  min-width:860px;
+  min-width:760px;
 }
 .backpack-table{
-  min-width:1040px;
+  min-width:900px;
 }
 .keepalive-table{
-  min-width:900px;
+  min-width:820px;
 }
 .double-table{
-  min-width:980px;
+  min-width:880px;
 }
 .expiring-table{
-  min-width:900px;
+  min-width:820px;
 }
 .fans-status-table col:nth-child(1),
 .yuba-status-table col:nth-child(1),
@@ -738,14 +738,18 @@ textarea{
   width:56px;
 }
 .fans-status-table col:nth-child(2),
-.yuba-status-table col:nth-child(2),
-.backpack-table col:nth-child(2){
-  width:22%;
+.yuba-status-table col:nth-child(2){
+  width:156px;
 }
 .fans-status-table col:nth-child(3),
-.yuba-status-table col:nth-child(3),
+.yuba-status-table col:nth-child(3){
+  width:104px;
+}
+.backpack-table col:nth-child(2){
+  width:164px;
+}
 .backpack-table col:nth-child(3){
-  width:112px;
+  width:88px;
 }
 .fans-status-table col:nth-child(4),
 .fans-status-table col:nth-child(5),
@@ -2773,9 +2777,9 @@ textarea{
       } else if ((!withEnabled && ci === 0) || (withEnabled && ci === 1)) {
         colgroup += '<col style="width:56px">';
       } else if ((!withEnabled && ci === 1) || (withEnabled && ci === 2)) {
-        colgroup += '<col style="width:22%">';
+        colgroup += '<col style="width:156px">';
       } else if ((!withEnabled && ci === 2) || (withEnabled && ci === 3)) {
-        colgroup += '<col style="width:112px">';
+        colgroup += '<col style="width:104px">';
       } else if ((!withEnabled && ci === 7) || (withEnabled && ci === 8)) {
         colgroup += '<col style="width:112px">';
       } else {

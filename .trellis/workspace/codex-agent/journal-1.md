@@ -1094,3 +1094,36 @@ Improved Docker WebUI accessibility, table/list scanability, and balanced table 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 28: Restore WebUI table alignment scheme
+
+**Date**: 2026-05-07
+**Task**: Restore WebUI table alignment scheme
+**Branch**: `master`
+
+### Summary
+
+Restored Docker WebUI table column spacing to the preferred 89901c8 scheme, preserving accessibility improvements and backpack date/status alignment.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7aa7a14` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

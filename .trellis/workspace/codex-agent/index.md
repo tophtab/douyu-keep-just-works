@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 25
-- **Last Active**: 2026-05-06
+- **Total Sessions**: 26
+- **Last Active**: 2026-05-07
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1018 | Active |
+| `journal-1.md` | ~1060 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 26 | 2026-05-07 | WebUI visual consistency: fans medals, backpack, spacing unification | `a437082`, `b7c2e00`, `e5e7aef`, `7fa3dca`, `9e6abba`, `cdcb57b`, `fc66b13`, `a0e0d2f`, `d8b43bf`, `3d83c1e` | `master` |
 | 25 | 2026-05-06 | Fix weight allocation proportion mode | `9575cce` | `master` |
 | 24 | 2026-05-06 | Expand expiring gift release scopes | `cba58a8`, `58b5325` | `master` |
 | 23 | 2026-05-06 | Adjust expiring gift defaults | `df99d83`, `fc628bd` | `master` |

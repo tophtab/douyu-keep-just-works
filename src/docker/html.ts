@@ -732,42 +732,46 @@ textarea{
 .expiring-table{
   min-width:820px;
 }
-.fans-status-table col:nth-child(1){width:6%}
-.fans-status-table col:nth-child(2){width:16%}
-.fans-status-table col:nth-child(3){width:9%}
-.fans-status-table col:nth-child(4),
-.fans-status-table col:nth-child(5){width:10%}
-.fans-status-table col:nth-child(6),
-.fans-status-table col:nth-child(7){width:14%}
-.fans-status-table col:nth-child(8){width:21%}
-
-.yuba-status-table col:nth-child(1){width:7%}
-.yuba-status-table col:nth-child(2){width:18%}
-.yuba-status-table col:nth-child(3){width:10%}
-.yuba-status-table col:nth-child(4),
-.yuba-status-table col:nth-child(5){width:10%}
-.yuba-status-table col:nth-child(6){width:25%}
-.yuba-status-table col:nth-child(7){width:20%}
-
-.backpack-table col:nth-child(1){width:6%}
+.fans-status-table col:nth-child(1),
+.yuba-status-table col:nth-child(1),
+.backpack-table col:nth-child(1){
+  width:56px;
+}
+.fans-status-table col:nth-child(2),
+.yuba-status-table col:nth-child(2){
+  width:156px;
+}
+.fans-status-table col:nth-child(3),
+.yuba-status-table col:nth-child(3){
+  width:104px;
+}
 .backpack-table col:nth-child(2){
-  width:16%;
+  width:164px;
 }
 .backpack-table col:nth-child(3){
-  width:8%;
+  width:88px;
 }
-.backpack-table col:nth-child(4){
-  width:9%;
+.fans-status-table col:nth-child(4),
+.fans-status-table col:nth-child(5),
+.fans-status-table col:nth-child(6),
+.fans-status-table col:nth-child(7),
+.yuba-status-table col:nth-child(4),
+.yuba-status-table col:nth-child(5),
+.yuba-status-table col:nth-child(6),
+.backpack-table col:nth-child(4),
+.backpack-table col:nth-child(6){
+  width:94px;
 }
 .backpack-table col:nth-child(5){
-  width:21%;
+  width:168px;
 }
-.backpack-table col:nth-child(6){
-  width:14%;
+.fans-status-table col:nth-child(8),
+.yuba-status-table col:nth-child(7){
+  width:132px;
 }
 .backpack-table col:nth-child(7),
 .backpack-table col:nth-child(8){
-  width:13%;
+  width:104px;
 }
 .fans-status-table th:last-child,
 .fans-status-table td:last-child,
@@ -820,8 +824,10 @@ textarea{
 }
 .table .num-cell,
 .table .index-cell,
+.table .date-cell,
 .table .num-head,
 .table .index-head,
+.table .date-head,
 .log-stamp{
   font-variant-numeric:tabular-nums;
   font-feature-settings:"tnum";
@@ -837,6 +843,10 @@ textarea{
 .table .index-head,
 .table .control-head{
   text-align:center;
+}
+.table .date-cell,
+.table .date-head{
+  text-align:left;
 }
 .table .text-cell,
 .table .error-cell,
@@ -2194,10 +2204,10 @@ textarea{
       body.push(buildTextCell('礼物', row.name || '未知礼物'));
       body.push(buildNumericCell('ID', row.giftId));
       body.push(buildNumericCell('数量', row.count));
-      body.push(buildTableCell('过期时间', escapeHtml(row.expireTime ? formatDate(row.expireTime) : '-'), 'num-cell'));
+      body.push(buildTableCell('过期时间', escapeHtml(row.expireTime ? formatDate(row.expireTime) : '-'), 'date-cell'));
       body.push(buildTableCell('剩余', escapeHtml(formatRemainingTime(row.expireTime)), 'num-cell'));
-      body.push(buildTableCell('临期', buildStatusPill(rowState.inThreshold ? '是' : '否', rowState.inThreshold ? 'warn' : 'off'), 'status-cell'));
-      body.push(buildTableCell('自动释放', buildStatusPill(rowState.autoRelease ? '释放' : '跳过', rowState.autoRelease ? 'ok' : 'off'), 'status-cell'));
+      body.push(buildTableCell('临期', buildStatusPill(rowState.inThreshold ? '是' : '否', rowState.inThreshold ? 'warn' : 'off'), 'status-cell control-cell'));
+      body.push(buildTableCell('自动释放', buildStatusPill(rowState.autoRelease ? '释放' : '跳过', rowState.autoRelease ? 'ok' : 'off'), 'status-cell control-cell'));
       body.push('</tr>');
     }
 
@@ -2207,7 +2217,7 @@ textarea{
       + buildTableHeadCell('礼物')
       + buildTableHeadCell('ID', 'num-head')
       + buildTableHeadCell('数量', 'num-head')
-      + buildTableHeadCell('过期时间', 'num-head')
+      + buildTableHeadCell('过期时间', 'date-head')
       + buildTableHeadCell('剩余', 'num-head')
       + buildTableHeadCell('临期', 'control-head')
       + buildTableHeadCell('自动释放', 'control-head')
@@ -2767,11 +2777,20 @@ textarea{
 
     var colCount = withEnabled ? 9 : 8;
     var colgroup = '<colgroup>';
-    var widths = withEnabled
-      ? [8, 6, 16, 9, 9, 9, 13, 13, 17]
-      : [6, 16, 9, 10, 10, 14, 14, 21];
     for (var ci = 0; ci < colCount; ci += 1) {
-      colgroup += '<col style="width:' + widths[ci] + '%">';
+      if (withEnabled && ci === 0) {
+        colgroup += '<col style="width:68px">';
+      } else if ((!withEnabled && ci === 0) || (withEnabled && ci === 1)) {
+        colgroup += '<col style="width:56px">';
+      } else if ((!withEnabled && ci === 1) || (withEnabled && ci === 2)) {
+        colgroup += '<col style="width:156px">';
+      } else if ((!withEnabled && ci === 2) || (withEnabled && ci === 3)) {
+        colgroup += '<col style="width:104px">';
+      } else if ((!withEnabled && ci === 7) || (withEnabled && ci === 8)) {
+        colgroup += '<col style="width:112px">';
+      } else {
+        colgroup += '<col style="width:94px">';
+      }
     }
     colgroup += '</colgroup>';
 

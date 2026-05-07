@@ -732,46 +732,42 @@ textarea{
 .expiring-table{
   min-width:820px;
 }
-.fans-status-table col:nth-child(1),
-.yuba-status-table col:nth-child(1),
-.backpack-table col:nth-child(1){
-  width:56px;
-}
-.fans-status-table col:nth-child(2),
-.yuba-status-table col:nth-child(2){
-  width:156px;
-}
-.fans-status-table col:nth-child(3),
-.yuba-status-table col:nth-child(3){
-  width:104px;
-}
+.fans-status-table col:nth-child(1){width:6%}
+.fans-status-table col:nth-child(2){width:16%}
+.fans-status-table col:nth-child(3){width:9%}
+.fans-status-table col:nth-child(4),
+.fans-status-table col:nth-child(5){width:10%}
+.fans-status-table col:nth-child(6),
+.fans-status-table col:nth-child(7){width:14%}
+.fans-status-table col:nth-child(8){width:21%}
+
+.yuba-status-table col:nth-child(1){width:7%}
+.yuba-status-table col:nth-child(2){width:18%}
+.yuba-status-table col:nth-child(3){width:10%}
+.yuba-status-table col:nth-child(4),
+.yuba-status-table col:nth-child(5){width:10%}
+.yuba-status-table col:nth-child(6){width:25%}
+.yuba-status-table col:nth-child(7){width:20%}
+
+.backpack-table col:nth-child(1){width:6%}
 .backpack-table col:nth-child(2){
-  width:164px;
+  width:16%;
 }
 .backpack-table col:nth-child(3){
-  width:88px;
+  width:8%;
 }
-.fans-status-table col:nth-child(4),
-.fans-status-table col:nth-child(5),
-.fans-status-table col:nth-child(6),
-.fans-status-table col:nth-child(7),
-.yuba-status-table col:nth-child(4),
-.yuba-status-table col:nth-child(5),
-.yuba-status-table col:nth-child(6),
-.backpack-table col:nth-child(4),
-.backpack-table col:nth-child(6){
-  width:94px;
+.backpack-table col:nth-child(4){
+  width:9%;
 }
 .backpack-table col:nth-child(5){
-  width:168px;
+  width:21%;
 }
-.fans-status-table col:nth-child(8),
-.yuba-status-table col:nth-child(7){
-  width:132px;
+.backpack-table col:nth-child(6){
+  width:14%;
 }
 .backpack-table col:nth-child(7),
 .backpack-table col:nth-child(8){
-  width:104px;
+  width:13%;
 }
 .fans-status-table th:last-child,
 .fans-status-table td:last-child,
@@ -2771,20 +2767,11 @@ textarea{
 
     var colCount = withEnabled ? 9 : 8;
     var colgroup = '<colgroup>';
+    var widths = withEnabled
+      ? [8, 6, 16, 9, 9, 9, 13, 13, 17]
+      : [6, 16, 9, 10, 10, 14, 14, 21];
     for (var ci = 0; ci < colCount; ci += 1) {
-      if (withEnabled && ci === 0) {
-        colgroup += '<col style="width:68px">';
-      } else if ((!withEnabled && ci === 0) || (withEnabled && ci === 1)) {
-        colgroup += '<col style="width:56px">';
-      } else if ((!withEnabled && ci === 1) || (withEnabled && ci === 2)) {
-        colgroup += '<col style="width:156px">';
-      } else if ((!withEnabled && ci === 2) || (withEnabled && ci === 3)) {
-        colgroup += '<col style="width:104px">';
-      } else if ((!withEnabled && ci === 7) || (withEnabled && ci === 8)) {
-        colgroup += '<col style="width:112px">';
-      } else {
-        colgroup += '<col style="width:94px">';
-      }
+      colgroup += '<col style="width:' + widths[ci] + '%">';
     }
     colgroup += '</colgroup>';
 

@@ -1160,3 +1160,37 @@ Fixed backend job failure semantics so backpack lookup failures no longer look l
 ### Next Steps
 
 - None - task complete
+
+
+## Session 30: Release 2.4.0
+
+**Date**: 2026-05-07
+**Task**: Release 2.4.0
+**Branch**: `master`
+
+### Summary
+
+Published Docker WebUI 2.4.0, verified Docker release workflow and registry manifests, then documented the future npm version release flow.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1fd61c7` | (see git log) |
+| `31a7bc3` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

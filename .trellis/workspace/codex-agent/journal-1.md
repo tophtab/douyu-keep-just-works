@@ -1194,3 +1194,36 @@ Published Docker WebUI 2.4.0, verified Docker release workflow and registry mani
 ### Next Steps
 
 - None - task complete
+
+
+## Session 31: Cancel rewrite plans and update Trellis helpers
+
+**Date**: 2026-05-08
+**Task**: Cancel rewrite plans and update Trellis helpers
+**Branch**: `master`
+
+### Summary
+
+Archived the temporary Go and Rust rewrite planning tasks, kept the project on the existing Node runtime, and committed Codex/Trellis workflow helper updates.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `da68a60` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -12,6 +12,8 @@ Plan a Rust rewrite of the Docker/WebUI runtime for `douyu-keep-just-works`, pre
 * The existing `v2.4.0` tag is available as a rollback point.
 * The user changed direction from Go to Rust and wants the Go-specific design withdrawn.
 * The first implementation target should be the Docker/WebUI runtime, not historical desktop/Electron artifacts under `dist/`.
+* Rust-specific research recommends Tokio, axum, serde, reqwest with Rustls, tokio-tungstenite, croner/chrono-tz, tracing, and a small app-owned scheduler/log buffer.
+* `cargo` is not installed in this workspace right now, so crate versions/features must be re-verified during scaffolding.
 
 ## Assumptions (temporary)
 
@@ -33,6 +35,8 @@ Plan a Rust rewrite of the Docker/WebUI runtime for `douyu-keep-just-works`, pre
 * Keep rollback simple through the existing `v2.4.0` tag and/or Docker tag.
 * Keep runtime dependencies minimal and avoid framework-heavy architecture.
 * Provide measurable before/after numbers for idle memory and image size.
+* Preserve TLS/HTTPS functionality in minimal images by intentionally packaging CA roots or using compiled root trust.
+* Keep the Rust implementation agent-friendly: small modules, explicit traits/boundaries, fixture-first porting, and no one-pass rewrite.
 
 ## Acceptance Criteria (evolving)
 
@@ -44,6 +48,8 @@ Plan a Rust rewrite of the Docker/WebUI runtime for `douyu-keep-just-works`, pre
 * [ ] Idle memory and image size are measured and documented.
 * [ ] Rollback instructions to `v2.4.0` are documented.
 * [ ] Rust tests cover config compatibility, route contracts, scheduler behavior, request construction, and deterministic parsers.
+* [ ] `cargo fmt --check`, `cargo clippy`, `cargo test`, and release build pass once Rust tooling is available.
+* [ ] First Rust image is published/tested as a preview or edge Rust tag before replacing `latest`.
 
 ## Definition of Done (team quality bar)
 
@@ -75,9 +81,9 @@ Plan a Rust rewrite of the Docker/WebUI runtime for `douyu-keep-just-works`, pre
 ## Research References
 
 * `research/current-runtime-behavior.md` - Current Node Docker/WebUI runtime behavior and compatibility contract.
-* Rust-specific research pending.
+* `research/rust-runtime-stack.md` - Recommended Rust stack, Docker/runtime constraints, TLS/timezone notes, and maintainability guidance.
+* `research/rust-migration-strategy.md` - Phased migration, acceptance tests, CI, rollback, and agent-safe implementation slices.
 
 ## Decision
 
 Use Rust for the rewrite. The implementation should prioritize compatibility, measured resource improvement, and maintainable AI-assisted development over fastest migration speed.
-

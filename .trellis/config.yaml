@@ -59,12 +59,14 @@ max_journal_lines: 2000
 # default_package: frontend
 
 #-------------------------------------------------------------------------------
-# Codex (sub-agent dispatch behavior)
+# Codex (dispatch behavior)
 #-------------------------------------------------------------------------------
-# Opt out of "main session must dispatch trellis-implement / trellis-check
-# sub-agents" and let the main agent edit code inline. Codex-only knob;
-# other platforms ignore it. Default ("sub-agent") preserves existing
-# behavior, so nothing changes unless you uncomment the block below.
+# Codex-only knob; other platforms ignore it. Default ("inline") makes the
+# main Codex agent edit code directly because Codex sub-agents run with
+# `fork_turns="none"` isolation and can't inherit the parent session's
+# task context. Set to "sub-agent" to opt into the legacy dispatch model
+# (main agent spawns trellis-implement / trellis-check / trellis-research
+# sub-agents).
 #
 # codex:
-#   dispatch_mode: sub-agent  # or "inline" to let the main agent edit code directly
+#   dispatch_mode: inline  # or "sub-agent" to dispatch trellis-* sub-agents

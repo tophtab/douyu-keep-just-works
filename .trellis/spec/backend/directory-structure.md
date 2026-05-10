@@ -214,6 +214,78 @@ const fans = await getFansList(cookie)
 await collectGiftViaDanmu(cookie, fans[0].roomId)
 ```
 
+## Scenario: Docker WebUI External Status Request Guardrails
+
+### 1. Scope / Trigger
+
+- Trigger: Any change to Docker WebUI routes or client flows that fetch Douyu-backed status/list data, especially fans, backpack, double-card, or Yuba status.
+- Scope: Request throttling belongs in `src/docker/index.ts` at the Docker runtime boundary. Douyu parsing remains in `src/core/`; route registration remains thin in `src/docker/server.ts`; client-side lazy loading belongs in `src/docker/html.ts`.
+
+### 2. Signatures
+
+```typescript
+AppContext.fetchFansStatus(): Promise<FansStatusResponse>
+AppContext.fetchYubaStatus(): Promise<YubaStatusResponse>
+```
+
+### 3. Contracts
+
+- Docker WebUI status endpoints that fan out to multiple Douyu requests must use bounded in-memory cache slots instead of persistent storage or unbounded per-key caches.
+- Each cached status endpoint may keep only the latest snapshot, an expiry timestamp, and at most one pending promise for request coalescing.
+- General WebUI initialization must not eagerly fetch Yuba status. Load Yuba status only when the user opens the Yuba page or after Yuba-specific task actions.
+- Cache invalidation must happen when cookies, CookieCloud-derived login state, related task configuration, fan-room synchronization, or status-changing tasks mutate the data shown by the endpoint.
+- Response shapes must stay compatible with the existing Docker routes; caching must not add wrapper fields that the WebUI has to understand.
+- Do not add Redis, databases, LRU libraries, or background polling for this guardrail unless requirements explicitly change.
+
+### 4. Validation & Error Matrix
+
+| Case | Expected result |
+|------|-----------------|
+| First status request and no valid cache | Fetch Douyu-backed status, store one snapshot, return existing response shape |
+| Repeated request before TTL expiry | Return the cached snapshot without new Douyu requests |
+| Concurrent requests while fetch is pending | Share the same pending promise; do not start duplicate upstream fan-out |
+| TTL expires but no user requests status | Do nothing; do not refresh in the background |
+| Cookie or CookieCloud login state changes | Clear fans and Yuba status caches |
+| Fans/double/expiring task configuration changes | Clear fans status cache |
+| Yuba task configuration changes | Clear Yuba status cache |
+| Status-changing task completes or fails | Clear the relevant status cache in `finally` so later UI reads are not stale |
+
+### 5. Good/Base/Bad Cases
+
+- Good: `/api/fans/status` keeps one short-lived snapshot and coalesces overlapping WebUI refreshes.
+- Base: `/api/yuba/status` is loaded lazily from the Yuba page and uses a longer TTL because it can fan out across many followed groups.
+- Bad: WebUI startup calls fans status and Yuba status for every page load, or each browser tab starts its own full Douyu fan-out while another identical request is still in flight.
+
+### 6. Tests Required
+
+- Run `npm run type-check`.
+- Run `npm run lint`.
+- Run `npm test` when Docker runtime wiring or build output may be affected.
+- Review the client flow so non-Yuba page initialization does not call `/api/yuba/status`.
+- Review invalidation paths for cookie save, CookieCloud persistence/sync, task config saves, fan sync, scheduled task execution, and manual task execution.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+fetchYubaStatus: async () => {
+  const groups = await getFollowedYubaStatusesWithDyToken(yubaCookie, mainCookie)
+  return { groups }
+}
+```
+
+#### Correct
+
+```typescript
+fetchYubaStatus: async () => {
+  return await getCachedStatus(yubaStatusCache, YUBA_STATUS_CACHE_TTL_MS, async () => {
+    const groups = await getFollowedYubaStatusesWithDyToken(yubaCookie, mainCookie)
+    return { groups }
+  })
+}
+```
+
 ## Scenario: Row-Level Backpack Status and Expiring Gift Budget
 
 ### 1. Scope / Trigger

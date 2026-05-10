@@ -25,9 +25,12 @@ const DOCKER_TIMEZONE = 'Asia/Shanghai'
 const MAIN_DOUYU_URL = 'https://www.douyu.com/'
 const YUBA_DOUYU_URL = 'https://yuba.douyu.com/'
 const COOKIE_CLOUD_CACHE_TTL_MS = 60 * 1000
+const FANS_STATUS_CACHE_TTL_MS = 5 * 60 * 1000
+const YUBA_STATUS_CACHE_TTL_MS = 10 * 60 * 1000
 const DEFAULT_COOKIE_CLOUD_SYNC_CRON = '0 5 0 * * *'
 
 type TaskType = 'collectGift' | 'keepalive' | 'doubleCard' | 'expiringGift' | 'yubaCheckIn'
+type StatusCacheScope = 'fans' | 'yuba' | 'all'
 type AppStatus = Record<TaskType, JobStatus>
 const TASK_TYPES: TaskType[] = ['collectGift', 'keepalive', 'doubleCard', 'expiringGift', 'yubaCheckIn']
 
@@ -35,6 +38,13 @@ interface CookieCloudCacheEntry {
   key: string
   fetchedAt: number
   snapshot: Awaited<ReturnType<typeof fetchCookieCloudSnapshot>>
+}
+
+interface StatusCacheEntry<T> {
+  snapshot: T | null
+  fetchedAt: number
+  pending: Promise<T> | null
+  generation: number
 }
 
 interface TaskReloadSummary {
@@ -45,6 +55,8 @@ interface TaskReloadSummary {
 
 let currentConfig: DockerConfig | null = null
 let cookieCloudCache: CookieCloudCacheEntry | null = null
+const fansStatusCache: StatusCacheEntry<FansStatusResponse> = createStatusCache()
+const yubaStatusCache: StatusCacheEntry<YubaStatusResponse> = createStatusCache()
 let cookieCloudSyncJob: CronJob | null = null
 let cookieCloudSyncRunning = false
 const jobs: Record<TaskType, CronJob | null> = {
@@ -100,6 +112,69 @@ function hasConfiguredCookieSource(config: DockerConfig | null | undefined): boo
 
 function clearCookieCloudCache(): void {
   cookieCloudCache = null
+}
+
+function createStatusCache<T>(): StatusCacheEntry<T> {
+  return {
+    snapshot: null,
+    fetchedAt: 0,
+    pending: null,
+    generation: 0,
+  }
+}
+
+function clearStatusCache<T>(cache: StatusCacheEntry<T>): void {
+  cache.snapshot = null
+  cache.fetchedAt = 0
+  cache.pending = null
+  cache.generation += 1
+}
+
+function invalidateStatusCaches(scope: StatusCacheScope): void {
+  if (scope === 'fans' || scope === 'all') {
+    clearStatusCache(fansStatusCache)
+  }
+  if (scope === 'yuba' || scope === 'all') {
+    clearStatusCache(yubaStatusCache)
+  }
+}
+
+async function runAndInvalidateStatusCache(scope: StatusCacheScope, runTask: () => Promise<void>): Promise<void> {
+  try {
+    await runTask()
+  } finally {
+    invalidateStatusCaches(scope)
+  }
+}
+
+async function getCachedStatus<T>(
+  cache: StatusCacheEntry<T>,
+  ttlMs: number,
+  fetchStatus: () => Promise<T>,
+): Promise<T> {
+  const now = Date.now()
+  if (cache.snapshot && (now - cache.fetchedAt) < ttlMs) {
+    return cache.snapshot
+  }
+
+  if (cache.pending) {
+    return await cache.pending
+  }
+
+  const generation = cache.generation
+  const pending = fetchStatus().then((snapshot) => {
+    if (cache.generation === generation) {
+      cache.snapshot = snapshot
+      cache.fetchedAt = Date.now()
+    }
+    return snapshot
+  }).finally(() => {
+    if (cache.pending === pending) {
+      cache.pending = null
+    }
+  })
+  cache.pending = pending
+  return await pending
 }
 
 function getCookieCloudCacheKey(config: CookieCloudConfig): string {
@@ -223,6 +298,7 @@ async function persistEffectiveCookies(forceRefresh = false, options: {
     applyConfig(nextConfig, 'cookie_saved')
   } else {
     currentConfig = nextConfig
+    invalidateStatusCaches('all')
   }
 
   return {
@@ -504,7 +580,9 @@ function startTask(type: TaskType, config: DockerConfig): void {
         collectGiftConfig.cron,
         async () => {
           const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
-          await executeCollectGiftJob(cookie, taskLoggers.collectGift)
+          await runAndInvalidateStatusCache('fans', async () => {
+            await executeCollectGiftJob(cookie, taskLoggers.collectGift)
+          })
         },
       )
       return
@@ -520,7 +598,9 @@ function startTask(type: TaskType, config: DockerConfig): void {
         keepaliveConfig.cron,
         async () => {
           const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
-          await executeKeepaliveJob(keepaliveConfig, cookie, taskLoggers.keepalive)
+          await runAndInvalidateStatusCache('fans', async () => {
+            await executeKeepaliveJob(keepaliveConfig, cookie, taskLoggers.keepalive)
+          })
         },
         `房间数: ${Object.keys(keepaliveConfig.send).length}`,
       )
@@ -537,7 +617,9 @@ function startTask(type: TaskType, config: DockerConfig): void {
         doubleCardConfig.cron,
         async () => {
           const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
-          await executeDoubleCardJob(doubleCardConfig, cookie, taskLoggers.doubleCard)
+          await runAndInvalidateStatusCache('fans', async () => {
+            await executeDoubleCardJob(doubleCardConfig, cookie, taskLoggers.doubleCard)
+          })
         },
         `房间数: ${Object.keys(doubleCardConfig.send).length}`,
       )
@@ -554,7 +636,9 @@ function startTask(type: TaskType, config: DockerConfig): void {
         expiringGiftConfig.cron,
         async () => {
           const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
-          await executeExpiringGiftJob(expiringGiftConfig, cookie, taskLoggers.expiringGift)
+          await runAndInvalidateStatusCache('fans', async () => {
+            await executeExpiringGiftJob(expiringGiftConfig, cookie, taskLoggers.expiringGift)
+          })
         },
         `阈值: ${expiringGiftConfig.thresholdHours || 24}小时, 房间数: ${Object.keys(expiringGiftConfig.send).length}`,
       )
@@ -572,7 +656,9 @@ function startTask(type: TaskType, config: DockerConfig): void {
         async () => {
           const mainCookie = resolveCookieForUrl(MAIN_DOUYU_URL)
           const yubaCookie = resolveCookieForUrl(YUBA_DOUYU_URL)
-          await executeYubaCheckInJob(yubaCheckInConfig, yubaCookie, mainCookie, taskLoggers.yubaCheckIn)
+          await runAndInvalidateStatusCache('yuba', async () => {
+            await executeYubaCheckInJob(yubaCheckInConfig, yubaCookie, mainCookie, taskLoggers.yubaCheckIn)
+          })
         },
         `模式: ${yubaCheckInConfig.mode || 'followed'}`,
       )
@@ -696,10 +782,23 @@ function applyConfig(config: DockerConfig, reason: 'startup' | 'cookie_saved' | 
   currentConfig = nextConfig
 
   if (
-    !jsonEquals(prevConfig?.manualCookies || null, nextConfig.manualCookies || null)
+    prevConfig?.cookie !== nextConfig.cookie
+    || !jsonEquals(prevConfig?.manualCookies || null, nextConfig.manualCookies || null)
     || !jsonEquals(prevConfig?.cookieCloud || null, nextConfig.cookieCloud || null)
   ) {
     clearCookieCloudCache()
+    invalidateStatusCaches('all')
+  } else {
+    if (
+      !jsonEquals(prevConfig?.keepalive || null, nextConfig.keepalive || null)
+      || !jsonEquals(prevConfig?.doubleCard || null, nextConfig.doubleCard || null)
+      || !jsonEquals(prevConfig?.expiringGift || null, nextConfig.expiringGift || null)
+    ) {
+      invalidateStatusCaches('fans')
+    }
+    if (!jsonEquals(prevConfig?.yubaCheckIn || null, nextConfig.yubaCheckIn || null)) {
+      invalidateStatusCaches('yuba')
+    }
   }
   reconcileCookieCloudSyncJob(prevConfig, nextConfig)
 
@@ -740,6 +839,7 @@ async function syncConfigWithFans(reason: 'tasks_saved' | 'medal_synced', baseCo
   const cookie = resolveCookieForUrlFromConfig(MAIN_DOUYU_URL, sourceConfig)
   const fans = await getFansList(cookie)
   const nextConfig = reconcileDockerConfig(sourceConfig, fans)
+  invalidateStatusCaches('fans')
 
   if (!configsEqual(currentConfig, nextConfig)) {
     saveConfigToDisk(nextConfig)
@@ -880,7 +980,9 @@ function main(): void {
       await runTaskWithLock('collectGift', async () => {
         taskLoggers.collectGift('手动触发执行...')
         const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
-        await executeCollectGiftJob(cookie, taskLoggers.collectGift)
+        await runAndInvalidateStatusCache('fans', async () => {
+          await executeCollectGiftJob(cookie, taskLoggers.collectGift)
+        })
       }, {
         onBusy: 'throw',
         busyMessage: '任务正在执行中，请稍后再试',
@@ -894,7 +996,9 @@ function main(): void {
       await runTaskWithLock('keepalive', async () => {
         taskLoggers.keepalive('手动触发执行...')
         const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
-        await executeKeepaliveJob(keepaliveConfig, cookie, taskLoggers.keepalive)
+        await runAndInvalidateStatusCache('fans', async () => {
+          await executeKeepaliveJob(keepaliveConfig, cookie, taskLoggers.keepalive)
+        })
       }, {
         onBusy: 'throw',
         busyMessage: '任务正在执行中，请稍后再试',
@@ -908,7 +1012,9 @@ function main(): void {
       await runTaskWithLock('doubleCard', async () => {
         taskLoggers.doubleCard('手动触发执行...')
         const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
-        await executeDoubleCardJob(doubleCardConfig, cookie, taskLoggers.doubleCard)
+        await runAndInvalidateStatusCache('fans', async () => {
+          await executeDoubleCardJob(doubleCardConfig, cookie, taskLoggers.doubleCard)
+        })
       }, {
         onBusy: 'throw',
         busyMessage: '任务正在执行中，请稍后再试',
@@ -922,7 +1028,9 @@ function main(): void {
       await runTaskWithLock('expiringGift', async () => {
         taskLoggers.expiringGift('手动触发执行...')
         const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
-        await executeExpiringGiftJob(expiringGiftConfig, cookie, taskLoggers.expiringGift)
+        await runAndInvalidateStatusCache('fans', async () => {
+          await executeExpiringGiftJob(expiringGiftConfig, cookie, taskLoggers.expiringGift)
+        })
       }, {
         onBusy: 'throw',
         busyMessage: '任务正在执行中，请稍后再试',
@@ -937,7 +1045,9 @@ function main(): void {
         taskLoggers.yubaCheckIn('手动触发执行...')
         const mainCookie = resolveCookieForUrl(MAIN_DOUYU_URL)
         const yubaCookie = resolveCookieForUrl(YUBA_DOUYU_URL)
-        await executeYubaCheckInJob(yubaCheckInConfig, yubaCookie, mainCookie, taskLoggers.yubaCheckIn)
+        await runAndInvalidateStatusCache('yuba', async () => {
+          await executeYubaCheckInJob(yubaCheckInConfig, yubaCookie, mainCookie, taskLoggers.yubaCheckIn)
+        })
       }, {
         onBusy: 'throw',
         busyMessage: '任务正在执行中，请稍后再试',
@@ -948,42 +1058,46 @@ function main(): void {
       return await getFansList(cookie)
     },
     fetchFansStatus: async (): Promise<FansStatusResponse> => {
-      const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
-      const fans = await getFansList(cookie)
-      const fanRoomIds = fans.map(fan => fan.roomId)
-      const gift = await getGiftStatus(cookie, fanRoomIds).catch((error: unknown): GiftStatus => {
-        const message = errorMessage(error)
-        logSystem(`加载粉丝牌状态时无法获取背包明细: ${message}`)
+      return await getCachedStatus(fansStatusCache, FANS_STATUS_CACHE_TTL_MS, async () => {
+        const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
+        const fans = await getFansList(cookie)
+        const fanRoomIds = fans.map(fan => fan.roomId)
+        const gift = await getGiftStatus(cookie, fanRoomIds).catch((error: unknown): GiftStatus => {
+          const message = errorMessage(error)
+          logSystem(`加载粉丝牌状态时无法获取背包明细: ${message}`)
+          return {
+            error: message,
+          }
+        })
+        const statuses = await Promise.all(fans.map(async (fan): Promise<FanStatus> => {
+          try {
+            const doubleInfo = await checkDoubleCard(fan.roomId, cookie)
+            return {
+              ...fan,
+              doubleActive: doubleInfo.active,
+              doubleExpireTime: doubleInfo.expireTime,
+            }
+          } catch (error: unknown) {
+            logSystem(`加载房间${fan.roomId}双倍状态失败: ${errorMessage(error)}`)
+            return {
+              ...fan,
+              doubleActive: false,
+            }
+          }
+        }))
         return {
-          error: message,
+          fans: statuses,
+          gift,
         }
       })
-      const statuses = await Promise.all(fans.map(async (fan): Promise<FanStatus> => {
-        try {
-          const doubleInfo = await checkDoubleCard(fan.roomId, cookie)
-          return {
-            ...fan,
-            doubleActive: doubleInfo.active,
-            doubleExpireTime: doubleInfo.expireTime,
-          }
-        } catch (error: unknown) {
-          logSystem(`加载房间${fan.roomId}双倍状态失败: ${errorMessage(error)}`)
-          return {
-            ...fan,
-            doubleActive: false,
-          }
-        }
-      }))
-      return {
-        fans: statuses,
-        gift,
-      }
     },
     fetchYubaStatus: async (): Promise<YubaStatusResponse> => {
-      const mainCookie = resolveCookieForUrl(MAIN_DOUYU_URL)
-      const yubaCookie = resolveCookieForUrl(YUBA_DOUYU_URL)
-      const groups = await getFollowedYubaStatusesWithDyToken(yubaCookie, mainCookie)
-      return { groups }
+      return await getCachedStatus(yubaStatusCache, YUBA_STATUS_CACHE_TTL_MS, async () => {
+        const mainCookie = resolveCookieForUrl(MAIN_DOUYU_URL)
+        const yubaCookie = resolveCookieForUrl(YUBA_DOUYU_URL)
+        const groups = await getFollowedYubaStatusesWithDyToken(yubaCookie, mainCookie)
+        return { groups }
+      })
     },
   }
 

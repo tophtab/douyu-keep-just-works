@@ -2040,6 +2040,9 @@ textarea{
     if (nextTab === 'expiring-gift' && hasCookieSourceConfigured(getRawConfig()) && !state.fansStatusLoaded) {
       loadFansStatus(false);
     }
+    if (nextTab === 'yuba' && hasCookieSourceConfigured(getRawConfig()) && !state.yubaStatusLoaded && !state.yubaStatusLoading) {
+      loadYubaStatus(false);
+    }
     if (nextTab === 'logs') {
       loadLogs();
     }
@@ -3015,10 +3018,7 @@ textarea{
           if (!state.auth.authenticated) {
             return;
           }
-          return Promise.all([
-            loadFansStatus(false),
-            loadYubaStatus(false),
-          ]);
+          return loadFansStatus(false);
         });
       }
 
@@ -3284,10 +3284,17 @@ textarea{
       }
 
       return syncFans(false).then(function () {
-        return Promise.all([
-          loadFansStatus(false),
-          loadYubaStatus(false),
-        ]);
+        var reloads = [
+          loadFansStatus(false)
+        ];
+        if (state.activeTab === 'yuba') {
+          reloads.push(loadYubaStatus(false));
+        } else {
+          state.yubaStatus = [];
+          state.yubaStatusLoaded = false;
+          state.yubaStatusLoading = false;
+        }
+        return Promise.all(reloads);
       }).then(function () {
         return loadOverview();
       }).then(function () {

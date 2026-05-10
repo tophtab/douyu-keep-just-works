@@ -1260,3 +1260,36 @@ Committed Trellis workflow updates for Codex inline defaults, brainstorming guid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 33: Throttle WebUI Douyu status requests
+
+**Date**: 2026-05-10
+**Task**: Throttle WebUI Douyu status requests
+**Branch**: `master`
+
+### Summary
+
+Added bounded in-memory TTL caching and pending request coalescing for WebUI status endpoints, lazy-loaded Yuba status, documented the Docker WebUI status request guardrail, and archived the completed task.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `079c810` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -1227,3 +1227,36 @@ Archived the temporary Go and Rust rewrite planning tasks, kept the project on t
 ### Next Steps
 
 - None - task complete
+
+
+## Session 32: Update Codex workflow defaults
+
+**Date**: 2026-05-10
+**Task**: Update Codex workflow defaults
+**Branch**: `master`
+
+### Summary
+
+Committed Trellis workflow updates for Codex inline defaults, brainstorming guidance, template hashes, and AGENTS cleanup.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3e478f9` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 31
-- **Last Active**: 2026-05-08
+- **Total Sessions**: 32
+- **Last Active**: 2026-05-10
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1229 | Active |
+| `journal-1.md` | ~1262 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 32 | 2026-05-10 | Update Codex workflow defaults | `3e478f9` | `master` |
 | 31 | 2026-05-08 | Cancel rewrite plans and update Trellis helpers | `da68a60` | `master` |
 | 30 | 2026-05-07 | Release 2.4.0 | `1fd61c7`, `31a7bc3` | `master` |
 | 29 | 2026-05-07 | Fix backend failure handling | `1bbd8ee` | `master` |

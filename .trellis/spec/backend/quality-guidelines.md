@@ -9,8 +9,9 @@
 Backend code in this repository is pragmatic TypeScript:
 
 - strict TypeScript is enabled, but `noImplicitAny` is intentionally off in backend tsconfigs
-- ESLint extends `@antfu`
-- braces are required (`curly`, `brace-style`, `@typescript-eslint/brace-style`)
+- ESLint uses flat config in `eslint.config.mjs` and imports `@antfu/eslint-config`
+- the lint script intentionally targets source, tests, and `eslint.config.mjs`; do not broaden it to Trellis archives, Markdown specs, or GitHub YAML unless you intend to fix that unrelated format surface
+- braces are required (`curly`, `style/brace-style`)
 - `console.log` is allowed
 
 There is no automated backend test suite yet. Quality mainly comes from shared logic reuse, explicit control flow, and manual verification.
@@ -51,6 +52,8 @@ Current reality:
 - Run TypeScript builds as the primary safety net:
   - `npm run build`
   - `npm run build:docker`
+- Run `npm run lint`; it is scoped to `src/**/*.{js,ts}`, `test/**/*.js`, and `eslint.config.mjs`.
+- Run `npm test`; it runs lightweight contract tests and then `build:docker`.
 - For Docker features, verify the WebUI can read config, save config, trigger jobs, and fetch logs
 
 If you change shared logic in `src/core/`, verify the Docker compile path still succeeds.

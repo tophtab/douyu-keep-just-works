@@ -8,7 +8,7 @@ working first.
 
 Requirements:
 
-- Node.js 18
+- Node.js 24
 - npm
 - Docker, when validating image builds or Compose behavior
 
@@ -27,8 +27,8 @@ npm run build:docker
 npm test
 ```
 
-`npm test` currently runs the Docker TypeScript build. There is no separate
-automated runtime test suite yet.
+`npm test` currently runs the lightweight contract tests and then the Docker
+TypeScript build. There is no full automated runtime test suite yet.
 
 ## Docker-First Development
 

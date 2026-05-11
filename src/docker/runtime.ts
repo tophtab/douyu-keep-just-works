@@ -12,6 +12,8 @@ import { assertDockerConfigCrons } from './cron'
 import { clearLogs, createLogger, getLogs } from './logger'
 import { createServer } from './server'
 import type { AppContext, JobStatus } from './server'
+import { formatTaskList, getTaskConfig, TASK_TYPES } from './task-metadata'
+import type { TaskType } from './task-metadata'
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -27,10 +29,8 @@ const YUBA_STATUS_CACHE_TTL_MS = 10 * 60 * 1000
 const DOUBLE_CARD_STATUS_CONCURRENCY = 4
 const DEFAULT_COOKIE_CLOUD_SYNC_CRON = '0 5 0 * * *'
 
-type TaskType = 'collectGift' | 'keepalive' | 'doubleCard' | 'expiringGift' | 'yubaCheckIn'
 type StatusCacheScope = 'fans' | 'yuba' | 'all'
 type AppStatus = Record<TaskType, JobStatus>
-const TASK_TYPES: TaskType[] = ['collectGift', 'keepalive', 'doubleCard', 'expiringGift', 'yubaCheckIn']
 
 interface CookieCloudCacheEntry {
   key: string
@@ -613,42 +613,8 @@ function startScheduledTask(
   logSystem(`${label}已启动, cron: ${cron}, 下次执行: ${formatScheduleForLog(statuses[type].nextRun)}${summary ? `, ${summary}` : ''}`)
 }
 
-function getTaskConfig(config: DockerConfig | null | undefined, type: TaskType): DockerConfig[TaskType] {
-  switch (type) {
-    case 'collectGift':
-      return config?.collectGift
-    case 'keepalive':
-      return config?.keepalive
-    case 'doubleCard':
-      return config?.doubleCard
-    case 'expiringGift':
-      return config?.expiringGift
-    case 'yubaCheckIn':
-      return config?.yubaCheckIn
-  }
-}
-
-function getTaskLabel(type: TaskType): string {
-  switch (type) {
-    case 'collectGift':
-      return '领取任务'
-    case 'keepalive':
-      return '保活任务'
-    case 'doubleCard':
-      return '双倍卡任务'
-    case 'expiringGift':
-      return '临期任务'
-    case 'yubaCheckIn':
-      return '鱼吧签到任务'
-  }
-}
-
 function jsonEquals(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b)
-}
-
-function formatTaskList(types: TaskType[]): string {
-  return types.map(getTaskLabel).join('、')
 }
 
 function startTask(type: TaskType, config: DockerConfig): void {

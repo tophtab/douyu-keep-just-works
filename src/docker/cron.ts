@@ -1,5 +1,5 @@
-import cronParse from 'cron-parser'
 import { CronJob } from 'cron'
+import { CronExpressionParser } from 'cron-parser'
 import type { DockerConfig } from '../core/types'
 
 const DOCKER_TIMEZONE = 'Asia/Shanghai'
@@ -23,7 +23,7 @@ export function validateCronExpression(name: string, cron: string): string | nul
 }
 
 export function getNextCronRuns(cron: string, count = 3): string[] {
-  const interval = cronParse.parseExpression(cron, { tz: DOCKER_TIMEZONE })
+  const interval = CronExpressionParser.parse(cron, { tz: DOCKER_TIMEZONE })
   const runs: string[] = []
 
   for (let i = 0; i < count; i += 1) {

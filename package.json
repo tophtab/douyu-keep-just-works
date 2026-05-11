@@ -11,9 +11,9 @@
   "license": "MIT",
   "repository": "https://github.com/tophtab/douyu-keep-just-works.git",
   "scripts": {
-    "lint": "eslint . --ext .js,.ts",
+    "lint": "eslint \"src/**/*.{js,ts}\" \"test/**/*.js\" eslint.config.mjs",
     "type-check": "tsc -p tsconfig.docker.json --noEmit",
-    "test:contracts": "node --test test/request-smoothing-contract.test.js",
+    "test:contracts": "node --test test/*.test.js",
     "test": "npm run test:contracts && npm run build:docker",
     "build": "npm run build:docker",
     "build:docker": "rm -rf build/docker && tsc -p tsconfig.docker.json && cp -R src/docker/webui build/docker/docker/webui",
@@ -23,19 +23,19 @@
     "node": ">=24 <25"
   },
   "dependencies": {
-    "axios": "^1.4.0",
-    "cron": "^2.4.0",
-    "cron-parser": "^4.8.1",
-    "express": "^4.22.1",
+    "axios": "^1.16.0",
+    "cron": "^4.4.0",
+    "cron-parser": "^5.5.0",
+    "express": "^5.2.1",
     "ws": "^8.20.0"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^0.40.2",
-    "@types/express": "^4.17.25",
+    "@antfu/eslint-config": "^9.0.0",
+    "@types/express": "^5.0.6",
     "@types/node": "^24.0.0",
     "@types/ws": "^8.18.1",
-    "eslint": "^8.46.0",
-    "typescript": "^5.1.6"
+    "eslint": "^10.3.0",
+    "typescript": "^6.0.3"
   },
   "overrides": {
     "@typescript-eslint/typescript-estree": {

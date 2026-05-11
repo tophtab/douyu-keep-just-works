@@ -28,11 +28,13 @@ src/
 │   └── types.ts
 ├── docker/
 │   ├── cron.ts
+│   ├── config-validation.ts
 │   ├── config-store.ts
 │   ├── index.ts
 │   ├── logger.ts
 │   ├── runtime.ts
 │   ├── server.ts
+│   ├── task-metadata.ts
 │   ├── webui.ts
 │   └── webui/
 │       ├── index.html
@@ -54,6 +56,8 @@ Examples:
 - `src/docker/index.ts` owns environment parsing and calls the Docker runtime.
 - `src/docker/runtime.ts` owns startup, cron creation, and `AppContext` assembly.
 - `src/docker/config-store.ts` owns config file IO and config-update assembly.
+- `src/docker/config-validation.ts` owns Docker config validation used by HTTP save routes.
+- `src/docker/task-metadata.ts` owns task type labels and task-config lookup shared by runtime scheduling.
 - `src/docker/server.ts` is limited to HTTP route registration and delegates work through `AppContext`.
 - `src/docker/webui/index.html` owns the Docker WebUI document shell.
 - `src/docker/webui/styles.css` owns the Docker WebUI stylesheet.
@@ -85,6 +89,7 @@ Examples:
 - Do not reintroduce `src/main/`, `src/renderer/`, Electron packaging config, or desktop-only dependencies unless desktop support is explicitly restored.
 - Do not duplicate Douyu API parsing logic in Docker route handlers when it can live in `src/core/api.ts`.
 - Do not make route handlers contain large business workflows; keep those in reusable functions.
+- Do not use Express wildcard path strings such as `app.get('*')` for WebUI fallback routing. Express 5 uses stricter path parsing; use an unmounted middleware that checks `req.method` and `req.path` instead.
 
 ---
 

@@ -1623,3 +1623,36 @@ Restored Docker WebUI web-password query shortcut login, fixed static regex esca
 ### Next Steps
 
 - None - task complete
+
+
+## Session 44: Fix WebUI task tab autoload
+
+**Date**: 2026-05-11
+**Task**: Fix WebUI task tab autoload
+**Branch**: `master`
+
+### Summary
+
+Fixed Docker WebUI SPA tab navigation so keepalive, double-card, and yuba pages re-render from loaded state without requiring F5; added inline first-load errors and updated the medal sync contract.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2ce8026` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -1689,3 +1689,36 @@ Added a Node contract test that preserves backend-focused Douyu request smoothin
 ### Next Steps
 
 - None - task complete
+
+
+## Session 46: Split Docker WebUI template files
+
+**Date**: 2026-05-11
+**Task**: Split Docker WebUI template files
+**Branch**: `master`
+
+### Summary
+
+Split the Docker WebUI source into index.html, styles.css, and app.js while preserving runtime HTML injection; updated contract test and Trellis specs; verified lint, type-check, tests, build, and template injection.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8c6422e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

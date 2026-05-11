@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 45
+- **Total Sessions**: 46
 - **Last Active**: 2026-05-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1691 | Active |
+| `journal-1.md` | ~1724 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 46 | 2026-05-11 | Split Docker WebUI template files | `8c6422e` | `master` |
 | 45 | 2026-05-11 | Guard Douyu request smoothing policy | `6c535d7` | `master` |
 | 44 | 2026-05-11 | Fix WebUI task tab autoload | `2ce8026` | `master` |
 | 43 | 2026-05-11 | Fix WebUI web-password shortcut login | `e050a41` | `master` |

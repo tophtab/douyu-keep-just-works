@@ -466,19 +466,20 @@ File:
 Required behavior:
 
 1. Initial page load shows login shell first.
-2. Frontend must call `GET /api/auth/status` before loading protected config/log/task data.
+2. Frontend must call `GET /api/auth/status` before loading protected config/log/task data unless the initial URL contains a `web-password` shortcut login.
 3. Login form submits password to `POST /api/auth/login`.
-4. On `401`, client must clear protected page state and return to login shell.
-5. Logout button must call `POST /api/auth/logout`.
-6. After successful login, client loads:
+4. Initial URLs with `web-password=<password>` must submit that value to `POST /api/auth/login`, remove `web-password` from the address bar with `history.replaceState`, and then continue through the same successful-login app bootstrap as the form flow.
+5. On `401`, client must clear protected page state and return to login shell.
+6. Logout button must call `POST /api/auth/logout`.
+7. After successful login, client loads:
    - `/api/config/raw`
    - `/api/overview`
    - `/api/logs`
    - fan sync/status when cookie source exists
    - yuba status when the user enters the fish-bar page and cookie source exists
-7. Auth state updates must ignore stale async responses. A slower initial `GET /api/auth/status` response must not overwrite a newer successful login/logout result.
-8. Route/path helpers embedded in the HTML template must emit valid browser JavaScript after TypeScript string interpolation. Regex literals used inside the template must be escaped for the final emitted script.
-9. The page router must support these authenticated paths without breaking the login shell bootstrap:
+8. Auth state updates must ignore stale async responses. A slower initial `GET /api/auth/status` response must not overwrite a newer successful login/logout result.
+9. Route/path helpers embedded in the static HTML file must emit valid browser JavaScript in the final served document. Regex literals must be written for the browser script itself; for example use `/\/+$/`, not `/\\/+$/`, in `src/docker/webui/index.html`.
+10. The page router must support these authenticated paths without breaking the login shell bootstrap:
    - `/`
    - `/Configurations/LoginConfig`
    - `/Configurations/CollectGiftConfig`
@@ -493,6 +494,7 @@ UI state rules:
 - password input is not persisted in config
 - incorrect password shows a clear error
 - successful login switches the page from login shell to app shell without a manual refresh
+- `web-password` shortcut login never leaves the password in the visible URL after the initial bootstrap attempt
 - login page shows two manual Cookie inputs: `main-cookie-input` and `yuba-cookie-input`
 - login page shows CookieCloud config fields: `endpoint`, `uuid`, `password`, plus a persisted enable toggle
 - login page primary CookieCloud action is “保存并启用”; it persists the credentials through `/api/config` with `cookieCloud.active = true`
@@ -508,6 +510,9 @@ UI state rules:
 |----------|-----------|--------|
 | `POST /api/auth/login` | `password` missing or empty | `400 { "error": "请输入密码" }` |
 | `POST /api/auth/login` | password mismatch | `400 { "error": "密码错误" }` |
+| frontend shortcut login | initial URL contains `?web-password=<correct password>` | issue `dykw_session`, replace URL without `web-password`, show app shell |
+| frontend shortcut login | initial URL contains `?web-password=<wrong password>` | replace URL without `web-password`, stay on login shell with password error |
+| frontend static script | route helper regex is written as `/\\/+$/` in static HTML | browser parse error; WebUI script does not boot |
 | frontend auth state | stale `/api/auth/status` resolves after login | keep authenticated app shell; do not overwrite with stale unauthenticated state |
 | protected `/api/*` | no valid session cookie | `401 { "error": "请先登录" }` |
 | `POST /api/auth/logout` | no cookie present | `200 { "ok": true }` |

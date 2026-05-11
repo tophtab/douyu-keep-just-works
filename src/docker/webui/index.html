@@ -1582,7 +1582,7 @@ textarea{
     if (!path || path === '/') {
       return '/';
     }
-    return path.replace(/\\/+$/, '') || '/';
+    return path.replace(/\/+$/, '') || '/';
   }
 
   function getTabByPath(path) {
@@ -1621,6 +1621,32 @@ textarea{
     } catch (error) {
       // Ignore history API failures and keep the UI usable.
     }
+  }
+
+  function consumeWebPasswordFromUrl() {
+    var result = { present: false, password: '' };
+    if (!window.location || !window.location.search) {
+      return result;
+    }
+
+    try {
+      var currentUrl = new URL(window.location.href);
+      if (!currentUrl.searchParams.has('web-password')) {
+        return result;
+      }
+
+      result.present = true;
+      result.password = currentUrl.searchParams.get('web-password') || '';
+      currentUrl.searchParams.delete('web-password');
+
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', currentUrl.pathname + currentUrl.search + currentUrl.hash);
+      }
+    } catch (error) {
+      // If URL parsing fails, fall back to the normal login form.
+    }
+
+    return result;
   }
 
   var DEFAULT_RAW_CONFIG = {
@@ -2278,9 +2304,9 @@ textarea{
     var remainingMs = expireTime - Date.now();
     var remainingHours = Math.max(0, remainingMs / (60 * 60 * 1000));
     if (remainingHours >= 48) {
-      return (remainingHours / 24).toFixed(1).replace(/\\.0$/, '') + ' 天';
+      return (remainingHours / 24).toFixed(1).replace(/\.0$/, '') + ' 天';
     }
-    return remainingHours.toFixed(1).replace(/\\.0$/, '') + ' 小时';
+    return remainingHours.toFixed(1).replace(/\.0$/, '') + ' 小时';
   }
 
   function getExpiringThresholdHours() {
@@ -3003,7 +3029,7 @@ textarea{
 
   function formatRatioPercent(value) {
     var rounded = Math.round(value * 10) / 10;
-    return String(rounded.toFixed(1)).replace(/\\.0$/, '') + '%';
+    return String(rounded.toFixed(1)).replace(/\.0$/, '') + '%';
   }
 
   function updateDoubleTableHeaderLabel(model) {
@@ -3247,12 +3273,12 @@ textarea{
     });
   }
 
-  function submitLogin() {
-    var password = byId('web-password-input').value;
+  function loginWithPassword(password, options) {
+    var loginOptions = options || {};
     if (!password) {
       state.auth.error = '请输入密码';
       renderAuth();
-      return;
+      return Promise.resolve(false);
     }
 
     var requestSeq = nextAuthRequestSeq();
@@ -3260,7 +3286,7 @@ textarea{
     state.auth.error = '';
     renderAuth();
 
-    requestJson('/api/auth/login', {
+    return requestJson('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: password })
@@ -3272,7 +3298,9 @@ textarea{
       state.auth.authenticated = true;
       state.auth.submitting = false;
       state.auth.error = '';
-      byId('web-password-input').value = '';
+      if (loginOptions.clearPasswordInput !== false) {
+        byId('web-password-input').value = '';
+      }
       renderAuth();
       return loadProtectedData().then(function () {
         return true;
@@ -3290,7 +3318,12 @@ textarea{
       state.auth.authenticated = false;
       state.auth.error = '登录失败：' + error.message;
       renderAuth();
+      return false;
     });
+  }
+
+  function submitLogin() {
+    return loginWithPassword(byId('web-password-input').value);
   }
 
   function logout() {
@@ -4330,6 +4363,11 @@ textarea{
 
   renderAuth();
   setActiveTab(state.activeTab, { syncPath: false, skipLazyLoad: true });
+  var webPasswordLogin = consumeWebPasswordFromUrl();
+  if (webPasswordLogin.present) {
+    loginWithPassword(webPasswordLogin.password, { clearPasswordInput: false });
+    return;
+  }
   loadAuthStatus().then(function (authenticated) {
     if (!authenticated) {
       return;

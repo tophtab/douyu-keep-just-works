@@ -706,6 +706,11 @@ loadYubaStatus(showToast)
 - Backend status/list caches remain responsible for reducing upstream Douyu request frequency.
 - Late responses must be ignored with a per-resource request sequence if the resource was invalidated after the request started.
 - Existing rows remain visible during background refresh when a previous successful snapshot exists.
+- Overview/expiring status loads (`/api/fans/status/base` + `/api/fans/status/details`) and task room-list loads (`/api/fans`) are related but distinct client resources:
+  - a non-empty fans-status response may seed the task room list and mark `fansList` loaded
+  - an empty fans-status response must not mark `fansList` loaded, because keepalive/double-card still need a dedicated `/api/fans` load before deciding their room tables are truly empty
+- Keepalive and double-card empty states must schedule or perform a post-render fans-list ensure when cookies are configured, no rows are visible, no fans-list snapshot has loaded, and no fans-list request is pending.
+- Saving manual cookies or CookieCloud config must clear cookie-backed WebUI snapshots/resource metadata so stale empty fans/yuba state cannot block the next page load.
 
 4. Validation & Error Matrix
 
@@ -713,13 +718,17 @@ loadYubaStatus(showToast)
 |------|-----------------|
 | Multiple clicks while visible refresh is loading | at most one in-flight browser request per resource |
 | Re-entering overview/expiring after a prior successful load | browser may call `/api/fans/status/base`; backend cache may answer without new Douyu fan-out |
+| Overview fans status returns empty, then user enters keepalive/double-card | WebUI still calls `/api/fans` for the task room list |
+| `/api/fans` returns empty for keepalive/double-card | WebUI marks `fansList` loaded and renders the true empty-account state |
 | Refresh fails after a previous successful fans status load | table keeps the previous rows and shows the failure toast |
 | Cookie source disappears | client resource metadata and visible fans/yuba snapshots are cleared |
 
 5. Good / Base / Bad Cases
 
 - Good: lazy tab load calls `loadFansStatus(false)` when status is needed and lets the backend cache decide whether Douyu must be queried.
+- Good: keepalive/double-card empty rendering schedules a fans-list ensure after render when the task table has no rows and `fansList` has not loaded.
 - Base: task trigger calls `loadFansStatus(false)` after backend status was invalidated by the task.
+- Bad: marking `fansList` loaded after `/api/fans/status` returns an empty `fans` array, permanently suppressing `/api/fans` on keepalive/double-card pages.
 - Bad: clearing `state.fansStatus` before every refresh, causing the UI to flash empty while an avoidable duplicate request runs.
 
 6. Tests Required
@@ -744,6 +753,22 @@ if (resource.pending) {
   return resource.pending;
 }
 state.fansStatusLoading = true;
+```
+
+Wrong:
+
+```js
+markResourceLoaded('fansStatus');
+markResourceLoaded('fansList'); // even when state.fansStatus is empty
+```
+
+Correct:
+
+```js
+markResourceLoaded('fansStatus');
+if (state.fansStatus.length) {
+  markResourceLoaded('fansList');
+}
 ```
 
 ---

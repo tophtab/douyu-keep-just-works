@@ -1425,3 +1425,36 @@ Removed browser-side 30-second refresh TTL from Docker WebUI resource loading, k
 ### Next Steps
 
 - None - task complete
+
+
+## Session 38: Fix keepalive and double list refresh
+
+**Date**: 2026-05-11
+**Task**: Fix keepalive and double list refresh
+**Branch**: `master`
+
+### Summary
+
+Fixed WebUI keepalive and double-card room lists so empty overview fan-status loads no longer suppress dedicated /api/fans requests; added post-render fans-list ensure, cleared cookie-backed client snapshots on cookie changes, updated medal sync contract, and verified lint/type-check/docker build.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fa2ae02` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

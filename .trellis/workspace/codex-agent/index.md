@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 39
+- **Total Sessions**: 40
 - **Last Active**: 2026-05-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1493 | Active |
+| `journal-1.md` | ~1526 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 40 | 2026-05-11 | TypeScript structure refactor and Node upgrade | `2360b9a` | `master` |
 | 39 | 2026-05-11 | Fix task list autoload | `3f5ef4f` | `master` |
 | 38 | 2026-05-11 | Fix keepalive and double list refresh | `fa2ae02` | `master` |
 | 37 | 2026-05-11 | Remove WebUI frontend refresh TTL | `ceb2d1e` | `master` |

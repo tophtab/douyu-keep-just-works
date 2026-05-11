@@ -1491,3 +1491,36 @@ Changed keepalive and double-card WebUI autoload from delayed timer scheduling t
 ### Next Steps
 
 - None - task complete
+
+
+## Session 40: TypeScript structure refactor and Node upgrade
+
+**Date**: 2026-05-11
+**Task**: TypeScript structure refactor and Node upgrade
+**Branch**: `master`
+
+### Summary
+
+Upgraded Docker runtime to Node 24, split Docker entrypoint/runtime/config-store boundaries, extracted WebUI HTML to static resource loading, updated specs, and verified lint/type-check/build/test plus Docker smoke test.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2360b9a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

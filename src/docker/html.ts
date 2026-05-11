@@ -1722,7 +1722,6 @@ textarea{
       fansStatus: createResourceRequest(),
       yubaStatus: createResourceRequest()
     },
-    fansListEnsureTimer: null,
     themeMode: 'system',
     cronPreview: {
       cookieCloud: createEmptyCronPreview(),
@@ -1952,16 +1951,6 @@ textarea{
     }
   }
 
-  function scheduleFansListEnsureForActiveTab() {
-    if (!shouldLoadFansListForActiveTab() || state.fansListEnsureTimer) {
-      return;
-    }
-    state.fansListEnsureTimer = window.setTimeout(function () {
-      state.fansListEnsureTimer = null;
-      ensureFansListForActiveTab();
-    }, 0);
-  }
-
   function markResourceLoaded(key) {
     getResourceRequest(key).fetchedAt = Date.now();
   }
@@ -2021,10 +2010,6 @@ textarea{
 
   function clearProtectedState() {
     invalidateResourceRequests(['fansSync', 'fansList', 'fansStatus', 'yubaStatus']);
-    if (state.fansListEnsureTimer) {
-      window.clearTimeout(state.fansListEnsureTimer);
-      state.fansListEnsureTimer = null;
-    }
     state.rawConfig = null;
     state.overview = null;
     state.managed = null;
@@ -2046,10 +2031,6 @@ textarea{
 
   function clearCookieBackedData() {
     invalidateResourceRequests(['fansSync', 'fansList', 'fansStatus', 'yubaStatus']);
-    if (state.fansListEnsureTimer) {
-      window.clearTimeout(state.fansListEnsureTimer);
-      state.fansListEnsureTimer = null;
-    }
     state.managed = null;
     state.fansStatus = [];
     state.giftStatus = null;
@@ -2239,7 +2220,7 @@ textarea{
     if (nextTab === 'expiring-gift' && hasCookieSourceConfigured(getRawConfig()) && !state.fansStatusLoaded) {
       loadFansStatus(false);
     }
-    scheduleFansListEnsureForActiveTab();
+    ensureFansListForActiveTab();
     if (nextTab === 'yuba' && hasCookieSourceConfigured(getRawConfig()) && !state.yubaStatusLoaded && !state.yubaStatusLoading) {
       loadYubaStatus(false);
     }
@@ -2854,7 +2835,7 @@ textarea{
       byId('keepalive-table-wrap').innerHTML = hasLoadedFansList()
         ? '<div class="empty">已同步，但当前账号没有可用粉丝牌数据。</div>'
         : '<div class="empty">正在准备加载粉丝牌列表，也可以点击刷新手动加载。</div>';
-      scheduleFansListEnsureForActiveTab();
+      ensureFansListForActiveTab();
       return;
     }
 
@@ -2909,7 +2890,7 @@ textarea{
         ? '<div class="empty">已同步，但当前账号没有可用粉丝牌数据。</div>'
         : '<div class="empty">正在准备加载粉丝牌列表，也可以点击刷新手动加载。</div>';
       setDoubleModeEmptyState('按权重模式会在当前开双倍的房间之间重新分配。', doubleFansLoaded ? '当前没有可用于预览的粉丝牌房间。' : '粉丝牌列表加载后，这里会显示当前权重预览。');
-      scheduleFansListEnsureForActiveTab();
+      ensureFansListForActiveTab();
       return;
     }
 

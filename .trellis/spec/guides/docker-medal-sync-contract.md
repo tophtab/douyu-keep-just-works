@@ -726,7 +726,7 @@ loadYubaStatus(showToast)
 5. Good / Base / Bad Cases
 
 - Good: lazy tab load calls `loadFansStatus(false)` when status is needed and lets the backend cache decide whether Douyu must be queried.
-- Good: keepalive/double-card empty rendering schedules a fans-list ensure after render when the task table has no rows and `fansList` has not loaded.
+- Good: keepalive/double-card empty rendering performs a guarded fans-list ensure when the task table has no rows and `fansList` has not loaded.
 - Base: task trigger calls `loadFansStatus(false)` after backend status was invalidated by the task.
 - Bad: marking `fansList` loaded after `/api/fans/status` returns an empty `fans` array, permanently suppressing `/api/fans` on keepalive/double-card pages.
 - Bad: clearing `state.fansStatus` before every refresh, causing the UI to flash empty while an avoidable duplicate request runs.

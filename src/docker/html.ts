@@ -1215,15 +1215,9 @@ textarea{
         <p class="page-subtitle" id="page-subtitle">先看基础状态，再确认当前粉丝牌列表。</p>
       </div>
       <div class="toolbar">
-        <button class="btn btn-secondary toolbar-icon-btn" type="button" data-action="refresh-overview" aria-label="刷新状态" title="刷新状态">
+        <button class="btn btn-secondary toolbar-icon-btn" type="button" data-action="refresh-overview" aria-label="刷新" title="刷新">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.1A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h8V3z"></path>
-          </svg>
-        </button>
-        <button class="btn btn-secondary toolbar-icon-btn" type="button" data-action="sync-fans" aria-label="同步粉丝牌/任务配置" title="同步粉丝牌/任务配置">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 3a9 9 0 0 0-8.49 6h2.18A7 7 0 0 1 17.7 6.3L15 9h7V2l-2.88 2.88A8.96 8.96 0 0 0 12 3z"></path>
-            <path d="M6.3 17.7 9 15H2v7l2.88-2.88A9 9 0 0 0 20.49 15h-2.18A7 7 0 0 1 6.3 17.7z"></path>
           </svg>
         </button>
         <button class="btn btn-secondary toolbar-icon-btn toolbar-icon-btn-wide" type="button" data-action="logout" aria-label="退出登录" title="退出登录">
@@ -1994,17 +1988,7 @@ textarea{
     var loading = isActiveRefreshLoading();
     refreshButton.disabled = loading;
     refreshButton.setAttribute('aria-busy', loading ? 'true' : 'false');
-    refreshButton.setAttribute('title', loading ? '正在刷新状态' : '刷新状态');
-
-    var syncButton = document.querySelector('[data-action="sync-fans"]');
-    if (!syncButton) {
-      return;
-    }
-    var syncLoading = state.managedLoading;
-    var canSync = state.auth.authenticated && hasCookieSourceConfigured(getRawConfig());
-    syncButton.disabled = syncLoading || !canSync;
-    syncButton.setAttribute('aria-busy', syncLoading ? 'true' : 'false');
-    syncButton.setAttribute('title', syncLoading ? '正在同步粉丝牌/任务配置' : '同步粉丝牌/任务配置');
+    refreshButton.setAttribute('title', loading ? '正在刷新' : '刷新');
   }
 
   function clearProtectedState() {
@@ -3391,20 +3375,6 @@ textarea{
     return trackResourceRequest(resource, requestSeq, pending);
   }
 
-  function syncFansAndRefresh(showToast) {
-    return syncFans(showToast).then(function () {
-      if (!state.auth.authenticated) {
-        return;
-      }
-
-      var reloads = [loadOverview()];
-      if (state.activeTab === 'overview' || state.activeTab === 'expiring-gift') {
-        reloads.push(loadFansStatus(false, { force: true }));
-      }
-      return Promise.all(reloads);
-    });
-  }
-
   function loadFansList(showToast, options) {
     var rawConfig = getRawConfig();
     var resource = getResourceRequest('fansList');
@@ -3629,20 +3599,24 @@ textarea{
         });
       }
 
-      var reloads = [loadOverview()];
-      if (state.activeTab === 'overview' || state.activeTab === 'expiring-gift') {
-        reloads.push(loadFansStatus(false, { force: showToast }));
-      } else if (state.activeTab === 'keepalive' || state.activeTab === 'double-card') {
-        reloads.push(loadFansList(false, { force: showToast }));
-      } else if (state.activeTab === 'yuba') {
-        reloads.push(loadYubaStatus(false, { force: showToast }));
-      } else if (state.activeTab === 'logs') {
-        reloads.push(loadLogs());
-      }
-
-      return Promise.all(reloads).then(function () {
+      return syncFans(false).then(function () {
+        var reloads = [
+          loadFansStatus(false, { force: showToast })
+        ];
+        if (state.activeTab === 'yuba') {
+          reloads.push(loadYubaStatus(false, { force: showToast }));
+        } else {
+          state.yubaStatus = [];
+          state.yubaStatusLoaded = false;
+          state.yubaStatusLoading = false;
+          invalidateResourceRequest('yubaStatus');
+        }
+        return Promise.all(reloads);
+      }).then(function () {
+        return loadOverview();
+      }).then(function () {
         if (showToast) {
-          toast('状态已刷新', true);
+          toast('概况已刷新', true);
         }
       });
     });
@@ -4189,10 +4163,6 @@ textarea{
     }
     if (action === 'refresh-overview') {
       refreshOverviewSurface(true);
-      return;
-    }
-    if (action === 'sync-fans') {
-      syncFansAndRefresh(true);
       return;
     }
     if (action === 'logout') {

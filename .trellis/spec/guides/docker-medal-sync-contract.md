@@ -697,8 +697,6 @@ File: `src/core/medal-sync.ts`
 loadFansList(showToast, { force: true })
 loadFansStatus(showToast, { force: true })
 loadYubaStatus(showToast, { force: true })
-refreshOverviewSurface(showToast)
-syncFansAndRefresh(showToast)
 ```
 
 3. Contracts
@@ -707,9 +705,6 @@ syncFansAndRefresh(showToast)
 - Manual refresh and post-task reloads may force a refresh, but must still reuse the same in-flight request when one is already running.
 - Late responses must be ignored with a per-resource request sequence if the resource was invalidated after the request started.
 - Existing rows remain visible during background refresh when a previous successful snapshot exists.
-- Ordinary toolbar refresh is a read-only status/list refresh. It must not call `POST /api/fans/reconcile`.
-- Explicit fan/config synchronization is a separate toolbar action and the only browser toolbar path that calls `POST /api/fans/reconcile`.
-- Saving keepalive, double-card, or expiring-gift config may still reconcile automatically through `POST /api/config`, because those saves intentionally mutate task room config.
 
 4. Validation & Error Matrix
 
@@ -719,24 +714,18 @@ syncFansAndRefresh(showToast)
 | Multiple clicks while visible refresh is loading | at most one in-flight browser request per resource |
 | Refresh fails after a previous successful fans status load | table keeps the previous rows and shows the failure toast |
 | Cookie source disappears | client resource metadata and visible fans/yuba snapshots are cleared |
-| Clicking ordinary toolbar refresh on overview/expiring | calls `/api/fans/status`, not `/api/fans/reconcile` |
-| Clicking explicit fan/config sync | calls `/api/fans/reconcile`, updates managed fan/config state, then refreshes visible status when needed |
 
 5. Good / Base / Bad Cases
 
 - Good: lazy tab load calls `loadFansStatus(false)` and lets the browser TTL decide whether a request is needed.
-- Good: top-level status refresh calls `refreshOverviewSurface(true)` and routes to the visible read-only endpoint.
 - Base: task trigger calls `loadFansStatus(false, { force: true })` because backend status was invalidated by the task.
-- Base: explicit sync calls `syncFansAndRefresh(true)` when the user wants medal-room config alignment.
 - Bad: clearing `state.fansStatus` before every refresh, causing the UI to flash empty while an avoidable duplicate request runs.
-- Bad: ordinary toolbar refresh calls `syncFans(false)` or `POST /api/fans/reconcile`, causing a side-effecting config save for a visual status refresh.
 
 6. Tests Required
 
 - Run `npm run lint`, `npm run type-check`, and `npm run build:docker`.
 - Smoke-test a deep-linked WebUI page and verify no browser console errors.
 - Verify repeated refresh attempts cannot create duplicate visible-resource requests while the button is busy.
-- Verify ordinary refresh and explicit sync remain separate by inspecting browser requests or code paths.
 
 7. Wrong vs Correct
 
@@ -754,24 +743,6 @@ if (resource.pending) {
   return resource.pending;
 }
 state.fansStatusLoading = true;
-```
-
-Wrong:
-
-```js
-function refreshOverviewSurface(showToast) {
-  return syncFans(false).then(function () {
-    return loadFansStatus(showToast);
-  });
-}
-```
-
-Correct:
-
-```js
-function refreshOverviewSurface(showToast) {
-  return loadFansStatus(false, { force: showToast });
-}
 ```
 
 ---

@@ -1590,3 +1590,36 @@ Archived the duplicate 05-11 optimize Node Docker footprint planning task after 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 43: Fix WebUI web-password shortcut login
+
+**Date**: 2026-05-11
+**Task**: Fix WebUI web-password shortcut login
+**Branch**: `master`
+
+### Summary
+
+Restored Docker WebUI web-password query shortcut login, fixed static regex escaping that prevented the WebUI script from booting, verified lint/type-check/build and browser login flows.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e050a41` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

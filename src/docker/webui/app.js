@@ -256,6 +256,19 @@
     }
   }
 
+  function padDatePart(value) {
+    return String(value).padStart(2, '0');
+  }
+
+  function formatShanghaiMinuteFallback(date) {
+    var shanghaiDate = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+    return shanghaiDate.getUTCFullYear()
+      + '-' + padDatePart(shanghaiDate.getUTCMonth() + 1)
+      + '-' + padDatePart(shanghaiDate.getUTCDate())
+      + ' ' + padDatePart(shanghaiDate.getUTCHours())
+      + ':' + padDatePart(shanghaiDate.getUTCMinutes());
+  }
+
   function formatDate(value) {
     if (!value) {
       return '无';
@@ -272,11 +285,11 @@
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      }).format(date).replace(/\\//g, '-');
+        hour12: false,
+        hourCycle: 'h23'
+      }).format(date);
     } catch (error) {
-      return date.toISOString();
+      return formatShanghaiMinuteFallback(date);
     }
   }
 

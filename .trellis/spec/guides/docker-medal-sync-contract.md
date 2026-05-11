@@ -741,7 +741,7 @@ loadYubaStatus(showToast)
 
 6. Tests Required
 
-- Run `npm run lint`, `npm run type-check`, and `npm run build:docker`.
+- Run `npm run lint`, `npm run type-check`, and `npm test`; `npm test` includes the request-smoothing contract guard before the Docker build.
 - Smoke-test a deep-linked WebUI page and verify no browser console errors.
 - Smoke-test SPA navigation from overview to keepalive, double-card, and yuba after data has loaded; the target page must show rows or an active loading/error state without requiring F5.
 - Verify repeated refresh attempts cannot create duplicate visible-resource requests while the button is busy.

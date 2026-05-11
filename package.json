@@ -13,7 +13,8 @@
   "scripts": {
     "lint": "eslint . --ext .js,.ts",
     "type-check": "tsc -p tsconfig.docker.json --noEmit",
-    "test": "npm run build:docker",
+    "test:contracts": "node --test test/request-smoothing-contract.test.js",
+    "test": "npm run test:contracts && npm run build:docker",
     "build": "npm run build:docker",
     "build:docker": "rm -rf build/docker && tsc -p tsconfig.docker.json && cp -R src/docker/webui build/docker/docker/webui",
     "start": "node build/docker/docker/index.js"

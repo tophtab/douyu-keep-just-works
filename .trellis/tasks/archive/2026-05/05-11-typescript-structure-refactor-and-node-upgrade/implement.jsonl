@@ -1,0 +1,10 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Docker runtime module boundaries"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Route and scheduler error behavior"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "User-visible Docker logs"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend quality bar"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Refactor without duplication"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Docker WebUI route/config/task data flow"}
+{"file": ".trellis/spec/guides/docker-webui-auth-contract.md", "reason": "WebUI auth contract must stay unchanged"}
+{"file": ".trellis/spec/guides/docker-medal-sync-contract.md", "reason": "Medal sync/config behavior must stay compatible"}
+{"file": ".trellis/tasks/05-11-typescript-structure-refactor-and-node-upgrade/research/node-upgrade.md", "reason": "Node 24 LTS upgrade decision"}

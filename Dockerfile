@@ -1,4 +1,4 @@
-FROM node:18-slim AS builder
+FROM node:24-slim AS builder
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ RUN npm ci --ignore-scripts
 COPY src ./src
 RUN npm run build:docker
 
-FROM node:18-slim AS runtime
+FROM node:24-slim AS runtime
 
 WORKDIR /app
 

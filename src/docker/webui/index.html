@@ -1,40 +1,11 @@
-import { readFileSync } from 'node:fs'
-
-export const DOCKER_WEBUI_PAGE_ROUTES = {
-  'overview': '/',
-  'login': '/Configurations/LoginConfig',
-  'collect': '/Configurations/CollectGiftConfig',
-  'keepalive': '/Configurations/DailyJobConfig',
-  'double-card': '/Configurations/DoubleCardConfig',
-  'expiring-gift': '/Configurations/ExpiringGiftConfig',
-  'yuba': '/Configurations/YubaCheckInConfig',
-  'logs': '/Logs',
-} as const
-
-const APP_NAME = 'douyu-keep'
-const APP_VERSION = readPackageVersion()
-const APP_VERSION_LABEL = `V${APP_VERSION}`
-
-function readPackageVersion(): string {
-  try {
-    const packageJson = JSON.parse(readFileSync('package.json', 'utf8')) as { version?: unknown }
-    return typeof packageJson.version === 'string' && packageJson.version.trim()
-      ? packageJson.version.trim()
-      : '0.0.0'
-  } catch {
-    return '0.0.0'
-  }
-}
-
-export function getHtml(): string {
-  return `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark" id="color-scheme-meta">
 <meta name="theme-color" content="#f4ede4" id="theme-color-meta">
-<title>${APP_NAME}</title>
+<title>__APP_NAME__</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Ctext x=%2250%25%22 y=%2252%22 text-anchor=%22middle%22 font-size=%2252%22%3E%F0%9F%8E%A3%3C/text%3E%3C/svg%3E">
 <style>
 :root{
@@ -1159,8 +1130,8 @@ textarea{
 <div class="shell" id="app-shell" style="display:none">
   <aside class="sidebar">
     <div class="brand-row">
-      <h1 class="brand-title">${APP_NAME}</h1>
-      <span class="version-label">${APP_VERSION_LABEL}</span>
+      <h1 class="brand-title">__APP_NAME__</h1>
+      <span class="version-label">__APP_VERSION_LABEL__</span>
     </div>
     <p class="brand-copy">更聚焦的 Docker 管理台。先看概况，再分别管理登录、领取、保活、双倍、临期和鱼吧签到任务。</p>
 
@@ -1571,7 +1542,7 @@ textarea{
 
 <script>
 (function () {
-  var TAB_ROUTE_MAP = ${JSON.stringify(DOCKER_WEBUI_PAGE_ROUTES)};
+  var TAB_ROUTE_MAP = __DOCKER_WEBUI_PAGE_ROUTES_JSON__;
   var PAGE_META = {
     overview: {
       title: '概况',
@@ -4368,5 +4339,4 @@ textarea{
 })();
 </script>
 </body>
-</html>`
-}
+</html>

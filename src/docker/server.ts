@@ -4,7 +4,7 @@ import { isCookieCloudReady } from '../core/cookie-cloud'
 import type { CollectGiftConfig, CookieCloudConfig, CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, ManualCookieConfig, YubaCheckInConfig, YubaStatusResponse } from '../core/types'
 import type { LogEntry } from './logger'
 import { getNextCronRuns, validateCronExpression } from './cron'
-import { DOCKER_WEBUI_PAGE_ROUTES, getHtml } from './html'
+import { DOCKER_WEBUI_PAGE_ROUTES, getHtml } from './webui'
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)

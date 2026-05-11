@@ -6,9 +6,9 @@
 
 ## Overview
 
-This project no longer has a standalone Vue/Electron renderer. The supported UI is the Docker WebUI served from `src/docker/html.ts`.
+This project no longer has a standalone Vue/Electron renderer. The supported UI is the Docker WebUI static document in `src/docker/webui/index.html`, served through the lightweight renderer in `src/docker/webui.ts`.
 
-The legacy Vue renderer guidelines below are retained only as historical references. For current UI changes, treat `src/docker/html.ts` as Docker runtime code and read the backend guidelines first.
+The legacy Vue renderer guidelines below are retained only as historical references. For current UI changes, treat `src/docker/webui/index.html` and `src/docker/webui.ts` as Docker runtime code and read the backend guidelines first.
 
 ---
 
@@ -38,7 +38,7 @@ Do not reintroduce `src/renderer/`, Vue, Vite, Pinia, Vuetify, or Electron rende
 
 ## Current Docker WebUI Accessibility Checklist
 
-When changing `src/docker/html.ts`, keep the plain HTML controls accessible:
+When changing `src/docker/webui/index.html`, keep the plain HTML controls accessible:
 
 - Interactive controls need visible `:focus-visible` states, including custom switches and icon-only buttons.
 - Async feedback needs a live region (`role="status"` / `aria-live="polite"`), especially toast and validation/status text.

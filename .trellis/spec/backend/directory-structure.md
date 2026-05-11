@@ -28,10 +28,14 @@ src/
 │   └── types.ts
 ├── docker/
 │   ├── cron.ts
-│   ├── html.ts
+│   ├── config-store.ts
 │   ├── index.ts
 │   ├── logger.ts
-│   └── server.ts
+│   ├── runtime.ts
+│   ├── server.ts
+│   ├── webui.ts
+│   └── webui/
+│       └── index.html
 ```
 
 ---
@@ -45,9 +49,12 @@ src/
 
 Examples:
 
-- `src/docker/index.ts` owns startup, config loading, cron creation, and `AppContext` assembly.
+- `src/docker/index.ts` owns environment parsing and calls the Docker runtime.
+- `src/docker/runtime.ts` owns startup, cron creation, and `AppContext` assembly.
+- `src/docker/config-store.ts` owns config file IO and config-update assembly.
 - `src/docker/server.ts` is limited to HTTP route registration and delegates work through `AppContext`.
-- `src/docker/html.ts` owns the Docker WebUI document and client-side script served by Express.
+- `src/docker/webui/index.html` owns the Docker WebUI document and client-side script.
+- `src/docker/webui.ts` owns template loading plus runtime injection for app version and page routes.
 - `src/core/job.ts` runs the gift workflow without knowing which HTTP route or scheduler triggered it.
 
 ---
@@ -64,7 +71,7 @@ Examples:
 ## Examples
 
 - Shared business logic: `src/core/job.ts`, `src/core/api.ts`, `src/core/gift.ts`
-- Docker runtime wiring: `src/docker/index.ts`, `src/docker/server.ts`, `src/docker/logger.ts`, `src/docker/html.ts`
+- Docker runtime wiring: `src/docker/index.ts`, `src/docker/runtime.ts`, `src/docker/server.ts`, `src/docker/logger.ts`, `src/docker/webui.ts`, `src/docker/webui/index.html`
 
 ---
 
@@ -219,7 +226,7 @@ await collectGiftViaDanmu(cookie, fans[0].roomId)
 ### 1. Scope / Trigger
 
 - Trigger: Any change to Docker WebUI routes or client flows that fetch Douyu-backed status/list data, especially fans, backpack, double-card, or Yuba status.
-- Scope: Request throttling belongs in `src/docker/index.ts` at the Docker runtime boundary. Douyu parsing remains in `src/core/`; route registration remains thin in `src/docker/server.ts`; client-side lazy loading belongs in `src/docker/html.ts`.
+- Scope: Request throttling belongs in `src/docker/runtime.ts` at the Docker runtime boundary. Douyu parsing remains in `src/core/`; route registration remains thin in `src/docker/server.ts`; client-side lazy loading belongs in `src/docker/webui/index.html`.
 
 ### 2. Signatures
 

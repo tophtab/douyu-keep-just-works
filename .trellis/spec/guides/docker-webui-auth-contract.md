@@ -8,7 +8,7 @@
 
 This contract applies when changing any of:
 
-- Docker WebUI login flow in `src/docker/html.ts`
+- Docker WebUI login flow in `src/docker/webui/index.html`
 - Docker auth/session routes in `src/docker/server.ts`
 - Docker login-cookie / CookieCloud routes in `src/docker/server.ts`
 - Docker fan-status / gift-status routes in `src/docker/server.ts`
@@ -461,7 +461,7 @@ Non-goals:
 
 File:
 
-- `src/docker/html.ts`
+- `src/docker/webui/index.html`
 
 Required behavior:
 
@@ -677,4 +677,4 @@ Assertion points:
 - `src/core/job.ts`
 - `src/docker/index.ts`
 - `src/docker/server.ts`
-- `src/docker/html.ts`
+- `src/docker/webui/index.html`

@@ -15,8 +15,11 @@
     "type-check": "tsc -p tsconfig.docker.json --noEmit",
     "test": "npm run build:docker",
     "build": "npm run build:docker",
-    "build:docker": "rm -rf build/docker && tsc -p tsconfig.docker.json",
+    "build:docker": "rm -rf build/docker && tsc -p tsconfig.docker.json && cp -R src/docker/webui build/docker/docker/webui",
     "start": "node build/docker/docker/index.js"
+  },
+  "engines": {
+    "node": ">=24 <25"
   },
   "dependencies": {
     "axios": "^1.4.0",
@@ -28,7 +31,7 @@
   "devDependencies": {
     "@antfu/eslint-config": "^0.40.2",
     "@types/express": "^4.17.25",
-    "@types/node": "^18.19.130",
+    "@types/node": "^24.0.0",
     "@types/ws": "^8.18.1",
     "eslint": "^8.46.0",
     "typescript": "^5.1.6"

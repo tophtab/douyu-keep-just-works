@@ -11,7 +11,7 @@ This contract covers:
 - persisted Docker config shape in `src/core/types.ts`
 - Docker HTTP APIs in `src/docker/server.ts`
 - medal reconciliation logic in `src/core/medal-sync.ts`
-- Docker WebUI request/response expectations in `src/docker/html.ts`
+- Docker WebUI request/response expectations in `src/docker/webui/index.html`
 
 It applies when the WebUI manages:
 
@@ -41,7 +41,7 @@ Boundary owners:
 - Douyu fetch + merge rules: `src/core/medal-sync.ts`
 - config persistence + selective scheduler reload: `src/docker/index.ts`
 - HTTP validation + JSON responses: `src/docker/server.ts`
-- UI forms + save/sync actions: `src/docker/html.ts`
+- UI forms + save/sync actions: `src/docker/webui/index.html`
 
 ---
 
@@ -453,6 +453,6 @@ Manual assertions:
 - `src/core/job.ts`
 - `src/docker/index.ts`
 - `src/docker/server.ts`
-- `src/docker/html.ts`
+- `src/docker/webui/index.html`
 - `config.example.json`
 - `README.md`

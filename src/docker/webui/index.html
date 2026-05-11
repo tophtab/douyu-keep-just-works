@@ -1712,6 +1712,8 @@ textarea{
     fansStatusDetailsLoaded: false,
     yubaStatusLoading: false,
     yubaStatusLoaded: false,
+    fansListError: '',
+    yubaStatusError: '',
     managedLoading: false,
     resourceRequests: {
       fansSync: createResourceRequest(),
@@ -1937,6 +1939,7 @@ textarea{
       && hasCookieSourceConfigured(getRawConfig())
       && !getManagedFans().length
       && !hasLoadedFansList()
+      && !state.fansListError
       && !state.managedLoading
       && !resource.pending
     );
@@ -1948,7 +1951,38 @@ textarea{
     }
   }
 
+  function shouldLoadYubaStatusForActiveTab() {
+    var rawConfig = getRawConfig();
+    var config = getManagedConfig().yubaCheckIn || rawConfig.yubaCheckIn || { mode: 'followed' };
+    var resource = getResourceRequest('yubaStatus');
+    return Boolean(
+      state.activeTab === 'yuba'
+      && hasCookieSourceConfigured(rawConfig)
+      && String(config.mode || 'followed') === 'followed'
+      && !state.yubaStatusLoaded
+      && !state.yubaStatusLoading
+      && !state.yubaStatusError
+      && !resource.pending
+    );
+  }
+
+  function ensureYubaStatusForActiveTab() {
+    if (shouldLoadYubaStatusForActiveTab()) {
+      loadYubaStatus(false);
+    }
+  }
+
+  function clearResourceError(key) {
+    if (key === 'fansList') {
+      state.fansListError = '';
+    }
+    if (key === 'yubaStatus') {
+      state.yubaStatusError = '';
+    }
+  }
+
   function markResourceLoaded(key) {
+    clearResourceError(key);
     getResourceRequest(key).fetchedAt = Date.now();
   }
 
@@ -1957,6 +1991,7 @@ textarea{
     resource.pending = null;
     resource.fetchedAt = 0;
     resource.requestSeq += 1;
+    clearResourceError(key);
   }
 
   function invalidateResourceRequests(keys) {
@@ -2022,6 +2057,8 @@ textarea{
     state.fansStatusDetailsLoaded = false;
     state.yubaStatusLoading = false;
     state.yubaStatusLoaded = false;
+    state.fansListError = '';
+    state.yubaStatusError = '';
     state.managedLoading = false;
     renderRefreshButton();
   }
@@ -2038,6 +2075,8 @@ textarea{
     state.fansStatusDetailsLoaded = false;
     state.yubaStatusLoading = false;
     state.yubaStatusLoaded = false;
+    state.fansListError = '';
+    state.yubaStatusError = '';
     state.managedLoading = false;
   }
 
@@ -2207,6 +2246,8 @@ textarea{
       syncPathWithTab(nextTab, replacePath);
     }
 
+    renderActiveTabPage();
+
     if (skipLazyLoad) {
       return;
     }
@@ -2218,9 +2259,7 @@ textarea{
       loadFansStatus(false);
     }
     ensureFansListForActiveTab();
-    if (nextTab === 'yuba' && hasCookieSourceConfigured(getRawConfig()) && !state.yubaStatusLoaded && !state.yubaStatusLoading) {
-      loadYubaStatus(false);
-    }
+    ensureYubaStatusForActiveTab();
     if (nextTab === 'logs') {
       loadLogs();
     }
@@ -2786,9 +2825,16 @@ textarea{
       return;
     }
 
+    if (state.yubaStatusError && !state.yubaStatusLoaded) {
+      byId('yuba-note').textContent = '鱼吧列表加载失败。';
+      byId('yuba-table-wrap').innerHTML = '<div class="empty">加载鱼吧列表失败：' + escapeHtml(state.yubaStatusError) + '。请点击顶部“刷新”重试。</div>';
+      return;
+    }
+
     if (!state.yubaStatusLoaded) {
       byId('yuba-note').textContent = '当前会通过 HTTP 接口拉取全部已关注鱼吧，再逐个检测签到状态并执行签到。';
-      byId('yuba-table-wrap').innerHTML = '<div class="empty">点击顶部“刷新”或重新进入页面后，这里会展示鱼吧等级、经验和签到状态。</div>';
+      byId('yuba-table-wrap').innerHTML = '<div class="empty">正在准备加载鱼吧列表，也可以点击刷新手动加载。</div>';
+      ensureYubaStatusForActiveTab();
       return;
     }
 
@@ -2828,6 +2874,11 @@ textarea{
     }
 
     if (!fans.length) {
+      if (state.fansListError) {
+        byId('keepalive-note').textContent = '粉丝牌列表加载失败。';
+        byId('keepalive-table-wrap').innerHTML = '<div class="empty">加载粉丝牌列表失败：' + escapeHtml(state.fansListError) + '。请点击顶部“刷新”重试。</div>';
+        return;
+      }
       byId('keepalive-note').textContent = hasLoadedFansList() ? '当前没有可用粉丝牌。' : '粉丝牌列表尚未加载。';
       byId('keepalive-table-wrap').innerHTML = hasLoadedFansList()
         ? '<div class="empty">已同步，但当前账号没有可用粉丝牌数据。</div>'
@@ -2882,6 +2933,12 @@ textarea{
 
     if (!fans.length) {
       var doubleFansLoaded = hasLoadedFansList();
+      if (state.fansListError) {
+        byId('double-note').textContent = '粉丝牌列表加载失败。';
+        byId('double-table-wrap').innerHTML = '<div class="empty">加载粉丝牌列表失败：' + escapeHtml(state.fansListError) + '。请点击顶部“刷新”重试。</div>';
+        setDoubleModeEmptyState('按权重模式会在当前开双倍的房间之间重新分配。', '粉丝牌列表加载失败，刷新成功后会显示当前权重预览。');
+        return;
+      }
       byId('double-note').textContent = doubleFansLoaded ? '当前没有可用粉丝牌。' : '粉丝牌列表尚未加载。';
       byId('double-table-wrap').innerHTML = doubleFansLoaded
         ? '<div class="empty">已同步，但当前账号没有可用粉丝牌数据。</div>'
@@ -3182,6 +3239,26 @@ textarea{
     renderLogsPage();
   }
 
+  function renderActiveTabPage() {
+    if (state.activeTab === 'overview') {
+      renderOverview();
+    } else if (state.activeTab === 'login') {
+      renderLoginPage();
+    } else if (state.activeTab === 'collect') {
+      renderCollectPage();
+    } else if (state.activeTab === 'yuba') {
+      renderYubaPage();
+    } else if (state.activeTab === 'keepalive') {
+      renderKeepalivePage();
+    } else if (state.activeTab === 'double-card') {
+      renderDoublePage();
+    } else if (state.activeTab === 'expiring-gift') {
+      renderExpiringGiftPage();
+    } else if (state.activeTab === 'logs') {
+      renderLogsPage();
+    }
+  }
+
   function syncCookieCloudToLoginCookies(showToast, rethrowError) {
     var rawConfig = getRawConfig();
     if (!getCookieCloudConfig(rawConfig).active) {
@@ -3401,6 +3478,7 @@ textarea{
     var requestSeq = resource.requestSeq + 1;
     resource.requestSeq = requestSeq;
     state.managedLoading = true;
+    state.fansListError = '';
     renderAll();
     var pending = requestJson('/api/fans/reconcile', {
       method: 'POST'
@@ -3421,11 +3499,12 @@ textarea{
       if (resource.requestSeq !== requestSeq) {
         return;
       }
-      state.managedLoading = false;
-      renderAll();
       if (isUnauthorizedError(error)) {
         return;
       }
+      state.managedLoading = false;
+      state.fansListError = error.message || String(error);
+      renderAll();
       toast('同步粉丝牌失败：' + error.message, false);
     });
     return trackResourceRequest(resource, requestSeq, pending);
@@ -3452,6 +3531,7 @@ textarea{
     var requestSeq = resource.requestSeq + 1;
     resource.requestSeq = requestSeq;
     state.managedLoading = true;
+    state.fansListError = '';
     renderAll();
     var pending = requestJson('/api/fans').then(function (data) {
       if (resource.requestSeq !== requestSeq) {
@@ -3468,11 +3548,12 @@ textarea{
       if (resource.requestSeq !== requestSeq) {
         return;
       }
-      state.managedLoading = false;
-      renderAll();
       if (isUnauthorizedError(error)) {
         return;
       }
+      state.managedLoading = false;
+      state.fansListError = error.message || String(error);
+      renderAll();
       toast('加载粉丝牌列表失败：' + error.message, false);
     });
     return trackResourceRequest(resource, requestSeq, pending);
@@ -3588,6 +3669,7 @@ textarea{
     var requestSeq = resource.requestSeq + 1;
     resource.requestSeq = requestSeq;
     state.yubaStatusLoading = true;
+    state.yubaStatusError = '';
     renderYubaPage();
     var pending = requestJson('/api/yuba/status').then(function (data) {
       if (resource.requestSeq !== requestSeq) {
@@ -3605,14 +3687,15 @@ textarea{
       if (resource.requestSeq !== requestSeq) {
         return;
       }
+      if (isUnauthorizedError(error)) {
+        return;
+      }
       state.yubaStatusLoading = false;
+      state.yubaStatusError = error.message || String(error);
       if (!state.yubaStatusLoaded) {
         state.yubaStatus = [];
       }
       renderYubaPage();
-      if (isUnauthorizedError(error)) {
-        return;
-      }
       toast('加载鱼吧状态失败：' + error.message, false);
     });
     return trackResourceRequest(resource, requestSeq, pending);

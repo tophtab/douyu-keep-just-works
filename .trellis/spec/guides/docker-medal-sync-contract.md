@@ -706,10 +706,13 @@ loadYubaStatus(showToast)
 - Backend status/list caches remain responsible for reducing upstream Douyu request frequency.
 - Late responses must be ignored with a per-resource request sequence if the resource was invalidated after the request started.
 - Existing rows remain visible during background refresh when a previous successful snapshot exists.
+- Tab navigation must re-render the newly active page after updating `state.activeTab` and panel visibility. Lazy-load guards alone are not enough, because overview/status requests can populate shared state while hidden keepalive, double-card, or yuba panels still contain stale empty DOM from an earlier full render.
 - Overview/expiring status loads (`/api/fans/status/base` + `/api/fans/status/details`) and task room-list loads (`/api/fans`) are related but distinct client resources:
   - a non-empty fans-status response may seed the task room list and mark `fansList` loaded
   - an empty fans-status response must not mark `fansList` loaded, because keepalive/double-card still need a dedicated `/api/fans` load before deciding their room tables are truly empty
 - Keepalive and double-card empty states must schedule or perform a post-render fans-list ensure when cookies are configured, no rows are visible, no fans-list snapshot has loaded, and no fans-list request is pending.
+- Yuba empty state must schedule or perform a post-render yuba-status ensure when cookies are configured, the followed-mode page is active, no yuba snapshot has loaded, and no yuba-status request is pending.
+- First-load fans-list and yuba-status failures must leave an inline page-visible error with a retry hint; do not rely only on a transient toast for failures that otherwise look like a stuck "preparing to load" state.
 - Saving manual cookies or CookieCloud config must clear cookie-backed WebUI snapshots/resource metadata so stale empty fans/yuba state cannot block the next page load.
 
 4. Validation & Error Matrix
@@ -717,24 +720,30 @@ loadYubaStatus(showToast)
 | Case | Expected result |
 |------|-----------------|
 | Multiple clicks while visible refresh is loading | at most one in-flight browser request per resource |
+| User opens overview, fans status succeeds, then switches to keepalive/double-card | newly active task page re-renders from shared fans state immediately; it must not keep stale "preparing to load" DOM until F5 |
 | Re-entering overview/expiring after a prior successful load | browser may call `/api/fans/status/base`; backend cache may answer without new Douyu fan-out |
 | Overview fans status returns empty, then user enters keepalive/double-card | WebUI still calls `/api/fans` for the task room list |
 | `/api/fans` returns empty for keepalive/double-card | WebUI marks `fansList` loaded and renders the true empty-account state |
+| User enters yuba with configured cookies and no loaded snapshot | WebUI calls `/api/yuba/status` and shows loading, then rows or an inline error |
 | Refresh fails after a previous successful fans status load | table keeps the previous rows and shows the failure toast |
 | Cookie source disappears | client resource metadata and visible fans/yuba snapshots are cleared |
 
 5. Good / Base / Bad Cases
 
 - Good: lazy tab load calls `loadFansStatus(false)` when status is needed and lets the backend cache decide whether Douyu must be queried.
+- Good: `setActiveTab()` updates `state.activeTab`, toggles panels, then re-renders the active page before deciding whether a lazy request is still needed.
 - Good: keepalive/double-card empty rendering performs a guarded fans-list ensure when the task table has no rows and `fansList` has not loaded.
+- Good: yuba empty rendering performs a guarded yuba-status ensure when no followed-group snapshot has loaded.
 - Base: task trigger calls `loadFansStatus(false)` after backend status was invalidated by the task.
 - Bad: marking `fansList` loaded after `/api/fans/status` returns an empty `fans` array, permanently suppressing `/api/fans` on keepalive/double-card pages.
 - Bad: clearing `state.fansStatus` before every refresh, causing the UI to flash empty while an avoidable duplicate request runs.
+- Bad: changing `state.activeTab` without re-rendering the newly visible panel, leaving stale hidden-panel HTML visible until a full browser refresh.
 
 6. Tests Required
 
 - Run `npm run lint`, `npm run type-check`, and `npm run build:docker`.
 - Smoke-test a deep-linked WebUI page and verify no browser console errors.
+- Smoke-test SPA navigation from overview to keepalive, double-card, and yuba after data has loaded; the target page must show rows or an active loading/error state without requiring F5.
 - Verify repeated refresh attempts cannot create duplicate visible-resource requests while the button is busy.
 
 7. Wrong vs Correct
@@ -769,6 +778,24 @@ markResourceLoaded('fansStatus');
 if (state.fansStatus.length) {
   markResourceLoaded('fansList');
 }
+```
+
+Wrong:
+
+```js
+state.activeTab = nextTab;
+toggleVisiblePanel(nextTab);
+ensureFansListForActiveTab();
+```
+
+Correct:
+
+```js
+state.activeTab = nextTab;
+toggleVisiblePanel(nextTab);
+renderActiveTabPage();
+ensureFansListForActiveTab();
+ensureYubaStatusForActiveTab();
 ```
 
 ---

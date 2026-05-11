@@ -1326,3 +1326,36 @@ Added progressive Docker WebUI fan status loading: a fast medal-list phase, a de
 ### Next Steps
 
 - None - task complete
+
+
+## Session 35: Revert refresh sync split
+
+**Date**: 2026-05-11
+**Task**: Revert refresh sync split
+**Branch**: `master`
+
+### Summary
+
+Reverted the split refresh/sync UI change so the WebUI refresh button continues to run fan reconciliation, then cleaned up the stale placeholder task and reviewed the current Docker WebUI with web design guidelines.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cdb9b1a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -24,10 +24,11 @@ Improve Docker WebUI refresh behavior so reloading a deep-linked page, especiall
 
 ## Decisions
 
-* F5 startup skips automatic `POST /api/fans/reconcile`; reconciliation remains on explicit sync/refresh and save flows that already need config alignment.
+* F5 startup skips automatic `POST /api/fans/reconcile`; reconciliation remains on explicit sync and save flows that need config alignment.
 * Fans-list fetching uses a dedicated short TTL cache around `getFansList(cookie)`, shared by `/api/fans`, `/api/fans/reconcile`, and `/api/fans/status`.
 * The no-overview-flash fix uses early client-side tab activation, keeping `getHtml()` route-agnostic.
-* Current iteration scope is Approach A: frontend request gating and stale rendering. Explicit refresh-vs-sync semantics and progressive list-then-detail loading remain future options.
+* Current iteration scope is Approach A plus the light part of Approach B: frontend request gating/stale rendering, plus separating ordinary status refresh from explicit fan/config synchronization.
+* The toolbar has separate actions: status refresh uses read-only status/list endpoints, while "同步粉丝牌/任务配置" is the only toolbar action that calls `POST /api/fans/reconcile`.
 
 ## Research References
 
@@ -45,13 +46,14 @@ Improve Docker WebUI refresh behavior so reloading a deep-linked page, especiall
 * Deduplicate in-flight frontend requests by resource.
 * Add short TTL/cooldown for automatic refresh and repeated clicks.
 * Use latest-request guards so slow responses cannot overwrite newer state.
-* Decision for this iteration: implement Approach A only.
+* Decision for this iteration: implement Approach A.
 
 **Approach B: Split refresh from reconciliation**
 
 * Treat visible "刷新" as status refresh.
 * Keep room/config reconciliation on explicit sync, save, or a clearly labeled "同步粉丝牌/任务配置" action.
 * Avoid side-effecting `/api/fans/reconcile` for plain visual refresh.
+* Decision for this iteration: implement the light B split without redesigning all task-page controls.
 
 **Approach C: Progressive status API**
 
@@ -70,6 +72,8 @@ Improve Docker WebUI refresh behavior so reloading a deep-linked page, especiall
 * Frontend should avoid duplicate status/list requests from tab switches, startup lazy loads, double clicks, and overlapping refresh paths.
 * Frontend should keep the last successful table/list visible during refresh instead of blanking the page for avoidable loading states.
 * Manual refresh should stay possible, but repeated clicks while the same resource is loading should not create request bursts.
+* Ordinary toolbar refresh should be status/list-only and must not call `/api/fans/reconcile`.
+* Explicit toolbar sync should remain available for aligning medal rooms with keepalive, double-card, and expiring-gift task config.
 
 ## Acceptance Criteria (evolving)
 
@@ -84,6 +88,8 @@ Improve Docker WebUI refresh behavior so reloading a deep-linked page, especiall
 * [x] Repeated manual refresh clicks while fans status is loading issue at most one active `/api/fans/status` request from the browser.
 * [x] Fans/overview pages preserve the last successful visible rows while a background refresh is pending.
 * [x] Late responses from older refreshes cannot overwrite newer status in the UI.
+* [x] Ordinary toolbar refresh no longer calls side-effecting `POST /api/fans/reconcile`.
+* [x] A separate toolbar sync action still reconciles fan medals with task room config.
 
 ## Definition of Done
 
@@ -98,7 +104,6 @@ Improve Docker WebUI refresh behavior so reloading a deep-linked page, especiall
 * Changing Douyu API parsing unrelated to startup refresh behavior.
 * Changing CookieCloud sync behavior except as needed for startup ordering.
 * Progressive list-then-detail status loading.
-* Splitting the toolbar into separate status refresh and fan/config synchronization controls.
 * Backend double-card status fan-out throttling.
 
 ## Technical Notes
@@ -111,6 +116,7 @@ Improve Docker WebUI refresh behavior so reloading a deep-linked page, especiall
 * Frontend request smoothing now keeps per-resource metadata for fans sync, fans list, fans status, and yuba status in `src/docker/html.ts`.
 * Automatic frontend reads use a 30-second fresh-data window before issuing another browser request; manual refresh and task-trigger reloads can force a refresh while still reusing an in-flight request.
 * The global refresh button is disabled while the visible tab's backing resource is already loading, preventing click bursts.
+* The toolbar sync button calls `syncFansAndRefresh()`; ordinary `refreshOverviewSurface()` only calls read-only status/list APIs for the current page.
 * Existing rows stay visible during background fans/yuba/list refreshes when a previous successful snapshot exists.
 * Candidate no-flash fixes:
   * Early client-side fix: after DOM helpers and auth state are initialized, call `setActiveTab(state.activeTab, { syncPath: false })` before protected data requests complete, or hide the app shell until this activation happens.

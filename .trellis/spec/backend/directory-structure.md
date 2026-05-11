@@ -224,6 +224,8 @@ await collectGiftViaDanmu(cookie, fans[0].roomId)
 ### 2. Signatures
 
 ```typescript
+AppContext.fetchFansStatusBase(): Promise<FansStatusResponse>
+AppContext.fetchFansStatusDetails(): Promise<FansStatusResponse>
 AppContext.fetchFansStatus(): Promise<FansStatusResponse>
 AppContext.fetchYubaStatus(): Promise<YubaStatusResponse>
 ```
@@ -235,6 +237,8 @@ AppContext.fetchYubaStatus(): Promise<YubaStatusResponse>
 - General WebUI initialization must not eagerly fetch Yuba status. Load Yuba status only when the user opens the Yuba page or after Yuba-specific task actions.
 - Cache invalidation must happen when cookies, CookieCloud-derived login state, related task configuration, fan-room synchronization, or status-changing tasks mutate the data shown by the endpoint.
 - Response shapes must stay compatible with the existing Docker routes; caching must not add wrapper fields that the WebUI has to understand.
+- Progressive fans status may split the read path into a list phase and a detail phase. The list phase may return `FanStatus` rows without `doubleActive` and with `complete: false`; the detail phase fills `doubleActive`, `doubleExpireTime`, and `gift`, stores the same full snapshot used by `/api/fans/status`, and returns `complete: true`.
+- The list phase must not wait for backpack or per-room double-card calls when no complete status snapshot is fresh. It should use only the shared medal-list cache so large fan lists render quickly.
 - Do not add Redis, databases, LRU libraries, or background polling for this guardrail unless requirements explicitly change.
 
 ### 4. Validation & Error Matrix
@@ -242,6 +246,9 @@ AppContext.fetchYubaStatus(): Promise<YubaStatusResponse>
 | Case | Expected result |
 |------|-----------------|
 | First status request and no valid cache | Fetch Douyu-backed status, store one snapshot, return existing response shape |
+| Progressive base request and no complete cache | Return medal rows after the shared fan-list read; do not call backpack or double-card APIs |
+| Progressive details request and no complete cache | Fetch backpack plus bounded double-card fan-out, store one complete snapshot, and return it |
+| Progressive base request while complete cache is fresh | Return the complete snapshot immediately and let the client skip the detail request |
 | Repeated request before TTL expiry | Return the cached snapshot without new Douyu requests |
 | Concurrent requests while fetch is pending | Share the same pending promise; do not start duplicate upstream fan-out |
 | TTL expires but no user requests status | Do nothing; do not refresh in the background |
@@ -253,8 +260,11 @@ AppContext.fetchYubaStatus(): Promise<YubaStatusResponse>
 ### 5. Good/Base/Bad Cases
 
 - Good: `/api/fans/status` keeps one short-lived snapshot and coalesces overlapping WebUI refreshes.
+- Good: WebUI overview calls `/api/fans/status/base` first, renders the table, then calls `/api/fans/status/details` to fill backpack and double-card state.
 - Base: `/api/yuba/status` is loaded lazily from the Yuba page and uses a longer TTL because it can fan out across many followed groups.
+- Base: Existing callers can continue to call `/api/fans/status` for the full response shape.
 - Bad: WebUI startup calls fans status and Yuba status for every page load, or each browser tab starts its own full Douyu fan-out while another identical request is still in flight.
+- Bad: The base phase calls `getGiftStatus()` or `checkDoubleCard()` before returning list rows.
 
 ### 6. Tests Required
 

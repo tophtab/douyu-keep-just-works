@@ -1718,6 +1718,8 @@ textarea{
     yubaStatus: [],
     fansStatusLoading: false,
     fansStatusLoaded: false,
+    fansStatusDetailsLoading: false,
+    fansStatusDetailsLoaded: false,
     yubaStatusLoading: false,
     yubaStatusLoaded: false,
     managedLoading: false,
@@ -2018,6 +2020,8 @@ textarea{
     state.yubaStatus = [];
     state.fansStatusLoading = false;
     state.fansStatusLoaded = false;
+    state.fansStatusDetailsLoading = false;
+    state.fansStatusDetailsLoaded = false;
     state.yubaStatusLoading = false;
     state.yubaStatusLoaded = false;
     state.managedLoading = false;
@@ -2087,6 +2091,48 @@ textarea{
       config: getManagedConfig(),
       fans: Array.isArray(fans) ? fans : []
     };
+  }
+
+  function mergeFansWithExistingStatus(fans) {
+    var previousByRoom = {};
+    var i;
+    for (i = 0; i < state.fansStatus.length; i += 1) {
+      previousByRoom[String(state.fansStatus[i].roomId)] = state.fansStatus[i];
+    }
+
+    return (Array.isArray(fans) ? fans : []).map(function (fan) {
+      var previous = previousByRoom[String(fan.roomId)];
+      if (!previous || typeof fan.doubleActive === 'boolean') {
+        return fan;
+      }
+      var merged = Object.assign({}, fan);
+      if (typeof previous.doubleActive === 'boolean') {
+        merged.doubleActive = previous.doubleActive;
+      }
+      if (previous.doubleExpireTime) {
+        merged.doubleExpireTime = previous.doubleExpireTime;
+      }
+      return merged;
+    });
+  }
+
+  function applyFansStatusBase(data) {
+    var fans = data && data.fans ? data.fans : [];
+    state.fansStatus = mergeFansWithExistingStatus(fans);
+    if (data && data.gift && data.complete) {
+      state.giftStatus = data.gift;
+    }
+    setManagedFans(state.fansStatus);
+    state.fansStatusLoaded = true;
+    state.fansStatusDetailsLoaded = Boolean(data && data.complete);
+  }
+
+  function applyFansStatusDetails(data) {
+    state.fansStatus = data && data.fans ? data.fans : [];
+    state.giftStatus = data && data.gift ? data.gift : null;
+    setManagedFans(state.fansStatus);
+    state.fansStatusLoaded = true;
+    state.fansStatusDetailsLoaded = true;
   }
 
   function isTaskActive(config) {
@@ -2301,6 +2347,9 @@ textarea{
 
   function buildBackpackRowsTable(giftStatus) {
     if (!giftStatus) {
+      if (state.fansStatusDetailsLoading) {
+        return '<div class="empty">正在加载背包明细…</div>';
+      }
       return '<div class="empty">尚未加载背包明细。点击顶部“刷新”后会展示可见礼物行。</div>';
     }
     if (giftStatus.error) {
@@ -2508,7 +2557,10 @@ textarea{
       rows.push(buildNumericCell('排名', item.rank));
       rows.push(buildNumericCell('今日亲密度', item.today));
       rows.push(buildNumericCell('亲密度', item.intimacy));
-      rows.push(buildTableCell('双倍状态', buildStatusPill(item.doubleActive ? '双倍中' : '未开启', item.doubleActive ? 'ok' : 'off'), 'status-cell'));
+      var doubleStatus = typeof item.doubleActive === 'boolean'
+        ? buildStatusPill(item.doubleActive ? '双倍中' : '未开启', item.doubleActive ? 'ok' : 'off')
+        : buildStatusPill('检测中', 'warn');
+      rows.push(buildTableCell('双倍状态', doubleStatus, 'status-cell'));
       rows.push('</tr>');
     }
     return '<div class="table-shell"><table class="table table-fixed fans-status-table">' + colgroup + '<thead>' + header + '</thead><tbody>' + rows.join('') + '</tbody></table></div>';
@@ -2595,12 +2647,17 @@ textarea{
       return;
     }
 
-    var giftSummaryCount = state.giftStatus && state.giftStatus.error
-      ? '未知'
-      : String(state.giftStatus && typeof state.giftStatus.count === 'number' ? state.giftStatus.count + ' 个' : '0 个');
-    var giftSummaryExpire = state.giftStatus && state.giftStatus.error
-      ? '未知'
-      : (state.giftStatus && state.giftStatus.expireTime ? formatDate(state.giftStatus.expireTime) : '无');
+    var detailsUpdating = state.fansStatusDetailsLoading && !state.fansStatusDetailsLoaded;
+    var giftSummaryCount = detailsUpdating && !state.giftStatus
+      ? '检测中'
+      : (state.giftStatus && state.giftStatus.error
+          ? '未知'
+          : String(state.giftStatus && typeof state.giftStatus.count === 'number' ? state.giftStatus.count + ' 个' : '0 个'));
+    var giftSummaryExpire = detailsUpdating && !state.giftStatus
+      ? '检测中'
+      : (state.giftStatus && state.giftStatus.error
+          ? '未知'
+          : (state.giftStatus && state.giftStatus.expireTime ? formatDate(state.giftStatus.expireTime) : '无'));
 
     byId('overview-gift-summary').innerHTML = buildOverviewGiftSummary(giftSummaryCount, giftSummaryExpire);
 
@@ -2613,9 +2670,12 @@ textarea{
     }
 
     var statusPrefix = state.managedLoading || state.fansStatusLoading ? '正在后台更新，当前显示上次结果。' : '';
+    var detailText = state.fansStatusDetailsLoading && !state.fansStatusDetailsLoaded
+      ? '背包与双倍状态正在补齐。'
+      : '右侧已显示荧光棒库存与过期时间。';
     byId('overview-fans-note').textContent = statusPrefix + (state.giftStatus && state.giftStatus.error
       ? ('当前共 ' + state.fansStatus.length + ' 个粉丝牌房间。背包明细暂不可用：' + state.giftStatus.error)
-      : ('当前共 ' + state.fansStatus.length + ' 个粉丝牌房间，右侧已显示荧光棒库存与过期时间。'));
+      : ('当前共 ' + state.fansStatus.length + ' 个粉丝牌房间，' + detailText));
     byId('overview-fans-table-wrap').innerHTML = buildFansStatusTable(state.fansStatus);
   }
 
@@ -3406,6 +3466,8 @@ textarea{
       state.fansStatus = [];
       state.giftStatus = null;
       state.fansStatusLoaded = false;
+      state.fansStatusDetailsLoaded = false;
+      state.fansStatusDetailsLoading = false;
       renderOverview();
       renderExpiringGiftPage();
       if (showToast) {
@@ -3427,17 +3489,36 @@ textarea{
     var requestSeq = resource.requestSeq + 1;
     resource.requestSeq = requestSeq;
     state.fansStatusLoading = true;
+    state.fansStatusDetailsLoading = true;
     renderOverview();
     renderExpiringGiftPage();
-    var pending = requestJson('/api/fans/status').then(function (data) {
+    var pending = requestJson('/api/fans/status/base').then(function (data) {
       if (resource.requestSeq !== requestSeq) {
         return;
       }
-      state.fansStatus = data && data.fans ? data.fans : [];
-      state.giftStatus = data && data.gift ? data.gift : null;
-      setManagedFans(state.fansStatus);
-      state.fansStatusLoaded = true;
+      applyFansStatusBase(data);
+      renderOverview();
+      renderExpiringGiftPage();
+      if (data && data.complete) {
+        state.fansStatusLoading = false;
+        state.fansStatusDetailsLoading = false;
+        markResourceFresh('fansStatus');
+        markResourceFresh('fansList');
+        renderOverview();
+        renderExpiringGiftPage();
+        if (showToast) {
+          toast('粉丝牌状态已刷新', true);
+        }
+        return null;
+      }
+      return requestJson('/api/fans/status/details');
+    }).then(function (data) {
+      if (!data || resource.requestSeq !== requestSeq) {
+        return;
+      }
+      applyFansStatusDetails(data);
       state.fansStatusLoading = false;
+      state.fansStatusDetailsLoading = false;
       markResourceFresh('fansStatus');
       markResourceFresh('fansList');
       renderOverview();
@@ -3450,9 +3531,11 @@ textarea{
         return;
       }
       state.fansStatusLoading = false;
+      state.fansStatusDetailsLoading = false;
       if (!state.fansStatusLoaded) {
         state.fansStatus = [];
         state.giftStatus = null;
+        state.fansStatusDetailsLoaded = false;
       }
       renderOverview();
       renderExpiringGiftPage();
@@ -3534,6 +3617,8 @@ textarea{
         state.fansStatus = [];
         state.giftStatus = null;
         state.fansStatusLoaded = false;
+        state.fansStatusDetailsLoaded = false;
+        state.fansStatusDetailsLoading = false;
         state.yubaStatus = [];
         state.yubaStatusLoaded = false;
         renderAll();

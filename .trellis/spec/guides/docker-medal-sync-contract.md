@@ -426,6 +426,58 @@ Notes:
 - when fluorescent stick count exists but no valid expiry field exists, omit `gift.expireTime`
 - WebUI overview renders `gift.expireTime` with Shanghai-time formatting and displays `无` when the field is omitted
 
+### `GET /api/fans/status/base`
+
+Purpose:
+
+- return the current medal list quickly for progressive WebUI rendering
+- reuse the complete `/api/fans/status` snapshot when it is still fresh
+- otherwise reuse only the shared medal-list cache and avoid backpack or double-card fan-out
+
+Base response when no complete snapshot is fresh:
+
+```json
+{
+  "fans": [
+    {
+      "roomId": 71415,
+      "name": "主播A",
+      "level": 18,
+      "rank": 2,
+      "intimacy": "12345/15000",
+      "today": 450
+    }
+  ],
+  "gift": {},
+  "complete": false,
+  "statusPhase": "list"
+}
+```
+
+Contracts:
+
+- `fans[].doubleActive` is optional in this response. The WebUI must render an in-progress state when it is absent.
+- If the full status cache is fresh, this endpoint may return the same complete payload as `/api/fans/status` with `complete: true`, allowing the client to skip the detail call.
+- Failure to fetch the medal list fails the whole response with the same error behavior as `/api/fans/status`.
+
+### `GET /api/fans/status/details`
+
+Purpose:
+
+- fill the backpack summary and per-room double-card state after the medal rows are already visible
+- share the same complete status cache as `/api/fans/status`
+
+Success response:
+
+- Same shape as `GET /api/fans/status`
+- Includes `complete: true` and `statusPhase: "details"`
+
+Contracts:
+
+- Concurrent detail requests share the same pending complete-status promise.
+- Backpack failure after a successful medal list remains a degraded `200` with `gift.error`.
+- Per-room double-card lookup failures remain row-level degraded results with `doubleActive: false` and a system log entry.
+
 ### `GET /api/yuba/status`
 
 Files:

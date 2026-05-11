@@ -47,6 +47,8 @@ export interface AppContext {
   triggerExpiringGift(): Promise<void>
   triggerYubaCheckIn(): Promise<void>
   fetchFans(): Promise<Fans[]>
+  fetchFansStatusBase(): Promise<FansStatusResponse>
+  fetchFansStatusDetails(): Promise<FansStatusResponse>
   fetchFansStatus(): Promise<FansStatusResponse>
   fetchYubaStatus(): Promise<YubaStatusResponse>
 }
@@ -576,6 +578,32 @@ export function createServer(ctx: AppContext): express.Express {
     try {
       const fans = await ctx.fetchFans()
       res.json(fans)
+    } catch (e: unknown) {
+      const message = errorMessage(e)
+      if (message === '请先配置 cookie') {
+        return res.status(400).json({ error: message })
+      }
+      res.status(500).json({ error: message })
+    }
+  })
+
+  app.get('/api/fans/status/base', async (_req, res) => {
+    try {
+      const fansStatus = await ctx.fetchFansStatusBase()
+      res.json(fansStatus)
+    } catch (e: unknown) {
+      const message = errorMessage(e)
+      if (message === '请先配置 cookie') {
+        return res.status(400).json({ error: message })
+      }
+      res.status(500).json({ error: message })
+    }
+  })
+
+  app.get('/api/fans/status/details', async (_req, res) => {
+    try {
+      const fansStatus = await ctx.fetchFansStatusDetails()
+      res.json(fansStatus)
     } catch (e: unknown) {
       const message = errorMessage(e)
       if (message === '请先配置 cookie') {

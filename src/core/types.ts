@@ -8,7 +8,7 @@ export interface Fans {
 }
 
 export interface FanStatus extends Fans {
-  doubleActive: boolean
+  doubleActive?: boolean
   doubleExpireTime?: number
 }
 
@@ -143,6 +143,8 @@ export interface YubaCheckInResult {
 export interface FansStatusResponse {
   fans: FanStatus[]
   gift: GiftStatus
+  complete?: boolean
+  statusPhase?: 'list' | 'details'
 }
 
 export interface YubaStatusResponse {

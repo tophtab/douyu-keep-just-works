@@ -223,6 +223,13 @@ async function getCachedStatus<T>(
   return await pending
 }
 
+function getFreshStatusSnapshot<T>(cache: StatusCacheEntry<T>, ttlMs: number): T | null {
+  if (!cache.snapshot) {
+    return null
+  }
+  return (Date.now() - cache.fetchedAt) < ttlMs ? cache.snapshot : null
+}
+
 async function mapWithConcurrency<T, R>(items: T[], concurrency: number, mapper: (item: T, index: number) => Promise<R>): Promise<R[]> {
   const results = Array.from<R>({ length: items.length })
   const size = Math.max(1, Math.min(concurrency, items.length))
@@ -237,6 +244,48 @@ async function mapWithConcurrency<T, R>(items: T[], concurrency: number, mapper:
   }))
 
   return results
+}
+
+function createFansListStatusResponse(fans: Fans[]): FansStatusResponse {
+  return {
+    fans: fans.map(fan => ({ ...fan })),
+    gift: {},
+    complete: false,
+    statusPhase: 'list',
+  }
+}
+
+async function buildFansStatusSnapshot(cookie: string, fans: Fans[]): Promise<FansStatusResponse> {
+  const fanRoomIds = fans.map(fan => fan.roomId)
+  const gift = await getGiftStatus(cookie, fanRoomIds).catch((error: unknown): GiftStatus => {
+    const message = errorMessage(error)
+    logSystem(`加载粉丝牌状态时无法获取背包明细: ${message}`)
+    return {
+      error: message,
+    }
+  })
+  const statuses = await mapWithConcurrency(fans, DOUBLE_CARD_STATUS_CONCURRENCY, async (fan): Promise<FanStatus> => {
+    try {
+      const doubleInfo = await checkDoubleCard(fan.roomId, cookie)
+      return {
+        ...fan,
+        doubleActive: doubleInfo.active,
+        doubleExpireTime: doubleInfo.expireTime,
+      }
+    } catch (error: unknown) {
+      logSystem(`加载房间${fan.roomId}双倍状态失败: ${errorMessage(error)}`)
+      return {
+        ...fan,
+        doubleActive: false,
+      }
+    }
+  })
+  return {
+    fans: statuses,
+    gift,
+    complete: true,
+    statusPhase: 'details',
+  }
 }
 
 function getCookieCloudCacheKey(config: CookieCloudConfig): string {
@@ -1121,38 +1170,28 @@ function main(): void {
       const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
       return await getCachedFansList(cookie)
     },
+    fetchFansStatusBase: async (): Promise<FansStatusResponse> => {
+      const cached = getFreshStatusSnapshot(fansStatusCache, FANS_STATUS_CACHE_TTL_MS)
+      if (cached) {
+        return cached
+      }
+
+      const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
+      const fans = await getCachedFansList(cookie)
+      return createFansListStatusResponse(fans)
+    },
+    fetchFansStatusDetails: async (): Promise<FansStatusResponse> => {
+      return await getCachedStatus(fansStatusCache, FANS_STATUS_CACHE_TTL_MS, async () => {
+        const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
+        const fans = await getCachedFansList(cookie)
+        return await buildFansStatusSnapshot(cookie, fans)
+      })
+    },
     fetchFansStatus: async (): Promise<FansStatusResponse> => {
       return await getCachedStatus(fansStatusCache, FANS_STATUS_CACHE_TTL_MS, async () => {
         const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
         const fans = await getCachedFansList(cookie)
-        const fanRoomIds = fans.map(fan => fan.roomId)
-        const gift = await getGiftStatus(cookie, fanRoomIds).catch((error: unknown): GiftStatus => {
-          const message = errorMessage(error)
-          logSystem(`加载粉丝牌状态时无法获取背包明细: ${message}`)
-          return {
-            error: message,
-          }
-        })
-        const statuses = await mapWithConcurrency(fans, DOUBLE_CARD_STATUS_CONCURRENCY, async (fan): Promise<FanStatus> => {
-          try {
-            const doubleInfo = await checkDoubleCard(fan.roomId, cookie)
-            return {
-              ...fan,
-              doubleActive: doubleInfo.active,
-              doubleExpireTime: doubleInfo.expireTime,
-            }
-          } catch (error: unknown) {
-            logSystem(`加载房间${fan.roomId}双倍状态失败: ${errorMessage(error)}`)
-            return {
-              ...fan,
-              doubleActive: false,
-            }
-          }
-        })
-        return {
-          fans: statuses,
-          gift,
-        }
+        return await buildFansStatusSnapshot(cookie, fans)
       })
     },
     fetchYubaStatus: async (): Promise<YubaStatusResponse> => {

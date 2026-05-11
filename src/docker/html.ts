@@ -1683,6 +1683,15 @@ textarea{
     };
   }
 
+  function createResourceRequest(ttlMs) {
+    return {
+      pending: null,
+      fetchedAt: 0,
+      requestSeq: 0,
+      ttlMs: ttlMs
+    };
+  }
+
   var state = {
     activeTab: getTabByPath(window.location.pathname),
     auth: {
@@ -1706,6 +1715,12 @@ textarea{
     yubaStatusLoading: false,
     yubaStatusLoaded: false,
     managedLoading: false,
+    resourceRequests: {
+      fansSync: createResourceRequest(0),
+      fansList: createResourceRequest(30 * 1000),
+      fansStatus: createResourceRequest(30 * 1000),
+      yubaStatus: createResourceRequest(30 * 1000)
+    },
     themeMode: 'system',
     cronPreview: {
       cookieCloud: createEmptyCronPreview(),
@@ -1908,7 +1923,74 @@ textarea{
     return Boolean(error && error.status === 401);
   }
 
+  function getResourceRequest(key) {
+    return state.resourceRequests[key];
+  }
+
+  function isResourceFresh(key) {
+    var resource = getResourceRequest(key);
+    return Boolean(resource.fetchedAt && resource.ttlMs > 0 && (Date.now() - resource.fetchedAt) < resource.ttlMs);
+  }
+
+  function markResourceFresh(key) {
+    getResourceRequest(key).fetchedAt = Date.now();
+  }
+
+  function invalidateResourceRequest(key) {
+    var resource = getResourceRequest(key);
+    resource.pending = null;
+    resource.fetchedAt = 0;
+    resource.requestSeq += 1;
+  }
+
+  function invalidateResourceRequests(keys) {
+    var i;
+    for (i = 0; i < keys.length; i += 1) {
+      invalidateResourceRequest(keys[i]);
+    }
+  }
+
+  function trackResourceRequest(resource, requestSeq, pending) {
+    var tracked = pending.then(function () {
+      if (resource.pending === tracked && resource.requestSeq === requestSeq) {
+        resource.pending = null;
+      }
+    }, function (error) {
+      if (resource.pending === tracked && resource.requestSeq === requestSeq) {
+        resource.pending = null;
+      }
+      throw error;
+    });
+    resource.pending = tracked;
+    return tracked;
+  }
+
+  function isActiveRefreshLoading() {
+    if (state.activeTab === 'overview' || state.activeTab === 'expiring-gift') {
+      return state.fansStatusLoading || state.managedLoading;
+    }
+    if (state.activeTab === 'keepalive' || state.activeTab === 'double-card') {
+      return state.managedLoading;
+    }
+    if (state.activeTab === 'yuba') {
+      return state.yubaStatusLoading;
+    }
+    return false;
+  }
+
+  function renderRefreshButton() {
+    var refreshButton = document.querySelector('[data-action="refresh-overview"]');
+    if (!refreshButton) {
+      return;
+    }
+    var loading = isActiveRefreshLoading();
+    refreshButton.disabled = loading;
+    refreshButton.setAttribute('aria-busy', loading ? 'true' : 'false');
+    refreshButton.setAttribute('title', loading ? '正在刷新' : '刷新');
+  }
+
   function clearProtectedState() {
+    invalidateResourceRequests(['fansSync', 'fansList', 'fansStatus', 'yubaStatus']);
     state.rawConfig = null;
     state.overview = null;
     state.managed = null;
@@ -1923,6 +2005,7 @@ textarea{
     state.yubaStatusLoading = false;
     state.yubaStatusLoaded = false;
     state.managedLoading = false;
+    renderRefreshButton();
   }
 
   function renderAuth() {
@@ -1977,7 +2060,17 @@ textarea{
     if (state.managed && state.managed.fans) {
       return state.managed.fans;
     }
+    if (state.fansStatus.length) {
+      return state.fansStatus;
+    }
     return [];
+  }
+
+  function setManagedFans(fans) {
+    state.managed = {
+      config: getManagedConfig(),
+      fans: Array.isArray(fans) ? fans : []
+    };
   }
 
   function isTaskActive(config) {
@@ -2006,8 +2099,10 @@ textarea{
     var nextTab = PAGE_META[tab] ? tab : 'overview';
     var shouldSyncPath = !options || options.syncPath !== false;
     var replacePath = Boolean(options && options.replacePath);
+    var skipLazyLoad = Boolean(options && options.skipLazyLoad);
 
     state.activeTab = nextTab;
+    renderRefreshButton();
     var buttons = document.querySelectorAll('.tab-btn');
     var i;
     for (i = 0; i < buttons.length; i += 1) {
@@ -2032,6 +2127,10 @@ textarea{
 
     if (shouldSyncPath) {
       syncPathWithTab(nextTab, replacePath);
+    }
+
+    if (skipLazyLoad) {
+      return;
     }
 
     if (nextTab === 'overview' && hasCookieSourceConfigured(getRawConfig()) && !state.fansStatusLoaded) {
@@ -2434,6 +2533,7 @@ textarea{
   }
 
   function renderOverview() {
+    renderRefreshButton();
     var overview = state.overview;
     var rawConfig = getRawConfig();
     if (!overview) {
@@ -2465,7 +2565,7 @@ textarea{
       return;
     }
 
-    if (state.managedLoading || state.fansStatusLoading) {
+    if ((state.managedLoading || state.fansStatusLoading) && !state.fansStatusLoaded) {
       byId('overview-gift-summary').innerHTML = buildOverviewGiftSummary('同步中', '同步中');
       byId('overview-fans-note').textContent = '正在同步粉丝牌状态…';
       byId('overview-fans-table-wrap').innerHTML = '<div class="empty">请稍候，列表正在更新。</div>';
@@ -2496,9 +2596,10 @@ textarea{
       return;
     }
 
-    byId('overview-fans-note').textContent = state.giftStatus && state.giftStatus.error
+    var statusPrefix = state.managedLoading || state.fansStatusLoading ? '正在后台更新，当前显示上次结果。' : '';
+    byId('overview-fans-note').textContent = statusPrefix + (state.giftStatus && state.giftStatus.error
       ? ('当前共 ' + state.fansStatus.length + ' 个粉丝牌房间。背包明细暂不可用：' + state.giftStatus.error)
-      : ('当前共 ' + state.fansStatus.length + ' 个粉丝牌房间，右侧已显示荧光棒库存与过期时间。');
+      : ('当前共 ' + state.fansStatus.length + ' 个粉丝牌房间，右侧已显示荧光棒库存与过期时间。'));
     byId('overview-fans-table-wrap').innerHTML = buildFansStatusTable(state.fansStatus);
   }
 
@@ -2557,6 +2658,7 @@ textarea{
   }
 
   function renderYubaPage() {
+    renderRefreshButton();
     var rawConfig = getRawConfig();
     var config = rawConfig.yubaCheckIn || { active: false, cron: '0 23 0 * * *', mode: 'followed' };
     byId('yuba-task-card').innerHTML = state.overview
@@ -2585,7 +2687,7 @@ textarea{
       return;
     }
 
-    if (state.yubaStatusLoading) {
+    if (state.yubaStatusLoading && !state.yubaStatusLoaded) {
       byId('yuba-note').textContent = '正在加载已关注鱼吧列表…';
       byId('yuba-table-wrap').innerHTML = '<div class="empty">请稍候，鱼吧等级和经验列表正在更新。</div>';
       return;
@@ -2603,11 +2705,12 @@ textarea{
       return;
     }
 
-    byId('yuba-note').textContent = '当前已加载 ' + state.yubaStatus.length + ' 个已关注鱼吧，可直接查看等级、经验、排名和今日签到状态。';
+    byId('yuba-note').textContent = (state.yubaStatusLoading ? '正在后台更新，当前显示上次结果。' : '') + '当前已加载 ' + state.yubaStatus.length + ' 个已关注鱼吧，可直接查看等级、经验、排名和今日签到状态。';
     byId('yuba-table-wrap').innerHTML = buildYubaStatusTable(state.yubaStatus);
   }
 
   function renderKeepalivePage() {
+    renderRefreshButton();
     var rawConfig = getRawConfig();
     var config = getManagedConfig().keepalive || rawConfig.keepalive || { active: true, cron: '0 0 8 */6 * *', model: 2, send: {} };
     var fans = getManagedFans();
@@ -2625,7 +2728,7 @@ textarea{
       return;
     }
 
-    if (state.managedLoading) {
+    if (state.managedLoading && !fans.length) {
       byId('keepalive-note').textContent = '正在同步粉丝牌与保活配置…';
       byId('keepalive-table-wrap').innerHTML = '<div class="empty">请稍候…</div>';
       return;
@@ -2637,7 +2740,7 @@ textarea{
       return;
     }
 
-    byId('keepalive-note').textContent = '当前已同步 ' + fans.length + ' 个粉丝牌房间。';
+    byId('keepalive-note').textContent = (state.managedLoading ? '正在后台同步，当前显示上次结果。' : '') + '当前已同步 ' + fans.length + ' 个粉丝牌房间。';
     byId('keepalive-table-wrap').innerHTML = buildSendTable(fans, config, false, 'keepalive-value');
   }
 
@@ -2654,6 +2757,7 @@ textarea{
   }
 
   function renderDoublePage() {
+    renderRefreshButton();
     var rawConfig = getRawConfig();
     var config = getManagedConfig().doubleCard || rawConfig.doubleCard || { active: true, cron: '0 20 17,20,22,23 * * *', model: 1, giftScope: 'glowStick', send: {}, enabled: {} };
     var fans = getManagedFans();
@@ -2673,7 +2777,7 @@ textarea{
       return;
     }
 
-    if (state.managedLoading) {
+    if (state.managedLoading && !fans.length) {
       byId('double-note').textContent = '正在同步粉丝牌与双倍配置…';
       byId('double-table-wrap').innerHTML = '<div class="empty">请稍候…</div>';
       setDoubleModeEmptyState('正在同步双倍任务配置。', '同步完成后，这里会显示当前权重预览。');
@@ -2695,12 +2799,13 @@ textarea{
         enabledCount += 1;
       }
     }
-    byId('double-note').textContent = '当前已勾选 ' + enabledCount + ' / ' + fans.length + ' 个房间参与双倍。';
+    byId('double-note').textContent = (state.managedLoading ? '正在后台同步，当前显示上次结果。' : '') + '当前已勾选 ' + enabledCount + ' / ' + fans.length + ' 个房间参与双倍。';
     byId('double-table-wrap').innerHTML = buildSendTable(fans, config, true, 'double-value');
     updateDoubleModeUi();
   }
 
   function renderExpiringGiftPage() {
+    renderRefreshButton();
     var rawConfig = getRawConfig();
     var config = getManagedConfig().expiringGift || rawConfig.expiringGift || { active: false, cron: '0 45 23 * * *', thresholdHours: 24, model: 1, send: {} };
     var fans = getManagedFans();
@@ -2726,7 +2831,7 @@ textarea{
       return;
     }
 
-    if (state.managedLoading) {
+    if (state.managedLoading && !fans.length) {
       byId('expiring-note').textContent = '正在同步粉丝牌与临期配置…';
       byId('expiring-backpack-wrap').innerHTML = '<div class="empty">请稍候，背包明细会在同步后展示。</div>';
       byId('expiring-table-wrap').innerHTML = '<div class="empty">请稍候…</div>';
@@ -2740,7 +2845,7 @@ textarea{
       return;
     }
 
-    byId('expiring-note').textContent = '当前已同步 ' + fans.length + ' 个粉丝牌房间。临期任务会按背包行筛选进入阈值且有明确过期时间的礼物，并按房间配置释放。';
+    byId('expiring-note').textContent = (state.managedLoading || state.fansStatusLoading ? '正在后台更新，当前显示上次结果。' : '') + '当前已同步 ' + fans.length + ' 个粉丝牌房间。临期任务会按背包行筛选进入阈值且有明确过期时间的礼物，并按房间配置释放。';
     byId('expiring-backpack-wrap').innerHTML = buildBackpackRowsTable(state.giftStatus);
     byId('expiring-table-wrap').innerHTML = buildSendTable(fans, config, false, 'expiring-value', { firstWeightOnly: true });
   }
@@ -3014,12 +3119,19 @@ textarea{
     }).then(function () {
       var rawConfig = getRawConfig();
       if (hasCookieSourceConfigured(rawConfig)) {
-        return syncFans(false).then(function () {
-          if (!state.auth.authenticated) {
-            return;
-          }
-          return loadFansStatus(false);
-        });
+        var reloads = [];
+        if (state.activeTab === 'overview' || state.activeTab === 'expiring-gift') {
+          reloads.push(loadFansStatus(false));
+        }
+        if (state.activeTab === 'keepalive' || state.activeTab === 'double-card') {
+          reloads.push(loadFansList(false));
+        }
+        if (state.activeTab === 'yuba') {
+          reloads.push(loadYubaStatus(false));
+        }
+        if (reloads.length) {
+          return Promise.all(reloads);
+        }
       }
 
       renderAll();
@@ -3158,25 +3270,41 @@ textarea{
 
   function syncFans(showToast) {
     var rawConfig = getRawConfig();
+    var resource = getResourceRequest('fansSync');
     if (!hasCookieSourceConfigured(rawConfig)) {
+      invalidateResourceRequests(['fansSync', 'fansList', 'fansStatus']);
       toast('请先保存 Cookie 或启用 CookieCloud', false);
       renderAll();
       return Promise.resolve();
     }
 
+    if (resource.pending) {
+      return resource.pending;
+    }
+
+    var requestSeq = resource.requestSeq + 1;
+    resource.requestSeq = requestSeq;
     state.managedLoading = true;
     renderAll();
-    return requestJson('/api/fans/reconcile', {
+    var pending = requestJson('/api/fans/reconcile', {
       method: 'POST'
     }).then(function (data) {
+      if (resource.requestSeq !== requestSeq) {
+        return;
+      }
       state.managed = data;
       state.rawConfig = data.config;
       state.managedLoading = false;
+      markResourceFresh('fansList');
+      invalidateResourceRequest('fansStatus');
       renderAll();
       if (showToast) {
         toast('粉丝牌与任务配置已同步', true);
       }
     }).catch(function (error) {
+      if (resource.requestSeq !== requestSeq) {
+        return;
+      }
       state.managedLoading = false;
       renderAll();
       if (isUnauthorizedError(error)) {
@@ -3184,11 +3312,67 @@ textarea{
       }
       toast('同步粉丝牌失败：' + error.message, false);
     });
+    return trackResourceRequest(resource, requestSeq, pending);
   }
 
-  function loadFansStatus(showToast) {
+  function loadFansList(showToast, options) {
     var rawConfig = getRawConfig();
+    var resource = getResourceRequest('fansList');
+    var forceRefresh = Boolean(options && options.force);
     if (!hasCookieSourceConfigured(rawConfig)) {
+      invalidateResourceRequest('fansList');
+      state.managed = null;
+      renderAll();
+      if (showToast) {
+        toast('请先保存 Cookie 或启用 CookieCloud', false);
+      }
+      return Promise.resolve();
+    }
+
+    if (!forceRefresh && isResourceFresh('fansList')) {
+      renderAll();
+      return Promise.resolve();
+    }
+
+    if (resource.pending) {
+      return resource.pending;
+    }
+
+    var requestSeq = resource.requestSeq + 1;
+    resource.requestSeq = requestSeq;
+    state.managedLoading = true;
+    renderAll();
+    var pending = requestJson('/api/fans').then(function (data) {
+      if (resource.requestSeq !== requestSeq) {
+        return;
+      }
+      setManagedFans(data);
+      state.managedLoading = false;
+      markResourceFresh('fansList');
+      renderAll();
+      if (showToast) {
+        toast('粉丝牌列表已加载', true);
+      }
+    }).catch(function (error) {
+      if (resource.requestSeq !== requestSeq) {
+        return;
+      }
+      state.managedLoading = false;
+      renderAll();
+      if (isUnauthorizedError(error)) {
+        return;
+      }
+      toast('加载粉丝牌列表失败：' + error.message, false);
+    });
+    return trackResourceRequest(resource, requestSeq, pending);
+  }
+
+  function loadFansStatus(showToast, options) {
+    var rawConfig = getRawConfig();
+    var resource = getResourceRequest('fansStatus');
+    var forceRefresh = Boolean(options && options.force);
+    if (!hasCookieSourceConfigured(rawConfig)) {
+      invalidateResourceRequest('fansStatus');
       state.fansStatus = [];
       state.giftStatus = null;
       state.fansStatusLoaded = false;
@@ -3200,24 +3384,46 @@ textarea{
       return Promise.resolve();
     }
 
+    if (!forceRefresh && isResourceFresh('fansStatus')) {
+      renderOverview();
+      renderExpiringGiftPage();
+      return Promise.resolve();
+    }
+
+    if (resource.pending) {
+      return resource.pending;
+    }
+
+    var requestSeq = resource.requestSeq + 1;
+    resource.requestSeq = requestSeq;
     state.fansStatusLoading = true;
     renderOverview();
     renderExpiringGiftPage();
-    return requestJson('/api/fans/status').then(function (data) {
+    var pending = requestJson('/api/fans/status').then(function (data) {
+      if (resource.requestSeq !== requestSeq) {
+        return;
+      }
       state.fansStatus = data && data.fans ? data.fans : [];
       state.giftStatus = data && data.gift ? data.gift : null;
+      setManagedFans(state.fansStatus);
       state.fansStatusLoaded = true;
       state.fansStatusLoading = false;
+      markResourceFresh('fansStatus');
+      markResourceFresh('fansList');
       renderOverview();
       renderExpiringGiftPage();
       if (showToast) {
         toast('粉丝牌状态已刷新', true);
       }
     }).catch(function (error) {
+      if (resource.requestSeq !== requestSeq) {
+        return;
+      }
       state.fansStatusLoading = false;
-      state.fansStatusLoaded = false;
-      state.fansStatus = [];
-      state.giftStatus = null;
+      if (!state.fansStatusLoaded) {
+        state.fansStatus = [];
+        state.giftStatus = null;
+      }
       renderOverview();
       renderExpiringGiftPage();
       if (isUnauthorizedError(error)) {
@@ -3225,11 +3431,15 @@ textarea{
       }
       toast('加载粉丝牌状态失败：' + error.message, false);
     });
+    return trackResourceRequest(resource, requestSeq, pending);
   }
 
-  function loadYubaStatus(showToast) {
+  function loadYubaStatus(showToast, options) {
     var rawConfig = getRawConfig();
+    var resource = getResourceRequest('yubaStatus');
+    var forceRefresh = Boolean(options && options.force);
     if (!hasCookieSourceConfigured(rawConfig)) {
+      invalidateResourceRequest('yubaStatus');
       state.yubaStatus = [];
       state.yubaStatusLoaded = false;
       state.yubaStatusLoading = false;
@@ -3240,26 +3450,46 @@ textarea{
       return Promise.resolve();
     }
 
+    if (!forceRefresh && isResourceFresh('yubaStatus')) {
+      renderYubaPage();
+      return Promise.resolve();
+    }
+
+    if (resource.pending) {
+      return resource.pending;
+    }
+
+    var requestSeq = resource.requestSeq + 1;
+    resource.requestSeq = requestSeq;
     state.yubaStatusLoading = true;
     renderYubaPage();
-    return requestJson('/api/yuba/status').then(function (data) {
+    var pending = requestJson('/api/yuba/status').then(function (data) {
+      if (resource.requestSeq !== requestSeq) {
+        return;
+      }
       state.yubaStatus = data && data.groups ? data.groups : [];
       state.yubaStatusLoaded = true;
       state.yubaStatusLoading = false;
+      markResourceFresh('yubaStatus');
       renderYubaPage();
       if (showToast) {
         toast('鱼吧状态已刷新', true);
       }
     }).catch(function (error) {
+      if (resource.requestSeq !== requestSeq) {
+        return;
+      }
       state.yubaStatusLoading = false;
-      state.yubaStatusLoaded = false;
-      state.yubaStatus = [];
+      if (!state.yubaStatusLoaded) {
+        state.yubaStatus = [];
+      }
       renderYubaPage();
       if (isUnauthorizedError(error)) {
         return;
       }
       toast('加载鱼吧状态失败：' + error.message, false);
     });
+    return trackResourceRequest(resource, requestSeq, pending);
   }
 
   function refreshOverviewSurface(showToast) {
@@ -3269,6 +3499,7 @@ textarea{
       }
       var rawConfig = getRawConfig();
       if (!hasCookieSourceConfigured(rawConfig)) {
+        invalidateResourceRequests(['fansSync', 'fansList', 'fansStatus', 'yubaStatus']);
         state.managed = null;
         state.fansStatus = [];
         state.giftStatus = null;
@@ -3285,14 +3516,15 @@ textarea{
 
       return syncFans(false).then(function () {
         var reloads = [
-          loadFansStatus(false)
+          loadFansStatus(false, { force: showToast })
         ];
         if (state.activeTab === 'yuba') {
-          reloads.push(loadYubaStatus(false));
+          reloads.push(loadYubaStatus(false, { force: showToast }));
         } else {
           state.yubaStatus = [];
           state.yubaStatusLoaded = false;
           state.yubaStatusLoading = false;
+          invalidateResourceRequest('yubaStatus');
         }
         return Promise.all(reloads);
       }).then(function () {
@@ -3759,10 +3991,10 @@ textarea{
         loadLogs()
       ];
       if (state.activeTab === 'overview' || type === 'collectGift' || type === 'keepalive' || type === 'doubleCard' || type === 'expiringGift') {
-        reloads.push(loadFansStatus(false));
+        reloads.push(loadFansStatus(false, { force: true }));
       }
       if (state.activeTab === 'yuba' || type === 'yubaCheckIn') {
-        reloads.push(loadYubaStatus(false));
+        reloads.push(loadYubaStatus(false, { force: true }));
       }
       Promise.all(reloads).then(function () {
         if (state.activeTab === 'keepalive') {
@@ -3999,6 +4231,7 @@ textarea{
   }, 5000);
 
   renderAuth();
+  setActiveTab(state.activeTab, { syncPath: false, skipLazyLoad: true });
   loadAuthStatus().then(function (authenticated) {
     if (!authenticated) {
       return;

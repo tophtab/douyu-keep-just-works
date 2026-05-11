@@ -25,8 +25,10 @@ const DOCKER_TIMEZONE = 'Asia/Shanghai'
 const MAIN_DOUYU_URL = 'https://www.douyu.com/'
 const YUBA_DOUYU_URL = 'https://yuba.douyu.com/'
 const COOKIE_CLOUD_CACHE_TTL_MS = 60 * 1000
+const FANS_LIST_CACHE_TTL_MS = 60 * 1000
 const FANS_STATUS_CACHE_TTL_MS = 5 * 60 * 1000
 const YUBA_STATUS_CACHE_TTL_MS = 10 * 60 * 1000
+const DOUBLE_CARD_STATUS_CONCURRENCY = 4
 const DEFAULT_COOKIE_CLOUD_SYNC_CRON = '0 5 0 * * *'
 
 type TaskType = 'collectGift' | 'keepalive' | 'doubleCard' | 'expiringGift' | 'yubaCheckIn'
@@ -47,6 +49,10 @@ interface StatusCacheEntry<T> {
   generation: number
 }
 
+interface FansListCacheEntry extends StatusCacheEntry<Fans[]> {
+  cookie: string
+}
+
 interface TaskReloadSummary {
   started: TaskType[]
   restarted: TaskType[]
@@ -55,6 +61,7 @@ interface TaskReloadSummary {
 
 let currentConfig: DockerConfig | null = null
 let cookieCloudCache: CookieCloudCacheEntry | null = null
+const fansListCache: FansListCacheEntry = createFansListCache()
 const fansStatusCache: StatusCacheEntry<FansStatusResponse> = createStatusCache()
 const yubaStatusCache: StatusCacheEntry<YubaStatusResponse> = createStatusCache()
 let cookieCloudSyncJob: CronJob | null = null
@@ -123,11 +130,23 @@ function createStatusCache<T>(): StatusCacheEntry<T> {
   }
 }
 
+function createFansListCache(): FansListCacheEntry {
+  return {
+    ...createStatusCache<Fans[]>(),
+    cookie: '',
+  }
+}
+
 function clearStatusCache<T>(cache: StatusCacheEntry<T>): void {
   cache.snapshot = null
   cache.fetchedAt = 0
   cache.pending = null
   cache.generation += 1
+}
+
+function clearFansListCache(): void {
+  clearStatusCache(fansListCache)
+  fansListCache.cookie = ''
 }
 
 function invalidateStatusCaches(scope: StatusCacheScope): void {
@@ -137,6 +156,33 @@ function invalidateStatusCaches(scope: StatusCacheScope): void {
   if (scope === 'yuba' || scope === 'all') {
     clearStatusCache(yubaStatusCache)
   }
+}
+
+async function getCachedFansList(cookie: string): Promise<Fans[]> {
+  const now = Date.now()
+  if (fansListCache.cookie === cookie && fansListCache.snapshot && (now - fansListCache.fetchedAt) < FANS_LIST_CACHE_TTL_MS) {
+    return fansListCache.snapshot
+  }
+
+  if (fansListCache.cookie === cookie && fansListCache.pending) {
+    return await fansListCache.pending
+  }
+
+  const generation = fansListCache.generation
+  fansListCache.cookie = cookie
+  const pending = getFansList(cookie).then((fans) => {
+    if (fansListCache.generation === generation && fansListCache.cookie === cookie) {
+      fansListCache.snapshot = fans
+      fansListCache.fetchedAt = Date.now()
+    }
+    return fans
+  }).finally(() => {
+    if (fansListCache.pending === pending) {
+      fansListCache.pending = null
+    }
+  })
+  fansListCache.pending = pending
+  return await pending
 }
 
 async function runAndInvalidateStatusCache(scope: StatusCacheScope, runTask: () => Promise<void>): Promise<void> {
@@ -175,6 +221,22 @@ async function getCachedStatus<T>(
   })
   cache.pending = pending
   return await pending
+}
+
+async function mapWithConcurrency<T, R>(items: T[], concurrency: number, mapper: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const results = Array.from<R>({ length: items.length })
+  const size = Math.max(1, Math.min(concurrency, items.length))
+  let nextIndex = 0
+
+  await Promise.all(Array.from({ length: size }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex
+      nextIndex += 1
+      results[index] = await mapper(items[index], index)
+    }
+  }))
+
+  return results
 }
 
 function getCookieCloudCacheKey(config: CookieCloudConfig): string {
@@ -298,6 +360,7 @@ async function persistEffectiveCookies(forceRefresh = false, options: {
     applyConfig(nextConfig, 'cookie_saved')
   } else {
     currentConfig = nextConfig
+    clearFansListCache()
     invalidateStatusCaches('all')
   }
 
@@ -787,6 +850,7 @@ function applyConfig(config: DockerConfig, reason: 'startup' | 'cookie_saved' | 
     || !jsonEquals(prevConfig?.cookieCloud || null, nextConfig.cookieCloud || null)
   ) {
     clearCookieCloudCache()
+    clearFansListCache()
     invalidateStatusCaches('all')
   } else {
     if (
@@ -837,7 +901,7 @@ function applyConfig(config: DockerConfig, reason: 'startup' | 'cookie_saved' | 
 async function syncConfigWithFans(reason: 'tasks_saved' | 'medal_synced', baseConfig?: DockerConfig): Promise<{ config: DockerConfig; fans: Fans[] }> {
   const sourceConfig = normalizeDockerConfig(baseConfig || currentConfig || createDefaultDockerConfig())
   const cookie = resolveCookieForUrlFromConfig(MAIN_DOUYU_URL, sourceConfig)
-  const fans = await getFansList(cookie)
+  const fans = await getCachedFansList(cookie)
   const nextConfig = reconcileDockerConfig(sourceConfig, fans)
   invalidateStatusCaches('fans')
 
@@ -1055,12 +1119,12 @@ function main(): void {
     },
     fetchFans: async () => {
       const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
-      return await getFansList(cookie)
+      return await getCachedFansList(cookie)
     },
     fetchFansStatus: async (): Promise<FansStatusResponse> => {
       return await getCachedStatus(fansStatusCache, FANS_STATUS_CACHE_TTL_MS, async () => {
         const cookie = resolveCookieForUrl(MAIN_DOUYU_URL)
-        const fans = await getFansList(cookie)
+        const fans = await getCachedFansList(cookie)
         const fanRoomIds = fans.map(fan => fan.roomId)
         const gift = await getGiftStatus(cookie, fanRoomIds).catch((error: unknown): GiftStatus => {
           const message = errorMessage(error)
@@ -1069,7 +1133,7 @@ function main(): void {
             error: message,
           }
         })
-        const statuses = await Promise.all(fans.map(async (fan): Promise<FanStatus> => {
+        const statuses = await mapWithConcurrency(fans, DOUBLE_CARD_STATUS_CONCURRENCY, async (fan): Promise<FanStatus> => {
           try {
             const doubleInfo = await checkDoubleCard(fan.roomId, cookie)
             return {
@@ -1084,7 +1148,7 @@ function main(): void {
               doubleActive: false,
             }
           }
-        }))
+        })
         return {
           fans: statuses,
           gift,

@@ -340,7 +340,7 @@ File: `src/docker/server.ts`
 
 Purpose:
 
-- fetch the latest medal list using the effective main-site cookie
+- fetch the current medal list using the effective main-site cookie, reusing the short-lived in-memory medal-list cache when still valid
 - reconcile keepalive, double-card, and expiring-gift room config against the medal list
 - persist the updated config
 
@@ -377,7 +377,7 @@ Files:
 
 Purpose:
 
-- fetch the latest medal list using the effective main-site cookie
+- fetch the current medal list using the effective main-site cookie, reusing the short-lived in-memory medal-list cache when still valid
 - fetch the current fluorescent stick inventory from Douyu backpack API
 - merge per-room double-card status with global fluorescent stick summary for the overview page
 
@@ -407,7 +407,7 @@ Success response:
 Field mapping rules:
 
 - `fans`
-  - sourced from `getFansList(cookie)` and sorted by medal level descending
+  - sourced from the cached `getFansList(cookie)` helper and sorted by medal level descending
 - `fans[].doubleActive`
   - sourced from `checkDoubleCard(roomId, cookie)`
 - `fans[].doubleExpireTime`
@@ -620,6 +620,78 @@ File: `src/core/medal-sync.ts`
 | medal fetch | Douyu request fails | `500 { error }`, persisted config remains unchanged |
 | backpack fetch | fluorescent stick backpack request fails | `500 { error }`, WebUI overview keeps previous render until refresh resolves |
 | medal fetch | empty medal list | persist empty room sets without throwing |
+
+---
+
+## Shared Request Caches
+
+### Shared Medal-List Cache
+
+- `/api/fans`, `/api/fans/reconcile`, and the medal-list portion of `/api/fans/status` share a short-lived in-memory cache around `getFansList(cookie)`.
+- The cache keeps only the latest cookie-specific fans snapshot, an expiry timestamp, and at most one pending promise for request coalescing.
+- Do not cache the full `/api/fans/reconcile` response, because reconciliation has side effects: it must still recompute against the latest local config and persist/reload tasks when needed.
+- Cookie changes, CookieCloud-derived login state changes, or CookieCloud config changes must clear the shared medal-list cache.
+
+### Docker WebUI Client Request Smoothing
+
+1. Scope / Trigger
+
+- Applies to Docker WebUI browser-side reads in `src/docker/html.ts` for fans sync, fans list, fans status, and yuba status.
+- Use this pattern when one visible action or navigation path can otherwise trigger duplicate Douyu-backed HTTP requests.
+
+2. Signatures
+
+```js
+loadFansList(showToast, { force: true })
+loadFansStatus(showToast, { force: true })
+loadYubaStatus(showToast, { force: true })
+```
+
+3. Contracts
+
+- Automatic tab/lazy-load reads may reuse a fresh browser snapshot for a short TTL.
+- Manual refresh and post-task reloads may force a refresh, but must still reuse the same in-flight request when one is already running.
+- Late responses must be ignored with a per-resource request sequence if the resource was invalidated after the request started.
+- Existing rows remain visible during background refresh when a previous successful snapshot exists.
+
+4. Validation & Error Matrix
+
+| Case | Expected result |
+|------|-----------------|
+| Re-entering overview/expiring within the browser TTL | no new browser request for `/api/fans/status` |
+| Multiple clicks while visible refresh is loading | at most one in-flight browser request per resource |
+| Refresh fails after a previous successful fans status load | table keeps the previous rows and shows the failure toast |
+| Cookie source disappears | client resource metadata and visible fans/yuba snapshots are cleared |
+
+5. Good / Base / Bad Cases
+
+- Good: lazy tab load calls `loadFansStatus(false)` and lets the browser TTL decide whether a request is needed.
+- Base: task trigger calls `loadFansStatus(false, { force: true })` because backend status was invalidated by the task.
+- Bad: clearing `state.fansStatus` before every refresh, causing the UI to flash empty while an avoidable duplicate request runs.
+
+6. Tests Required
+
+- Run `npm run lint`, `npm run type-check`, and `npm run build:docker`.
+- Smoke-test a deep-linked WebUI page and verify no browser console errors.
+- Verify repeated refresh attempts cannot create duplicate visible-resource requests while the button is busy.
+
+7. Wrong vs Correct
+
+Wrong:
+
+```js
+state.fansStatus = [];
+return requestJson('/api/fans/status');
+```
+
+Correct:
+
+```js
+if (resource.pending) {
+  return resource.pending;
+}
+state.fansStatusLoading = true;
+```
 
 ---
 

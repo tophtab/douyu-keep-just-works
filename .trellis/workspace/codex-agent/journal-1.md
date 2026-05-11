@@ -1524,3 +1524,36 @@ Upgraded Docker runtime to Node 24, split Docker entrypoint/runtime/config-store
 ### Next Steps
 
 - None - task complete
+
+
+## Session 41: Commit Trellis platform upgrade
+
+**Date**: 2026-05-11
+**Task**: Commit Trellis platform upgrade
+**Branch**: `master`
+
+### Summary
+
+Reviewed and committed Trellis platform upgrade artifacts from 0.5.9 to 0.5.12, including workflow-state breadcrumbs, session_auto_commit config, safe auto-commit helpers, update hints, template hashes, then archived the task.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c2810ac` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

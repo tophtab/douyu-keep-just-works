@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 41
+- **Total Sessions**: 42
 - **Last Active**: 2026-05-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1559 | Active |
+| `journal-1.md` | ~1592 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 42 | 2026-05-11 | Archive duplicate Docker footprint task | `d0197c1` | `master` |
 | 41 | 2026-05-11 | Commit Trellis platform upgrade | `c2810ac` | `master` |
 | 40 | 2026-05-11 | TypeScript structure refactor and Node upgrade | `2360b9a` | `master` |
 | 39 | 2026-05-11 | Fix task list autoload | `3f5ef4f` | `master` |

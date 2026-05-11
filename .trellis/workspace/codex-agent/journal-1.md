@@ -1458,3 +1458,36 @@ Fixed WebUI keepalive and double-card room lists so empty overview fan-status lo
 ### Next Steps
 
 - None - task complete
+
+
+## Session 39: Fix task list autoload
+
+**Date**: 2026-05-11
+**Task**: Fix task list autoload
+**Branch**: `master`
+
+### Summary
+
+Changed keepalive and double-card WebUI autoload from delayed timer scheduling to direct guarded fans-list ensure, so first page entry immediately requests /api/fans and leaves the waiting placeholder; verified lint, type-check, docker build, and mock browser deep-link smoke tests.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3f5ef4f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 38
+- **Total Sessions**: 39
 - **Last Active**: 2026-05-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1460 | Active |
+| `journal-1.md` | ~1493 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 39 | 2026-05-11 | Fix task list autoload | `3f5ef4f` | `master` |
 | 38 | 2026-05-11 | Fix keepalive and double list refresh | `fa2ae02` | `master` |
 | 37 | 2026-05-11 | Remove WebUI frontend refresh TTL | `ceb2d1e` | `master` |
 | 36 | 2026-05-11 | Fix WebUI refresh triggers | `983cadc` | `master` |

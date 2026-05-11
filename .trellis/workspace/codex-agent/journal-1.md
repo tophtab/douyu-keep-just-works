@@ -1359,3 +1359,36 @@ Reverted the split refresh/sync UI change so the WebUI refresh button continues 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 36: Fix WebUI refresh triggers
+
+**Date**: 2026-05-11
+**Task**: Fix WebUI refresh triggers
+**Branch**: `master`
+
+### Summary
+
+Restored current-tab WebUI refresh behavior so double-card and keepalive pages load medal lists on entry, yuba refresh stays scoped to yuba status, and no-cookie paths clear loading state.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `983cadc` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

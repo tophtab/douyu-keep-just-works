@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 35
+- **Total Sessions**: 36
 - **Last Active**: 2026-05-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1361 | Active |
+| `journal-1.md` | ~1394 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 36 | 2026-05-11 | Fix WebUI refresh triggers | `983cadc` | `master` |
 | 35 | 2026-05-11 | Revert refresh sync split | `cdb9b1a` | `master` |
 | 34 | 2026-05-11 | Progressive fan status loading | `9d8b007` | `master` |
 | 33 | 2026-05-10 | Throttle WebUI Douyu status requests | `079c810` | `master` |

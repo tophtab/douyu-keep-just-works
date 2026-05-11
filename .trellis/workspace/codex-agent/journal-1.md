@@ -1293,3 +1293,36 @@ Added bounded in-memory TTL caching and pending request coalescing for WebUI sta
 ### Next Steps
 
 - None - task complete
+
+
+## Session 34: Progressive fan status loading
+
+**Date**: 2026-05-11
+**Task**: Progressive fan status loading
+**Branch**: `master`
+
+### Summary
+
+Added progressive Docker WebUI fan status loading: a fast medal-list phase, a detail phase for backpack and double-card status, stale UI preservation during refresh, updated API contracts, and verified lint/type-check/build/test.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9d8b007` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

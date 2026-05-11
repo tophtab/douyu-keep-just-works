@@ -1656,3 +1656,36 @@ Fixed Docker WebUI SPA tab navigation so keepalive, double-card, and yuba pages 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 45: Guard Douyu request smoothing policy
+
+**Date**: 2026-05-11
+**Task**: Guard Douyu request smoothing policy
+**Branch**: `master`
+
+### Summary
+
+Added a Node contract test that preserves backend-focused Douyu request smoothing, wired it into npm test, and updated the medal sync contract test requirements.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6c535d7` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

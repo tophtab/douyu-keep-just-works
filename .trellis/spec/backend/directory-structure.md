@@ -35,7 +35,9 @@ src/
 │   ├── server.ts
 │   ├── webui.ts
 │   └── webui/
-│       └── index.html
+│       ├── index.html
+│       ├── styles.css
+│       └── app.js
 ```
 
 ---
@@ -53,8 +55,10 @@ Examples:
 - `src/docker/runtime.ts` owns startup, cron creation, and `AppContext` assembly.
 - `src/docker/config-store.ts` owns config file IO and config-update assembly.
 - `src/docker/server.ts` is limited to HTTP route registration and delegates work through `AppContext`.
-- `src/docker/webui/index.html` owns the Docker WebUI document and client-side script.
-- `src/docker/webui.ts` owns template loading plus runtime injection for app version and page routes.
+- `src/docker/webui/index.html` owns the Docker WebUI document shell.
+- `src/docker/webui/styles.css` owns the Docker WebUI stylesheet.
+- `src/docker/webui/app.js` owns the Docker WebUI client-side script.
+- `src/docker/webui.ts` owns template loading plus runtime injection for app version, page routes, styles, and client script.
 - `src/core/job.ts` runs the gift workflow without knowing which HTTP route or scheduler triggered it.
 
 ---
@@ -107,6 +111,7 @@ Examples:
 
 - `tsconfig.docker.json` includes only `src/core/**/*.ts` and `src/docker/**/*.ts`.
 - Docker image build copies `src/` and runs `npm run build:docker`.
+- `npm run build:docker` copies the whole `src/docker/webui` directory so the split `index.html`, `styles.css`, and `app.js` files are available beside the compiled Docker runtime.
 - Runtime entrypoint remains `node dist/docker/index.js` inside the container.
 - Local compiled entrypoint is `node build/docker/docker/index.js` before the Dockerfile copy step.
 

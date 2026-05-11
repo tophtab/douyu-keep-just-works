@@ -6,7 +6,7 @@
 
 ## Overview
 
-This project no longer has a standalone Vue/Electron renderer. The supported UI is the Docker WebUI static document in `src/docker/webui/index.html`, served through the lightweight renderer in `src/docker/webui.ts`.
+This project no longer has a standalone Vue/Electron renderer. The supported UI is the Docker WebUI static document shell in `src/docker/webui/index.html`, with source CSS in `src/docker/webui/styles.css` and source JavaScript in `src/docker/webui/app.js`, served through the lightweight renderer in `src/docker/webui.ts`.
 
 The legacy Vue renderer guidelines below are retained only as historical references. For current UI changes, treat `src/docker/webui/index.html` and `src/docker/webui.ts` as Docker runtime code and read the backend guidelines first.
 
@@ -38,7 +38,7 @@ Do not reintroduce `src/renderer/`, Vue, Vite, Pinia, Vuetify, or Electron rende
 
 ## Current Docker WebUI Accessibility Checklist
 
-When changing `src/docker/webui/index.html`, keep the plain HTML controls accessible:
+When changing files under `src/docker/webui/`, keep the plain HTML controls accessible:
 
 - Interactive controls need visible `:focus-visible` states, including custom switches and icon-only buttons.
 - Async feedback needs a live region (`role="status"` / `aria-live="polite"`), especially toast and validation/status text.
@@ -49,6 +49,12 @@ When changing `src/docker/webui/index.html`, keep the plain HTML controls access
 - Read-only status/detail tables should keep key names, row errors, and primary labels readable instead of blindly forcing one-line ellipsis; add a compact mobile representation when horizontal scrolling hurts scanability.
 - Theme changes should keep `color-scheme` and `theme-color` aligned with the resolved theme.
 - Motion and hover transforms must honor `prefers-reduced-motion`.
+
+## Current Docker WebUI Source Split
+
+- Keep `index.html` as the HTML shell and place large styles/scripts in `styles.css` and `app.js`.
+- `src/docker/webui.ts` injects the split CSS and JavaScript into the served HTML response; do not add static asset routes unless the deployment contract explicitly changes.
+- If a contract test needs to inspect client-side functions, read `src/docker/webui/app.js` instead of `index.html`.
 
 ---
 

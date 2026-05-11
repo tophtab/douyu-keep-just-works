@@ -45,7 +45,7 @@ function getFunctionBody(source, functionName) {
 }
 
 test('Docker WebUI coalesces duplicate local Douyu-backed reads without client cooldowns', () => {
-  const webui = readRepoFile('src/docker/webui/index.html')
+  const webui = readRepoFile('src/docker/webui/app.js')
 
   assert.match(getFunctionBody(webui, 'createResourceRequest'), /pending:\s*null/)
   assert.match(getFunctionBody(webui, 'createResourceRequest'), /fetchedAt:\s*0/)

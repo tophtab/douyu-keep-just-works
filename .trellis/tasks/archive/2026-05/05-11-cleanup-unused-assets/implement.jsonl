@@ -1,0 +1,5 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/backend/index.md", "reason": "Repository cleanup touches build/runtime boundaries; implement agent needs backend spec entry point."}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Use project layout rules to distinguish active source from stale template files."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Apply repository quality checks after cleanup."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Cleanup changes require searching references before changing/removing values or files."}

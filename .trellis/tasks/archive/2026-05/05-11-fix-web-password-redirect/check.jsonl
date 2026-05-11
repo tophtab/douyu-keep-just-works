@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/guides/docker-webui-auth-contract.md", "reason": "Verify auth behavior and validation matrix"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Verify Docker WebUI frontend quality"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Verify Docker runtime/backend quality"}

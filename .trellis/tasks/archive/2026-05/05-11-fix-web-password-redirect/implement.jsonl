@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/guides/docker-webui-auth-contract.md", "reason": "Auth shortcut must preserve Docker WebUI login/session contract"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Current Docker WebUI frontend guidance"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Docker runtime/auth boundary guidance"}

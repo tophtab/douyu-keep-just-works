@@ -1722,3 +1722,36 @@ Split the Docker WebUI source into index.html, styles.css, and app.js while pres
 ### Next Steps
 
 - None - task complete
+
+
+## Session 47: Fix gift expiry time display
+
+**Date**: 2026-05-11
+**Task**: Fix gift expiry time display
+**Branch**: `master`
+
+### Summary
+
+Changed Docker WebUI date formatting so gift expiry and related timestamps render as compact Shanghai-local YYYY-MM-DD HH:mm values instead of leaking raw ISO .000Z strings; validated lint, type-check, Docker build, and contract tests.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cb1d313` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

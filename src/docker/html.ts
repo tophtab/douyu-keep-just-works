@@ -1683,12 +1683,11 @@ textarea{
     };
   }
 
-  function createResourceRequest(ttlMs) {
+  function createResourceRequest() {
     return {
       pending: null,
       fetchedAt: 0,
-      requestSeq: 0,
-      ttlMs: ttlMs
+      requestSeq: 0
     };
   }
 
@@ -1718,10 +1717,10 @@ textarea{
     yubaStatusLoaded: false,
     managedLoading: false,
     resourceRequests: {
-      fansSync: createResourceRequest(0),
-      fansList: createResourceRequest(30 * 1000),
-      fansStatus: createResourceRequest(30 * 1000),
-      yubaStatus: createResourceRequest(30 * 1000)
+      fansSync: createResourceRequest(),
+      fansList: createResourceRequest(),
+      fansStatus: createResourceRequest(),
+      yubaStatus: createResourceRequest()
     },
     themeMode: 'system',
     cronPreview: {
@@ -1929,12 +1928,30 @@ textarea{
     return state.resourceRequests[key];
   }
 
-  function isResourceFresh(key) {
-    var resource = getResourceRequest(key);
-    return Boolean(resource.fetchedAt && resource.ttlMs > 0 && (Date.now() - resource.fetchedAt) < resource.ttlMs);
+  function hasLoadedFansList() {
+    return Boolean(getResourceRequest('fansList').fetchedAt);
   }
 
-  function markResourceFresh(key) {
+  function shouldLoadFansListForActiveTab() {
+    var activeNeedsFansList = state.activeTab === 'keepalive' || state.activeTab === 'double-card';
+    var resource = getResourceRequest('fansList');
+    return Boolean(
+      activeNeedsFansList
+      && hasCookieSourceConfigured(getRawConfig())
+      && !getManagedFans().length
+      && !hasLoadedFansList()
+      && !state.managedLoading
+      && !resource.pending
+    );
+  }
+
+  function ensureFansListForActiveTab() {
+    if (shouldLoadFansListForActiveTab()) {
+      loadFansList(false);
+    }
+  }
+
+  function markResourceLoaded(key) {
     getResourceRequest(key).fetchedAt = Date.now();
   }
 
@@ -2061,11 +2078,14 @@ textarea{
   }
 
   function getManagedFans() {
-    if (state.managed && state.managed.fans) {
+    if (state.managed && state.managed.fans && state.managed.fans.length) {
       return state.managed.fans;
     }
     if (state.fansStatus.length) {
       return state.fansStatus;
+    }
+    if (state.managed && state.managed.fans) {
+      return state.managed.fans;
     }
     return [];
   }
@@ -2185,9 +2205,7 @@ textarea{
     if (nextTab === 'expiring-gift' && hasCookieSourceConfigured(getRawConfig()) && !state.fansStatusLoaded) {
       loadFansStatus(false);
     }
-    if ((nextTab === 'keepalive' || nextTab === 'double-card') && hasCookieSourceConfigured(getRawConfig()) && !getManagedFans().length && !state.managedLoading) {
-      loadFansList(false);
-    }
+    ensureFansListForActiveTab();
     if (nextTab === 'yuba' && hasCookieSourceConfigured(getRawConfig()) && !state.yubaStatusLoaded && !state.yubaStatusLoading) {
       loadYubaStatus(false);
     }
@@ -2798,8 +2816,10 @@ textarea{
     }
 
     if (!fans.length) {
-      byId('keepalive-note').textContent = '当前没有可用粉丝牌。';
-      byId('keepalive-table-wrap').innerHTML = '<div class="empty">同步后如果仍为空，说明当前账号没有可用粉丝牌数据。</div>';
+      byId('keepalive-note').textContent = hasLoadedFansList() ? '当前没有可用粉丝牌。' : '粉丝牌列表尚未加载。';
+      byId('keepalive-table-wrap').innerHTML = hasLoadedFansList()
+        ? '<div class="empty">已同步，但当前账号没有可用粉丝牌数据。</div>'
+        : '<div class="empty">正在准备加载粉丝牌列表，也可以点击刷新手动加载。</div>';
       return;
     }
 
@@ -2848,9 +2868,12 @@ textarea{
     }
 
     if (!fans.length) {
-      byId('double-note').textContent = '当前没有可用粉丝牌。';
-      byId('double-table-wrap').innerHTML = '<div class="empty">同步后如果仍为空，说明当前账号没有可用粉丝牌数据。</div>';
-      setDoubleModeEmptyState('按权重模式会在当前开双倍的房间之间重新分配。', '当前没有可用于预览的粉丝牌房间。');
+      var doubleFansLoaded = hasLoadedFansList();
+      byId('double-note').textContent = doubleFansLoaded ? '当前没有可用粉丝牌。' : '粉丝牌列表尚未加载。';
+      byId('double-table-wrap').innerHTML = doubleFansLoaded
+        ? '<div class="empty">已同步，但当前账号没有可用粉丝牌数据。</div>'
+        : '<div class="empty">正在准备加载粉丝牌列表，也可以点击刷新手动加载。</div>';
+      setDoubleModeEmptyState('按权重模式会在当前开双倍的房间之间重新分配。', doubleFansLoaded ? '当前没有可用于预览的粉丝牌房间。' : '粉丝牌列表加载后，这里会显示当前权重预览。');
       return;
     }
 
@@ -2902,9 +2925,11 @@ textarea{
     }
 
     if (!fans.length) {
-      byId('expiring-note').textContent = '当前没有可用粉丝牌。';
+      byId('expiring-note').textContent = hasLoadedFansList() ? '当前没有可用粉丝牌。' : '粉丝牌列表尚未加载。';
       byId('expiring-backpack-wrap').innerHTML = buildBackpackRowsTable(state.giftStatus);
-      byId('expiring-table-wrap').innerHTML = '<div class="empty">同步后如果仍为空，说明当前账号没有可用粉丝牌数据。</div>';
+      byId('expiring-table-wrap').innerHTML = hasLoadedFansList()
+        ? '<div class="empty">已同步，但当前账号没有可用粉丝牌数据。</div>'
+        : '<div class="empty">正在准备加载粉丝牌列表，也可以点击刷新手动加载。</div>';
       return;
     }
 
@@ -3361,7 +3386,7 @@ textarea{
       state.managed = data;
       state.rawConfig = data.config;
       state.managedLoading = false;
-      markResourceFresh('fansList');
+      markResourceLoaded('fansList');
       invalidateResourceRequest('fansStatus');
       renderAll();
       if (showToast) {
@@ -3381,10 +3406,9 @@ textarea{
     return trackResourceRequest(resource, requestSeq, pending);
   }
 
-  function loadFansList(showToast, options) {
+  function loadFansList(showToast) {
     var rawConfig = getRawConfig();
     var resource = getResourceRequest('fansList');
-    var forceRefresh = Boolean(options && options.force);
     if (!hasCookieSourceConfigured(rawConfig)) {
       invalidateResourceRequest('fansList');
       state.managed = null;
@@ -3393,11 +3417,6 @@ textarea{
       if (showToast) {
         toast('请先保存 Cookie 或启用 CookieCloud', false);
       }
-      return Promise.resolve();
-    }
-
-    if (!forceRefresh && isResourceFresh('fansList')) {
-      renderAll();
       return Promise.resolve();
     }
 
@@ -3415,7 +3434,7 @@ textarea{
       }
       setManagedFans(data);
       state.managedLoading = false;
-      markResourceFresh('fansList');
+      markResourceLoaded('fansList');
       renderAll();
       if (showToast) {
         toast('粉丝牌列表已加载', true);
@@ -3434,10 +3453,9 @@ textarea{
     return trackResourceRequest(resource, requestSeq, pending);
   }
 
-  function loadFansStatus(showToast, options) {
+  function loadFansStatus(showToast) {
     var rawConfig = getRawConfig();
     var resource = getResourceRequest('fansStatus');
-    var forceRefresh = Boolean(options && options.force);
     if (!hasCookieSourceConfigured(rawConfig)) {
       invalidateResourceRequest('fansStatus');
       state.fansStatus = [];
@@ -3451,12 +3469,6 @@ textarea{
       if (showToast) {
         toast('请先保存 Cookie 或启用 CookieCloud', false);
       }
-      return Promise.resolve();
-    }
-
-    if (!forceRefresh && isResourceFresh('fansStatus')) {
-      renderOverview();
-      renderExpiringGiftPage();
       return Promise.resolve();
     }
 
@@ -3480,8 +3492,8 @@ textarea{
       if (data && data.complete) {
         state.fansStatusLoading = false;
         state.fansStatusDetailsLoading = false;
-        markResourceFresh('fansStatus');
-        markResourceFresh('fansList');
+        markResourceLoaded('fansStatus');
+        markResourceLoaded('fansList');
         renderOverview();
         renderExpiringGiftPage();
         if (showToast) {
@@ -3497,8 +3509,8 @@ textarea{
       applyFansStatusDetails(data);
       state.fansStatusLoading = false;
       state.fansStatusDetailsLoading = false;
-      markResourceFresh('fansStatus');
-      markResourceFresh('fansList');
+      markResourceLoaded('fansStatus');
+      markResourceLoaded('fansList');
       renderOverview();
       renderExpiringGiftPage();
       if (showToast) {
@@ -3525,10 +3537,9 @@ textarea{
     return trackResourceRequest(resource, requestSeq, pending);
   }
 
-  function loadYubaStatus(showToast, options) {
+  function loadYubaStatus(showToast) {
     var rawConfig = getRawConfig();
     var resource = getResourceRequest('yubaStatus');
-    var forceRefresh = Boolean(options && options.force);
     if (!hasCookieSourceConfigured(rawConfig)) {
       invalidateResourceRequest('yubaStatus');
       state.yubaStatus = [];
@@ -3538,11 +3549,6 @@ textarea{
       if (showToast) {
         toast('请先保存 Cookie 或启用 CookieCloud', false);
       }
-      return Promise.resolve();
-    }
-
-    if (!forceRefresh && isResourceFresh('yubaStatus')) {
-      renderYubaPage();
       return Promise.resolve();
     }
 
@@ -3561,7 +3567,7 @@ textarea{
       state.yubaStatus = data && data.groups ? data.groups : [];
       state.yubaStatusLoaded = true;
       state.yubaStatusLoading = false;
-      markResourceFresh('yubaStatus');
+      markResourceLoaded('yubaStatus');
       renderYubaPage();
       if (showToast) {
         toast('鱼吧状态已刷新', true);
@@ -3614,11 +3620,11 @@ textarea{
         loadOverview()
       ];
       if (state.activeTab === 'overview' || state.activeTab === 'expiring-gift') {
-        reloads.push(loadFansStatus(false, { force: true }));
+        reloads.push(loadFansStatus(false));
       } else if (state.activeTab === 'keepalive' || state.activeTab === 'double-card') {
-        reloads.push(loadFansList(false, { force: true }));
+        reloads.push(loadFansList(false));
       } else if (state.activeTab === 'yuba') {
-        reloads.push(loadYubaStatus(false, { force: true }));
+        reloads.push(loadYubaStatus(false));
       } else if (state.activeTab === 'logs') {
         reloads.push(loadLogs());
       }
@@ -4085,10 +4091,10 @@ textarea{
         loadLogs()
       ];
       if (state.activeTab === 'overview' || type === 'collectGift' || type === 'keepalive' || type === 'doubleCard' || type === 'expiringGift') {
-        reloads.push(loadFansStatus(false, { force: true }));
+        reloads.push(loadFansStatus(false));
       }
       if (state.activeTab === 'yuba' || type === 'yubaCheckIn') {
-        reloads.push(loadYubaStatus(false, { force: true }));
+        reloads.push(loadYubaStatus(false));
       }
       Promise.all(reloads).then(function () {
         if (state.activeTab === 'keepalive') {

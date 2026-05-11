@@ -694,15 +694,16 @@ File: `src/core/medal-sync.ts`
 2. Signatures
 
 ```js
-loadFansList(showToast, { force: true })
-loadFansStatus(showToast, { force: true })
-loadYubaStatus(showToast, { force: true })
+loadFansList(showToast)
+loadFansStatus(showToast)
+loadYubaStatus(showToast)
 ```
 
 3. Contracts
 
-- Automatic tab/lazy-load reads may reuse a fresh browser snapshot for a short TTL.
-- Manual refresh and post-task reloads may force a refresh, but must still reuse the same in-flight request when one is already running.
+- Automatic tab/lazy-load reads should request the local Docker WebUI API when the visible view needs data; browser-side TTL/cooldown must not suppress these reads.
+- Repeated visible refreshes must still reuse the same in-flight request when one is already running.
+- Backend status/list caches remain responsible for reducing upstream Douyu request frequency.
 - Late responses must be ignored with a per-resource request sequence if the resource was invalidated after the request started.
 - Existing rows remain visible during background refresh when a previous successful snapshot exists.
 
@@ -710,15 +711,15 @@ loadYubaStatus(showToast, { force: true })
 
 | Case | Expected result |
 |------|-----------------|
-| Re-entering overview/expiring within the browser TTL | no new browser request for `/api/fans/status` |
 | Multiple clicks while visible refresh is loading | at most one in-flight browser request per resource |
+| Re-entering overview/expiring after a prior successful load | browser may call `/api/fans/status/base`; backend cache may answer without new Douyu fan-out |
 | Refresh fails after a previous successful fans status load | table keeps the previous rows and shows the failure toast |
 | Cookie source disappears | client resource metadata and visible fans/yuba snapshots are cleared |
 
 5. Good / Base / Bad Cases
 
-- Good: lazy tab load calls `loadFansStatus(false)` and lets the browser TTL decide whether a request is needed.
-- Base: task trigger calls `loadFansStatus(false, { force: true })` because backend status was invalidated by the task.
+- Good: lazy tab load calls `loadFansStatus(false)` when status is needed and lets the backend cache decide whether Douyu must be queried.
+- Base: task trigger calls `loadFansStatus(false)` after backend status was invalidated by the task.
 - Bad: clearing `state.fansStatus` before every refresh, causing the UI to flash empty while an avoidable duplicate request runs.
 
 6. Tests Required

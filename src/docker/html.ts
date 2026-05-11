@@ -2185,6 +2185,9 @@ textarea{
     if (nextTab === 'expiring-gift' && hasCookieSourceConfigured(getRawConfig()) && !state.fansStatusLoaded) {
       loadFansStatus(false);
     }
+    if ((nextTab === 'keepalive' || nextTab === 'double-card') && hasCookieSourceConfigured(getRawConfig()) && !getManagedFans().length && !state.managedLoading) {
+      loadFansList(false);
+    }
     if (nextTab === 'yuba' && hasCookieSourceConfigured(getRawConfig()) && !state.yubaStatusLoaded && !state.yubaStatusLoading) {
       loadYubaStatus(false);
     }
@@ -3333,6 +3336,9 @@ textarea{
     var resource = getResourceRequest('fansSync');
     if (!hasCookieSourceConfigured(rawConfig)) {
       invalidateResourceRequests(['fansSync', 'fansList', 'fansStatus']);
+      state.managedLoading = false;
+      state.fansStatusLoading = false;
+      state.fansStatusDetailsLoading = false;
       toast('请先保存 Cookie 或启用 CookieCloud', false);
       renderAll();
       return Promise.resolve();
@@ -3382,6 +3388,7 @@ textarea{
     if (!hasCookieSourceConfigured(rawConfig)) {
       invalidateResourceRequest('fansList');
       state.managed = null;
+      state.managedLoading = false;
       renderAll();
       if (showToast) {
         toast('请先保存 Cookie 或启用 CookieCloud', false);
@@ -3435,6 +3442,7 @@ textarea{
       invalidateResourceRequest('fansStatus');
       state.fansStatus = [];
       state.giftStatus = null;
+      state.fansStatusLoading = false;
       state.fansStatusLoaded = false;
       state.fansStatusDetailsLoaded = false;
       state.fansStatusDetailsLoading = false;
@@ -3586,37 +3594,38 @@ textarea{
         state.managed = null;
         state.fansStatus = [];
         state.giftStatus = null;
+        state.managedLoading = false;
+        state.fansStatusLoading = false;
         state.fansStatusLoaded = false;
         state.fansStatusDetailsLoaded = false;
         state.fansStatusDetailsLoading = false;
         state.yubaStatus = [];
         state.yubaStatusLoaded = false;
+        state.yubaStatusLoading = false;
         renderAll();
         return loadOverview().then(function () {
           if (showToast) {
-            toast('概况已刷新', true);
+            toast('状态已刷新', true);
           }
         });
       }
 
-      return syncFans(false).then(function () {
-        var reloads = [
-          loadFansStatus(false, { force: showToast })
-        ];
-        if (state.activeTab === 'yuba') {
-          reloads.push(loadYubaStatus(false, { force: showToast }));
-        } else {
-          state.yubaStatus = [];
-          state.yubaStatusLoaded = false;
-          state.yubaStatusLoading = false;
-          invalidateResourceRequest('yubaStatus');
-        }
-        return Promise.all(reloads);
-      }).then(function () {
-        return loadOverview();
-      }).then(function () {
+      var reloads = [
+        loadOverview()
+      ];
+      if (state.activeTab === 'overview' || state.activeTab === 'expiring-gift') {
+        reloads.push(loadFansStatus(false, { force: true }));
+      } else if (state.activeTab === 'keepalive' || state.activeTab === 'double-card') {
+        reloads.push(loadFansList(false, { force: true }));
+      } else if (state.activeTab === 'yuba') {
+        reloads.push(loadYubaStatus(false, { force: true }));
+      } else if (state.activeTab === 'logs') {
+        reloads.push(loadLogs());
+      }
+
+      return Promise.all(reloads).then(function () {
         if (showToast) {
-          toast('概况已刷新', true);
+          toast('状态已刷新', true);
         }
       });
     });

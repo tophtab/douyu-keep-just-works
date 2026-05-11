@@ -1392,3 +1392,36 @@ Restored current-tab WebUI refresh behavior so double-card and keepalive pages l
 ### Next Steps
 
 - None - task complete
+
+
+## Session 37: Remove WebUI frontend refresh TTL
+
+**Date**: 2026-05-11
+**Task**: Remove WebUI frontend refresh TTL
+**Branch**: `master`
+
+### Summary
+
+Removed browser-side 30-second refresh TTL from Docker WebUI resource loading, kept in-flight request coalescing, restored reliable keepalive/double-card fan list loading, and updated the Docker medal sync contract to make backend caches responsible for Douyu request reduction.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ceb2d1e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

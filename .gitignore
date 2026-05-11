@@ -12,6 +12,7 @@ build
 .claude/
 .opencode/
 .codex
+.agents/skills/**/*.backup
 
 # Local runtime config
 config/

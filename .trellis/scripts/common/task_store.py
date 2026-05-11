@@ -24,6 +24,7 @@ from pathlib import Path
 
 from .config import (
     get_packages,
+    get_session_auto_commit,
     is_monorepo,
     resolve_package,
     validate_package,
@@ -40,6 +41,11 @@ from .paths import (
     get_developer,
     get_repo_root,
     get_tasks_dir,
+)
+from .safe_commit import (
+    print_gitignore_warning,
+    safe_archive_paths_to_add,
+    safe_git_add,
 )
 from .task_utils import (
     archive_task_complete,
@@ -383,13 +389,43 @@ def cmd_archive(args: argparse.Namespace) -> int:
 
 
 def _auto_commit_archive(task_name: str, repo_root: Path) -> None:
-    """Stage .trellis/tasks/ changes and commit after archive."""
-    tasks_rel = f"{DIR_WORKFLOW}/{DIR_TASKS}"
-    run_git(["add", "-A", tasks_rel], cwd=repo_root)
+    """Stage Trellis-owned task paths and commit after archive.
 
-    # Check if there are staged changes
+    Only stages specific subpaths (the archive subtree and active task dirs),
+    never the whole ``.trellis/`` tree. If ``.gitignore`` blocks the paths,
+    we warn + skip — we do NOT retry with ``git add -f``. The warning
+    explicitly forbids ``git add -f .trellis/`` (which would fan out to
+    caches/backups) and points users at ``session_auto_commit: false``.
+
+    Honors ``session_auto_commit`` in ``.trellis/config.yaml``: when set to
+    ``false``, this function returns immediately without touching git
+    (the archive directory move on disk is unaffected).
+    """
+    if not get_session_auto_commit(repo_root):
+        print(
+            "[OK] session_auto_commit: false — skipping git stage/commit.",
+            file=sys.stderr,
+        )
+        return
+
+    paths = safe_archive_paths_to_add(repo_root)
+    if not paths:
+        print("[OK] No task changes to commit.", file=sys.stderr)
+        return
+
+    success, _, err = safe_git_add(paths, repo_root)
+    if not success:
+        if err and "ignored by" in err.lower():
+            print_gitignore_warning(paths)
+        else:
+            print(
+                f"[WARN] git add failed: {err.strip() if err else 'unknown error'}",
+                file=sys.stderr,
+            )
+        return
+
     rc, _, _ = run_git(
-        ["diff", "--cached", "--quiet", "--", tasks_rel], cwd=repo_root
+        ["diff", "--cached", "--quiet", "--", *paths], cwd=repo_root
     )
     if rc == 0:
         print("[OK] No task changes to commit.", file=sys.stderr)

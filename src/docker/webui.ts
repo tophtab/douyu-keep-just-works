@@ -16,10 +16,20 @@ const APP_NAME = 'douyu-keep'
 const APP_VERSION = readPackageVersion()
 const APP_VERSION_LABEL = `V${APP_VERSION}`
 const WEBUI_TEMPLATE_PATH = path.join(__dirname, 'webui', 'index.html')
-const WEBUI_STYLES_PATH = path.join(__dirname, 'webui', 'styles.css')
+const WEBUI_STYLE_PATHS = [
+  path.join(__dirname, 'webui', 'styles.css'),
+  path.join(__dirname, 'webui', 'styles-components.css'),
+  path.join(__dirname, 'webui', 'styles-tables.css'),
+  path.join(__dirname, 'webui', 'styles-responsive.css'),
+]
 const WEBUI_SCRIPT_PATHS = [
   path.join(__dirname, 'webui', 'app-data.js'),
   path.join(__dirname, 'webui', 'app-routing.js'),
+  path.join(__dirname, 'webui', 'app-dom.js'),
+  path.join(__dirname, 'webui', 'app-render.js'),
+  path.join(__dirname, 'webui', 'app-pages.js'),
+  path.join(__dirname, 'webui', 'app-actions.js'),
+  path.join(__dirname, 'webui', 'app-task-actions.js'),
   path.join(__dirname, 'webui', 'app.js'),
 ]
 
@@ -64,7 +74,7 @@ function readTemplate(): string {
 
 function readStyles(): string {
   if (!cachedStyles) {
-    cachedStyles = readTextFile(WEBUI_STYLES_PATH)
+    cachedStyles = WEBUI_STYLE_PATHS.map(readTextFile).join('\n')
   }
   return cachedStyles
 }

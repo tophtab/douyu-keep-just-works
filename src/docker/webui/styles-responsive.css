@@ -1,0 +1,165 @@
+@media (prefers-reduced-motion: reduce){
+  *,
+  *::before,
+  *::after{
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    scroll-behavior:auto !important;
+    transition-duration:.01ms !important;
+  }
+  .tab-btn:hover,
+  .theme-option:hover,
+  .btn:hover{
+    transform:none;
+  }
+}
+@media (max-width: 720px){
+  .table{
+    --table-cell-x:10px;
+    --table-cell-y:8px;
+  }
+  .fans-status-table,
+  .yuba-status-table,
+  .backpack-table{
+    min-width:0;
+    table-layout:auto;
+  }
+  .fans-status-table thead,
+  .yuba-status-table thead,
+  .backpack-table thead,
+  .fans-status-table colgroup,
+  .yuba-status-table colgroup,
+  .backpack-table colgroup{
+    display:none;
+  }
+  .fans-status-table,
+  .fans-status-table tbody,
+  .yuba-status-table,
+  .yuba-status-table tbody,
+  .backpack-table,
+  .backpack-table tbody{
+    display:block;
+    width:100%;
+  }
+  .fans-status-table tbody,
+  .yuba-status-table tbody,
+  .backpack-table tbody{
+    display:grid;
+    gap:10px;
+    padding:10px;
+  }
+  .fans-status-table tr,
+  .fans-status-table td,
+  .yuba-status-table tr,
+  .yuba-status-table td,
+  .backpack-table tr,
+  .backpack-table td{
+    display:block;
+    width:100%;
+  }
+  .fans-status-table tr,
+  .yuba-status-table tr,
+  .backpack-table tr{
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:16px;
+    background:var(--surface-soft);
+  }
+  .fans-status-table td,
+  .yuba-status-table td,
+  .backpack-table td{
+    display:grid;
+    grid-template-columns:minmax(88px, 32%) minmax(0, 1fr);
+    gap:12px;
+    padding:7px 0;
+    border-bottom:0;
+    white-space:normal;
+    overflow:visible;
+    text-overflow:clip;
+    text-align:left;
+    word-break:break-word;
+  }
+  .fans-status-table td + td,
+  .yuba-status-table td + td,
+  .backpack-table td + td{
+    border-top:1px solid var(--line);
+  }
+  .fans-status-table td::before,
+  .yuba-status-table td::before,
+  .backpack-table td::before{
+    content:attr(data-label);
+    color:var(--muted);
+    font-size:12px;
+    font-weight:700;
+  }
+  .fans-status-table .num-cell,
+  .fans-status-table .index-cell,
+  .yuba-status-table .num-cell,
+  .yuba-status-table .index-cell,
+  .backpack-table .num-cell,
+  .backpack-table .index-cell{
+    text-align:left;
+  }
+  .log-line{
+    grid-template-columns:max-content minmax(0,1fr);
+  }
+  .log-message{
+    grid-column:1 / -1;
+  }
+}
+@media (max-width: 1100px){
+  .task-grid,
+  .grid.cols-3{
+    grid-template-columns:1fr;
+  }
+  .strip-metrics,
+  .summary-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media (max-width: 960px){
+  .auth-card{
+    grid-template-columns:1fr;
+  }
+  .shell{display:block}
+  .sidebar{
+    width:auto;
+    border-right:none;
+    border-bottom:1px solid var(--line);
+  }
+  .main{
+    padding:18px;
+  }
+  .header{display:block}
+  .toolbar{
+    margin-top:16px;
+  }
+  .toast{
+    top:18px;
+    right:18px;
+    bottom:auto;
+    left:18px;
+    min-width:0;
+    max-width:none;
+  }
+  .strip-metrics,
+  .grid.cols-2,
+  .summary-grid{
+    grid-template-columns:1fr;
+  }
+  .split-inline{
+    display:block;
+  }
+  .split-inline-actions{
+    justify-content:flex-start;
+    margin-top:16px;
+    width:100%;
+  }
+  .strip-metrics{
+    min-width:0;
+    width:100%;
+  }
+  .overview-gift-summary .strip-metric{
+    min-height:auto;
+  }
+}

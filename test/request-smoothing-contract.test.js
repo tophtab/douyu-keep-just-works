@@ -46,20 +46,21 @@ function getFunctionBody(source, functionName) {
 
 test('Docker WebUI coalesces duplicate local Douyu-backed reads without client cooldowns', () => {
   const webui = readRepoFile('src/docker/webui/app.js')
+  const actions = readRepoFile('src/docker/webui/app-actions.js')
 
   assert.match(getFunctionBody(webui, 'createResourceRequest'), /pending:\s*null/)
   assert.match(getFunctionBody(webui, 'createResourceRequest'), /fetchedAt:\s*0/)
   assert.match(getFunctionBody(webui, 'createResourceRequest'), /requestSeq:\s*0/)
 
   for (const functionName of ['syncFans', 'loadFansList', 'loadFansStatus', 'loadYubaStatus']) {
-    const body = getFunctionBody(webui, functionName)
+    const body = getFunctionBody(actions, functionName)
     assert.match(body, /if\s*\(\s*resource\.pending\s*\)/, `${functionName} must reuse an in-flight request`)
     assert.match(body, /return\s+resource\.pending/, `${functionName} must return the in-flight request`)
     assert.match(body, /trackResourceRequest\(resource,\s*requestSeq,\s*pending\)/, `${functionName} must track request sequence`)
   }
 
-  assert.doesNotMatch(webui, /\b(cooldown|nextAllowed|minInterval|lastRequest|lastRequested|rateLimit|throttle|debounce)\b/i)
-  assert.doesNotMatch(webui, /Date\.now\(\)\s*-\s*resource\.fetchedAt/)
+  assert.doesNotMatch(webui + actions, /\b(cooldown|nextAllowed|minInterval|lastRequest|lastRequested|rateLimit|throttle|debounce)\b/i)
+  assert.doesNotMatch(webui + actions, /Date\.now\(\)\s*-\s*resource\.fetchedAt/)
 })
 
 test('Docker runtime keeps backend cache TTLs and pending-promise coalescing authoritative', () => {

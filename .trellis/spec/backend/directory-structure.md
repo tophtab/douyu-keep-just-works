@@ -39,10 +39,18 @@ src/
 │   ├── task-metadata.ts
 │   ├── webui.ts
 │   └── webui/
+│       ├── app-actions.js
 │       ├── app-data.js
+│       ├── app-dom.js
+│       ├── app-pages.js
+│       ├── app-render.js
 │       ├── app-routing.js
+│       ├── app-task-actions.js
 │       ├── index.html
 │       ├── styles.css
+│       ├── styles-components.css
+│       ├── styles-responsive.css
+│       ├── styles-tables.css
 │       └── app.js
 ```
 
@@ -64,11 +72,19 @@ Examples:
 - `src/docker/task-metadata.ts` owns task type labels and task-config lookup shared by runtime scheduling.
 - `src/docker/server.ts` is limited to HTTP route registration and delegates work through `AppContext`.
 - `src/docker/webui/index.html` owns the Docker WebUI document shell.
-- `src/docker/webui/styles.css` owns the Docker WebUI stylesheet.
+- `src/docker/webui/styles.css` owns Docker WebUI base variables, auth shell, navigation, and page shell styles.
+- `src/docker/webui/styles-components.css` owns Docker WebUI cards, panels, forms, buttons, and task component styles.
+- `src/docker/webui/styles-tables.css` owns Docker WebUI table, empty-state, log, toast, and screen-reader utility styles.
+- `src/docker/webui/styles-responsive.css` owns Docker WebUI motion and responsive overrides.
+- `src/docker/webui/app-actions.js` owns Docker WebUI auth, data loading, save, trigger, and refresh actions.
 - `src/docker/webui/app-data.js` owns Docker WebUI client-side metadata and default config constants.
+- `src/docker/webui/app-dom.js` owns Docker WebUI DOM, theme, date formatting, and toast helpers.
+- `src/docker/webui/app-pages.js` owns Docker WebUI page rendering, cron preview rendering, and page-local UI update helpers.
+- `src/docker/webui/app-render.js` owns Docker WebUI HTML fragment and table rendering helpers.
 - `src/docker/webui/app-routing.js` owns Docker WebUI client-side route/path helpers.
+- `src/docker/webui/app-task-actions.js` owns Docker WebUI task configuration save/disable actions.
 - `src/docker/webui/app.js` owns the Docker WebUI client-side behavior script.
-- `src/docker/webui.ts` owns template loading plus runtime injection for app version, page routes, styles, and ordered client scripts.
+- `src/docker/webui.ts` owns template loading plus runtime injection for app version, page routes, ordered styles, and ordered client scripts.
 - `src/core/job.ts` runs the gift workflow without knowing which HTTP route or scheduler triggered it.
 - `src/core/yuba.ts` is the public Yuba feature surface for status and check-in workflows.
 - `src/core/yuba-common.ts` owns reusable Yuba HTTP/header/body/parsing helpers shared by Yuba status and check-in code.

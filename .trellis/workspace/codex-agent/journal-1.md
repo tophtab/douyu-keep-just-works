@@ -1920,3 +1920,36 @@ Responded to the remaining large-file concern by splitting Docker WebUI CSS into
 ### Next Steps
 
 - None - task complete
+
+
+## Session 53: Split remaining large files
+
+**Date**: 2026-05-12
+**Task**: Split remaining large files
+**Branch**: `master`
+
+### Summary
+
+Split oversized Docker runtime, server, WebUI, and Yuba modules into responsibility-focused files; updated WebUI injection contracts and request smoothing tests; verified lint, type-check, and Docker test gate.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `202ec3e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

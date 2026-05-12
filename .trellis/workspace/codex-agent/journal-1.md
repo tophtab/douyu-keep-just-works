@@ -1887,3 +1887,36 @@ Continued the 2026-05-12 project-improvements PRD by skipping the broad runtime 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 52: Further split Docker WebUI sources
+
+**Date**: 2026-05-12
+**Task**: Further split Docker WebUI sources
+**Branch**: `master`
+
+### Summary
+
+Responded to the remaining large-file concern by splitting Docker WebUI CSS into ordered base/components/tables/responsive files and splitting the WebUI script into DOM, render, page, action, and task-action modules. Updated injection contracts/specs and verified lint, type-check, and npm test.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5153daf` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

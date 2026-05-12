@@ -9,16 +9,31 @@ function readRepoFile(relativePath) {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8')
 }
 
-function getFunctionBody(source, functionName) {
-  const declaration = `function ${functionName}`
+function readServerSources() {
+  return fs.readdirSync(path.join(repoRoot, 'src/docker'))
+    .filter(file => /^server.*\.ts$/.test(file))
+    .sort()
+    .map(file => readRepoFile(`src/docker/${file}`))
+    .join('\n')
+}
+
+function readWebuiResourceActionSources() {
+  return [
+    'src/docker/webui/app-resource-actions.js',
+    'src/docker/webui/app-fans-resource-actions.js',
+    'src/docker/webui/app-yuba-resource-actions.js',
+  ].map(readRepoFile).join('\n')
+}
+
+function getBlockBody(source, declaration) {
   const functionIndex = source.indexOf(declaration)
-  assert.notEqual(functionIndex, -1, `Missing function ${functionName}`)
+  assert.notEqual(functionIndex, -1, `Missing ${declaration}`)
 
   let openBrace = -1
   let lineStart = functionIndex
   while (lineStart < source.length) {
     const lineEnd = source.indexOf('\n', lineStart)
-    assert.notEqual(lineEnd, -1, `Missing function body for ${functionName}`)
+    assert.notEqual(lineEnd, -1, `Missing body for ${declaration}`)
     const line = source.slice(lineStart, lineEnd)
     if (line.trimEnd().endsWith('{')) {
       openBrace = lineStart + line.lastIndexOf('{')
@@ -26,7 +41,7 @@ function getFunctionBody(source, functionName) {
     }
     lineStart = lineEnd + 1
   }
-  assert.notEqual(openBrace, -1, `Missing function body for ${functionName}`)
+  assert.notEqual(openBrace, -1, `Missing body for ${declaration}`)
 
   let depth = 0
   for (let index = openBrace; index < source.length; index += 1) {
@@ -41,16 +56,26 @@ function getFunctionBody(source, functionName) {
     }
   }
 
-  throw new Error(`Unclosed function body for ${functionName}`)
+  throw new Error(`Unclosed body for ${declaration}`)
+}
+
+function getFunctionBody(source, functionName) {
+  return getBlockBody(source, `function ${functionName}`)
+}
+
+function getAsyncMethodBody(source, methodName) {
+  return getBlockBody(source, `async ${methodName}`)
 }
 
 test('Docker WebUI coalesces duplicate local Douyu-backed reads without client cooldowns', () => {
   const webui = readRepoFile('src/docker/webui/app.js')
-  const actions = readRepoFile('src/docker/webui/app-actions.js')
+  const state = readRepoFile('src/docker/webui/app-state.js')
+  const managedData = readRepoFile('src/docker/webui/app-managed-data.js')
+  const actions = readWebuiResourceActionSources()
 
-  assert.match(getFunctionBody(webui, 'createResourceRequest'), /pending:\s*null/)
-  assert.match(getFunctionBody(webui, 'createResourceRequest'), /fetchedAt:\s*0/)
-  assert.match(getFunctionBody(webui, 'createResourceRequest'), /requestSeq:\s*0/)
+  assert.match(getFunctionBody(state, 'createResourceRequest'), /pending:\s*null/)
+  assert.match(getFunctionBody(state, 'createResourceRequest'), /fetchedAt:\s*0/)
+  assert.match(getFunctionBody(state, 'createResourceRequest'), /requestSeq:\s*0/)
 
   for (const functionName of ['syncFans', 'loadFansList', 'loadFansStatus', 'loadYubaStatus']) {
     const body = getFunctionBody(actions, functionName)
@@ -59,24 +84,24 @@ test('Docker WebUI coalesces duplicate local Douyu-backed reads without client c
     assert.match(body, /trackResourceRequest\(resource,\s*requestSeq,\s*pending\)/, `${functionName} must track request sequence`)
   }
 
-  assert.doesNotMatch(webui + actions, /\b(cooldown|nextAllowed|minInterval|lastRequest|lastRequested|rateLimit|throttle|debounce)\b/i)
-  assert.doesNotMatch(webui + actions, /Date\.now\(\)\s*-\s*resource\.fetchedAt/)
+  assert.doesNotMatch(webui + state + managedData + actions, /\b(cooldown|nextAllowed|minInterval|lastRequest|lastRequested|rateLimit|throttle|debounce)\b/i)
+  assert.doesNotMatch(webui + state + managedData + actions, /Date\.now\(\)\s*-\s*resource\.fetchedAt/)
 })
 
 test('Docker runtime keeps backend cache TTLs and pending-promise coalescing authoritative', () => {
-  const runtime = readRepoFile('src/docker/runtime.ts')
+  const runtimeCache = readRepoFile('src/docker/runtime-cache.ts')
 
-  assert.match(runtime, /const FANS_LIST_CACHE_TTL_MS = 60 \* 1000/)
-  assert.match(runtime, /const FANS_STATUS_CACHE_TTL_MS = 5 \* 60 \* 1000/)
-  assert.match(runtime, /const YUBA_STATUS_CACHE_TTL_MS = 10 \* 60 \* 1000/)
+  assert.match(runtimeCache, /const FANS_LIST_CACHE_TTL_MS = 60 \* 1000/)
+  assert.match(runtimeCache, /const FANS_STATUS_CACHE_TTL_MS = 5 \* 60 \* 1000/)
+  assert.match(runtimeCache, /const YUBA_STATUS_CACHE_TTL_MS = 10 \* 60 \* 1000/)
 
-  const fansListBody = getFunctionBody(runtime, 'getCachedFansList')
-  assert.match(fansListBody, /fansListCache\.pending/)
-  assert.match(fansListBody, /return await fansListCache\.pending/)
-  assert.match(fansListBody, /fansListCache\.pending = pending/)
+  const fansListBody = getAsyncMethodBody(runtimeCache, 'getFansList')
+  assert.match(fansListBody, /this\.fansListCache\.pending/)
+  assert.match(fansListBody, /return await this\.fansListCache\.pending/)
+  assert.match(fansListBody, /this\.fansListCache\.pending = pending/)
   assert.match(fansListBody, /getFansList\(cookie\)/)
 
-  const statusBody = getFunctionBody(runtime, 'getCachedStatus')
+  const statusBody = getFunctionBody(runtimeCache, 'getCachedStatus')
   assert.match(statusBody, /cache\.pending/)
   assert.match(statusBody, /return await cache\.pending/)
   assert.match(statusBody, /cache\.pending = pending/)
@@ -84,13 +109,13 @@ test('Docker runtime keeps backend cache TTLs and pending-promise coalescing aut
 })
 
 test('Fans reconcile remains a side-effecting operation, not a cached whole response', () => {
-  const server = readRepoFile('src/docker/server.ts')
+  const fansRoutes = readRepoFile('src/docker/server-fans-routes.ts')
   const runtime = readRepoFile('src/docker/runtime.ts')
 
-  assert.match(server, /app\.post\('\/api\/fans\/reconcile'[\s\S]*ctx\.syncWithFans\(\)/)
+  assert.match(fansRoutes, /app\.post\('\/api\/fans\/reconcile'[\s\S]*ctx\.syncWithFans\(\)/)
 
   const syncBody = getFunctionBody(runtime, 'syncConfigWithFans')
-  assert.match(syncBody, /const fans = await getCachedFansList\(cookie\)/)
+  assert.match(syncBody, /const fans = await runtimeCache\.getFansList\(cookie\)/)
   assert.match(syncBody, /const nextConfig = reconcileDockerConfig\(sourceConfig,\s*fans\)/)
   assert.match(syncBody, /saveConfigToDisk\(activeConfigPath,\s*nextConfig\)/)
   assert.doesNotMatch(syncBody, /getCachedStatus|reconcileCache|cachedReconcile|syncWithFansCache/)
@@ -98,10 +123,10 @@ test('Fans reconcile remains a side-effecting operation, not a cached whole resp
 
 test('Docker WebUI does not install or mount a mandatory global Express rate limiter', () => {
   const packageJson = JSON.parse(readRepoFile('package.json'))
-  const server = readRepoFile('src/docker/server.ts')
+  const serverSources = readServerSources()
 
   assert.equal(packageJson.dependencies?.['express-rate-limit'], undefined)
   assert.equal(packageJson.devDependencies?.['express-rate-limit'], undefined)
-  assert.doesNotMatch(server, /express-rate-limit/)
-  assert.doesNotMatch(server, /app\.use\(\s*(?:rateLimit|limiter)\b/)
+  assert.doesNotMatch(serverSources, /express-rate-limit/)
+  assert.doesNotMatch(serverSources, /app\.use\(\s*(?:rateLimit|limiter)\b/)
 })

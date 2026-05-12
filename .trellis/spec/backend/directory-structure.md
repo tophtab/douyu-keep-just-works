@@ -25,8 +25,10 @@ src/
 │   ├── double-card.ts
 │   ├── gift.ts
 │   ├── job.ts
+│   ├── yuba-check-in.ts
 │   ├── yuba.ts
 │   ├── yuba-common.ts
+│   ├── yuba-status.ts
 │   └── types.ts
 ├── docker/
 │   ├── cron.ts
@@ -40,12 +42,27 @@ src/
 │   ├── webui.ts
 │   └── webui/
 │       ├── app-actions.js
+│       ├── app-auth-actions.js
 │       ├── app-data.js
 │       ├── app-dom.js
+│       ├── app-double-task-page.js
+│       ├── app-events.js
+│       ├── app-fans-resource-actions.js
+│       ├── app-managed-data.js
+│       ├── app-page-cron.js
 │       ├── app-pages.js
+│       ├── app-protected-state.js
 │       ├── app-render.js
+│       ├── app-request.js
+│       ├── app-resource-actions.js
 │       ├── app-routing.js
+│       ├── app-send-task-actions.js
+│       ├── app-simple-task-actions.js
+│       ├── app-system-resource-actions.js
+│       ├── app-table-render.js
 │       ├── app-task-actions.js
+│       ├── app-task-pages.js
+│       ├── app-yuba-resource-actions.js
 │       ├── index.html
 │       ├── styles.css
 │       ├── styles-components.css
@@ -70,24 +87,45 @@ Examples:
 - `src/docker/config-store.ts` owns config file IO and config-update assembly.
 - `src/docker/config-validation.ts` owns Docker config validation used by HTTP save routes.
 - `src/docker/task-metadata.ts` owns task type labels and task-config lookup shared by runtime scheduling.
-- `src/docker/server.ts` is limited to HTTP route registration and delegates work through `AppContext`.
+- `src/docker/runtime-task-runners.ts` owns Docker scheduled/manual task execution functions and status-cache invalidation scopes.
+- `src/docker/server.ts` is a thin Express assembler: JSON middleware, WebUI fallback, auth boundary, and route-module registration.
+- `src/docker/server-auth.ts` owns Docker WebUI session cookies, in-memory session lifecycle, auth routes, and the protected API boundary.
+- `src/docker/server-*-routes.ts` files own cohesive Docker HTTP route groups and delegate work through `AppContext`.
+- `src/docker/server-types.ts` owns the shared `AppContext` and `JobStatus` types re-exported by `server.ts` for existing imports.
 - `src/docker/webui/index.html` owns the Docker WebUI document shell.
 - `src/docker/webui/styles.css` owns Docker WebUI base variables, auth shell, navigation, and page shell styles.
 - `src/docker/webui/styles-components.css` owns Docker WebUI cards, panels, forms, buttons, and task component styles.
 - `src/docker/webui/styles-tables.css` owns Docker WebUI table, empty-state, log, toast, and screen-reader utility styles.
 - `src/docker/webui/styles-responsive.css` owns Docker WebUI motion and responsive overrides.
-- `src/docker/webui/app-actions.js` owns Docker WebUI auth, data loading, save, trigger, and refresh actions.
+- `src/docker/webui/app-actions.js` owns Docker WebUI action assembly, cookie-action wiring, trigger actions, and theme save.
+- `src/docker/webui/app-auth-actions.js` owns Docker WebUI auth status, login, submit, and logout actions.
 - `src/docker/webui/app-data.js` owns Docker WebUI client-side metadata and default config constants.
 - `src/docker/webui/app-dom.js` owns Docker WebUI DOM, theme, date formatting, and toast helpers.
-- `src/docker/webui/app-pages.js` owns Docker WebUI page rendering, cron preview rendering, and page-local UI update helpers.
-- `src/docker/webui/app-render.js` owns Docker WebUI HTML fragment and table rendering helpers.
+- `src/docker/webui/app-double-task-page.js` owns Docker WebUI double-card page rendering and double ratio controls.
+- `src/docker/webui/app-events.js` owns Docker WebUI bootstrap, event listeners, auto-refresh, and startup auth flow.
+- `src/docker/webui/app-fans-resource-actions.js` owns Docker WebUI fans reconcile/list/status resource loading actions.
+- `src/docker/webui/app-managed-data.js` owns Docker WebUI managed fan/config state derivation and fan status merge helpers.
+- `src/docker/webui/app-page-cron.js` owns Docker WebUI cron preview state rendering and preview API calls.
+- `src/docker/webui/app-pages.js` owns Docker WebUI page rendering assembly plus overview, login, logs, and theme page rendering.
+- `src/docker/webui/app-protected-state.js` owns Docker WebUI auth-protected and cookie-backed state reset helpers.
+- `src/docker/webui/app-render.js` owns Docker WebUI shared HTML fragments, task cards, and render helper assembly.
+- `src/docker/webui/app-request.js` owns Docker WebUI JSON request handling and unauthorized response forwarding.
+- `src/docker/webui/app-resource-actions.js` owns Docker WebUI resource action assembly and active-surface refresh orchestration.
 - `src/docker/webui/app-routing.js` owns Docker WebUI client-side route/path helpers.
-- `src/docker/webui/app-task-actions.js` owns Docker WebUI task configuration save/disable actions.
+- `src/docker/webui/app-send-task-actions.js` owns Docker WebUI room-send task save/disable actions for keepalive, double-card, and expiring gifts.
+- `src/docker/webui/app-simple-task-actions.js` owns Docker WebUI simple task save/disable actions for collect-gift and Yuba check-in.
+- `src/docker/webui/app-system-resource-actions.js` owns Docker WebUI raw config, overview, and log resource loading actions.
+- `src/docker/webui/app-table-render.js` owns Docker WebUI table rendering helpers for status, Yuba, backpack, and send-room tables.
+- `src/docker/webui/app-task-actions.js` owns Docker WebUI task action assembly.
+- `src/docker/webui/app-task-pages.js` owns Docker WebUI task page rendering and double-card page-local controls.
 - `src/docker/webui/app.js` owns the Docker WebUI client-side behavior script.
+- `src/docker/webui/app-yuba-resource-actions.js` owns Docker WebUI Yuba status resource loading actions.
 - `src/docker/webui.ts` owns template loading plus runtime injection for app version, page routes, ordered styles, and ordered client scripts.
 - `src/core/job.ts` runs the gift workflow without knowing which HTTP route or scheduler triggered it.
-- `src/core/yuba.ts` is the public Yuba feature surface for status and check-in workflows.
+- `src/core/yuba.ts` is the public Yuba facade that re-exports status and check-in workflows.
+- `src/core/yuba-check-in.ts` owns Yuba sign-in, fast sign, supplementary sign, and followed-group check-in execution.
 - `src/core/yuba-common.ts` owns reusable Yuba HTTP/header/body/parsing helpers shared by Yuba status and check-in code.
+- `src/core/yuba-status.ts` owns followed Yuba group discovery, group-head parsing, and status aggregation.
 
 ---
 

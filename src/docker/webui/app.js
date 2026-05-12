@@ -16,171 +16,29 @@
   var formatDate = APP_DOM.formatDate;
   var toast = APP_DOM.toast;
 
-  function createEmptyCronPreview() {
-    return {
-      value: '',
-      runs: [],
-      error: '',
-      loading: false
-    };
-  }
-
-  function createResourceRequest() {
-    return {
-      pending: null,
-      fetchedAt: 0,
-      requestSeq: 0
-    };
-  }
-
-  var state = {
-    activeTab: getTabByPath(window.location.pathname),
-    auth: {
-      requestSeq: 0,
-      checked: false,
-      authenticated: false,
-      submitting: false,
-      error: ''
-    },
-    rawConfig: null,
-    overview: null,
-    managed: null,
-    cookieCheck: null,
-    logs: [],
-    logsRefreshedAt: null,
-    fansStatus: [],
-    giftStatus: null,
-    yubaStatus: [],
-    fansStatusLoading: false,
-    fansStatusLoaded: false,
-    fansStatusDetailsLoading: false,
-    fansStatusDetailsLoaded: false,
-    yubaStatusLoading: false,
-    yubaStatusLoaded: false,
-    fansListError: '',
-    yubaStatusError: '',
-    managedLoading: false,
-    resourceRequests: {
-      fansSync: createResourceRequest(),
-      fansList: createResourceRequest(),
-      fansStatus: createResourceRequest(),
-      yubaStatus: createResourceRequest()
-    },
-    themeMode: 'system',
-    cronPreview: {
-      cookieCloud: createEmptyCronPreview(),
-      collectGift: createEmptyCronPreview(),
-      yubaCheckIn: createEmptyCronPreview(),
-      keepalive: createEmptyCronPreview(),
-      doubleCard: createEmptyCronPreview(),
-      expiringGift: createEmptyCronPreview()
-    },
-    cronPreviewSeq: {
-      cookieCloud: 0,
-      collectGift: 0,
-      yubaCheckIn: 0,
-      keepalive: 0,
-      doubleCard: 0,
-      expiringGift: 0
-    }
-  };
-
-  function nextAuthRequestSeq() {
-    state.auth.requestSeq += 1;
-    return state.auth.requestSeq;
-  }
-
-  function isLatestAuthRequest(requestSeq) {
-    return state.auth.requestSeq === requestSeq;
-  }
-
-  function getRawConfig() {
-    if (state.rawConfig) {
-      return state.rawConfig;
-    }
-    return JSON.parse(JSON.stringify(DEFAULT_RAW_CONFIG));
-  }
-
-  function getCookieCloudConfig(config) {
-    var source = config || getRawConfig();
-    return source.cookieCloud || {
-      active: false,
-      endpoint: '',
-      uuid: '',
-      password: '',
-      cron: '0 5 0 * * *',
-      cryptoType: 'legacy'
-    };
-  }
-
-  function getManualCookiesConfig(config) {
-    var source = config || getRawConfig();
-    return source.manualCookies || {
-      main: String(source.cookie || ''),
-      yuba: ''
-    };
-  }
-
-  function hasCookieSourceConfigured(config) {
-    var source = config || getRawConfig();
-    var cookieCloud = getCookieCloudConfig(source);
-    var manualCookies = getManualCookiesConfig(source);
-    return Boolean(
-      String(manualCookies.main || '').trim()
-      || String(manualCookies.yuba || '').trim()
-      || (cookieCloud.active && String(cookieCloud.endpoint || '').trim() && String(cookieCloud.uuid || '').trim() && String(cookieCloud.password || '').trim())
-    );
-  }
-
-  function getCookieSourceLabel(overview, config) {
-    var cookieCloud = getCookieCloudConfig(config);
-    if (cookieCloud.active) {
-      return 'CookieCloud';
-    }
-    return '手填';
-  }
-
-  function buildCookieCheckText(result) {
-    if (!result) {
-      var config = getRawConfig();
-      var cookieCloud = getCookieCloudConfig(config);
-      if (!cookieCloud.active) {
-        return '启用后会先从 CookieCloud 提取斗鱼主站和鱼吧相关 Cookie，并同步到上方两个本地登录 Cookie 输入框。运行时不会临时再拉 CookieCloud，而是直接使用这里保存的本地快照。';
-      }
-      if (!String(cookieCloud.endpoint || '').trim() || !String(cookieCloud.uuid || '').trim() || !String(cookieCloud.password || '').trim()) {
-        return 'CookieCloud 已启用，但 endpoint / UUID / 密码 还没填完整。';
-      }
-      return 'CookieCloud 已启用。系统会在启动时同步一次，并按这里配置的同步 Cron 自动刷新本地登录 Cookie。点击“同步并校验”会先同步 CookieCloud，再检查当前结果是否齐全。';
-    }
-
-    var sourceLabel = result.source === 'cookieCloud' ? 'CookieCloud' : '手填 Cookie';
-    var mainText = result.mainCookieReady
-      ? '主站请求就绪'
-      : ('主站缺少 ' + (result.missingMainKeys || []).join(', '));
-    var yubaText = result.yubaCookieReady
-      ? '完整鱼吧 Cookie 就绪'
-      : ('完整鱼吧 Cookie 缺少 ' + (result.missingYubaCookieKeys || result.missingYubaKeys || []).join(', '));
-    var yubaDyTokenText = result.yubaDyTokenReady
-      ? '鱼吧 dy-token 就绪'
-      : ('鱼吧 dy-token 缺少 ' + (result.missingYubaDyTokenKeys || []).join(', '));
-    var meta = '来源: ' + sourceLabel + '，Cookie 数: ' + (result.cookieCount || 0);
-    if (result.updateTime) {
-      meta += '，更新时间: ' + formatDate(result.updateTime);
-    }
-    return meta + '。' + mainText + '；' + yubaDyTokenText + '；' + yubaText + '。';
-  }
-
-  function isUnauthorizedError(error) {
-    return Boolean(error && error.status === 401);
-  }
-
-  function getResourceRequest(key) {
-    return state.resourceRequests[key];
-  }
-
-  function hasLoadedFansList() {
-    return Boolean(getResourceRequest('fansList').fetchedAt);
-  }
+  var STATE_HELPERS = window.DOUYU_KEEP_WEBUI_STATE.create({
+    defaultRawConfig: DEFAULT_RAW_CONFIG,
+    initialTab: getTabByPath(window.location.pathname),
+    formatDate: formatDate
+  });
+  var state = STATE_HELPERS.state;
+  var createEmptyCronPreview = STATE_HELPERS.createEmptyCronPreview;
+  var nextAuthRequestSeq = STATE_HELPERS.nextAuthRequestSeq;
+  var isLatestAuthRequest = STATE_HELPERS.isLatestAuthRequest;
+  var getRawConfig = STATE_HELPERS.getRawConfig;
+  var getCookieCloudConfig = STATE_HELPERS.getCookieCloudConfig;
+  var getManualCookiesConfig = STATE_HELPERS.getManualCookiesConfig;
+  var hasCookieSourceConfigured = STATE_HELPERS.hasCookieSourceConfigured;
+  var getCookieSourceLabel = STATE_HELPERS.getCookieSourceLabel;
+  var buildCookieCheckText = STATE_HELPERS.buildCookieCheckText;
+  var isUnauthorizedError = STATE_HELPERS.isUnauthorizedError;
+  var getResourceRequest = STATE_HELPERS.getResourceRequest;
+  var hasLoadedFansList = STATE_HELPERS.hasLoadedFansList;
+  var markResourceLoaded = STATE_HELPERS.markResourceLoaded;
+  var invalidateResourceRequest = STATE_HELPERS.invalidateResourceRequest;
+  var invalidateResourceRequests = STATE_HELPERS.invalidateResourceRequests;
+  var trackResourceRequest = STATE_HELPERS.trackResourceRequest;
+  var isActiveRefreshLoading = STATE_HELPERS.isActiveRefreshLoading;
 
   function shouldLoadFansListForActiveTab() {
     var activeNeedsFansList = state.activeTab === 'keepalive' || state.activeTab === 'double-card';
@@ -223,63 +81,6 @@
     }
   }
 
-  function clearResourceError(key) {
-    if (key === 'fansList') {
-      state.fansListError = '';
-    }
-    if (key === 'yubaStatus') {
-      state.yubaStatusError = '';
-    }
-  }
-
-  function markResourceLoaded(key) {
-    clearResourceError(key);
-    getResourceRequest(key).fetchedAt = Date.now();
-  }
-
-  function invalidateResourceRequest(key) {
-    var resource = getResourceRequest(key);
-    resource.pending = null;
-    resource.fetchedAt = 0;
-    resource.requestSeq += 1;
-    clearResourceError(key);
-  }
-
-  function invalidateResourceRequests(keys) {
-    var i;
-    for (i = 0; i < keys.length; i += 1) {
-      invalidateResourceRequest(keys[i]);
-    }
-  }
-
-  function trackResourceRequest(resource, requestSeq, pending) {
-    var tracked = pending.then(function () {
-      if (resource.pending === tracked && resource.requestSeq === requestSeq) {
-        resource.pending = null;
-      }
-    }, function (error) {
-      if (resource.pending === tracked && resource.requestSeq === requestSeq) {
-        resource.pending = null;
-      }
-      throw error;
-    });
-    resource.pending = tracked;
-    return tracked;
-  }
-
-  function isActiveRefreshLoading() {
-    if (state.activeTab === 'overview' || state.activeTab === 'expiring-gift') {
-      return state.fansStatusLoading || state.managedLoading;
-    }
-    if (state.activeTab === 'keepalive' || state.activeTab === 'double-card') {
-      return state.managedLoading;
-    }
-    if (state.activeTab === 'yuba') {
-      return state.yubaStatusLoading;
-    }
-    return false;
-  }
-
   function renderRefreshButton() {
     var refreshButton = document.querySelector('[data-action="refresh-overview"]');
     if (!refreshButton) {
@@ -289,46 +90,6 @@
     refreshButton.disabled = loading;
     refreshButton.setAttribute('aria-busy', loading ? 'true' : 'false');
     refreshButton.setAttribute('title', loading ? '正在刷新' : '刷新');
-  }
-
-  function clearProtectedState() {
-    invalidateResourceRequests(['fansSync', 'fansList', 'fansStatus', 'yubaStatus']);
-    state.rawConfig = null;
-    state.overview = null;
-    state.managed = null;
-    state.cookieCheck = null;
-    state.logs = [];
-    state.logsRefreshedAt = null;
-    state.fansStatus = [];
-    state.giftStatus = null;
-    state.yubaStatus = [];
-    state.fansStatusLoading = false;
-    state.fansStatusLoaded = false;
-    state.fansStatusDetailsLoading = false;
-    state.fansStatusDetailsLoaded = false;
-    state.yubaStatusLoading = false;
-    state.yubaStatusLoaded = false;
-    state.fansListError = '';
-    state.yubaStatusError = '';
-    state.managedLoading = false;
-    renderRefreshButton();
-  }
-
-  function clearCookieBackedData() {
-    invalidateResourceRequests(['fansSync', 'fansList', 'fansStatus', 'yubaStatus']);
-    state.managed = null;
-    state.fansStatus = [];
-    state.giftStatus = null;
-    state.yubaStatus = [];
-    state.fansStatusLoading = false;
-    state.fansStatusLoaded = false;
-    state.fansStatusDetailsLoading = false;
-    state.fansStatusDetailsLoaded = false;
-    state.yubaStatusLoading = false;
-    state.yubaStatusLoaded = false;
-    state.fansListError = '';
-    state.yubaStatusError = '';
-    state.managedLoading = false;
   }
 
   function renderAuth() {
@@ -372,96 +133,31 @@
     renderAuth();
   }
 
-  function getManagedConfig() {
-    if (state.managed && state.managed.config) {
-      return state.managed.config;
-    }
-    return getRawConfig();
-  }
+  var PROTECTED_STATE = window.DOUYU_KEEP_WEBUI_PROTECTED_STATE.create({
+    state: state,
+    invalidateResourceRequests: invalidateResourceRequests,
+    renderRefreshButton: renderRefreshButton
+  });
+  var clearProtectedState = PROTECTED_STATE.clearProtectedState;
+  var clearCookieBackedData = PROTECTED_STATE.clearCookieBackedData;
 
-  function getManagedFans() {
-    if (state.managed && state.managed.fans && state.managed.fans.length) {
-      return state.managed.fans;
-    }
-    if (state.fansStatus.length) {
-      return state.fansStatus;
-    }
-    if (state.managed && state.managed.fans) {
-      return state.managed.fans;
-    }
-    return [];
-  }
-
-  function setManagedFans(fans) {
-    state.managed = {
-      config: getManagedConfig(),
-      fans: Array.isArray(fans) ? fans : []
-    };
-  }
-
-  function mergeFansWithExistingStatus(fans) {
-    var previousByRoom = {};
-    var i;
-    for (i = 0; i < state.fansStatus.length; i += 1) {
-      previousByRoom[String(state.fansStatus[i].roomId)] = state.fansStatus[i];
-    }
-
-    return (Array.isArray(fans) ? fans : []).map(function (fan) {
-      var previous = previousByRoom[String(fan.roomId)];
-      if (!previous || typeof fan.doubleActive === 'boolean') {
-        return fan;
-      }
-      var merged = Object.assign({}, fan);
-      if (typeof previous.doubleActive === 'boolean') {
-        merged.doubleActive = previous.doubleActive;
-      }
-      if (previous.doubleExpireTime) {
-        merged.doubleExpireTime = previous.doubleExpireTime;
-      }
-      return merged;
-    });
-  }
-
-  function applyFansStatusBase(data) {
-    var fans = data && data.fans ? data.fans : [];
-    state.fansStatus = mergeFansWithExistingStatus(fans);
-    if (data && data.gift && data.complete) {
-      state.giftStatus = data.gift;
-    }
-    setManagedFans(state.fansStatus);
-    state.fansStatusLoaded = true;
-    state.fansStatusDetailsLoaded = Boolean(data && data.complete);
-  }
-
-  function applyFansStatusDetails(data) {
-    state.fansStatus = data && data.fans ? data.fans : [];
-    state.giftStatus = data && data.gift ? data.gift : null;
-    setManagedFans(state.fansStatus);
-    state.fansStatusLoaded = true;
-    state.fansStatusDetailsLoaded = true;
-  }
+  var MANAGED_DATA = window.DOUYU_KEEP_WEBUI_MANAGED_DATA.create({
+    state: state,
+    getRawConfig: getRawConfig
+  });
+  var getManagedConfig = MANAGED_DATA.getManagedConfig;
+  var getManagedFans = MANAGED_DATA.getManagedFans;
+  var setManagedFans = MANAGED_DATA.setManagedFans;
+  var applyFansStatusBase = MANAGED_DATA.applyFansStatusBase;
+  var applyFansStatusDetails = MANAGED_DATA.applyFansStatusDetails;
 
   function isTaskActive(config) {
     return Boolean(config && config.active !== false);
   }
 
-  function requestJson(url, options) {
-    var opts = options || {};
-    return fetch(url, opts).then(function (response) {
-      return response.text().then(function (text) {
-        var data = text ? JSON.parse(text) : {};
-        if (!response.ok) {
-          var error = new Error(data && data.error ? data.error : '请求失败');
-          error.status = response.status;
-          if (response.status === 401) {
-            handleUnauthorized();
-          }
-          throw error;
-        }
-        return data;
-      });
-    });
-  }
+  var requestJson = window.DOUYU_KEEP_WEBUI_REQUEST.create({
+    handleUnauthorized: handleUnauthorized
+  }).requestJson;
 
   function setActiveTab(tab, options) {
     var nextTab = PAGE_META[tab] ? tab : 'overview';
@@ -603,6 +299,7 @@
     formatDate: formatDate,
     toast: toast,
     state: state,
+    createEmptyCronPreview: createEmptyCronPreview,
     buildCookieCheckText: buildCookieCheckText,
     requestJson: requestJson,
     getRawConfig: getRawConfig,
@@ -658,6 +355,7 @@
     state: state,
     toast: toast,
     requestJson: requestJson,
+    defaultRawConfig: DEFAULT_RAW_CONFIG,
     isUnauthorizedError: isUnauthorizedError,
     getRawConfig: getRawConfig,
     getCookieCloudConfig: getCookieCloudConfig,
@@ -687,7 +385,8 @@
     renderDoublePage: renderDoublePage,
     renderExpiringGiftPage: renderExpiringGiftPage,
     renderYubaPage: renderYubaPage,
-    setActiveTab: setActiveTab
+    setActiveTab: setActiveTab,
+    isThemeMode: isThemeMode
   });
   var syncCookieCloudToLoginCookies = ACTIONS.syncCookieCloudToLoginCookies;
   var loadProtectedData = ACTIONS.loadProtectedData;
@@ -734,193 +433,44 @@
   var disableExpiringGiftConfig = TASK_ACTIONS.disableExpiringGiftConfig;
   var disableDoubleConfig = TASK_ACTIONS.disableDoubleConfig;
 
-  function findActionTarget(node) {
-    var current = node;
-    while (current && current !== document.body) {
-      if (current.getAttribute && current.getAttribute('data-action')) {
-        return current;
-      }
-      current = current.parentNode;
-    }
-    return null;
-  }
-
-  document.addEventListener('click', function (event) {
-    var target = findActionTarget(event.target);
-    if (!target) {
-      return;
-    }
-
-    var action = target.getAttribute('data-action');
-    if (action === 'tab') {
-      setActiveTab(target.getAttribute('data-tab'));
-      return;
-    }
-    if (action === 'refresh-overview') {
-      refreshOverviewSurface(true);
-      return;
-    }
-    if (action === 'logout') {
-      logout();
-      return;
-    }
-    if (action === 'theme-mode') {
-      saveTheme(target.getAttribute('data-theme-mode'));
-      return;
-    }
-    if (action === 'refresh-logs') {
-      loadLogs();
-      return;
-    }
-    if (action === 'clear-logs') {
-      clearLogs();
-      return;
-    }
-    if (action === 'save-cookie') {
-      saveCookie();
-      return;
-    }
-    if (action === 'save-cookie-cloud') {
-      saveAndEnableCookieCloud();
-      return;
-    }
-    if (action === 'check-cookie-source') {
-      checkCookieSource();
-      return;
-    }
-    if (action === 'save-collect') {
-      saveCollectConfig();
-      return;
-    }
-    if (action === 'save-yuba') {
-      saveYubaConfig();
-      return;
-    }
-    if (action === 'save-keepalive') {
-      saveKeepaliveConfig();
-      return;
-    }
-    if (action === 'save-double') {
-      saveDoubleConfig();
-      return;
-    }
-    if (action === 'save-expiring') {
-      saveExpiringGiftConfig();
-      return;
-    }
-    if (action === 'double-fill-equal') {
-      applyDoubleRatioPreset('equal');
-      return;
-    }
-    if (action === 'double-fill-level') {
-      applyDoubleRatioPreset('level');
-      return;
-    }
-    if (action === 'trigger') {
-      triggerTask(target.getAttribute('data-trigger'));
-    }
-  });
-  document.addEventListener('keydown', handleTabKeydown);
-
-  function handleTaskToggleChange(event, enableTask, disableTask) {
-    if (event.target.checked) {
-      enableTask({ revertCheckboxOnError: true });
-      return;
-    }
-    disableTask();
-  }
-
-  byId('login-form').addEventListener('submit', function (event) {
-    event.preventDefault();
-    submitLogin();
-  });
-  byId('collect-cron').addEventListener('input', function (event) {
-    void loadCronPreview('collectGift', event.target.value, 'collect-cron-preview');
-  });
-  byId('collect-enable').addEventListener('change', function (event) {
-    handleTaskToggleChange(event, saveCollectConfig, disableCollectConfig);
-  });
-  byId('cookie-cloud-cron').addEventListener('input', function (event) {
-    void loadCronPreview('cookieCloud', event.target.value, 'cookie-cloud-cron-preview');
-  });
-  byId('cookie-cloud-enable').addEventListener('change', function (event) {
-    handleTaskToggleChange(event, saveCookieCloudToggle, disableCookieCloud);
-  });
-  byId('yuba-cron').addEventListener('input', function (event) {
-    void loadCronPreview('yubaCheckIn', event.target.value, 'yuba-cron-preview');
-  });
-  byId('yuba-enable').addEventListener('change', function (event) {
-    handleTaskToggleChange(event, saveYubaConfig, disableYubaConfig);
-  });
-  byId('keepalive-cron').addEventListener('input', function (event) {
-    void loadCronPreview('keepalive', event.target.value, 'keepalive-cron-preview');
-  });
-  byId('keepalive-enable').addEventListener('change', function (event) {
-    handleTaskToggleChange(event, saveKeepaliveConfig, disableKeepaliveConfig);
-  });
-  byId('double-cron').addEventListener('input', function (event) {
-    void loadCronPreview('doubleCard', event.target.value, 'double-cron-preview');
-  });
-  byId('double-enable').addEventListener('change', function (event) {
-    handleTaskToggleChange(event, saveDoubleConfig, disableDoubleConfig);
-  });
-  byId('expiring-cron').addEventListener('input', function (event) {
-    void loadCronPreview('expiringGift', event.target.value, 'expiring-cron-preview');
-  });
-  byId('expiring-threshold-hours').addEventListener('input', function () {
-    byId('expiring-backpack-wrap').innerHTML = buildBackpackRowsTable(state.giftStatus);
-  });
-  byId('expiring-enable').addEventListener('change', function (event) {
-    handleTaskToggleChange(event, saveExpiringGiftConfig, disableExpiringGiftConfig);
-  });
-  byId('double-model').addEventListener('change', updateDoubleModeUi);
-  document.addEventListener('input', function (event) {
-    if (event.target && event.target.classList && event.target.classList.contains('double-value')) {
-      updateDoubleModeUi();
-    }
-  });
-  document.addEventListener('change', function (event) {
-    if (event.target && event.target.classList && event.target.classList.contains('double-enabled')) {
-      updateDoubleModeUi();
-    }
-  });
-  window.addEventListener('popstate', syncTabWithCurrentPath);
-
-  if (window.matchMedia) {
-    try {
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
-        if (state.themeMode === 'system') {
-          renderTheme();
-        }
-      });
-    } catch (error) {
-      // Ignore older browsers that do not support addEventListener on MediaQueryList.
-    }
-  }
-
-  setInterval(function () {
-    if (!state.auth.authenticated) {
-      return;
-    }
-    if (state.activeTab === 'overview') {
-      loadOverview();
-    }
-    if (state.activeTab === 'logs' && byId('logs-auto-refresh').checked) {
-      loadLogs();
-    }
-  }, 5000);
-
-  renderAuth();
-  setActiveTab(state.activeTab, { syncPath: false, skipLazyLoad: true });
-  var webPasswordLogin = consumeWebPasswordFromUrl();
-  if (webPasswordLogin.present) {
-    loginWithPassword(webPasswordLogin.password, { clearPasswordInput: false });
-    return;
-  }
-  loadAuthStatus().then(function (authenticated) {
-    if (!authenticated) {
-      return;
-    }
-    return loadProtectedData();
-  });
+  window.DOUYU_KEEP_WEBUI_EVENTS.create({
+    byId: byId,
+    state: state,
+    consumeWebPasswordFromUrl: consumeWebPasswordFromUrl,
+    setActiveTab: setActiveTab,
+    handleTabKeydown: handleTabKeydown,
+    renderAuth: renderAuth,
+    renderTheme: renderTheme,
+    refreshOverviewSurface: refreshOverviewSurface,
+    logout: logout,
+    saveTheme: saveTheme,
+    loadOverview: loadOverview,
+    loadLogs: loadLogs,
+    clearLogs: clearLogs,
+    saveCookie: saveCookie,
+    saveAndEnableCookieCloud: saveAndEnableCookieCloud,
+    checkCookieSource: checkCookieSource,
+    saveCookieCloudToggle: saveCookieCloudToggle,
+    disableCookieCloud: disableCookieCloud,
+    saveCollectConfig: saveCollectConfig,
+    disableCollectConfig: disableCollectConfig,
+    saveYubaConfig: saveYubaConfig,
+    disableYubaConfig: disableYubaConfig,
+    saveKeepaliveConfig: saveKeepaliveConfig,
+    disableKeepaliveConfig: disableKeepaliveConfig,
+    saveDoubleConfig: saveDoubleConfig,
+    disableDoubleConfig: disableDoubleConfig,
+    saveExpiringGiftConfig: saveExpiringGiftConfig,
+    disableExpiringGiftConfig: disableExpiringGiftConfig,
+    applyDoubleRatioPreset: applyDoubleRatioPreset,
+    triggerTask: triggerTask,
+    submitLogin: submitLogin,
+    loadCronPreview: loadCronPreview,
+    buildBackpackRowsTable: buildBackpackRowsTable,
+    updateDoubleModeUi: updateDoubleModeUi,
+    syncTabWithCurrentPath: syncTabWithCurrentPath,
+    loginWithPassword: loginWithPassword,
+    loadAuthStatus: loadAuthStatus,
+    loadProtectedData: loadProtectedData
+  }).start();
 })();

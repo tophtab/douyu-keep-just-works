@@ -11,7 +11,7 @@ This contract covers:
 - persisted Docker config shape in `src/core/types.ts`
 - cookie normalization / reconciliation in `src/core/medal-sync.ts`
 - CookieCloud decrypt / selection / diagnostics in `src/core/cookie-cloud.ts`
-- yuba HTTP list/head/sign logic in `src/core/yuba.ts`
+- yuba HTTP list/head/sign logic through the `src/core/yuba.ts` public facade, implemented in `src/core/yuba-status.ts` and `src/core/yuba-check-in.ts`
 - Docker HTTP APIs in `src/docker/server.ts`
 - Docker runtime scheduling / trigger wiring in `src/docker/index.ts`
 - Docker WebUI request/response expectations in `src/docker/webui/index.html`
@@ -50,7 +50,7 @@ Boundary owners:
 
 - cookie normalization + defaults: `src/core/medal-sync.ts`
 - CookieCloud fetch / decrypt / diagnostics: `src/core/cookie-cloud.ts`
-- yuba HTTP fetch / sign logic: `src/core/yuba.ts`
+- yuba HTTP fetch / sign logic: `src/core/yuba.ts` facade over `src/core/yuba-status.ts` and `src/core/yuba-check-in.ts`
 - config persistence + selective scheduler reload: `src/docker/index.ts`
 - HTTP validation + JSON responses: `src/docker/server.ts`
 - UI forms + save/sync actions: `src/docker/webui/index.html`
@@ -484,7 +484,7 @@ Files:
 
 - route: `src/docker/server.ts`
 - runtime assembly: `src/docker/index.ts`
-- upstream list/head fetch: `src/core/yuba.ts`
+- upstream list/head fetch: `src/core/yuba-status.ts` through the `src/core/yuba.ts` facade
 - WebUI consumer: `src/docker/webui/index.html`
 
 Purpose:
@@ -1060,6 +1060,8 @@ Manual assertions:
 - `src/core/job.ts`
 - `src/core/cookie-cloud.ts`
 - `src/core/yuba.ts`
+- `src/core/yuba-check-in.ts`
+- `src/core/yuba-status.ts`
 - `src/docker/index.ts`
 - `src/docker/server.ts`
 - `src/docker/webui/index.html`

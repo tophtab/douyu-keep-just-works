@@ -55,7 +55,7 @@ When changing files under `src/docker/webui/`, keep the plain HTML controls acce
 - Keep `index.html` as the HTML shell and place styles/scripts under `src/docker/webui/`.
 - `src/docker/webui.ts` injects ordered CSS and ordered JavaScript files into the served HTML response; do not add static asset routes unless the deployment contract explicitly changes.
 - When adding a WebUI CSS file, add it to the ordered style list in `src/docker/webui.ts`. Later files may depend on earlier base variables and layout rules.
-- When adding a WebUI script file, add it to the ordered script list in `src/docker/webui.ts`. Files that define globals for later scripts, such as `app-data.js`, `app-routing.js`, `app-dom.js`, `app-render.js`, `app-pages.js`, `app-actions.js`, and `app-task-actions.js`, must appear before the consumers.
+- When adding a WebUI script file, add it to the ordered script list in `src/docker/webui.ts`. Files that define globals for later scripts, such as `app-data.js`, `app-routing.js`, `app-dom.js`, `app-state.js`, `app-managed-data.js`, `app-table-render.js`, `app-render.js`, `app-pages.js`, `app-*-resource-actions.js`, `app-actions.js`, `app-*-task-actions.js`, and `app-events.js`, must appear before the consumers.
 - Keep `app.js` as the main client-side behavior file. Small data/config-only files may sit beside it when they reduce noise in the main script.
 - Keep `styles.css` as the base stylesheet. Component, table, and responsive CSS may sit in adjacent `styles-*.css` files when that keeps each source file readable.
 - If a contract test needs to inspect client-side functions, read `src/docker/webui/app.js` instead of `index.html`. If a test verifies the injection contract, include every style/script file in the ordered lists.

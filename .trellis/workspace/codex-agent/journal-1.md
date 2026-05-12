@@ -1854,3 +1854,36 @@ Analyzed dependencies and tracked files, kept all active dependencies, removed u
 ### Next Steps
 
 - None - task complete
+
+
+## Session 51: Split WebUI and Yuba source files
+
+**Date**: 2026-05-12
+**Task**: Split WebUI and Yuba source files
+**Branch**: `master`
+
+### Summary
+
+Continued the 2026-05-12 project-improvements PRD by skipping the broad runtime test foundation and completing behavior-preserving file splits: WebUI data/routing scripts now inject in order, shared Yuba HTTP/parsing helpers moved to yuba-common, existing contracts updated, specs synchronized, and lint/type-check/npm test passed.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cbe3ae8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

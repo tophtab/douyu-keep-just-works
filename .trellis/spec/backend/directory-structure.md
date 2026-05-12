@@ -25,6 +25,8 @@ src/
 │   ├── double-card.ts
 │   ├── gift.ts
 │   ├── job.ts
+│   ├── yuba.ts
+│   ├── yuba-common.ts
 │   └── types.ts
 ├── docker/
 │   ├── cron.ts
@@ -37,6 +39,8 @@ src/
 │   ├── task-metadata.ts
 │   ├── webui.ts
 │   └── webui/
+│       ├── app-data.js
+│       ├── app-routing.js
 │       ├── index.html
 │       ├── styles.css
 │       └── app.js
@@ -61,9 +65,13 @@ Examples:
 - `src/docker/server.ts` is limited to HTTP route registration and delegates work through `AppContext`.
 - `src/docker/webui/index.html` owns the Docker WebUI document shell.
 - `src/docker/webui/styles.css` owns the Docker WebUI stylesheet.
-- `src/docker/webui/app.js` owns the Docker WebUI client-side script.
-- `src/docker/webui.ts` owns template loading plus runtime injection for app version, page routes, styles, and client script.
+- `src/docker/webui/app-data.js` owns Docker WebUI client-side metadata and default config constants.
+- `src/docker/webui/app-routing.js` owns Docker WebUI client-side route/path helpers.
+- `src/docker/webui/app.js` owns the Docker WebUI client-side behavior script.
+- `src/docker/webui.ts` owns template loading plus runtime injection for app version, page routes, styles, and ordered client scripts.
 - `src/core/job.ts` runs the gift workflow without knowing which HTTP route or scheduler triggered it.
+- `src/core/yuba.ts` is the public Yuba feature surface for status and check-in workflows.
+- `src/core/yuba-common.ts` owns reusable Yuba HTTP/header/body/parsing helpers shared by Yuba status and check-in code.
 
 ---
 

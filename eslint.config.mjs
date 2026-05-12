@@ -8,7 +8,7 @@ export default antfu({
     '.trellis/**',
     '.github/**',
     'src/templates/**',
-    'src/docker/webui/app.js',
+    'src/docker/webui/**/*.js',
   ],
   rules: {
     curly: ['error', 'all'],

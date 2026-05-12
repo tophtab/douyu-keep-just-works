@@ -17,11 +17,15 @@ const APP_VERSION = readPackageVersion()
 const APP_VERSION_LABEL = `V${APP_VERSION}`
 const WEBUI_TEMPLATE_PATH = path.join(__dirname, 'webui', 'index.html')
 const WEBUI_STYLES_PATH = path.join(__dirname, 'webui', 'styles.css')
-const WEBUI_SCRIPT_PATH = path.join(__dirname, 'webui', 'app.js')
+const WEBUI_SCRIPT_PATHS = [
+  path.join(__dirname, 'webui', 'app-data.js'),
+  path.join(__dirname, 'webui', 'app-routing.js'),
+  path.join(__dirname, 'webui', 'app.js'),
+]
 
 let cachedTemplate: string | null = null
 let cachedStyles: string | null = null
-let cachedScript: string | null = null
+let cachedScripts: string | null = null
 
 function readPackageVersion(): string {
   try {
@@ -47,25 +51,29 @@ function replaceToken(source: string, token: string, value: string): string {
   return source.split(token).join(value)
 }
 
+function readTextFile(filePath: string): string {
+  return fs.readFileSync(filePath, 'utf8')
+}
+
 function readTemplate(): string {
   if (!cachedTemplate) {
-    cachedTemplate = fs.readFileSync(WEBUI_TEMPLATE_PATH, 'utf8')
+    cachedTemplate = readTextFile(WEBUI_TEMPLATE_PATH)
   }
   return cachedTemplate
 }
 
 function readStyles(): string {
   if (!cachedStyles) {
-    cachedStyles = fs.readFileSync(WEBUI_STYLES_PATH, 'utf8')
+    cachedStyles = readTextFile(WEBUI_STYLES_PATH)
   }
   return cachedStyles
 }
 
 function readScript(): string {
-  if (!cachedScript) {
-    cachedScript = fs.readFileSync(WEBUI_SCRIPT_PATH, 'utf8')
+  if (!cachedScripts) {
+    cachedScripts = WEBUI_SCRIPT_PATHS.map(readTextFile).join('\n;\n')
   }
-  return cachedScript
+  return cachedScripts
 }
 
 export function getHtml(): string {

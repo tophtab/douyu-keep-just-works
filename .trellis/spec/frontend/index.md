@@ -6,7 +6,7 @@
 
 ## Overview
 
-This project no longer has a standalone Vue/Electron renderer. The supported UI is the Docker WebUI static document shell in `src/docker/webui/index.html`, with source CSS in `src/docker/webui/styles.css` and source JavaScript in `src/docker/webui/app.js`, served through the lightweight renderer in `src/docker/webui.ts`.
+This project no longer has a standalone Vue/Electron renderer. The supported UI is the Docker WebUI static document shell in `src/docker/webui/index.html`, with source CSS in `src/docker/webui/styles.css` and ordered source JavaScript files in `src/docker/webui/`, served through the lightweight renderer in `src/docker/webui.ts`.
 
 The legacy Vue renderer guidelines below are retained only as historical references. For current UI changes, treat `src/docker/webui/index.html` and `src/docker/webui.ts` as Docker runtime code and read the backend guidelines first.
 
@@ -52,9 +52,11 @@ When changing files under `src/docker/webui/`, keep the plain HTML controls acce
 
 ## Current Docker WebUI Source Split
 
-- Keep `index.html` as the HTML shell and place large styles/scripts in `styles.css` and `app.js`.
-- `src/docker/webui.ts` injects the split CSS and JavaScript into the served HTML response; do not add static asset routes unless the deployment contract explicitly changes.
-- If a contract test needs to inspect client-side functions, read `src/docker/webui/app.js` instead of `index.html`.
+- Keep `index.html` as the HTML shell and place styles/scripts under `src/docker/webui/`.
+- `src/docker/webui.ts` injects CSS and ordered JavaScript files into the served HTML response; do not add static asset routes unless the deployment contract explicitly changes.
+- When adding a WebUI script file, add it to the ordered script list in `src/docker/webui.ts`. Files that define globals for later scripts, such as `app-data.js` and `app-routing.js`, must appear before the consumers.
+- Keep `app.js` as the main client-side behavior file. Small data/config-only files may sit beside it when they reduce noise in the main script.
+- If a contract test needs to inspect client-side functions, read `src/docker/webui/app.js` instead of `index.html`. If a test verifies the injection contract, include every script file in the ordered list.
 
 ---
 

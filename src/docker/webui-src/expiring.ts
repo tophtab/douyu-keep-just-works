@@ -1,11 +1,13 @@
 import type { BackpackGiftRow, ExpiringGiftConfig, Fans, GiftStatus } from '../../core/types'
 import { computed, ref } from 'vue'
+import { DEFAULT_EXPIRING_GIFT_CRON, DEFAULT_EXPIRING_GIFT_MODEL, DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS } from '../../core/task-defaults'
 import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationModel } from './allocation-task'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
 import { formatDate } from './datetime'
-import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
-import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
+import { applyFanTaskPageDetail, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isLegacyOrHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import type { CookieSourceConfig, FanTaskPageDetail, TaskRunStatus } from './task-shared'
 
 interface ExpiringOverview {
   expiringGiftConfigured?: boolean
@@ -19,18 +21,11 @@ interface RawExpiringConfig extends CookieSourceConfig {
   expiringGift?: ExpiringGiftConfig
 }
 
-interface ExpiringPageDetail {
-  fans?: Fans[]
-  fansListError?: string
-  fansListLoaded?: boolean
+interface ExpiringPageDetail extends FanTaskPageDetail<Fans, RawExpiringConfig, ExpiringOverview> {
   fansStatusDetailsLoading?: boolean
   fansStatusLoaded?: boolean
   fansStatusLoading?: boolean
   giftStatus?: GiftStatus | null
-  managedConfig?: RawExpiringConfig | null
-  managedLoading?: boolean
-  overview?: ExpiringOverview | null
-  rawConfig?: RawExpiringConfig | null
 }
 
 interface LegacyExpiringDeps {
@@ -62,10 +57,7 @@ interface ExpiringBackpackRow {
   remainingText: string
 }
 
-const DEFAULT_EXPIRING_CRON = '0 45 23 * * *'
-const DEFAULT_EXPIRING_MODEL: 1 | 2 = 1
-const DEFAULT_EXPIRING_THRESHOLD_HOURS = 24
-const EXPIRING_PAGE_EVENT_NAME = 'douyu-keep-webui:expiring-page'
+const EXPIRING_PAGE_EVENT_NAME = WEBUI_BRIDGE_EVENTS.expiringPage
 
 const overview = ref<ExpiringOverview | null>(null)
 const rawConfig = ref<RawExpiringConfig | null>(null)
@@ -79,9 +71,9 @@ const fansStatusDetailsLoading = ref(false)
 const managedLoading = ref(false)
 const giftStatus = ref<GiftStatus | null>(null)
 const expiringEnabled = ref(false)
-const expiringCron = ref(DEFAULT_EXPIRING_CRON)
-const expiringThresholdHours = ref(DEFAULT_EXPIRING_THRESHOLD_HOURS)
-const expiringModel = ref<1 | 2>(DEFAULT_EXPIRING_MODEL)
+const expiringCron = ref(DEFAULT_EXPIRING_GIFT_CRON)
+const expiringThresholdHours = ref(DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS)
+const expiringModel = ref<1 | 2>(DEFAULT_EXPIRING_GIFT_MODEL)
 const fanRows = ref<ExpiringFanRow[]>([])
 const { cronPreviewText: expiringCronPreviewText, ensureCronPreview, loadCronPreview: loadExpiringCronPreview } = useCronPreview(() => expiringCron.value)
 
@@ -96,27 +88,24 @@ declare global {
 }
 
 function isUnauthorizedError(error: unknown): boolean {
-  if (legacyDeps?.isUnauthorizedError(error)) {
-    return true
-  }
-  return isHttpUnauthorized(error)
+  return isLegacyOrHttpUnauthorized(error, legacyDeps?.isUnauthorizedError)
 }
 
 function normalizeModel(model: unknown): 1 | 2 {
-  return normalizeAllocationModel(model, DEFAULT_EXPIRING_MODEL)
+  return normalizeAllocationModel(model, DEFAULT_EXPIRING_GIFT_MODEL)
 }
 
 function normalizeThresholdHours(value: unknown): number {
   const parsed = Number(value)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_EXPIRING_THRESHOLD_HOURS
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS
 }
 
 function getExpiringConfig(): ExpiringGiftConfig {
   return managedConfig.value?.expiringGift || rawConfig.value?.expiringGift || {
     active: false,
-    cron: DEFAULT_EXPIRING_CRON,
-    thresholdHours: DEFAULT_EXPIRING_THRESHOLD_HOURS,
-    model: DEFAULT_EXPIRING_MODEL,
+    cron: DEFAULT_EXPIRING_GIFT_CRON,
+    thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
+    model: DEFAULT_EXPIRING_GIFT_MODEL,
     send: {},
   }
 }
@@ -132,7 +121,7 @@ function buildFanRows(nextFans: Fans[], config: ExpiringGiftConfig): ExpiringFan
 
 function applyExpiringConfig(config: ExpiringGiftConfig): void {
   expiringEnabled.value = isTaskActive(config)
-  expiringCron.value = config.cron || DEFAULT_EXPIRING_CRON
+  expiringCron.value = config.cron || DEFAULT_EXPIRING_GIFT_CRON
   expiringThresholdHours.value = normalizeThresholdHours(config.thresholdHours)
   expiringModel.value = normalizeModel(config.model)
   fanRows.value = buildFanRows(fans.value, config)
@@ -145,24 +134,7 @@ function applyRawConfig(config: RawExpiringConfig | null): void {
 }
 
 function applyExpiringPageDetail(detail: ExpiringPageDetail): void {
-  if ('rawConfig' in detail) {
-    rawConfig.value = detail.rawConfig || null
-  }
-  if ('managedConfig' in detail) {
-    managedConfig.value = detail.managedConfig || null
-  }
-  if ('overview' in detail) {
-    overview.value = detail.overview || null
-  }
-  if ('fans' in detail) {
-    fans.value = detail.fans || []
-  }
-  if ('fansListError' in detail) {
-    fansListError.value = detail.fansListError || ''
-  }
-  if ('fansListLoaded' in detail) {
-    fansListLoaded.value = Boolean(detail.fansListLoaded)
-  }
+  applyFanTaskPageDetail(detail, { rawConfig, managedConfig, overview, fans, fansListError, fansListLoaded, managedLoading })
   if ('fansStatusLoaded' in detail) {
     fansStatusLoaded.value = Boolean(detail.fansStatusLoaded)
   }
@@ -171,9 +143,6 @@ function applyExpiringPageDetail(detail: ExpiringPageDetail): void {
   }
   if ('fansStatusDetailsLoading' in detail) {
     fansStatusDetailsLoading.value = Boolean(detail.fansStatusDetailsLoading)
-  }
-  if ('managedLoading' in detail) {
-    managedLoading.value = Boolean(detail.managedLoading)
   }
   if ('giftStatus' in detail) {
     giftStatus.value = detail.giftStatus || null
@@ -213,16 +182,16 @@ async function saveExpiringGiftConfig(options?: { revertCheckboxOnError?: boolea
 async function disableExpiringGiftConfig(): Promise<void> {
   const currentConfig = managedConfig.value?.expiringGift || rawConfig.value?.expiringGift || legacyDeps?.getManagedConfig().expiringGift || legacyDeps?.getRawConfig().expiringGift || {
     active: false,
-    cron: DEFAULT_EXPIRING_CRON,
-    thresholdHours: DEFAULT_EXPIRING_THRESHOLD_HOURS,
-    model: DEFAULT_EXPIRING_MODEL,
+    cron: DEFAULT_EXPIRING_GIFT_CRON,
+    thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
+    model: DEFAULT_EXPIRING_GIFT_MODEL,
     send: {},
   }
   await disableTaskConfig({
     payload: {
       expiringGift: {
         active: false,
-        cron: currentConfig.cron || DEFAULT_EXPIRING_CRON,
+        cron: currentConfig.cron || DEFAULT_EXPIRING_GIFT_CRON,
         thresholdHours: normalizeThresholdHours(currentConfig.thresholdHours),
         model: normalizeModel(currentConfig.model),
         send: currentConfig.send || {},
@@ -240,7 +209,7 @@ async function disableExpiringGiftConfig(): Promise<void> {
 
 async function triggerExpiringTask(): Promise<void> {
   await triggerTask({
-    endpoint: '/api/trigger/expiringGift',
+    taskType: 'expiringGift',
     isUnauthorizedError,
     refresh: [
       () => legacyDeps?.loadOverview?.(),

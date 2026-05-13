@@ -1,0 +1,18 @@
+export const WEBUI_BRIDGE_EVENTS = {
+  authState: 'douyu-keep-webui:auth-state',
+  collectPage: 'douyu-keep-webui:collect-page',
+  config: 'douyu-keep-webui:config',
+  doublePage: 'douyu-keep-webui:double-page',
+  expiringPage: 'douyu-keep-webui:expiring-page',
+  keepalivePage: 'douyu-keep-webui:keepalive-page',
+  legacyReady: 'douyu-keep-webui:legacy-ready',
+  loginPage: 'douyu-keep-webui:login-page',
+  navigation: 'douyu-keep-webui:navigation',
+  overview: 'douyu-keep-webui:overview',
+  overviewPage: 'douyu-keep-webui:overview-page',
+  refreshOverviewRequest: 'douyu-keep-webui:refresh-overview-request',
+  refreshState: 'douyu-keep-webui:refresh-state',
+  toast: 'douyu-keep-webui:toast',
+  unauthorized: 'douyu-keep-webui:unauthorized',
+  yubaPage: 'douyu-keep-webui:yuba-page',
+} as const

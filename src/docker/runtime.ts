@@ -2,6 +2,7 @@ import process from 'node:process'
 import { CronJob } from 'cron'
 import { getFollowedYubaStatusesWithDyToken } from '../core/yuba'
 import { createDefaultDockerConfig, normalizeDockerConfig, reconcileDockerConfig } from '../core/medal-sync'
+import { DEFAULT_COOKIE_CLOUD_SYNC_CRON } from '../core/task-defaults'
 import type { CollectGiftConfig, DockerConfig, DoubleCardConfig, ExpiringGiftConfig, Fans, JobConfig, ManualCookieConfig } from '../core/types'
 import { buildConfigWithPartialUpdate, configsEqual, loadConfigFromDisk, saveConfigToDisk } from './config-store'
 import { assertDockerConfigCrons } from './cron'
@@ -13,12 +14,12 @@ import { DockerCookieSourceManager } from './runtime-cookie-source'
 import { DOCKER_TIMEZONE, MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
 import { DockerTaskScheduler } from './runtime-scheduler'
 import { formatScheduleForLog } from './runtime-time'
+import { createTaskRecord, TASK_LOG_CATEGORIES } from './task-metadata'
+import type { TaskType } from './task-metadata'
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
-
-const DEFAULT_COOKIE_CLOUD_SYNC_CRON = '0 5 0 * * *'
 
 let currentConfig: DockerConfig | null = null
 let activeConfigPath = ''
@@ -26,13 +27,7 @@ let cookieCloudSyncJob: CronJob | null = null
 let cookieCloudSyncRunning = false
 
 const logSystem = createLogger('系统')
-const taskLoggers = {
-  collectGift: createLogger('领取'),
-  keepalive: createLogger('保活'),
-  doubleCard: createLogger('双倍'),
-  expiringGift: createLogger('临期'),
-  yubaCheckIn: createLogger('鱼吧'),
-}
+const taskLoggers: Record<TaskType, (message: string) => void> = createTaskRecord(type => createLogger(TASK_LOG_CATEGORIES[type]))
 
 const runtimeCache = new DockerRuntimeCache()
 const cookieSource = new DockerCookieSourceManager(
@@ -305,11 +300,7 @@ export function startDockerRuntime(options: DockerRuntimeOptions): void {
     inspectCookieSource: async (forceRefresh?: boolean) => await cookieSource.inspectCookieSource(forceRefresh),
     getEffectiveCookies: async (forceRefresh?: boolean) => await cookieSource.getEffectiveCookies(forceRefresh),
     persistEffectiveCookies: async (forceRefresh?: boolean) => await cookieSource.persistEffectiveCookies(forceRefresh),
-    triggerCollectGift: async () => await scheduler.triggerCollectGift(currentConfig),
-    triggerKeepalive: async () => await scheduler.triggerKeepalive(currentConfig),
-    triggerDoubleCard: async () => await scheduler.triggerDoubleCard(currentConfig),
-    triggerExpiringGift: async () => await scheduler.triggerExpiringGift(currentConfig, hasSendRooms),
-    triggerYubaCheckIn: async () => await scheduler.triggerYubaCheckIn(currentConfig),
+    triggerTask: async (type: TaskType) => await scheduler.triggerTask(type, currentConfig, hasSendRooms),
     fetchFans: async () => {
       const cookie = cookieSource.resolveCookieForUrl(MAIN_DOUYU_URL)
       return await runtimeCache.getFansList(cookie)

@@ -1,4 +1,5 @@
 import type { Fans, SendGift } from '../../core/types'
+import { DEFAULT_GIFT_ID } from '../../core/task-defaults'
 import { formatOptionalNumber } from './task-shared'
 
 export type AllocationTaskModel = 1 | 2
@@ -66,7 +67,7 @@ export function buildAllocationSendMap(rows: AllocationFanRow[], model: Allocati
     const value = Number(row.value || 0)
     send[String(row.roomId)] = {
       roomId: row.roomId,
-      giftId: 268,
+      giftId: DEFAULT_GIFT_ID,
       number: model === 2 ? value : 0,
       weight: model === 1 ? value : 0,
       count: 0,

@@ -1,3 +1,5 @@
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
+
 interface LegacyEventState {
   activeTab: string
   auth: {
@@ -58,8 +60,8 @@ function createEventBindings(deps: LegacyEventDeps): LegacyEventBindings {
 
   function bindStaticEvents(): void {
     document.addEventListener('click', handleActionClick)
-    document.addEventListener('douyu-keep-webui:navigation', deps.handleVueNavigation)
-    document.addEventListener('douyu-keep-webui:refresh-overview-request', handleRefreshOverviewRequest)
+    document.addEventListener(WEBUI_BRIDGE_EVENTS.navigation, deps.handleVueNavigation)
+    document.addEventListener(WEBUI_BRIDGE_EVENTS.refreshOverviewRequest, handleRefreshOverviewRequest)
   }
 
   function startAutoRefresh(): void {

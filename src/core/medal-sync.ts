@@ -1,16 +1,21 @@
 import { normalizeCookieCloudConfig } from './cookie-cloud'
-import type { CollectGiftConfig, CookieCloudConfig, DockerConfig, DoubleCardConfig, DoubleCardGiftScope, ExpiringGiftConfig, Fans, JobConfig, ManualCookieConfig, SendGift, ThemeMode, YubaCheckInConfig, sendConfig } from './types'
-
-const DEFAULT_COLLECT_GIFT_CRON = '0 10 3,5 * * *'
-const DEFAULT_KEEPALIVE_CRON = '0 0 8 */6 * *'
-const DEFAULT_DOUBLE_CARD_CRON = '0 20 17,20,22,23 * * *'
-const DEFAULT_EXPIRING_GIFT_CRON = '0 45 23 * * *'
-const DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS = 24
-const DEFAULT_YUBA_CHECK_IN_CRON = '0 23 0 * * *'
-const DEFAULT_COOKIE_CLOUD_SYNC_CRON = '0 5 0 * * *'
-const DEFAULT_THEME_MODE: ThemeMode = 'system'
-const DEFAULT_GIFT_ID = 268
-const DEFAULT_DOUBLE_CARD_GIFT_SCOPE: DoubleCardGiftScope = 'glowStick'
+import {
+  DEFAULT_COLLECT_GIFT_CRON,
+  DEFAULT_COOKIE_CLOUD_SYNC_CRON,
+  DEFAULT_DOUBLE_CARD_CRON,
+  DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
+  DEFAULT_DOUBLE_CARD_MODEL,
+  DEFAULT_EXPIRING_GIFT_CRON,
+  DEFAULT_EXPIRING_GIFT_MODEL,
+  DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
+  DEFAULT_GIFT_ID,
+  DEFAULT_KEEPALIVE_CRON,
+  DEFAULT_KEEPALIVE_MODEL,
+  DEFAULT_THEME_MODE,
+  DEFAULT_YUBA_CHECK_IN_CRON,
+  DEFAULT_YUBA_CHECK_IN_MODE,
+} from './task-defaults'
+import type { CollectGiftConfig, CookieCloudConfig, DockerConfig, DoubleCardConfig, DoubleCardGiftScope, ExpiringGiftConfig, Fans, JobConfig, ManualCookieConfig, SendGift, YubaCheckInConfig, sendConfig } from './types'
 
 function resolveTaskActive(active: boolean | undefined): boolean {
   return active !== false
@@ -106,7 +111,7 @@ export function createDefaultYubaCheckInConfig(): YubaCheckInConfig {
   return {
     active: false,
     cron: DEFAULT_YUBA_CHECK_IN_CRON,
-    mode: 'followed',
+    mode: DEFAULT_YUBA_CHECK_IN_MODE,
   }
 }
 
@@ -118,7 +123,7 @@ function normalizeYubaCheckInConfig(config: YubaCheckInConfig | undefined): Yuba
   return {
     active: resolveTaskActive(config.active),
     cron: config.cron || DEFAULT_YUBA_CHECK_IN_CRON,
-    mode: config.mode || 'followed',
+    mode: config.mode || DEFAULT_YUBA_CHECK_IN_MODE,
   }
 }
 
@@ -149,8 +154,8 @@ export function createDefaultKeepaliveConfig(fans: Fans[]): JobConfig {
   return {
     active: true,
     cron: DEFAULT_KEEPALIVE_CRON,
-    model: 2,
-    send: mergeSendConfig(undefined, fans, 2),
+    model: DEFAULT_KEEPALIVE_MODEL,
+    send: mergeSendConfig(undefined, fans, DEFAULT_KEEPALIVE_MODEL),
   }
 }
 
@@ -192,9 +197,9 @@ export function createDefaultDoubleCardConfig(fans: Fans[]): DoubleCardConfig {
   return {
     active: true,
     cron: DEFAULT_DOUBLE_CARD_CRON,
-    model: 1,
+    model: DEFAULT_DOUBLE_CARD_MODEL,
     giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
-    send: mergeSendConfig(undefined, fans, 1),
+    send: mergeSendConfig(undefined, fans, DEFAULT_DOUBLE_CARD_MODEL),
     enabled: buildEnabledMap(fans.map(fan => String(fan.roomId)), undefined),
   }
 }
@@ -220,8 +225,8 @@ export function createDefaultExpiringGiftConfig(fans: Fans[]): ExpiringGiftConfi
     active: false,
     cron: DEFAULT_EXPIRING_GIFT_CRON,
     thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
-    model: 1,
-    send: mergeExpiringGiftSendConfig(undefined, fans, 1),
+    model: DEFAULT_EXPIRING_GIFT_MODEL,
+    send: mergeExpiringGiftSendConfig(undefined, fans, DEFAULT_EXPIRING_GIFT_MODEL),
   }
 }
 

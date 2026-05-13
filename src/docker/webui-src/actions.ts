@@ -1,5 +1,6 @@
 import type { Fans } from '../../core/types'
 import type { WebUiPageTab } from './navigation'
+import { getTaskTriggerEndpoint, isWebUiTaskType } from './task-shared'
 
 interface LegacyActionState {
   activeTab: WebUiPageTab
@@ -148,11 +149,11 @@ function createActions(deps: LegacyActionDeps): LegacyActions {
   }
 
   function triggerTask(type: string | null): void {
-    if (!type) {
+    if (!isWebUiTaskType(type)) {
       return
     }
 
-    deps.requestJson(`/api/trigger/${type}`, {
+    deps.requestJson(getTaskTriggerEndpoint(type), {
       method: 'POST',
     }).then(() => {
       deps.toast('执行完成', true)

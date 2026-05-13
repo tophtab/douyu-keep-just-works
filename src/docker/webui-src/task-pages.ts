@@ -1,5 +1,6 @@
 import type { FanStatus, Fans, GiftStatus, YubaGroupStatus } from '../../core/types'
 import type { WebUiPageTab } from './navigation'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 
 interface LegacyTaskPageState {
   activeTab: WebUiPageTab
@@ -50,7 +51,7 @@ function dispatchPageState<T>(eventName: string, detail: T): void {
 
 function createTaskPageRenderers(deps: LegacyTaskPageDeps): LegacyTaskPageRenderers {
   function renderCollectPage(): void {
-    dispatchPageState('douyu-keep-webui:collect-page', {
+    dispatchPageState(WEBUI_BRIDGE_EVENTS.collectPage, {
       rawConfig: deps.getRawConfig(),
       overview: deps.state.overview,
     })
@@ -58,7 +59,7 @@ function createTaskPageRenderers(deps: LegacyTaskPageDeps): LegacyTaskPageRender
 
   function renderYubaPage(): void {
     deps.renderRefreshButton()
-    dispatchPageState('douyu-keep-webui:yuba-page', {
+    dispatchPageState(WEBUI_BRIDGE_EVENTS.yubaPage, {
       rawConfig: deps.getRawConfig(),
       overview: deps.state.overview,
       yubaStatus: deps.state.yubaStatus,
@@ -72,7 +73,7 @@ function createTaskPageRenderers(deps: LegacyTaskPageDeps): LegacyTaskPageRender
   function renderKeepalivePage(): void {
     deps.renderRefreshButton()
     const rawConfig = deps.getRawConfig()
-    dispatchPageState('douyu-keep-webui:keepalive-page', {
+    dispatchPageState(WEBUI_BRIDGE_EVENTS.keepalivePage, {
       rawConfig,
       managedConfig: deps.getManagedConfig(),
       overview: deps.state.overview,
@@ -87,7 +88,7 @@ function createTaskPageRenderers(deps: LegacyTaskPageDeps): LegacyTaskPageRender
   function renderDoublePage(): void {
     deps.renderRefreshButton()
     const rawConfig = deps.getRawConfig()
-    dispatchPageState('douyu-keep-webui:double-page', {
+    dispatchPageState(WEBUI_BRIDGE_EVENTS.doublePage, {
       rawConfig,
       managedConfig: deps.getManagedConfig(),
       overview: deps.state.overview,
@@ -102,7 +103,7 @@ function createTaskPageRenderers(deps: LegacyTaskPageDeps): LegacyTaskPageRender
   function renderExpiringGiftPage(): void {
     deps.renderRefreshButton()
     const rawConfig = deps.getRawConfig()
-    dispatchPageState('douyu-keep-webui:expiring-page', {
+    dispatchPageState(WEBUI_BRIDGE_EVENTS.expiringPage, {
       rawConfig,
       managedConfig: deps.getManagedConfig(),
       overview: deps.state.overview,

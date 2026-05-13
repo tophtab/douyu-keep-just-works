@@ -1,4 +1,5 @@
 import type { WebUiPageTab } from './navigation'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { isWebUiPageTab } from './navigation'
 
 interface LegacyBridge {
@@ -24,7 +25,7 @@ function normalizeTab(tab: string | undefined): WebUiPageTab {
 
 function dispatchLegacyReady(bridge: LegacyBridge): void {
   window.DOUYU_KEEP_WEBUI_LEGACY = bridge
-  document.dispatchEvent(new CustomEvent('douyu-keep-webui:legacy-ready'))
+  document.dispatchEvent(new CustomEvent(WEBUI_BRIDGE_EVENTS.legacyReady))
 }
 
 export function startLegacyApp(): void {
@@ -52,7 +53,7 @@ export function startLegacyApp(): void {
   } = stateHelpers
 
   function renderRefreshButton(): void {
-    document.dispatchEvent(new CustomEvent('douyu-keep-webui:refresh-state', {
+    document.dispatchEvent(new CustomEvent(WEBUI_BRIDGE_EVENTS.refreshState, {
       detail: {
         loading: isActiveRefreshLoading(),
       },
@@ -80,7 +81,7 @@ export function startLegacyApp(): void {
 
   const requestJson = requireBridge(window.DOUYU_KEEP_WEBUI_REQUEST, 'request').create({
     handleUnauthorized: () => {
-      document.dispatchEvent(new CustomEvent('douyu-keep-webui:unauthorized'))
+      document.dispatchEvent(new CustomEvent(WEBUI_BRIDGE_EVENTS.unauthorized))
     },
   }).requestJson
 
@@ -184,7 +185,7 @@ export function startLegacyApp(): void {
     })
   }
 
-  document.addEventListener('douyu-keep-webui:auth-state', handleVueAuthState)
+  document.addEventListener(WEBUI_BRIDGE_EVENTS.authState, handleVueAuthState)
   state.auth.checked = true
   state.auth.authenticated = document.body.getAttribute('data-auth') === 'app'
 

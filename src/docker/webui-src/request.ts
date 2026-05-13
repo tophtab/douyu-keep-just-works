@@ -1,6 +1,7 @@
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { showToast } from './toast'
 
-export const UNAUTHORIZED_EVENT_NAME = 'douyu-keep-webui:unauthorized'
+export const UNAUTHORIZED_EVENT_NAME = WEBUI_BRIDGE_EVENTS.unauthorized
 
 export interface WebUiRequestError extends Error {
   status?: number

@@ -1,4 +1,6 @@
 import { onBeforeUnmount, onMounted } from 'vue'
+import type { Ref } from 'vue'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { formatDate } from './datetime'
 import { requestJson } from './request'
 import { showToast } from './toast'
@@ -46,11 +48,31 @@ export interface LegacyPageEventOptions<PageDetail, RawConfig, Overview> {
   pageEventName: string
 }
 
+export interface FanTaskPageDetail<TFan, RawConfig, Overview> {
+  fans?: TFan[]
+  fansListError?: string
+  fansListLoaded?: boolean
+  managedConfig?: RawConfig | null
+  managedLoading?: boolean
+  overview?: Overview | null
+  rawConfig?: RawConfig | null
+}
+
+export interface FanTaskPageRefs<TFan, RawConfig, Overview> {
+  fans: Ref<TFan[]>
+  fansListError: Ref<string>
+  fansListLoaded: Ref<boolean>
+  managedConfig: Ref<RawConfig | null>
+  managedLoading: Ref<boolean>
+  overview: Ref<Overview | null>
+  rawConfig: Ref<RawConfig | null>
+}
+
 export interface TaskTriggerOptions {
-  endpoint: string
   isUnauthorizedError: (error: unknown) => boolean
   onSuccess?: () => Promise<void> | void
   refresh?: Array<(() => Promise<unknown> | undefined) | undefined>
+  taskType: WebUiTaskType
 }
 
 export interface SaveTaskConfigOptions {
@@ -72,12 +94,57 @@ export interface DisableTaskConfigOptions {
   restoreEnabled: () => void
 }
 
+export type UnauthorizedChecker = (error: unknown) => boolean
+
+export type WebUiTaskType = 'collectGift' | 'keepalive' | 'doubleCard' | 'expiringGift' | 'yubaCheckIn'
+
+const WEBUI_TASK_TYPES: WebUiTaskType[] = ['collectGift', 'keepalive', 'doubleCard', 'expiringGift', 'yubaCheckIn']
+
+export function isWebUiTaskType(value: string | null): value is WebUiTaskType {
+  return Boolean(value && (WEBUI_TASK_TYPES as string[]).includes(value))
+}
+
+export function getTaskTriggerEndpoint(type: WebUiTaskType): string {
+  return `/api/trigger/${type}`
+}
+
+export function applyFanTaskPageDetail<TFan, RawConfig, Overview>(
+  detail: FanTaskPageDetail<TFan, RawConfig, Overview>,
+  refs: FanTaskPageRefs<TFan, RawConfig, Overview>,
+): void {
+  if ('rawConfig' in detail) {
+    refs.rawConfig.value = detail.rawConfig || null
+  }
+  if ('managedConfig' in detail) {
+    refs.managedConfig.value = detail.managedConfig || null
+  }
+  if ('overview' in detail) {
+    refs.overview.value = detail.overview || null
+  }
+  if ('fans' in detail) {
+    refs.fans.value = detail.fans || []
+  }
+  if ('fansListError' in detail) {
+    refs.fansListError.value = detail.fansListError || ''
+  }
+  if ('fansListLoaded' in detail) {
+    refs.fansListLoaded.value = Boolean(detail.fansListLoaded)
+  }
+  if ('managedLoading' in detail) {
+    refs.managedLoading.value = Boolean(detail.managedLoading)
+  }
+}
+
 export function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
 export function isHttpUnauthorized(error: unknown): boolean {
   return Boolean(error && typeof error === 'object' && 'status' in error && error.status === 401)
+}
+
+export function isLegacyOrHttpUnauthorized(error: unknown, ...checkers: Array<UnauthorizedChecker | undefined>): boolean {
+  return checkers.some(checker => checker?.(error)) || isHttpUnauthorized(error)
 }
 
 export function hasCookieSourceConfigured(config: CookieSourceConfig | null): boolean {
@@ -144,15 +211,15 @@ export function useLegacyPageEvents<PageDetail, RawConfig, Overview>(options: Le
 
   onMounted(() => {
     document.addEventListener(options.pageEventName, handlePageEvent)
-    document.addEventListener('douyu-keep-webui:config', handleConfigEvent)
-    document.addEventListener('douyu-keep-webui:overview', handleOverviewEvent)
+    document.addEventListener(WEBUI_BRIDGE_EVENTS.config, handleConfigEvent)
+    document.addEventListener(WEBUI_BRIDGE_EVENTS.overview, handleOverviewEvent)
     void options.ensureCronPreview?.()
   })
 
   onBeforeUnmount(() => {
     document.removeEventListener(options.pageEventName, handlePageEvent)
-    document.removeEventListener('douyu-keep-webui:config', handleConfigEvent)
-    document.removeEventListener('douyu-keep-webui:overview', handleOverviewEvent)
+    document.removeEventListener(WEBUI_BRIDGE_EVENTS.config, handleConfigEvent)
+    document.removeEventListener(WEBUI_BRIDGE_EVENTS.overview, handleOverviewEvent)
   })
 }
 
@@ -197,7 +264,7 @@ export async function disableTaskConfig(options: DisableTaskConfigOptions): Prom
 
 export async function triggerTask(options: TaskTriggerOptions): Promise<void> {
   try {
-    await requestJson(options.endpoint, { method: 'POST' })
+    await requestJson(getTaskTriggerEndpoint(options.taskType), { method: 'POST' })
     showToast('执行完成', true)
     await Promise.all((options.refresh || []).map(refresh => refresh?.()).filter(Boolean))
     await options.onSuccess?.()

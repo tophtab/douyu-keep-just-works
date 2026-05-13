@@ -1,8 +1,10 @@
 import type { YubaCheckInConfig, YubaCheckInMode, YubaGroupStatus, YubaStatusResponse } from '../../core/types'
 import { computed, ref } from 'vue'
+import { DEFAULT_YUBA_CHECK_IN_CRON, DEFAULT_YUBA_CHECK_IN_MODE } from '../../core/task-defaults'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
 import { requestJson } from './request'
-import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getErrorMessage, hasCookieSourceConfigured as hasSharedCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getErrorMessage, hasCookieSourceConfigured as hasSharedCookieSourceConfigured, isLegacyOrHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
 import { showToast } from './toast'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
@@ -70,9 +72,7 @@ interface LegacyYubaResourceActions {
   loadYubaStatus: (showToast?: boolean) => Promise<unknown>
 }
 
-const DEFAULT_YUBA_CRON = '0 23 0 * * *'
-const DEFAULT_YUBA_MODE: YubaCheckInMode = 'followed'
-const YUBA_PAGE_EVENT_NAME = 'douyu-keep-webui:yuba-page'
+const YUBA_PAGE_EVENT_NAME = WEBUI_BRIDGE_EVENTS.yubaPage
 
 const overview = ref<YubaOverview | null>(null)
 const rawConfig = ref<RawYubaConfig | null>(null)
@@ -81,8 +81,8 @@ const yubaStatusError = ref('')
 const yubaStatusLoaded = ref(false)
 const yubaStatusLoading = ref(false)
 const yubaEnabled = ref(false)
-const yubaCron = ref(DEFAULT_YUBA_CRON)
-const yubaMode = ref<YubaCheckInMode>(DEFAULT_YUBA_MODE)
+const yubaCron = ref(DEFAULT_YUBA_CHECK_IN_CRON)
+const yubaMode = ref<YubaCheckInMode>(DEFAULT_YUBA_CHECK_IN_MODE)
 const { cronPreviewText: yubaCronPreviewText, ensureCronPreview, loadCronPreview: loadYubaCronPreview } = useCronPreview(() => yubaCron.value)
 
 let legacyResourceDeps: LegacyYubaResourceDeps | null = null
@@ -100,18 +100,15 @@ declare global {
 }
 
 function isUnauthorizedError(error: unknown): boolean {
-  if (legacyTaskDeps?.isUnauthorizedError(error) || legacyResourceDeps?.isUnauthorizedError(error)) {
-    return true
-  }
-  return isHttpUnauthorized(error)
+  return isLegacyOrHttpUnauthorized(error, legacyTaskDeps?.isUnauthorizedError, legacyResourceDeps?.isUnauthorizedError)
 }
 
 function normalizeMode(mode: unknown): YubaCheckInMode {
-  return mode === 'followed' ? 'followed' : DEFAULT_YUBA_MODE
+  return mode === DEFAULT_YUBA_CHECK_IN_MODE ? mode : DEFAULT_YUBA_CHECK_IN_MODE
 }
 
 function getYubaConfig(config: RawYubaConfig | null): YubaCheckInConfig {
-  return config?.yubaCheckIn || { active: false, cron: DEFAULT_YUBA_CRON, mode: DEFAULT_YUBA_MODE }
+  return config?.yubaCheckIn || { active: false, cron: DEFAULT_YUBA_CHECK_IN_CRON, mode: DEFAULT_YUBA_CHECK_IN_MODE }
 }
 
 function hasCookieSourceConfigured(config: RawYubaConfig | null): boolean {
@@ -126,7 +123,7 @@ function applyRawConfig(config: RawYubaConfig | null): void {
   rawConfig.value = config
   const yubaConfig = getYubaConfig(config)
   yubaEnabled.value = isTaskActive(yubaConfig)
-  yubaCron.value = yubaConfig.cron || DEFAULT_YUBA_CRON
+  yubaCron.value = yubaConfig.cron || DEFAULT_YUBA_CHECK_IN_CRON
   yubaMode.value = normalizeMode(yubaConfig.mode)
   void ensureCronPreview()
 }
@@ -171,7 +168,7 @@ async function saveYubaConfig(options?: { revertCheckboxOnError?: boolean }): Pr
       yubaCheckIn: {
         active: true,
         cron: yubaCron.value.trim(),
-        mode: yubaMode.value || DEFAULT_YUBA_MODE,
+        mode: yubaMode.value || DEFAULT_YUBA_CHECK_IN_MODE,
       },
     },
     successMessage: '鱼吧签到任务已保存并启用',
@@ -188,14 +185,14 @@ async function saveYubaConfig(options?: { revertCheckboxOnError?: boolean }): Pr
 async function disableYubaConfig(): Promise<void> {
   const currentConfig = rawConfig.value?.yubaCheckIn || legacyTaskDeps?.getRawConfig().yubaCheckIn || {
     active: false,
-    cron: DEFAULT_YUBA_CRON,
-    mode: DEFAULT_YUBA_MODE,
+    cron: DEFAULT_YUBA_CHECK_IN_CRON,
+    mode: DEFAULT_YUBA_CHECK_IN_MODE,
   }
   await disableTaskConfig({
     payload: {
       yubaCheckIn: {
         active: false,
-        cron: currentConfig.cron || DEFAULT_YUBA_CRON,
+        cron: currentConfig.cron || DEFAULT_YUBA_CHECK_IN_CRON,
         mode: normalizeMode(currentConfig.mode),
       },
     },
@@ -297,7 +294,7 @@ async function loadYubaStatus(showSuccessToast = false): Promise<unknown> {
 
 async function triggerYubaTask(): Promise<void> {
   await triggerTask({
-    endpoint: '/api/trigger/yubaCheckIn',
+    taskType: 'yubaCheckIn',
     isUnauthorizedError,
     refresh: [
       () => legacyTaskDeps?.loadOverview?.(),

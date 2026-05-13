@@ -2,6 +2,7 @@ import type { Fans, FanStatus, FansStatusResponse, GiftStatus, YubaGroupStatus }
 import type { WebUiRequestError } from './request'
 import type { Ref } from 'vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { formatDate } from './datetime'
 import { requestJson } from './request'
 import { showToast } from './toast'
@@ -239,7 +240,7 @@ function getConfiguredThemeMode(rawConfig: unknown): string {
 }
 
 function dispatchConfigLoaded(rawConfig: unknown): void {
-  document.dispatchEvent(new CustomEvent('douyu-keep-webui:config', {
+  document.dispatchEvent(new CustomEvent(WEBUI_BRIDGE_EVENTS.config, {
     detail: {
       rawConfig,
       themeMode: getConfiguredThemeMode(rawConfig),
@@ -248,7 +249,7 @@ function dispatchConfigLoaded(rawConfig: unknown): void {
 }
 
 function dispatchOverviewLoaded(overview: unknown): void {
-  document.dispatchEvent(new CustomEvent('douyu-keep-webui:overview', {
+  document.dispatchEvent(new CustomEvent(WEBUI_BRIDGE_EVENTS.overview, {
     detail: {
       overview,
     },

@@ -1,10 +1,12 @@
 import type { Fans, JobConfig } from '../../core/types'
 import { computed, ref } from 'vue'
+import { DEFAULT_KEEPALIVE_CRON, DEFAULT_KEEPALIVE_MODEL } from '../../core/task-defaults'
 import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationModel } from './allocation-task'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
-import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
-import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
+import { applyFanTaskPageDetail, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isLegacyOrHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import type { CookieSourceConfig, FanTaskPageDetail, TaskRunStatus } from './task-shared'
 
 interface KeepaliveOverview {
   keepaliveConfigured?: boolean
@@ -18,15 +20,7 @@ interface RawKeepaliveConfig extends CookieSourceConfig {
   keepalive?: JobConfig
 }
 
-interface KeepalivePageDetail {
-  fans?: Fans[]
-  fansListError?: string
-  fansListLoaded?: boolean
-  managedConfig?: RawKeepaliveConfig | null
-  managedLoading?: boolean
-  overview?: KeepaliveOverview | null
-  rawConfig?: RawKeepaliveConfig | null
-}
+type KeepalivePageDetail = FanTaskPageDetail<Fans, RawKeepaliveConfig, KeepaliveOverview>
 
 interface LegacyKeepaliveDeps {
   getManagedConfig: () => RawKeepaliveConfig
@@ -46,9 +40,7 @@ interface LegacyKeepaliveActions {
 
 type KeepaliveFanRow = AllocationFanRow
 
-const DEFAULT_KEEPALIVE_CRON = '0 0 8 */6 * *'
-const DEFAULT_KEEPALIVE_MODEL: 1 | 2 = 2
-const KEEPALIVE_PAGE_EVENT_NAME = 'douyu-keep-webui:keepalive-page'
+const KEEPALIVE_PAGE_EVENT_NAME = WEBUI_BRIDGE_EVENTS.keepalivePage
 
 const overview = ref<KeepaliveOverview | null>(null)
 const rawConfig = ref<RawKeepaliveConfig | null>(null)
@@ -74,10 +66,7 @@ declare global {
 }
 
 function isUnauthorizedError(error: unknown): boolean {
-  if (legacyDeps?.isUnauthorizedError(error)) {
-    return true
-  }
-  return isHttpUnauthorized(error)
+  return isLegacyOrHttpUnauthorized(error, legacyDeps?.isUnauthorizedError)
 }
 
 function normalizeModel(model: unknown): 1 | 2 {
@@ -113,28 +102,7 @@ function applyRawConfig(config: RawKeepaliveConfig | null): void {
 }
 
 function applyKeepalivePageDetail(detail: KeepalivePageDetail): void {
-  if ('rawConfig' in detail) {
-    rawConfig.value = detail.rawConfig || null
-  }
-  if ('managedConfig' in detail) {
-    managedConfig.value = detail.managedConfig || null
-  }
-  if ('overview' in detail) {
-    overview.value = detail.overview || null
-  }
-  if ('fans' in detail) {
-    fans.value = detail.fans || []
-  }
-  if ('fansListError' in detail) {
-    fansListError.value = detail.fansListError || ''
-  }
-  if ('fansListLoaded' in detail) {
-    fansListLoaded.value = Boolean(detail.fansListLoaded)
-  }
-  if ('managedLoading' in detail) {
-    managedLoading.value = Boolean(detail.managedLoading)
-  }
-
+  applyFanTaskPageDetail(detail, { rawConfig, managedConfig, overview, fans, fansListError, fansListLoaded, managedLoading })
   const keepaliveConfig = getKeepaliveConfig()
   keepaliveEnabled.value = isTaskActive(keepaliveConfig)
   keepaliveCron.value = keepaliveConfig.cron || DEFAULT_KEEPALIVE_CRON
@@ -198,7 +166,7 @@ async function disableKeepaliveConfig(): Promise<void> {
 
 async function triggerKeepaliveTask(): Promise<void> {
   await triggerTask({
-    endpoint: '/api/trigger/keepalive',
+    taskType: 'keepalive',
     isUnauthorizedError,
     refresh: [
       () => legacyDeps?.loadOverview?.(),

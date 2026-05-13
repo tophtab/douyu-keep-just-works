@@ -1,5 +1,6 @@
 import type { CookieDiagnostics, Fans } from '../../core/types'
 import type { WebUiPageTab } from './navigation'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 
 interface LegacyPageState {
   activeTab: WebUiPageTab
@@ -70,7 +71,7 @@ function createPageRenderers(deps: LegacyPageDeps): LegacyPageRenderers {
   })
 
   function renderCookieCheck(): void {
-    dispatchPageState('douyu-keep-webui:login-page', {
+    dispatchPageState(WEBUI_BRIDGE_EVENTS.loginPage, {
       cookieCheck: deps.state.cookieCheck,
     })
   }
@@ -78,7 +79,7 @@ function createPageRenderers(deps: LegacyPageDeps): LegacyPageRenderers {
   function renderOverview(): void {
     deps.renderRefreshButton()
     const rawConfig = deps.getRawConfig()
-    dispatchPageState('douyu-keep-webui:overview-page', {
+    dispatchPageState(WEBUI_BRIDGE_EVENTS.overviewPage, {
       fansStatus: deps.state.fansStatus,
       fansStatusDetailsLoaded: deps.state.fansStatusDetailsLoaded,
       fansStatusDetailsLoading: deps.state.fansStatusDetailsLoading,
@@ -94,7 +95,7 @@ function createPageRenderers(deps: LegacyPageDeps): LegacyPageRenderers {
   function renderLoginPage(): void {
     const rawConfig = deps.getRawConfig()
     const fansCount = deps.state.fansStatusLoaded ? deps.state.fansStatus.length : deps.getManagedFans().length
-    dispatchPageState('douyu-keep-webui:login-page', {
+    dispatchPageState(WEBUI_BRIDGE_EVENTS.loginPage, {
       rawConfig,
       overview: deps.state.overview,
       fansCount,

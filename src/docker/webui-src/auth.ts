@@ -1,5 +1,6 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { requestJson, UNAUTHORIZED_EVENT_NAME } from './request'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { showToast } from './toast'
 
 interface AuthStatusResponse {
@@ -21,8 +22,8 @@ declare global {
   }
 }
 
-export const AUTH_STATE_EVENT_NAME = 'douyu-keep-webui:auth-state'
-export const LEGACY_READY_EVENT_NAME = 'douyu-keep-webui:legacy-ready'
+export const AUTH_STATE_EVENT_NAME = WEBUI_BRIDGE_EVENTS.authState
+export const LEGACY_READY_EVENT_NAME = WEBUI_BRIDGE_EVENTS.legacyReady
 export { UNAUTHORIZED_EVENT_NAME }
 
 function dispatchAuthState(authenticated: boolean): void {

@@ -1,5 +1,6 @@
 import type { CookieDiagnostics, FanStatus, Fans, FansStatusResponse, GiftStatus } from '../../core/types'
 import type { WebUiPageTab } from './navigation'
+import { DEFAULT_COOKIE_CLOUD_SYNC_CRON } from '../../core/task-defaults'
 import { formatDate } from './datetime'
 
 type LegacyResourceKey = 'fansSync' | 'fansList' | 'fansStatus' | 'yubaStatus'
@@ -189,7 +190,7 @@ function createStateModule(deps: LegacyStateDeps): LegacyStateHelpers {
       endpoint: '',
       uuid: '',
       password: '',
-      cron: '0 5 0 * * *',
+      cron: DEFAULT_COOKIE_CLOUD_SYNC_CRON,
       cryptoType: 'legacy',
     }
   }

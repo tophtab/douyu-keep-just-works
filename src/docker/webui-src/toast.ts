@@ -1,11 +1,12 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 
 interface ToastEventDetail {
   message?: unknown
   ok?: unknown
 }
 
-export const TOAST_EVENT_NAME = 'douyu-keep-webui:toast'
+export const TOAST_EVENT_NAME = WEBUI_BRIDGE_EVENTS.toast
 
 function normalizeToastMessage(message: unknown): string {
   if (typeof message === 'string') {

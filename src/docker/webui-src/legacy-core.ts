@@ -1,4 +1,19 @@
 import type { WebUiPageTab } from './navigation'
+import {
+  DEFAULT_COLLECT_GIFT_CRON,
+  DEFAULT_COOKIE_CLOUD_SYNC_CRON,
+  DEFAULT_DOUBLE_CARD_CRON,
+  DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
+  DEFAULT_DOUBLE_CARD_MODEL,
+  DEFAULT_EXPIRING_GIFT_CRON,
+  DEFAULT_EXPIRING_GIFT_MODEL,
+  DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
+  DEFAULT_KEEPALIVE_CRON,
+  DEFAULT_KEEPALIVE_MODEL,
+  DEFAULT_THEME_MODE,
+  DEFAULT_YUBA_CHECK_IN_CRON,
+  DEFAULT_YUBA_CHECK_IN_MODE,
+} from '../../core/task-defaults'
 import { formatDate } from './datetime'
 import { showToast } from './toast'
 import { isWebUiPageTab, normalizePagePath, normalizePageRoutes, WEBUI_PAGE_TABS } from './navigation'
@@ -38,15 +53,15 @@ export const LEGACY_DEFAULT_RAW_CONFIG: RawConfigDefaults = {
     endpoint: '',
     uuid: '',
     password: '',
-    cron: '0 5 0 * * *',
+    cron: DEFAULT_COOKIE_CLOUD_SYNC_CRON,
     cryptoType: 'legacy',
   },
-  ui: { themeMode: 'system' },
-  collectGift: { active: true, cron: '0 10 3,5 * * *' },
-  yubaCheckIn: { active: false, cron: '0 23 0 * * *', mode: 'followed' },
-  keepalive: { active: true, cron: '0 0 8 */6 * *', model: 2, send: {} },
-  doubleCard: { active: true, cron: '0 20 17,20,22,23 * * *', model: 1, giftScope: 'glowStick', send: {}, enabled: {} },
-  expiringGift: { active: false, cron: '0 45 23 * * *', thresholdHours: 24, model: 1, send: {} },
+  ui: { themeMode: DEFAULT_THEME_MODE },
+  collectGift: { active: true, cron: DEFAULT_COLLECT_GIFT_CRON },
+  yubaCheckIn: { active: false, cron: DEFAULT_YUBA_CHECK_IN_CRON, mode: DEFAULT_YUBA_CHECK_IN_MODE },
+  keepalive: { active: true, cron: DEFAULT_KEEPALIVE_CRON, model: DEFAULT_KEEPALIVE_MODEL, send: {} },
+  doubleCard: { active: true, cron: DEFAULT_DOUBLE_CARD_CRON, model: DEFAULT_DOUBLE_CARD_MODEL, giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE, send: {}, enabled: {} },
+  expiringGift: { active: false, cron: DEFAULT_EXPIRING_GIFT_CRON, thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS, model: DEFAULT_EXPIRING_GIFT_MODEL, send: {} },
 }
 
 const LEGACY_PAGE_META = WEBUI_PAGE_TABS.reduce<Record<WebUiPageTab, { subtitle: string, title: string }>>((meta, tab) => {

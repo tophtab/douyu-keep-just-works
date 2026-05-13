@@ -203,9 +203,9 @@ export async function executeKeepaliveJob(config: JobConfig, cookie: string, log
   let jobs: sendConfig = {}
   try {
     if (model === 1) {
-      jobs = await computeGiftCountOfProportion(number, JSON.parse(JSON.stringify(send)))
+      jobs = computeGiftCountOfProportion(number, send)
     } else {
-      jobs = await computeGiftCountOfNumber(number, JSON.parse(JSON.stringify(send)))
+      jobs = computeGiftCountOfNumber(number, send)
     }
   } catch (error: unknown) {
     log(`计算赠送数量失败: ${errorMessage(error)}`)
@@ -304,7 +304,7 @@ export async function executeDoubleCardJob(config: DoubleCardConfig, cookie: str
       : `${group.giftName}(ID ${group.giftId})`
     let jobs: sendConfig | null = null
     try {
-      jobs = await computeGiftCountWithDoubleCard(group.giftCount, activeSend, doubleCardRooms, model)
+      jobs = computeGiftCountWithDoubleCard(group.giftCount, activeSend, doubleCardRooms, model)
     } catch (error: unknown) {
       log(`计算${giftLabel}双倍赠送数量失败: ${errorMessage(error)}`)
       continue
@@ -384,9 +384,9 @@ export async function executeExpiringGiftJob(config: ExpiringGiftConfig, cookie:
     let jobs: sendConfig = {}
     try {
       if (model === 1) {
-        jobs = await computeGiftCountOfProportion(giftCount, JSON.parse(JSON.stringify(send)))
+        jobs = computeGiftCountOfProportion(giftCount, send)
       } else {
-        jobs = await computeGiftCountOfNumber(giftCount, JSON.parse(JSON.stringify(send)))
+        jobs = computeGiftCountOfNumber(giftCount, send)
       }
     } catch (error: unknown) {
       log(`计算${giftLabel}临期赠送数量失败: ${errorMessage(error)}`)

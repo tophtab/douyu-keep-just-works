@@ -1,4 +1,5 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 
 export type WebUiPageTab
   = | 'overview'
@@ -119,7 +120,7 @@ export function normalizePageRoutes(routes: WebUiPageRoutes): Record<WebUiPageTa
 }
 
 function dispatchLegacyNavigation(detail: LegacyNavigationDetail): void {
-  document.dispatchEvent(new CustomEvent<LegacyNavigationDetail>('douyu-keep-webui:navigation', {
+  document.dispatchEvent(new CustomEvent<LegacyNavigationDetail>(WEBUI_BRIDGE_EVENTS.navigation, {
     detail,
   }))
 }

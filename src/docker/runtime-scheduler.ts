@@ -1,7 +1,7 @@
 import { CronJob } from 'cron'
 import type { DockerConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig, YubaCheckInConfig } from '../core/types'
 import type { JobStatus } from './server'
-import { formatTaskList, getTaskConfig, TASK_TYPES } from './task-metadata'
+import { createTaskRecord, formatTaskList, getTaskConfig, getTaskLabel, TASK_TYPES } from './task-metadata'
 import type { TaskType } from './task-metadata'
 import { DOCKER_TIMEZONE } from './runtime-constants'
 import type { StatusCacheScope } from './runtime-cache'
@@ -43,29 +43,11 @@ export interface TaskReloadSummary {
 }
 
 export class DockerTaskScheduler {
-  private readonly jobs: Record<TaskType, CronJob | null> = {
-    collectGift: null,
-    keepalive: null,
-    doubleCard: null,
-    expiringGift: null,
-    yubaCheckIn: null,
-  }
+  private readonly jobs: Record<TaskType, CronJob | null> = createTaskRecord(() => null)
 
-  private readonly statuses: Record<TaskType, JobStatus> = {
-    collectGift: createIdleStatus(),
-    keepalive: createIdleStatus(),
-    doubleCard: createIdleStatus(),
-    expiringGift: createIdleStatus(),
-    yubaCheckIn: createIdleStatus(),
-  }
+  private readonly statuses: Record<TaskType, JobStatus> = createTaskRecord(() => createIdleStatus())
 
-  private readonly activeRuns: Record<TaskType, boolean> = {
-    collectGift: false,
-    keepalive: false,
-    doubleCard: false,
-    expiringGift: false,
-    yubaCheckIn: false,
-  }
+  private readonly activeRuns: Record<TaskType, boolean> = createTaskRecord(() => false)
 
   constructor(
     private readonly logSystem: (message: string) => void,
@@ -75,13 +57,7 @@ export class DockerTaskScheduler {
   ) {}
 
   getStatus(): Record<TaskType, JobStatus> {
-    return {
-      collectGift: { ...this.statuses.collectGift },
-      keepalive: { ...this.statuses.keepalive },
-      doubleCard: { ...this.statuses.doubleCard },
-      expiringGift: { ...this.statuses.expiringGift },
-      yubaCheckIn: { ...this.statuses.yubaCheckIn },
-    }
+    return createTaskRecord(type => ({ ...this.statuses[type] }))
   }
 
   stopJobs(): void {
@@ -192,24 +168,27 @@ export class DockerTaskScheduler {
     this.logSystem(`粉丝牌列表变化，仅调整受影响任务：${parts.join('；')}`)
   }
 
-  async triggerCollectGift(config: DockerConfig | null): Promise<void> {
-    await triggerCollectGiftTask(config, this.createTaskRunnerDeps())
-  }
-
-  async triggerKeepalive(config: DockerConfig | null): Promise<void> {
-    await triggerKeepaliveTask(config, this.createTaskRunnerDeps())
-  }
-
-  async triggerDoubleCard(config: DockerConfig | null): Promise<void> {
-    await triggerDoubleCardTask(config, this.createTaskRunnerDeps())
-  }
-
-  async triggerExpiringGift(config: DockerConfig | null, hasSendRooms: (config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined) => boolean): Promise<void> {
-    await triggerExpiringGiftTask(config, hasSendRooms, this.createTaskRunnerDeps())
-  }
-
-  async triggerYubaCheckIn(config: DockerConfig | null): Promise<void> {
-    await triggerYubaCheckInTask(config, this.createTaskRunnerDeps())
+  async triggerTask(
+    type: TaskType,
+    config: DockerConfig | null,
+    hasSendRooms: (config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined) => boolean,
+  ): Promise<void> {
+    switch (type) {
+      case 'collectGift':
+        await triggerCollectGiftTask(config, this.createTaskRunnerDeps())
+        return
+      case 'keepalive':
+        await triggerKeepaliveTask(config, this.createTaskRunnerDeps())
+        return
+      case 'doubleCard':
+        await triggerDoubleCardTask(config, this.createTaskRunnerDeps())
+        return
+      case 'expiringGift':
+        await triggerExpiringGiftTask(config, hasSendRooms, this.createTaskRunnerDeps())
+        return
+      case 'yubaCheckIn':
+        await triggerYubaCheckInTask(config, this.createTaskRunnerDeps())
+    }
   }
 
   private createTaskRunnerDeps(): RuntimeTaskRunnerDeps {
@@ -291,7 +270,7 @@ export class DockerTaskScheduler {
     }
     this.startScheduledTask(
       'collectGift',
-      '领取任务',
+      getTaskLabel('collectGift'),
       config.cron,
       async () => {
         await runCollectGiftTask(this.createTaskRunnerDeps())
@@ -305,7 +284,7 @@ export class DockerTaskScheduler {
     }
     this.startScheduledTask(
       'keepalive',
-      '保活任务',
+      getTaskLabel('keepalive'),
       config.cron,
       async () => {
         await runKeepaliveTask(config, this.createTaskRunnerDeps())
@@ -320,7 +299,7 @@ export class DockerTaskScheduler {
     }
     this.startScheduledTask(
       'doubleCard',
-      '双倍卡任务',
+      getTaskLabel('doubleCard'),
       config.cron,
       async () => {
         await runDoubleCardTask(config, this.createTaskRunnerDeps())
@@ -335,7 +314,7 @@ export class DockerTaskScheduler {
     }
     this.startScheduledTask(
       'expiringGift',
-      '临期任务',
+      getTaskLabel('expiringGift'),
       config.cron,
       async () => {
         await runExpiringGiftTask(config, this.createTaskRunnerDeps())
@@ -350,7 +329,7 @@ export class DockerTaskScheduler {
     }
     this.startScheduledTask(
       'yubaCheckIn',
-      '鱼吧签到任务',
+      getTaskLabel('yubaCheckIn'),
       config.cron,
       async () => {
         await runYubaCheckInTask(config, this.createTaskRunnerDeps())

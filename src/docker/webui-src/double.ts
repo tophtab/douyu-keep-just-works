@@ -1,11 +1,13 @@
 import type { DoubleCardConfig, DoubleCardGiftScope, Fans, FanStatus } from '../../core/types'
 import { computed, ref } from 'vue'
+import { DEFAULT_DOUBLE_CARD_CRON, DEFAULT_DOUBLE_CARD_GIFT_SCOPE, DEFAULT_DOUBLE_CARD_MODEL } from '../../core/task-defaults'
 import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, buildEnabledRoomMap, formatRatioPercent, normalizeAllocationModel } from './allocation-task'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
-import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import { applyFanTaskPageDetail, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isLegacyOrHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
 import { showToast } from './toast'
-import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
+import type { CookieSourceConfig, FanTaskPageDetail, TaskRunStatus } from './task-shared'
 
 interface DoubleOverview {
   doubleCardConfigured?: boolean
@@ -21,15 +23,7 @@ interface RawDoubleConfig extends CookieSourceConfig {
 
 type DoubleFan = Fans & Partial<Pick<FanStatus, 'doubleActive'>>
 
-interface DoublePageDetail {
-  fans?: DoubleFan[]
-  fansListError?: string
-  fansListLoaded?: boolean
-  managedConfig?: RawDoubleConfig | null
-  managedLoading?: boolean
-  overview?: DoubleOverview | null
-  rawConfig?: RawDoubleConfig | null
-}
+type DoublePageDetail = FanTaskPageDetail<DoubleFan, RawDoubleConfig, DoubleOverview>
 
 interface LegacyDoubleDeps {
   getManagedConfig: () => RawDoubleConfig
@@ -52,10 +46,7 @@ interface DoubleFanRow extends AllocationFanRow {
   enabled: boolean
 }
 
-const DEFAULT_DOUBLE_CRON = '0 20 17,20,22,23 * * *'
-const DEFAULT_DOUBLE_MODEL: 1 | 2 = 1
-const DEFAULT_DOUBLE_GIFT_SCOPE: DoubleCardGiftScope = 'glowStick'
-const DOUBLE_PAGE_EVENT_NAME = 'douyu-keep-webui:double-page'
+const DOUBLE_PAGE_EVENT_NAME = WEBUI_BRIDGE_EVENTS.doublePage
 
 const overview = ref<DoubleOverview | null>(null)
 const rawConfig = ref<RawDoubleConfig | null>(null)
@@ -65,9 +56,9 @@ const fansListError = ref('')
 const fansListLoaded = ref(false)
 const managedLoading = ref(false)
 const doubleEnabled = ref(false)
-const doubleCron = ref(DEFAULT_DOUBLE_CRON)
-const doubleModel = ref<1 | 2>(DEFAULT_DOUBLE_MODEL)
-const doubleGiftScope = ref<DoubleCardGiftScope>(DEFAULT_DOUBLE_GIFT_SCOPE)
+const doubleCron = ref(DEFAULT_DOUBLE_CARD_CRON)
+const doubleModel = ref<1 | 2>(DEFAULT_DOUBLE_CARD_MODEL)
+const doubleGiftScope = ref<DoubleCardGiftScope>(DEFAULT_DOUBLE_CARD_GIFT_SCOPE)
 const fanRows = ref<DoubleFanRow[]>([])
 const { cronPreviewText: doubleCronPreviewText, ensureCronPreview, loadCronPreview: loadDoubleCronPreview } = useCronPreview(() => doubleCron.value)
 
@@ -82,26 +73,23 @@ declare global {
 }
 
 function isUnauthorizedError(error: unknown): boolean {
-  if (legacyDeps?.isUnauthorizedError(error)) {
-    return true
-  }
-  return isHttpUnauthorized(error)
+  return isLegacyOrHttpUnauthorized(error, legacyDeps?.isUnauthorizedError)
 }
 
 function normalizeModel(model: unknown): 1 | 2 {
-  return normalizeAllocationModel(model, DEFAULT_DOUBLE_MODEL)
+  return normalizeAllocationModel(model, DEFAULT_DOUBLE_CARD_MODEL)
 }
 
 function normalizeGiftScope(scope: unknown): DoubleCardGiftScope {
-  return scope === 'limitedTime' ? 'limitedTime' : DEFAULT_DOUBLE_GIFT_SCOPE
+  return scope === 'limitedTime' ? 'limitedTime' : DEFAULT_DOUBLE_CARD_GIFT_SCOPE
 }
 
 function getDoubleConfig(): DoubleCardConfig {
   return managedConfig.value?.doubleCard || rawConfig.value?.doubleCard || {
     active: true,
-    cron: DEFAULT_DOUBLE_CRON,
-    model: DEFAULT_DOUBLE_MODEL,
-    giftScope: DEFAULT_DOUBLE_GIFT_SCOPE,
+    cron: DEFAULT_DOUBLE_CARD_CRON,
+    model: DEFAULT_DOUBLE_CARD_MODEL,
+    giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
     send: {},
     enabled: {},
   }
@@ -122,7 +110,7 @@ function buildFanRows(nextFans: DoubleFan[], config: DoubleCardConfig): DoubleFa
 
 function applyDoubleConfig(config: DoubleCardConfig): void {
   doubleEnabled.value = isTaskActive(config)
-  doubleCron.value = config.cron || DEFAULT_DOUBLE_CRON
+  doubleCron.value = config.cron || DEFAULT_DOUBLE_CARD_CRON
   doubleModel.value = normalizeModel(config.model)
   doubleGiftScope.value = normalizeGiftScope(config.giftScope)
   fanRows.value = buildFanRows(fans.value, config)
@@ -135,28 +123,7 @@ function applyRawConfig(config: RawDoubleConfig | null): void {
 }
 
 function applyDoublePageDetail(detail: DoublePageDetail): void {
-  if ('rawConfig' in detail) {
-    rawConfig.value = detail.rawConfig || null
-  }
-  if ('managedConfig' in detail) {
-    managedConfig.value = detail.managedConfig || null
-  }
-  if ('overview' in detail) {
-    overview.value = detail.overview || null
-  }
-  if ('fans' in detail) {
-    fans.value = detail.fans || []
-  }
-  if ('fansListError' in detail) {
-    fansListError.value = detail.fansListError || ''
-  }
-  if ('fansListLoaded' in detail) {
-    fansListLoaded.value = Boolean(detail.fansListLoaded)
-  }
-  if ('managedLoading' in detail) {
-    managedLoading.value = Boolean(detail.managedLoading)
-  }
-
+  applyFanTaskPageDetail(detail, { rawConfig, managedConfig, overview, fans, fansListError, fansListLoaded, managedLoading })
   applyDoubleConfig(getDoubleConfig())
 }
 
@@ -203,9 +170,9 @@ async function saveDoubleConfig(options?: { revertCheckboxOnError?: boolean }): 
 async function disableDoubleConfig(): Promise<void> {
   const currentConfig = managedConfig.value?.doubleCard || rawConfig.value?.doubleCard || legacyDeps?.getManagedConfig().doubleCard || legacyDeps?.getRawConfig().doubleCard || {
     active: true,
-    cron: DEFAULT_DOUBLE_CRON,
-    model: DEFAULT_DOUBLE_MODEL,
-    giftScope: DEFAULT_DOUBLE_GIFT_SCOPE,
+    cron: DEFAULT_DOUBLE_CARD_CRON,
+    model: DEFAULT_DOUBLE_CARD_MODEL,
+    giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
     send: {},
     enabled: {},
   }
@@ -213,7 +180,7 @@ async function disableDoubleConfig(): Promise<void> {
     payload: {
       doubleCard: {
         active: false,
-        cron: currentConfig.cron || DEFAULT_DOUBLE_CRON,
+        cron: currentConfig.cron || DEFAULT_DOUBLE_CARD_CRON,
         model: normalizeModel(currentConfig.model),
         giftScope: normalizeGiftScope(currentConfig.giftScope),
         send: currentConfig.send || {},
@@ -232,7 +199,7 @@ async function disableDoubleConfig(): Promise<void> {
 
 async function triggerDoubleTask(): Promise<void> {
   await triggerTask({
-    endpoint: '/api/trigger/doubleCard',
+    taskType: 'doubleCard',
     isUnauthorizedError,
     refresh: [
       () => legacyDeps?.loadOverview?.(),

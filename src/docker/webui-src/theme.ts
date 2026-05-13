@@ -1,5 +1,6 @@
 import type { ThemeMode } from '../../core/types'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { requestJson } from './request'
 
 type ResolvedThemeMode = 'light' | 'dark'
@@ -8,7 +9,7 @@ interface ThemeConfigDetail {
   themeMode?: unknown
 }
 
-const CONFIG_EVENT_NAME = 'douyu-keep-webui:config'
+const CONFIG_EVENT_NAME = WEBUI_BRIDGE_EVENTS.config
 const THEME_COLOR_BY_MODE: Record<ResolvedThemeMode, string> = {
   dark: '#000000',
   light: '#f4ede4',

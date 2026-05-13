@@ -1,5 +1,7 @@
 import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, ManualCookieConfig } from '../../core/types'
 import { computed, reactive, ref } from 'vue'
+import { DEFAULT_COOKIE_CLOUD_SYNC_CRON } from '../../core/task-defaults'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
 import { formatDate } from './datetime'
 import { requestJson } from './request'
@@ -46,8 +48,7 @@ interface SaveCookieCloudOptions {
   revertActiveTo?: boolean
 }
 
-const DEFAULT_COOKIE_CLOUD_CRON = '0 5 0 * * *'
-const LOGIN_PAGE_EVENT_NAME = 'douyu-keep-webui:login-page'
+const LOGIN_PAGE_EVENT_NAME = WEBUI_BRIDGE_EVENTS.loginPage
 
 const rawConfig = ref<DockerConfig | null>(null)
 const overview = ref<LoginOverview | null>(null)
@@ -59,7 +60,7 @@ const cookieCloud = reactive({
   active: false,
   endpoint: '',
   uuid: '',
-  cron: DEFAULT_COOKIE_CLOUD_CRON,
+  cron: DEFAULT_COOKIE_CLOUD_SYNC_CRON,
   password: '',
 })
 const { cronPreviewText, ensureCronPreview, loadCronPreview } = useCronPreview(() => cookieCloud.cron)
@@ -91,7 +92,7 @@ function getCookieCloudConfig(config: DockerConfig | null): CookieCloudConfig {
     endpoint: '',
     uuid: '',
     password: '',
-    cron: DEFAULT_COOKIE_CLOUD_CRON,
+    cron: DEFAULT_COOKIE_CLOUD_SYNC_CRON,
     cryptoType: 'legacy',
   }
 }
@@ -129,7 +130,7 @@ function applyRawConfig(config: DockerConfig | null): void {
   cookieCloud.active = nextCookieCloud.active === true
   cookieCloud.endpoint = nextCookieCloud.endpoint || ''
   cookieCloud.uuid = nextCookieCloud.uuid || ''
-  cookieCloud.cron = nextCookieCloud.cron || DEFAULT_COOKIE_CLOUD_CRON
+  cookieCloud.cron = nextCookieCloud.cron || DEFAULT_COOKIE_CLOUD_SYNC_CRON
   cookieCloud.password = nextCookieCloud.password || ''
   void ensureCronPreview()
 }

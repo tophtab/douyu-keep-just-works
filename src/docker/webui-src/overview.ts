@@ -1,5 +1,6 @@
 import type { FanStatus, GiftStatus } from '../../core/types'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { formatDate } from './datetime'
 
 interface TaskRunStatus {
@@ -256,7 +257,7 @@ export function useOverviewPage() {
   const refreshOverviewTitle = computed(() => refreshLoading.value ? '正在刷新' : '刷新')
 
   function refreshOverview(): void {
-    document.dispatchEvent(new CustomEvent('douyu-keep-webui:refresh-overview-request'))
+    document.dispatchEvent(new CustomEvent(WEBUI_BRIDGE_EVENTS.refreshOverviewRequest))
   }
 
   function handleOverviewEvent(event: Event): void {
@@ -269,13 +270,13 @@ export function useOverviewPage() {
   }
 
   onMounted(() => {
-    document.addEventListener('douyu-keep-webui:overview-page', handleOverviewEvent)
-    document.addEventListener('douyu-keep-webui:refresh-state', handleRefreshStateEvent)
+    document.addEventListener(WEBUI_BRIDGE_EVENTS.overviewPage, handleOverviewEvent)
+    document.addEventListener(WEBUI_BRIDGE_EVENTS.refreshState, handleRefreshStateEvent)
   })
 
   onBeforeUnmount(() => {
-    document.removeEventListener('douyu-keep-webui:overview-page', handleOverviewEvent)
-    document.removeEventListener('douyu-keep-webui:refresh-state', handleRefreshStateEvent)
+    document.removeEventListener(WEBUI_BRIDGE_EVENTS.overviewPage, handleOverviewEvent)
+    document.removeEventListener(WEBUI_BRIDGE_EVENTS.refreshState, handleRefreshStateEvent)
   })
 
   return {

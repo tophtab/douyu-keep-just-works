@@ -1,5 +1,6 @@
 import type { CollectGiftConfig, CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, ManualCookieConfig, YubaCheckInConfig, YubaStatusResponse } from '../core/types'
 import type { LogEntry } from './logger'
+import type { TaskType } from './task-metadata'
 
 export interface JobStatus {
   running: boolean
@@ -32,11 +33,7 @@ export interface AppContext {
     effective: EffectiveCookiePreview
     updated: boolean
   }>
-  triggerCollectGift(): Promise<void>
-  triggerKeepalive(): Promise<void>
-  triggerDoubleCard(): Promise<void>
-  triggerExpiringGift(): Promise<void>
-  triggerYubaCheckIn(): Promise<void>
+  triggerTask(type: TaskType): Promise<void>
   fetchFans(): Promise<Fans[]>
   fetchFansStatusBase(): Promise<FansStatusResponse>
   fetchFansStatusDetails(): Promise<FansStatusResponse>

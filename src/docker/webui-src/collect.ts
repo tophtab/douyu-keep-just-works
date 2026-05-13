@@ -1,7 +1,9 @@
 import type { CollectGiftConfig } from '../../core/types'
 import { computed, ref } from 'vue'
+import { DEFAULT_COLLECT_GIFT_CRON } from '../../core/task-defaults'
+import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
-import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, isLegacyOrHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
 
 import type { TaskRunStatus } from './task-shared'
 
@@ -36,13 +38,12 @@ interface LegacyCollectActions {
   triggerCollectTask: () => Promise<void>
 }
 
-const DEFAULT_COLLECT_CRON = '0 10 3,5 * * *'
-const COLLECT_PAGE_EVENT_NAME = 'douyu-keep-webui:collect-page'
+const COLLECT_PAGE_EVENT_NAME = WEBUI_BRIDGE_EVENTS.collectPage
 
 const overview = ref<CollectOverview | null>(null)
 const rawConfig = ref<RawCollectConfig | null>(null)
 const collectEnabled = ref(false)
-const collectCron = ref(DEFAULT_COLLECT_CRON)
+const collectCron = ref(DEFAULT_COLLECT_GIFT_CRON)
 const { cronPreviewText: collectCronPreviewText, ensureCronPreview, loadCronPreview: loadCollectCronPreview } = useCronPreview(() => collectCron.value)
 
 let legacyDeps: LegacyCollectDeps | null = null
@@ -56,16 +57,13 @@ declare global {
 }
 
 function isUnauthorizedError(error: unknown): boolean {
-  if (legacyDeps?.isUnauthorizedError(error)) {
-    return true
-  }
-  return isHttpUnauthorized(error)
+  return isLegacyOrHttpUnauthorized(error, legacyDeps?.isUnauthorizedError)
 }
 
 function applyRawConfig(config: RawCollectConfig | null): void {
   rawConfig.value = config
   collectEnabled.value = isTaskActive(config?.collectGift)
-  collectCron.value = config?.collectGift?.cron || DEFAULT_COLLECT_CRON
+  collectCron.value = config?.collectGift?.cron || DEFAULT_COLLECT_GIFT_CRON
   void ensureCronPreview()
 }
 
@@ -104,13 +102,13 @@ async function saveCollectConfig(options?: { revertCheckboxOnError?: boolean }):
 async function disableCollectConfig(): Promise<void> {
   const currentConfig = rawConfig.value?.collectGift || legacyDeps?.getRawConfig().collectGift || {
     active: true,
-    cron: DEFAULT_COLLECT_CRON,
+    cron: DEFAULT_COLLECT_GIFT_CRON,
   }
   await disableTaskConfig({
     payload: {
       collectGift: {
         active: false,
-        cron: currentConfig.cron || DEFAULT_COLLECT_CRON,
+        cron: currentConfig.cron || DEFAULT_COLLECT_GIFT_CRON,
       },
     },
     successMessage: '领取任务已停用',
@@ -125,7 +123,7 @@ async function disableCollectConfig(): Promise<void> {
 
 async function triggerCollectTask(): Promise<void> {
   await triggerTask({
-    endpoint: '/api/trigger/collectGift',
+    taskType: 'collectGift',
     isUnauthorizedError,
     refresh: [
       () => legacyDeps?.loadOverview?.(),

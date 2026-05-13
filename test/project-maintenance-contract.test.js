@@ -210,6 +210,14 @@ test('Docker WebUI is Vue-only and served as Vite static Docker assets', () => {
   assert.match(resources, /from '\.\/resource-yuba'/)
   assert.match(resources, /clearFansCookieBackedData\(\)/)
   assert.match(resources, /clearYubaCookieBackedData\(\)/)
+  assert.doesNotMatch(resources, /export\s*\{[\s\S]*DEFAULT_RAW_CONFIG/)
+  assert.match(theme, /from '\.\/resource-config'/)
+  assert.match(cookie, /from '\.\/resource-config'/)
+  assert.match(cookie, /from '\.\/resource-fans'/)
+  assert.match(keepalive, /from '\.\/resource-fans'/)
+  assert.match(double, /from '\.\/resource-fans'/)
+  assert.match(expiring, /from '\.\/resource-fans'/)
+  assert.match(yuba, /from '\.\/resource-yuba'/)
   assert.match(resourceRequest, /export function createResourceRequest/)
   assert.match(resourceRequest, /pending:\s*null/)
   assert.match(resourceRequest, /fetchedAt:\s*0/)
@@ -268,6 +276,7 @@ test('Docker WebUI is Vue-only and served as Vite static Docker assets', () => {
     'src/docker/webui/legacy-core.ts',
     'src/docker/webui/legacy-state.ts',
     'src/docker/webui/pages.ts',
+    'src/docker/webui/resources.ts',
     'src/docker/webui/task-actions.ts',
     'src/docker/webui/task-pages.ts',
     'src/docker/webui/app.js',

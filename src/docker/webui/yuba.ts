@@ -2,7 +2,9 @@ import type { YubaCheckInConfig, YubaCheckInMode, YubaGroupStatus } from '../../
 import { computed, ref, watch } from 'vue'
 import { DEFAULT_YUBA_CHECK_IN_CRON, DEFAULT_YUBA_CHECK_IN_MODE } from '../../core/task-defaults'
 import { useCronPreview } from './composables/use-cron-preview'
-import { loadLogs, loadOverview, loadYubaStatus as loadResourceYubaStatus, overview as sharedOverview, rawConfig as sharedRawConfig, refreshOverviewSurface, yubaStatus as sharedYubaStatus, yubaStatusError as sharedYubaStatusError, yubaStatusLoaded as sharedYubaStatusLoaded, yubaStatusLoading as sharedYubaStatusLoading } from './resource-state'
+import { rawConfig as sharedRawConfig } from './resource-config'
+import { loadLogs, loadOverview, overview as sharedOverview, refreshOverviewSurface } from './resource-state'
+import { loadYubaStatus as loadResourceYubaStatus, yubaStatus as sharedYubaStatus, yubaStatusError as sharedYubaStatusError, yubaStatusLoaded as sharedYubaStatusLoaded, yubaStatusLoading as sharedYubaStatusLoading } from './resource-yuba'
 import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask } from './task-shared'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 

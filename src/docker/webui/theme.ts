@@ -1,7 +1,7 @@
 import type { DockerConfig, ThemeMode } from '../../core/types'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { requestJson } from './request'
-import { rawConfig, setRawConfig } from './resource-state'
+import { rawConfig, setRawConfig } from './resource-config'
 
 type ResolvedThemeMode = 'light' | 'dark'
 const THEME_COLOR_BY_MODE: Record<ResolvedThemeMode, string> = {

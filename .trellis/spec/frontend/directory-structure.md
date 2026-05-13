@@ -45,7 +45,7 @@ export function useThemeMode() {
 }
 ```
 
-Do not add compatibility bridge installers or old imperative app runtimes. Cross-page resource ownership belongs in Vue composables or shared TypeScript modules. Keep `resource-state.ts` as the public facade for refresh orchestration and compatibility exports, while focused resource modules own raw config, fans/gift, yuba, and request tracking. Cover ownership changes in the maintenance contract test.
+Do not add compatibility bridge installers or old imperative app runtimes. Cross-page resource ownership belongs in Vue composables or shared TypeScript modules. Keep `resource-state.ts` focused on refresh orchestration; focused resource modules own raw config, fans/gift, yuba, and request tracking. Import those owners directly and cover ownership changes in the maintenance contract test.
 
 ---
 

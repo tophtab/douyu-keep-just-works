@@ -1,6 +1,7 @@
 import type { Ref } from 'vue'
 import type { WebUiPageTab } from './navigation'
-import { loadFansStatus, loadLogs, loadOverview, refreshOverviewSurface } from './resource-state'
+import { loadFansStatus } from './resource-fans'
+import { loadLogs, loadOverview, refreshOverviewSurface } from './resource-state'
 import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, isHttpUnauthorized, saveTaskConfig, triggerTask } from './task-shared'
 import type { TaskCardCell, TaskRunStatus, TaskStatusCardState, WebUiTaskType } from './task-shared'
 

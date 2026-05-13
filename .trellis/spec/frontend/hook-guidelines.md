@@ -6,7 +6,7 @@
 
 ## Overview
 
-This is a Vue project, so "hooks" are Vue composables. Composables live either in `src/docker/webui/composables/` when reusable across pages, or as `use*` exports in feature modules such as `theme.ts`, `overview.ts`, `resources.ts`, and task page modules.
+This is a Vue project, so "hooks" are Vue composables. Composables live either in `src/docker/webui/composables/` when reusable across pages, or as `use*` exports in feature modules such as `theme.ts`, `overview.ts`, `logs-resource.ts`, and task page modules.
 
 ---
 
@@ -49,7 +49,7 @@ await requestJson('/api/config', {
 })
 ```
 
-Resource loaders in `resource-fans.ts` and `resource-yuba.ts` track pending requests and request sequence numbers for expensive server resources through `resource-request.ts`. Reuse those patterns when preventing duplicate in-flight reads or stale responses, and keep `resource-state.ts` as the public facade for cross-page refresh orchestration.
+Resource loaders in `resource-fans.ts` and `resource-yuba.ts` track pending requests and request sequence numbers for expensive server resources through `resource-request.ts`. Reuse those patterns when preventing duplicate in-flight reads or stale responses, and keep `resource-state.ts` focused on cross-page refresh orchestration.
 
 ## Task Page Actions
 

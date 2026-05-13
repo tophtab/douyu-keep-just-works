@@ -4,34 +4,22 @@ import {
   clearFansCookieBackedData,
   fansListError,
   fansListLoaded,
-  fansStatus,
-  fansStatusDetailsLoaded,
-  fansStatusDetailsLoading,
   fansStatusLoaded,
   fansStatusLoading,
-  getManagedConfig,
   getManagedFans,
-  giftStatus,
-  invalidateFansResources,
   loadFansList,
   loadFansStatus,
-  managed,
   managedLoading,
-  setManagedFans,
-  syncFans,
 } from './resource-fans'
 import {
-  DEFAULT_RAW_CONFIG,
   getRawConfig,
   hasCookieSourceConfigured,
   loadRawConfig,
   rawConfig,
-  setRawConfig,
 } from './resource-config'
 import {
   clearYubaCookieBackedData,
   loadYubaStatus,
-  yubaStatus,
   yubaStatusError,
   yubaStatusLoaded,
   yubaStatusLoading,
@@ -39,37 +27,6 @@ import {
 import { requestJson } from './request'
 import { getErrorMessage, isHttpUnauthorized } from './task-shared'
 import { showToast } from './toast'
-
-export {
-  DEFAULT_RAW_CONFIG,
-  fansListError,
-  fansListLoaded,
-  fansStatus,
-  fansStatusDetailsLoaded,
-  fansStatusDetailsLoading,
-  fansStatusLoaded,
-  fansStatusLoading,
-  getManagedConfig,
-  getManagedFans,
-  getRawConfig,
-  giftStatus,
-  hasCookieSourceConfigured,
-  invalidateFansResources,
-  loadFansList,
-  loadFansStatus,
-  loadRawConfig,
-  loadYubaStatus,
-  managed,
-  managedLoading,
-  rawConfig,
-  setManagedFans,
-  setRawConfig,
-  syncFans,
-  yubaStatus,
-  yubaStatusError,
-  yubaStatusLoaded,
-  yubaStatusLoading,
-}
 
 export interface WebUiOverview {
   collectGiftConfigured?: boolean

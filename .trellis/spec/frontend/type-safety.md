@@ -35,7 +35,7 @@ Examples:
 
 - `request.ts` checks whether an error response contains a string `error`.
 - `theme.ts` uses `isThemeMode(value): value is ThemeMode`.
-- `resources.ts` normalizes log entries from `unknown` API data.
+- `resource-state.ts` normalizes log entries from `unknown` API data.
 - `task-shared.ts` uses `isHttpUnauthorized` and `isWebUiTaskType` helpers.
 
 ---

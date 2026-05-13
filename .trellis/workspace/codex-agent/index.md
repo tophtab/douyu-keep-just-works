@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 62
+- **Total Sessions**: 63
 - **Last Active**: 2026-05-13
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~275 | Active |
+| `journal-2.md` | ~308 | Active |
 | `journal-1.md` | ~1988 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 63 | 2026-05-13 | Remove project-specific mandatory spec validation | `810848f` | `master` |
 | 62 | 2026-05-13 | Simplify Docker WebUI allocation task code | `9df888a` | `master` |
 | 61 | 2026-05-13 | Remove unused WebUI logs module | `17dd070` | `master` |
 | 60 | 2026-05-13 | Frontend WebUI logic deduplication | `9b426fa` | `master` |

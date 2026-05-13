@@ -273,3 +273,36 @@ Extracted shared allocation-task helpers for keepalive, double-card, and expirin
 ### Next Steps
 
 - None - task complete
+
+
+## Session 63: Remove project-specific mandatory spec validation
+
+**Date**: 2026-05-13
+**Task**: Remove project-specific mandatory spec validation
+**Branch**: `master`
+
+### Summary
+
+Removed project-specific Tests Required and Testing Requirements sections from Trellis specs while leaving workflow-level quality gates untouched.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `810848f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

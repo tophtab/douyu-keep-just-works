@@ -7,6 +7,32 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ## Unreleased
 
+## 2.5.0 - 2026-05-13
+
+### Added
+
+- WebUI fan status now loads progressively so large medal lists can refresh
+  without blocking the whole page.
+- Request smoothing contract tests now cover Douyu API pacing behavior.
+
+### Changed
+
+- Docker runtime now targets Node.js 24 across package metadata, Docker, CI,
+  and local maintenance checks.
+- Docker runtime, WebUI, and Yuba logic were split into smaller focused modules
+  for easier maintenance.
+- WebUI refresh behavior now separates status requests from fan sync work and
+  avoids unnecessary repeated refreshes.
+
+### Fixed
+
+- WebUI task room lists now autoload immediately and refresh correctly when
+  navigating between task tabs.
+- WebUI status and fan refresh requests are throttled to reduce request bursts.
+- Web password shortcut login works again after authentication redirects.
+- Docker CI lockfile metadata is synchronized for reproducible builds.
+- Docker WebUI timestamps now use a compact display format.
+
 ## 2.4.0 - 2026-05-07
 
 ### Added

@@ -1,9 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Docker WebUI layout and page composition"}
-{"file": ".trellis/spec/frontend/state-management.md", "reason": "UI state and refresh flows for Docker WebUI"}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Keep scheduler logic in docker/core boundaries"}
-{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Keep Docker task/log timestamp semantics aligned"}
-{"file": ".trellis/spec/backend/error-handling.md", "reason": "Preserve boundary validation and actionable failures"}
-{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cron preview and scheduler behavior cross API/UI/runtime boundaries"}

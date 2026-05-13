@@ -1,4 +1,0 @@
-{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".opencode/commands/trellis/check-backend.md", "reason": "Backend check spec"}
-{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Check that local setup reuses existing commands and avoids duplicated workflows"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Check final WSL workflow against current build/testing expectations"}

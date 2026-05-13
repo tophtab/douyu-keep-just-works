@@ -1,8 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Shared gift allocation logic belongs in src/core and must stay reusable across runtimes"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Preserve shared logic reuse and verify both desktop and Docker callers still compile"}
-{"file": "src/core/gift.ts", "reason": "Existing shared fixed-count and percentage allocation patterns"}
-{"file": ".trellis/spec/backend/error-handling.md", "reason": "Maintain explicit failure semantics for insufficient gift counts and job execution"}
-{"file": "src/core/job.ts", "reason": "Keepalive and double-card jobs consume the shared allocation helper"}
-{"file": "src/renderer/run/utils.ts", "reason": "Desktop runtime re-exports shared gift allocation helpers"}

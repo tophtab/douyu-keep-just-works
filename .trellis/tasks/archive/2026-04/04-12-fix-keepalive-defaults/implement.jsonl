@@ -1,8 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/spec/frontend/state-management.md", "reason": "Docker WebUI persisted state and toggle semantics"}
-{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Shared task config types across UI and runtime"}
-{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Backward-compatible config persistence and normalization"}
-{"file": ".trellis/spec/backend/error-handling.md", "reason": "Keep validation and API error behavior consistent"}
-{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Config enable/disable semantics span UI API runtime and persistence"}

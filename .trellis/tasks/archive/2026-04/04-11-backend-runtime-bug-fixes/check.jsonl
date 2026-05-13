@@ -1,5 +1,0 @@
-{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".opencode/commands/trellis/check-backend.md", "reason": "Backend check spec"}
-{"file": ".trellis/spec/backend/error-handling.md", "reason": "Verify explicit runtime failures and boundary error handling"}
-{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Verify scheduler logs remain actionable"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify validation and explicit failure semantics"}

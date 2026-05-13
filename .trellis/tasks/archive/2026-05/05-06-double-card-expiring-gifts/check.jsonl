@@ -1,8 +1,0 @@
-{"file": ".trellis/spec/backend/index.md", "reason": "Review backend changes against the main checklist for core and Docker runtime behavior."}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Verify core/Docker boundaries and backpack status use remain consistent."}
-{"file": ".trellis/spec/backend/error-handling.md", "reason": "Verify backpack lookup and gift send failures remain explicit and actionable."}
-{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Verify double-card logs clearly identify each gift group and stay secret-safe."}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Run and review lint/type-check quality gates."}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Verify the Docker WebUI dropdown change stays within current frontend scope."}
-{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Check helper reuse and avoid duplicated selection/allocation logic."}
-{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check config, runtime, and WebUI gift-scope semantics remain aligned."}

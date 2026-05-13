@@ -1,4 +1,0 @@
-{"file": ".trellis/spec/frontend/index.md", "reason": "Current UI guidance explains Docker WebUI lives in src/docker/html.ts and points to backend runtime guidelines."}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Docker runtime boundary guidance for changes in the served WebUI template."}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Quality expectations for TypeScript Docker runtime code."}
-{"file": ".trellis/tasks/04-30-web-ui-branding-theme-icons/research/theme-toggle-icons.md", "reason": "Reference mapping for the requested icon-based theme mode control."}

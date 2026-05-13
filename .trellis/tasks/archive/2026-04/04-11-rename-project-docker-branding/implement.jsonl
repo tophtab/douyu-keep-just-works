@@ -1,8 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Rename touches Docker runtime and main-process metadata boundaries"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Need build-safe rename with unchanged runtime behavior"}
-{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Docker-facing wording and runtime config examples must preserve logging/runtime contracts"}
-{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "About page copy update should preserve existing simple SFC patterns"}
-{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Renderer branding update must stay minimal and avoid UI regressions"}

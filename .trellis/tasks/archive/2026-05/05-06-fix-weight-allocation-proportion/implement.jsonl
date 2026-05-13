@@ -1,6 +1,0 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend runtime guidelines for core job allocation changes"}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Runtime boundary guidance for src/core and src/docker"}
-{"file": ".trellis/spec/backend/error-handling.md", "reason": "Allocator errors surface through scheduler logs"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Quality expectations for focused backend fix"}
-{"file": ".trellis/spec/guides/docker-medal-sync-contract.md", "reason": "Executable contract requires raw proportion weights for keepalive, double-card, and expiring-gift"}

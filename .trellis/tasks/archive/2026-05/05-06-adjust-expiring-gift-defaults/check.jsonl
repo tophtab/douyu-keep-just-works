@@ -1,6 +1,0 @@
-{"file": ".trellis/spec/backend/index.md", "reason": "Review against backend/Docker runtime conventions."}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Check changed files stay within Docker runtime boundaries."}
-{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Verify persisted config default behavior is compatible."}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Run quality review and checks."}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Review Docker WebUI wording/default behavior."}
-{"file": ".trellis/spec/guides/docker-medal-sync-contract.md", "reason": "Verify contract updates match implementation."}

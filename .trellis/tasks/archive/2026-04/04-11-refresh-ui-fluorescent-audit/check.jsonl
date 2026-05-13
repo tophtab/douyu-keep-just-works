@@ -1,6 +1,0 @@
-{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".opencode/commands/trellis/check-backend.md", "reason": "Backend check spec"}
-{"file": ".opencode/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
-{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Final UI review for Docker WebUI changes"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Final scheduler/runtime review"}
-{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Prefer shared cron preview logic"}

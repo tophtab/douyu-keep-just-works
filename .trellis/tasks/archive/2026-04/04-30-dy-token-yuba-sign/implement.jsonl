@@ -1,5 +1,0 @@
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend pre-development checklist for core and Docker runtime changes."}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Keep Douyu protocol logic in core and Docker wiring in runtime."}
-{"file": ".trellis/spec/backend/error-handling.md", "reason": "Preserve actionable runtime and job errors."}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Quality and verification expectations for Docker runtime changes."}
-{"file": ".trellis/spec/guides/docker-medal-sync-contract.md", "reason": "Executable contract for CookieCloud, local cookie snapshots, and Yuba check-in."}

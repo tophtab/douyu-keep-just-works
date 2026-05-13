@@ -1,5 +1,0 @@
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend task touches core Douyu API parsing, Docker scheduler, validation, logging, and task flow."}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Task may add WebUI observability for backpack rows and expiring candidates."}
-{"file": ".trellis/tasks/05-06-douyuex-feature-research/research/douyuex-glow-stick-expiry-model.md", "reason": "Source-level evidence for DouyuEx row-level expiry handling and limitations."}
-{"file": ".trellis/tasks/05-06-douyuex-feature-research/research/douyuex-baginfo-detail.md", "reason": "Backpack endpoint fields, BagInfo behavior, and mapping notes for this project."}
-{"file": ".trellis/tasks/05-06-douyuex-feature-research/research/douyuex-deep-dive.md", "reason": "Broader DouyuEx context and non-browser boundary rationale."}

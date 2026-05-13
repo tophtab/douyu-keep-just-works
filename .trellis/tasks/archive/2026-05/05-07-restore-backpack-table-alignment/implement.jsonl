@@ -1,3 +1,0 @@
-{"file": ".trellis/spec/frontend/index.md", "reason": "Current Docker WebUI table accessibility and alignment conventions"}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Docker-only runtime boundaries for src/docker/html.ts changes"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Project quality expectations before implementation handoff"}

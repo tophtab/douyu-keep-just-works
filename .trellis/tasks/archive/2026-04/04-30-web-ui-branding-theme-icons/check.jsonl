@@ -1,4 +1,0 @@
-{"file": ".trellis/spec/frontend/index.md", "reason": "Review current Docker WebUI guidance and ensure no legacy frontend assumptions are introduced."}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Verify the change stays within Docker runtime/template boundaries."}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify TypeScript and runtime quality expectations."}
-{"file": ".trellis/tasks/04-30-web-ui-branding-theme-icons/research/theme-toggle-icons.md", "reason": "Check that the delivered theme control matches the requested icon mapping."}

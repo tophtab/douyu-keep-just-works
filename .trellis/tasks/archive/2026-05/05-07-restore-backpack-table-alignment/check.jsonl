@@ -1,3 +1,0 @@
-{"file": ".trellis/spec/frontend/index.md", "reason": "Verify restored table alignment still satisfies Docker WebUI accessibility conventions"}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Verify scope remains within Docker WebUI runtime boundaries"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Quality checks and review expectations"}

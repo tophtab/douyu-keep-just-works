@@ -1,7 +1,0 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend guideline index for Docker runtime changes"}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Runtime boundary guidance for Docker WebUI and backend files"}
-{"file": ".trellis/spec/backend/error-handling.md", "reason": "Route and async error response conventions"}
-{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "User-visible runtime diagnostics conventions"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend quality bar for cache/request changes"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Current Docker WebUI guidance for html.ts changes"}

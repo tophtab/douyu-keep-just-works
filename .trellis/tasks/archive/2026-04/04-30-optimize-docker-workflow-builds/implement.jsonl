@@ -1,3 +1,0 @@
-{"file": ".trellis/spec/backend/index.md", "reason": "Project-level backend/Docker runtime guideline index for the Docker workflow task."}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Quality and verification expectations for Docker-oriented changes."}
-{"file": ".trellis/tasks/04-30-optimize-docker-workflow-builds/prd.md", "reason": "Task requirements and workflow design decisions."}

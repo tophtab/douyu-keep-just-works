@@ -1,4 +1,0 @@
-{"file": ".trellis/spec/frontend/index.md", "reason": "Review Docker WebUI change against current frontend guidance."}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Verify runtime boundary remains within Docker WebUI code."}
-{"file": ".trellis/spec/backend/error-handling.md", "reason": "Verify errors remain user-facing and explicit."}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Final quality gate and build expectations."}

@@ -1,6 +1,0 @@
-{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".opencode/commands/trellis/check-backend.md", "reason": "Backend check spec"}
-{"file": ".opencode/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
-{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Verify loading and error states stay visible after auth flow changes"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Confirm Docker auth contract and builds still pass after changes"}
-{"file": ".trellis/spec/guides/docker-webui-auth-contract.md", "reason": "Review login success, invalid password, and protected API behavior against contract"}

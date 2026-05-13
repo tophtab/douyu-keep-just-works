@@ -1,5 +1,0 @@
-{"file": ".trellis/spec/backend/index.md", "reason": "Verify the maintained Docker-first project surface is respected."}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Check release workflow and stale desktop workflow changes against repo contracts."}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify quality commands and release automation checks align with project standards."}
-{"file": ".trellis/tasks/04-30-open-source-readiness-audit/research/open-source-readiness.md", "reason": "Check OSS hygiene files against researched conventions and repo-specific gaps."}
-{"file": ".trellis/tasks/04-30-open-source-readiness-audit/research/docker-github-release.md", "reason": "Check Docker tag and GitHub Actions behavior against researched recommendations."}

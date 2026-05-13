@@ -1,7 +1,0 @@
-{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".opencode/commands/trellis/check-backend.md", "reason": "Backend check spec"}
-{"file": ".opencode/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
-{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Verify Docker WebUI behavior and save flow"}
-{"file": "src/core/medal-sync.ts", "reason": "Existing default/reconcile patterns for Docker config"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify config compatibility and scheduler behavior"}
-{"file": "src/docker/index.ts", "reason": "Existing partial update and scheduler wiring"}

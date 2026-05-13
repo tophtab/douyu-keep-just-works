@@ -1,5 +1,0 @@
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend spec index and checklist for runtime/core logic changes"}
-{"file": ".trellis/spec/backend/error-handling.md", "reason": "Error propagation and external failure semantics for Douyu calls and job loops"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend quality rules including not translating upstream failures into normal empty values"}
-{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Task logging constraints and secret handling"}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Keep Docker runtime wiring separate from reusable core logic"}

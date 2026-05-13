@@ -1,3 +1,0 @@
-{"file": ".trellis/spec/frontend/index.md", "reason": "Current UI guidance: Docker WebUI is served from src/docker/html.ts and uses backend runtime specs."}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Defines Docker-only runtime boundaries and confirms WebUI ownership in src/docker/html.ts."}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Quality and validation expectations for Docker runtime changes."}

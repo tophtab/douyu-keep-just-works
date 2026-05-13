@@ -1,5 +1,0 @@
-{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".opencode/commands/trellis/check-backend.md", "reason": "Backend check spec"}
-{"file": ".opencode/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Review rename and docker docs against runtime safety and compile requirements"}
-{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Review renderer text changes for minimal safe impact"}

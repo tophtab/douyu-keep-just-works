@@ -1,3 +1,0 @@
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Review workflow behavior against the Docker release channel contract."}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify quality commands and Docker workflow checks remain aligned."}
-{"file": ".trellis/tasks/archive/2026-04/04-30-open-source-readiness-audit/research/docker-github-release.md", "reason": "Check Docker/GitHub release recommendations remain respected."}

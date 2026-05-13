@@ -1,9 +1,0 @@
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend guideline index for checking task/config/API changes"}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Check runtime boundaries and file placement"}
-{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Check config persistence and migration behavior"}
-{"file": ".trellis/spec/backend/error-handling.md", "reason": "Check validation and user-facing errors"}
-{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Check task logs and diagnostics"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Quality bar for final review"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Check Docker WebUI changes follow current UI guidance"}
-{"file": ".trellis/spec/guides/docker-medal-sync-contract.md", "reason": "Check fans sync and backpack gift status contract"}
-{"file": ".trellis/spec/guides/docker-webui-auth-contract.md", "reason": "Check cookie/backpack and WebUI API contract"}

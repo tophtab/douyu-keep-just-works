@@ -1,8 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/spec/frontend/state-management.md", "reason": "Docker WebUI auth state lives in page script and must avoid stale async overwrites"}
-{"file": ".trellis/spec/backend/error-handling.md", "reason": "Keep Docker auth boundary errors explicit while preserving login and 401 semantics"}
-{"file": ".trellis/spec/guides/docker-webui-auth-contract.md", "reason": "Auth login, status, logout, and protected API sequence must stay consistent"}
-{"file": "src/docker/html.ts", "reason": "Existing auth state machine and route sync live here; login regression reproduces in this file"}
-{"file": "src/docker/server.ts", "reason": "Auth session issuance and protected route behavior used to isolate frontend vs backend cause"}

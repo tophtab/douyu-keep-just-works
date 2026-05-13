@@ -1,4 +1,0 @@
-{"file": ".trellis/spec/frontend/index.md", "reason": "Current WebUI entrypoint guidance and frontend pre-development checklist."}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Docker WebUI lives under the Docker runtime boundary."}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Project lint/build quality expectations for Docker runtime code."}
-{"file": ".trellis/tasks/05-07-webui-a11y-polish/research/web-interface-guidelines-review.md", "reason": "Concrete Web Interface Guidelines findings and user-scoped exclusions."}

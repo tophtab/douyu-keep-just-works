@@ -1,5 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Docker WebUI shell/layout reshaping should stay direct and readable"}
-{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Keep shared Docker UI config shapes aligned with shared types"}
-{"file": ".trellis/spec/frontend/state-management.md", "reason": "Overview and fan badge UI should reuse existing fetch/render state flows"}

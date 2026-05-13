@@ -75,14 +75,12 @@
   }
 
   function renderRefreshButton() {
-    var refreshButton = document.querySelector('[data-action="refresh-overview"]');
-    if (!refreshButton) {
-      return;
-    }
     var loading = isActiveRefreshLoading();
-    refreshButton.disabled = loading;
-    refreshButton.setAttribute('aria-busy', loading ? 'true' : 'false');
-    refreshButton.setAttribute('title', loading ? '正在刷新' : '刷新');
+    document.dispatchEvent(new CustomEvent('douyu-keep-webui:refresh-state', {
+      detail: {
+        loading: loading
+      }
+    }));
   }
 
   function handleVueAuthState(event) {

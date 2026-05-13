@@ -25,18 +25,19 @@
       }
 
       var action = target.getAttribute('data-action');
-      if (action === 'refresh-overview') {
-        refreshOverviewSurface(true);
-        return;
-      }
       if (action === 'trigger') {
         triggerTask(target.getAttribute('data-trigger'));
       }
     }
 
+    function handleRefreshOverviewRequest() {
+      refreshOverviewSurface(true);
+    }
+
     function bindStaticEvents() {
       document.addEventListener('click', handleActionClick);
       document.addEventListener('douyu-keep-webui:navigation', handleVueNavigation);
+      document.addEventListener('douyu-keep-webui:refresh-overview-request', handleRefreshOverviewRequest);
     }
 
     function startAutoRefresh() {

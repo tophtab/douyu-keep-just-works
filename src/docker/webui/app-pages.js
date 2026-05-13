@@ -8,9 +8,6 @@
     var hasCookieSourceConfigured = deps.hasCookieSourceConfigured;
     var getManagedFans = deps.getManagedFans;
     var renderRefreshButton = deps.renderRefreshButton;
-    var buildOverviewGiftSummary = deps.buildOverviewGiftSummary;
-    var buildSummaryStatusCell = deps.buildSummaryStatusCell;
-    var buildFansStatusTable = deps.buildFansStatusTable;
 
     var CRON_RENDERERS = window.DOUYU_KEEP_WEBUI_PAGE_CRON.create({
       byId: byId,
@@ -63,79 +60,19 @@
       renderRefreshButton();
       var overview = state.overview;
       var rawConfig = getRawConfig();
-      if (!overview) {
-        byId('overview-basic-summary').innerHTML = ''
-          + '<div class="strip-metric"><div class="mini-label">登录</div><div class="mini-value">-</div></div>'
-          + '<div class="strip-metric"><div class="mini-label">领取</div><div class="mini-value">-</div></div>'
-          + '<div class="strip-metric"><div class="mini-label">保活</div><div class="mini-value">-</div></div>'
-          + '<div class="strip-metric"><div class="mini-label">双倍</div><div class="mini-value">-</div></div>'
-          + '<div class="strip-metric"><div class="mini-label">临期</div><div class="mini-value">-</div></div>'
-          + '<div class="strip-metric"><div class="mini-label">鱼吧签到</div><div class="mini-value">-</div></div>';
-        byId('overview-gift-summary').innerHTML = buildOverviewGiftSummary('-', '-');
-        byId('overview-fans-note').textContent = '正在加载粉丝牌状态…';
-        byId('overview-fans-table-wrap').innerHTML = '<div class="empty">请稍候…</div>';
-        return;
-      }
-
-      byId('overview-basic-summary').innerHTML = ''
-        + buildSummaryStatusCell('登录', overview.cookieSaved, '已就绪', '未配置')
-        + buildSummaryStatusCell('领取', overview.collectGiftConfigured, '已开启', '未开启')
-        + buildSummaryStatusCell('保活', overview.keepaliveConfigured, '已开启', '未开启')
-        + buildSummaryStatusCell('双倍', overview.doubleCardConfigured, '已开启', '未开启')
-        + buildSummaryStatusCell('临期', overview.expiringGiftConfigured, '已开启', '未开启')
-        + buildSummaryStatusCell('鱼吧签到', overview.yubaCheckInConfigured, '已开启', '未开启');
-
-      if (!hasCookieSourceConfigured(rawConfig)) {
-        byId('overview-gift-summary').innerHTML = buildOverviewGiftSummary('未配置', '未配置');
-        byId('overview-fans-note').textContent = '请先保存 Cookie 或启用 CookieCloud，概况页才会显示粉丝牌列表。';
-        byId('overview-fans-table-wrap').innerHTML = '<div class="empty empty-with-action">保存 Cookie 或启用 CookieCloud 后再点击顶部“刷新”，这里会直接展示粉丝牌与双倍状态。<div class="empty-action"><button class="btn btn-primary" type="button" data-action="tab" data-tab="login">前往登录</button></div></div>';
-        return;
-      }
-
-      if ((state.managedLoading || state.fansStatusLoading) && !state.fansStatusLoaded) {
-        byId('overview-gift-summary').innerHTML = buildOverviewGiftSummary('同步中', '同步中');
-        byId('overview-fans-note').textContent = '正在同步粉丝牌状态…';
-        byId('overview-fans-table-wrap').innerHTML = '<div class="empty">请稍候，列表正在更新。</div>';
-        return;
-      }
-
-      if (!state.fansStatusLoaded) {
-        byId('overview-gift-summary').innerHTML = buildOverviewGiftSummary('待刷新', '待刷新');
-        byId('overview-fans-note').textContent = '点击顶部“刷新”可重新加载粉丝牌状态。';
-        byId('overview-fans-table-wrap').innerHTML = '<div class="empty">尚未加载粉丝牌状态。</div>';
-        return;
-      }
-
-      var detailsUpdating = state.fansStatusDetailsLoading && !state.fansStatusDetailsLoaded;
-      var giftSummaryCount = detailsUpdating && !state.giftStatus
-        ? '检测中'
-        : (state.giftStatus && state.giftStatus.error
-            ? '未知'
-            : String(state.giftStatus && typeof state.giftStatus.count === 'number' ? state.giftStatus.count + ' 个' : '0 个'));
-      var giftSummaryExpire = detailsUpdating && !state.giftStatus
-        ? '检测中'
-        : (state.giftStatus && state.giftStatus.error
-            ? '未知'
-            : (state.giftStatus && state.giftStatus.expireTime ? formatDate(state.giftStatus.expireTime) : '无'));
-
-      byId('overview-gift-summary').innerHTML = buildOverviewGiftSummary(giftSummaryCount, giftSummaryExpire);
-
-      if (!state.fansStatus.length) {
-        byId('overview-fans-note').textContent = state.giftStatus && state.giftStatus.error
-          ? ('当前没有可展示的粉丝牌数据。背包明细暂不可用：' + state.giftStatus.error)
-          : '当前没有可展示的粉丝牌数据。';
-        byId('overview-fans-table-wrap').innerHTML = '<div class="empty">当前没有可展示的粉丝牌数据。</div>';
-        return;
-      }
-
-      var statusPrefix = state.managedLoading || state.fansStatusLoading ? '正在后台更新，当前显示上次结果。' : '';
-      var detailText = state.fansStatusDetailsLoading && !state.fansStatusDetailsLoaded
-        ? '背包与双倍状态正在补齐。'
-        : '右侧已显示荧光棒库存与过期时间。';
-      byId('overview-fans-note').textContent = statusPrefix + (state.giftStatus && state.giftStatus.error
-        ? ('当前共 ' + state.fansStatus.length + ' 个粉丝牌房间。背包明细暂不可用：' + state.giftStatus.error)
-        : ('当前共 ' + state.fansStatus.length + ' 个粉丝牌房间，' + detailText));
-      byId('overview-fans-table-wrap').innerHTML = buildFansStatusTable(state.fansStatus);
+      document.dispatchEvent(new CustomEvent('douyu-keep-webui:overview-page', {
+        detail: {
+          fansStatus: state.fansStatus,
+          fansStatusDetailsLoaded: state.fansStatusDetailsLoaded,
+          fansStatusDetailsLoading: state.fansStatusDetailsLoading,
+          fansStatusLoaded: state.fansStatusLoaded,
+          fansStatusLoading: state.fansStatusLoading,
+          giftStatus: state.giftStatus,
+          hasCookieSourceConfigured: hasCookieSourceConfigured(rawConfig),
+          managedLoading: state.managedLoading,
+          overview: overview
+        }
+      }));
     }
 
     function renderLoginPage() {

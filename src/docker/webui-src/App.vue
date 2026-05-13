@@ -6,6 +6,7 @@ import { useDoubleTaskPage } from './double'
 import { useExpiringGiftTaskPage } from './expiring'
 import { useKeepaliveTaskPage } from './keepalive'
 import { usePageNavigation } from './navigation'
+import { useOverviewPage } from './overview'
 import { useLogsPage } from './resources'
 import { useThemeMode } from './theme'
 import { useToastRegion } from './toast'
@@ -71,6 +72,19 @@ const {
   logBoxRef,
   refreshLogs,
 } = useLogsPage(activeTab, authenticated)
+
+const {
+  overviewFansEmptyText,
+  overviewFansNote,
+  overviewFansRows,
+  overviewGiftMetrics,
+  overviewStatusCells,
+  refreshLoading,
+  refreshOverview,
+  refreshOverviewTitle,
+  showOverviewFansTable,
+  showOverviewLoginAction,
+} = useOverviewPage()
 
 const {
   checkCookieSource,
@@ -286,7 +300,7 @@ const {
         <p class="page-subtitle" id="page-subtitle">{{ activePageMeta.subtitle }}</p>
       </div>
       <div class="toolbar">
-        <button class="btn btn-secondary toolbar-icon-btn" type="button" data-action="refresh-overview" aria-label="刷新" title="刷新">
+        <button class="btn btn-secondary toolbar-icon-btn" type="button" aria-label="刷新" :title="refreshOverviewTitle" :disabled="refreshLoading" :aria-busy="refreshLoading ? 'true' : 'false'" @click="refreshOverview">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.1A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h8V3z"></path>
           </svg>
@@ -306,10 +320,10 @@ const {
           <div class="section-kicker">基础状态</div>
           <h3 class="section-title">概况</h3>
           <p class="subtle">这里只保留登录与任务开关概览，详细状态请进入对应功能页查看。</p>
-          <div class="summary-grid quad" id="overview-basic-summary" style="margin-top:16px">
-            <div class="strip-metric">
-              <div class="mini-label">登录</div>
-              <div class="mini-value">-</div>
+          <div class="summary-grid quad" style="margin-top:16px">
+            <div v-for="cell in overviewStatusCells" :key="cell.label" class="strip-metric">
+              <div class="mini-label">{{ cell.label }}</div>
+              <div class="mini-value"><span class="pill" :class="cell.enabled ? 'ok' : 'off'">{{ cell.enabled ? cell.enabledText : cell.disabledText }}</span></div>
             </div>
           </div>
         </div>
@@ -321,19 +335,50 @@ const {
               <h3 class="section-title">粉丝牌列表</h3>
               <p class="subtle">概况页直接展示当前粉丝牌与双倍状态。</p>
             </div>
-            <div class="strip-metrics compact overview-gift-summary" id="overview-gift-summary">
-              <div class="strip-metric">
-                <div class="mini-label">当前荧光棒</div>
-                <div class="mini-value">-</div>
-              </div>
-              <div class="strip-metric">
-                <div class="mini-label">过期时间</div>
-                <div class="mini-value">-</div>
+            <div class="strip-metrics compact overview-gift-summary">
+              <div v-for="metric in overviewGiftMetrics" :key="metric.label" class="strip-metric">
+                <div class="mini-label">{{ metric.label }}</div>
+                <div class="mini-value">{{ metric.value }}</div>
               </div>
             </div>
           </div>
-          <div class="subtle overview-table-note" id="overview-fans-note" role="status" aria-live="polite">正在加载粉丝牌状态…</div>
-          <div id="overview-fans-table-wrap" style="margin-top:16px"></div>
+          <div class="subtle overview-table-note" role="status" aria-live="polite">{{ overviewFansNote }}</div>
+          <div style="margin-top:16px">
+            <div v-if="showOverviewLoginAction" class="empty empty-with-action">
+              保存 Cookie 或启用 CookieCloud 后再点击顶部“刷新”，这里会直接展示粉丝牌与双倍状态。
+              <div class="empty-action"><button class="btn btn-primary" type="button" @click="selectTab('login')">前往登录</button></div>
+            </div>
+            <div v-else-if="showOverviewFansTable" class="table-shell">
+              <table class="table table-fixed fans-status-table">
+                <colgroup><col><col><col><col><col><col><col><col></colgroup>
+                <thead>
+                  <tr>
+                    <th scope="col" class="index-head">序号</th>
+                    <th scope="col">主播名称</th>
+                    <th scope="col" class="num-head">房间号</th>
+                    <th scope="col" class="num-head">等级</th>
+                    <th scope="col" class="num-head">排名</th>
+                    <th scope="col" class="num-head">今日亲密度</th>
+                    <th scope="col" class="num-head">亲密度</th>
+                    <th scope="col" class="control-head">双倍状态</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in overviewFansRows" :key="row.roomId">
+                    <td data-label="序号" class="index-cell">{{ row.index }}</td>
+                    <td data-label="主播名称" class="text-cell" :title="row.name">{{ row.name }}</td>
+                    <td data-label="房间号" class="num-cell">{{ row.roomId }}</td>
+                    <td data-label="等级" class="num-cell">{{ row.level }}</td>
+                    <td data-label="排名" class="num-cell">{{ row.rank }}</td>
+                    <td data-label="今日亲密度" class="num-cell">{{ row.today }}</td>
+                    <td data-label="亲密度" class="num-cell">{{ row.intimacy }}</td>
+                    <td data-label="双倍状态" class="status-cell"><span class="pill" :class="row.doubleKind">{{ row.doubleLabel }}</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div v-else class="empty">{{ overviewFansEmptyText }}</div>
+          </div>
         </div>
       </div>
     </section>

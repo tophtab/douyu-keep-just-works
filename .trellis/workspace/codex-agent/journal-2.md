@@ -71,3 +71,39 @@ Implemented the second-stage Vue migration slice for Docker WebUI navigation: Vu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 57: Docker WebUI Vue cleanup
+
+**Date**: 2026-05-13
+**Task**: Docker WebUI Vue cleanup
+**Branch**: `master`
+
+### Summary
+
+Cleaned up the Docker WebUI Vue migration by replacing and then removing the obsolete source-side webui shell, moving shared styles into webui-src/styles, extracting the auth shell component, updating specs and contract tests, and verifying lint, type-check, contract tests, webui build, and npm test.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1df611d` | (see git log) |
+| `71902cf` | (see git log) |
+| `6fb10bb` | (see git log) |
+| `87e4fcc` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

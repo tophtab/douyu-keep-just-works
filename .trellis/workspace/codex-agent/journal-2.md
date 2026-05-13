@@ -207,3 +207,36 @@ Deduplicated Docker WebUI task page logic by extracting shared cron preview, tas
 ### Next Steps
 
 - None - task complete
+
+
+## Session 61: Remove unused WebUI logs module
+
+**Date**: 2026-05-13
+**Task**: Remove unused WebUI logs module
+**Branch**: `master`
+
+### Summary
+
+Deleted the unused logs.ts split attempt, restored the contract tests and frontend directory spec to keep logs ownership in resources.ts, and verified type-check, lint, and npm test.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `17dd070` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

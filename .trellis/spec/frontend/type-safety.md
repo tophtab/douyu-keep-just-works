@@ -6,7 +6,7 @@
 
 ## Overview
 
-The Docker WebUI uses TypeScript for Vue/Vite source under `src/docker/webui-src/`. Vue SFCs are checked with:
+The Docker WebUI uses TypeScript for Vue/Vite source under `src/docker/webui/`. Vue SFCs are checked with:
 
 ```bash
 npm run type-check:webui

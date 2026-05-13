@@ -14,7 +14,7 @@ This contract covers:
 - yuba HTTP list/head/sign logic through the `src/core/yuba.ts` public facade, implemented in `src/core/yuba-status.ts` and `src/core/yuba-check-in.ts`
 - Docker HTTP APIs in `src/docker/server.ts`
 - Docker runtime scheduling / trigger wiring in `src/docker/index.ts`
-- Docker WebUI request/response expectations in `src/docker/webui-src/`
+- Docker WebUI request/response expectations in `src/docker/webui/`
 
 It applies when the WebUI manages:
 
@@ -54,7 +54,7 @@ Boundary owners:
 - yuba HTTP fetch / sign logic: `src/core/yuba.ts` facade over `src/core/yuba-status.ts` and `src/core/yuba-check-in.ts`
 - config persistence + selective scheduler reload: `src/docker/index.ts`
 - HTTP validation + JSON responses: `src/docker/server.ts`
-- UI forms + save/sync actions: `src/docker/webui-src/`
+- UI forms + save/sync actions: `src/docker/webui/`
 
 ---
 
@@ -374,7 +374,7 @@ Files:
 - route: `src/docker/server.ts`
 - response assembly: `src/docker/index.ts`
 - upstream backpack + medal parsing: `src/core/api.ts`
-- WebUI consumer: `src/docker/webui-src/overview.ts`
+- WebUI consumer: `src/docker/webui/overview.ts`
 
 Purpose:
 
@@ -486,7 +486,7 @@ Files:
 - route: `src/docker/server.ts`
 - runtime assembly: `src/docker/index.ts`
 - upstream list/head fetch: `src/core/yuba-status.ts` through the `src/core/yuba.ts` facade
-- WebUI consumer: `src/docker/webui-src/yuba.ts`
+- WebUI consumer: `src/docker/webui/yuba.ts`
 
 Purpose:
 
@@ -689,7 +689,7 @@ File: `src/core/medal-sync.ts`
 
 1. Scope / Trigger
 
-- Applies to Docker WebUI browser-side reads in `src/docker/webui-src/resources.ts` and related Vue modules for fans sync, fans list, fans status, and yuba status.
+- Applies to Docker WebUI browser-side reads in `src/docker/webui/resources.ts` and related Vue modules for fans sync, fans list, fans status, and yuba status.
 - Use this pattern when one visible action or navigation path can otherwise trigger duplicate Douyu-backed HTTP requests.
 
 2. Signatures
@@ -1013,6 +1013,6 @@ Expected:
 - `src/core/yuba-status.ts`
 - `src/docker/index.ts`
 - `src/docker/server.ts`
-- `src/docker/webui-src/`
+- `src/docker/webui/`
 - `config.example.json`
 - `README.md`

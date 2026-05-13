@@ -6,12 +6,12 @@
 
 ## Overview
 
-The frontend is a Docker WebUI Vue 3 application under `src/docker/webui-src/`. It uses:
+The frontend is a Docker WebUI Vue 3 application under `src/docker/webui/`. It uses:
 
 - Vue single-file components
 - Vite for development and production bundling
 - TypeScript checked by `vue-tsc`
-- Docker WebUI source files under `src/docker/webui-src/`
+- Docker WebUI source files under `src/docker/webui/`
 
 This project does not currently use Vue Router, Pinia, Vuetify, UnoCSS, or an Electron renderer.
 
@@ -21,7 +21,7 @@ This project does not currently use Vue Router, Pinia, Vuetify, UnoCSS, or an El
 
 ```text
 src/docker/
-├── webui-src/
+├── webui/
 │   ├── App.vue
 │   ├── components/
 │   │   ├── AppShell.vue
@@ -48,13 +48,13 @@ src/docker/
 
 ## Module Organization
 
-- Put Vue app entry code in `src/docker/webui-src/main.ts`.
-- Put the Vite HTML shell in `src/docker/webui-src/index.html`.
-- Put Vue shell/component code in `src/docker/webui-src/*.vue`.
-- Put extracted cohesive shell/page components under `src/docker/webui-src/components/`.
-- Put reusable Vue-owned state helpers under `src/docker/webui-src/composables/` only when the same non-trivial behavior is used by multiple pages.
-- Put cross-page task helpers that are not Vue lifecycle/state factories in small `src/docker/webui-src/*-shared.ts` modules.
-- Put shared Docker WebUI styles under `src/docker/webui-src/styles/`, imported by `main.ts` in base, shell, components, tables, responsive order.
+- Put Vue app entry code in `src/docker/webui/main.ts`.
+- Put the Vite HTML shell in `src/docker/webui/index.html`.
+- Put Vue shell/component code in `src/docker/webui/*.vue`.
+- Put extracted cohesive shell/page components under `src/docker/webui/components/`.
+- Put reusable Vue-owned state helpers under `src/docker/webui/composables/` only when the same non-trivial behavior is used by multiple pages.
+- Put cross-page task helpers that are not Vue lifecycle/state factories in small `src/docker/webui/*-shared.ts` modules.
+- Put shared Docker WebUI styles under `src/docker/webui/styles/`, imported by `main.ts` in base, shell, components, tables, responsive order.
 - Keep Docker runtime serving concerns in `src/docker/webui.ts` and `src/docker/server-webui-routes.ts`.
 
 ## Docker WebUI Component Boundaries

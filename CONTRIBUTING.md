@@ -36,9 +36,9 @@ runtime test suite yet.
 - Shared Douyu logic belongs in `src/core/`.
 - Docker WebUI, Express routes, scheduler wiring, config file IO, and logs
   belong in `src/docker/`.
-- Docker WebUI source lives in `src/docker/webui-src/` and is built by Vite
-  into `build/docker/docker/webui/`; the existing `src/docker/webui/*.js`
-  modules are the transitional browser behavior layer bundled by Vite.
+- Docker WebUI source lives in `src/docker/webui/` and is built by Vite
+  into `build/docker/docker/webui/`; the former legacy `app-*.js` source
+  modules must stay deleted.
 - The Docker image must continue to build with `npm run build:docker`.
 - Do not add Electron, Yarn desktop release, or renderer packaging work unless
   desktop support is explicitly restored.

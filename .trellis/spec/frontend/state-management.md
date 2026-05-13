@@ -8,8 +8,8 @@
 
 Docker WebUI state is currently split between:
 
-- Vue-local state in `src/docker/webui-src/`
-- Transitional shared state bridge helpers under `src/docker/webui-src/legacy-state.ts`
+- Vue-local state in `src/docker/webui/`
+- Transitional shared state bridge helpers under `src/docker/webui/legacy-state.ts`
 - Persisted configuration through Docker HTTP APIs
 
 There is no dedicated server-state library such as Vue Query, and Pinia is not part of the current Docker WebUI stack.
@@ -46,7 +46,7 @@ Until then, prefer component state plus small helper modules.
 
 ### 1. Scope / Trigger
 
-- Trigger: Maintaining the TypeScript-owned Docker WebUI shared state bridge after the former `src/docker/webui/*.js` helpers have moved into `src/docker/webui-src/`.
+- Trigger: Maintaining the TypeScript-owned Docker WebUI shared state bridge after the former `src/docker/webui/*.js` helpers have moved into `src/docker/webui/`.
 - Scope: Raw config fallback, cookie-source helpers, request coalescing metadata, managed fan derivation, fans-status merge helpers, active refresh loading, protected-state clearing, and the compatibility bridges consumed by `legacy-app.ts`.
 
 ### 2. Signatures
@@ -67,7 +67,7 @@ window.DOUYU_KEEP_WEBUI_STATE.create({
 ### 3. Contracts
 
 - `main.ts` must install the three `legacy-state.ts` bridges before calling `startLegacyApp()`.
-- `src/docker/webui-src/legacy-app.ts` may continue to call `window.DOUYU_KEEP_WEBUI_STATE`, `window.DOUYU_KEEP_WEBUI_MANAGED_DATA`, and `window.DOUYU_KEEP_WEBUI_PROTECTED_STATE` during the transition.
+- `src/docker/webui/legacy-app.ts` may continue to call `window.DOUYU_KEEP_WEBUI_STATE`, `window.DOUYU_KEEP_WEBUI_MANAGED_DATA`, and `window.DOUYU_KEEP_WEBUI_PROTECTED_STATE` during the transition.
 - `legacy-state.ts` owns `resourceRequests.{fansSync,fansList,fansStatus,yubaStatus}` with `pending`, `fetchedAt`, and `requestSeq`; Vue-owned resource loaders must keep using `trackResourceRequest()` for request coalescing.
 - Clearing protected or cookie-backed state must invalidate fans/Yuba request metadata and reset managed, fan status, gift status, Yuba status, loading flags, and error text.
 - The former JS owner files `app-state.js`, `app-managed-data.js`, and `app-protected-state.js` must stay out of the Vite boot path.
@@ -94,7 +94,7 @@ window.DOUYU_KEEP_WEBUI_STATE.create({
 #### Wrong
 
 ```typescript
-await import('../webui/app-state.js')
+await import('./app-state.js')
 ```
 
 #### Correct
@@ -109,7 +109,7 @@ installLegacyProtectedStateBridge()
 
 ### 1. Scope / Trigger
 
-- Trigger: Maintaining Vue-owned navigation after the former `src/docker/webui/*.js` behavior slice has moved into `src/docker/webui-src/`.
+- Trigger: Maintaining Vue-owned navigation after the former `src/docker/webui/*.js` behavior slice has moved into `src/docker/webui/`.
 - Scope: Navigation tabs, active page visibility, page title/subtitle, browser history, and legacy lazy-load notification.
 
 ### 2. Signatures
@@ -178,7 +178,7 @@ byId('page-title').textContent = PAGE_META[nextTab].title;
 
 ### 1. Scope / Trigger
 
-- Trigger: Maintaining Vue-owned theme mode after the former `src/docker/webui/*.js` shell control has moved into `src/docker/webui-src/`.
+- Trigger: Maintaining Vue-owned theme mode after the former `src/docker/webui/*.js` shell control has moved into `src/docker/webui/`.
 - Scope: Theme mode buttons, selected button state, theme note copy, `body[data-theme]`, `theme-color` / `color-scheme` meta tags, system color-scheme changes, and theme-mode persistence.
 
 ### 2. Signatures
@@ -262,7 +262,7 @@ byId('theme-note').textContent = '当前固定为 深色 模式';
 
 ### 1. Scope / Trigger
 
-- Trigger: Maintaining Vue-owned toast and screen-reader live-region feedback after the former `src/docker/webui/*.js` helper has moved into `src/docker/webui-src/`.
+- Trigger: Maintaining Vue-owned toast and screen-reader live-region feedback after the former `src/docker/webui/*.js` helper has moved into `src/docker/webui/`.
 - Scope: visible toast message, success/error color, `aria-hidden`, the `#toast-live` polite status region, repeated-message announcements, and the legacy compatibility event bridge.
 
 ### 2. Signatures
@@ -336,7 +336,7 @@ node.style.display = 'block';
 
 ### 1. Scope / Trigger
 
-- Trigger: Maintaining a Vue-owned fan allocation task page after the former `src/docker/webui/*.js` page behavior has moved into `src/docker/webui-src/`.
+- Trigger: Maintaining a Vue-owned fan allocation task page after the former `src/docker/webui/*.js` page behavior has moved into `src/docker/webui/`.
 - Scope: Task status card, enable switch, cron preview, allocation mode, fan allocation table inputs, save/disable actions, manual trigger action, and legacy fan-list refresh orchestration.
 
 ### 2. Signatures
@@ -505,7 +505,7 @@ await requestJson('/api/auth/login', {
 
 ### 1. Scope / Trigger
 
-- Trigger: Maintaining Docker WebUI read-only system resource loading after the former `src/docker/webui/*.js` resource behavior has moved into `src/docker/webui-src/`.
+- Trigger: Maintaining Docker WebUI read-only system resource loading after the former `src/docker/webui/*.js` resource behavior has moved into `src/docker/webui/`.
 - Scope: `/api/config/raw`, `/api/overview`, `/api/logs`, loading/error state for these read-only resources, the Vue-owned logs page, the `douyu-keep-webui:config` theme notification, and the compatibility bridge used by remaining legacy action assembly.
 
 ### 2. Signatures
@@ -551,8 +551,8 @@ window.DOUYU_KEEP_WEBUI_FANS_RESOURCE_ACTIONS.create({
 
 ### 3. Contracts
 
-- `src/docker/webui-src/resources.ts` owns read-only system resource requests and fans reconcile/list/status requests through the shared `requestJson()` helper.
-- `src/docker/webui-src/resources.ts` owns resource action composition and active-surface refresh orchestration through `installLegacyResourceActionsBridge()`.
+- `src/docker/webui/resources.ts` owns read-only system resource requests and fans reconcile/list/status requests through the shared `requestJson()` helper.
+- `src/docker/webui/resources.ts` owns resource action composition and active-surface refresh orchestration through `installLegacyResourceActionsBridge()`.
 - `main.ts` must install `installLegacySystemResourceBridge()`, `installLegacyFansResourceBridge()`, `installLegacyYubaBridge()`, and `installLegacyResourceActionsBridge()` before `installLegacyActionBridge()` and `startLegacyApp()` run.
 - `loadRawConfig()` writes `state.rawConfig`, falls back to a cloned `DEFAULT_RAW_CONFIG` when `/api/config/raw` returns `{ exists: false }`, dispatches `douyu-keep-webui:config`, then calls `renderAll()`.
 - `loadOverview()` writes `state.overview` and calls `renderOverview()`.
@@ -603,7 +603,7 @@ window.DOUYU_KEEP_WEBUI_FANS_RESOURCE_ACTIONS.create({
 #### Wrong
 
 ```javascript
-await import('../webui/app-system-resource-actions.js')
+await import('./app-system-resource-actions.js')
 ```
 
 #### Correct
@@ -618,7 +618,7 @@ installLegacyFansResourceBridge()
 
 ### 1. Scope / Trigger
 
-- Trigger: Maintaining Vue-owned Docker WebUI manual Cookie and CookieCloud behavior after the former `src/docker/webui/*.js` behavior has moved into `src/docker/webui-src/`.
+- Trigger: Maintaining Vue-owned Docker WebUI manual Cookie and CookieCloud behavior after the former `src/docker/webui/*.js` behavior has moved into `src/docker/webui/`.
 - Scope: Login status card, manual Cookie textareas, CookieCloud enable/config form, CookieCloud note text, CookieCloud cron preview, save/sync/check actions, and the legacy Cookie action bridge.
 
 ### 2. Signatures
@@ -660,7 +660,7 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:login-page', {
 
 ### 3. Contracts
 
-- `src/docker/webui-src/cookie.ts` owns visible Cookie/Login DOM state and actions through Vue refs and the shared `requestJson()` helper.
+- `src/docker/webui/cookie.ts` owns visible Cookie/Login DOM state and actions through Vue refs and the shared `requestJson()` helper.
 - `main.ts` must install `installLegacyCookieActionBridge()` before `installLegacyActionBridge()` and `startLegacyApp()` run, and must not import `app-cookie-actions.js`.
 - `App.vue` must bind manual Cookie fields, CookieCloud fields, CookieCloud toggle, save buttons, check button, note text, and cron preview through Vue state/events.
 - `actions.ts` may keep calling `window.DOUYU_KEEP_WEBUI_COOKIE_ACTIONS.create(...)` during migration; the installed bridge must provide `syncCookieCloudToLoginCookies`, `saveCookie`, `saveCookieCloud`, `checkCookieSource`, `saveCookieCloudToggle`, `saveAndEnableCookieCloud`, and `disableCookieCloud`.
@@ -699,7 +699,7 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:login-page', {
 #### Wrong
 
 ```javascript
-await import('../webui/app-cookie-actions.js')
+await import('./app-cookie-actions.js')
 ```
 
 #### Correct
@@ -746,7 +746,7 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:collect-page', {
 
 ### 3. Contracts
 
-- `src/docker/webui-src/collect.ts` owns visible collect page DOM state and actions through Vue refs and `requestJson()`.
+- `src/docker/webui/collect.ts` owns visible collect page DOM state and actions through Vue refs and `requestJson()`.
 - `main.ts` must install `installLegacyCollectTaskBridge()` before `installLegacySimpleTaskActionsBridge()` and `installLegacyTaskActionsBridge()`.
 - `App.vue` must bind the collect enable switch, cron input, cron preview, save button, and manual trigger button through Vue state/events.
 - `task-pages.ts` must dispatch `douyu-keep-webui:collect-page` details instead of mutating `#collect-task-card`, `#collect-enable`, `#collect-cron`, or `#collect-cron-preview`.
@@ -863,7 +863,7 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:refresh-overview-reques
 
 ### 3. Contracts
 
-- `src/docker/webui-src/overview.ts` owns visible overview page state and converts legacy state snapshots into Vue-computed view models.
+- `src/docker/webui/overview.ts` owns visible overview page state and converts legacy state snapshots into Vue-computed view models.
 - `App.vue` must render overview cards, gift metrics, note text, login empty-state action, and the fans status table through Vue bindings.
 - `pages.ts` must dispatch `douyu-keep-webui:overview-page` details and must not mutate `#overview-basic-summary`, `#overview-gift-summary`, `#overview-fans-note`, or `#overview-fans-table-wrap`.
 - `legacy-app.ts` may compute active refresh loading from transitional state, but it must publish that state through `douyu-keep-webui:refresh-state` instead of mutating the refresh button DOM.
@@ -970,7 +970,7 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:yuba-page', {
 
 ### 3. Contracts
 
-- `src/docker/webui-src/yuba.ts` owns visible Yuba page DOM state and actions through Vue refs, computed table rows, and `requestJson()`.
+- `src/docker/webui/yuba.ts` owns visible Yuba page DOM state and actions through Vue refs, computed table rows, and `requestJson()`.
 - `main.ts` must install `installLegacyYubaBridge()` before `installLegacyResourceActionsBridge()`, `installLegacySimpleTaskActionsBridge()`, and `installLegacyTaskActionsBridge()`.
 - `App.vue` must bind the Yuba enable switch, cron input, mode select, cron preview, save button, trigger button, note, status card, and table through Vue state/events.
 - `task-pages.ts` must dispatch `douyu-keep-webui:yuba-page` details and call `ensureYubaStatusForActiveTab()` instead of mutating `#yuba-task-card`, `#yuba-enable`, `#yuba-cron`, `#yuba-note`, or `#yuba-table-wrap`.
@@ -1046,9 +1046,9 @@ startLegacyApp()
 
 ### 3. Contracts
 
-- `src/docker/webui-src/main.ts` must import and install the TypeScript bridge installers directly; it must not dynamically import `../webui/app.js`, `../webui/app-actions.js`, `../webui/app-events.js`, `../webui/app-pages.js`, or `../webui/app-task-pages.js`.
+- `src/docker/webui/main.ts` must import and install the TypeScript bridge installers directly; it must not dynamically import `./app.js`, `./app-actions.js`, `./app-events.js`, `./app-pages.js`, or `./app-task-pages.js`.
 - Core, state, request, resource, cookie, task action, event, page, and task-page bridges must be installed before `startLegacyApp()` runs.
 - `createApp(App).mount('#app')` must run before `startLegacyApp()` so Vue-owned shell/auth/page DOM is mounted before the transitional app startup dispatches state into it.
-- `src/docker/webui-src/legacy-app.ts` owns transitional app startup and publishes `DOUYU_KEEP_WEBUI_LEGACY`.
-- `src/docker/webui-src/actions.ts`, `src/docker/webui-src/pages.ts`, `src/docker/webui-src/task-pages.ts`, and `src/docker/webui-src/events.ts` own the former production boot bridge surfaces for actions, page state dispatch, task-page state dispatch, and event binding.
+- `src/docker/webui/legacy-app.ts` owns transitional app startup and publishes `DOUYU_KEEP_WEBUI_LEGACY`.
+- `src/docker/webui/actions.ts`, `src/docker/webui/pages.ts`, `src/docker/webui/task-pages.ts`, and `src/docker/webui/events.ts` own the former production boot bridge surfaces for actions, page state dispatch, task-page state dispatch, and event binding.
 - The former production boot modules `src/docker/webui/app.js`, `src/docker/webui/app-actions.js`, `src/docker/webui/app-events.js`, `src/docker/webui/app-pages.js`, and `src/docker/webui/app-task-pages.js` must not exist.

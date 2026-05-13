@@ -19,8 +19,8 @@ function readServerSources() {
 
 function readWebuiResourceActionSources() {
   return [
-    'src/docker/webui-src/resources.ts',
-    'src/docker/webui-src/yuba.ts',
+    'src/docker/webui/resources.ts',
+    'src/docker/webui/yuba.ts',
   ].map(readRepoFile).join('\n')
 }
 
@@ -67,8 +67,8 @@ function getAsyncMethodBody(source, methodName) {
 }
 
 test('Docker WebUI coalesces duplicate local Douyu-backed reads without client cooldowns', () => {
-  const webui = readRepoFile('src/docker/webui-src/legacy-app.ts')
-  const legacyState = readRepoFile('src/docker/webui-src/legacy-state.ts')
+  const webui = readRepoFile('src/docker/webui/legacy-app.ts')
+  const legacyState = readRepoFile('src/docker/webui/legacy-state.ts')
   const actions = readWebuiResourceActionSources()
 
   assert.match(getFunctionBody(legacyState, 'createResourceRequest'), /pending:\s*null/)

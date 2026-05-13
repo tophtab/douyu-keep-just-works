@@ -8,7 +8,7 @@
 
 This contract applies when changing any of:
 
-- Docker WebUI login flow in `src/docker/webui-src/components/AuthShell.vue` and `src/docker/webui-src/auth.ts`
+- Docker WebUI login flow in `src/docker/webui/components/AuthShell.vue` and `src/docker/webui/auth.ts`
 - Docker auth/session routes in `src/docker/server.ts`
 - Docker login-cookie / CookieCloud routes in `src/docker/server.ts`
 - Docker fan-status / gift-status routes in `src/docker/server.ts`
@@ -469,10 +469,10 @@ Non-goals:
 
 File:
 
-- `src/docker/webui-src/index.html`
-- `src/docker/webui-src/App.vue`
-- `src/docker/webui-src/auth.ts`
-- `src/docker/webui-src/main.ts`
+- `src/docker/webui/index.html`
+- `src/docker/webui/App.vue`
+- `src/docker/webui/auth.ts`
+- `src/docker/webui/main.ts`
 
 Required behavior:
 
@@ -673,6 +673,6 @@ UI state rules:
 - `src/core/job.ts`
 - `src/docker/index.ts`
 - `src/docker/server.ts`
-- `src/docker/webui-src/App.vue`
-- `src/docker/webui-src/components/AuthShell.vue`
-- `src/docker/webui-src/auth.ts`
+- `src/docker/webui/App.vue`
+- `src/docker/webui/components/AuthShell.vue`
+- `src/docker/webui/auth.ts`

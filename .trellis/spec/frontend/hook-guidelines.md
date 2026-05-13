@@ -12,7 +12,7 @@ The closest equivalents are:
 - Pinia stores in `src/renderer/stores/`
 - renderer helper modules in `src/renderer/run/`
 - simple local `ref` / `reactive` usage inside view components
-- Docker WebUI composables under `src/docker/webui-src/composables/` when repeated Vue-owned behavior appears across several Docker pages
+- Docker WebUI composables under `src/docker/webui/composables/` when repeated Vue-owned behavior appears across several Docker pages
 
 When this repository talks about reusable stateful logic, prefer those patterns instead of inventing a separate composables layer unless there is clear repeated behavior.
 
@@ -46,7 +46,7 @@ Examples:
 - `src/renderer/stores/fans.ts` fetches the Douyu fans list and toggles `loading`.
 - `src/renderer/stores/user.ts` fetches both the current gift count and profile info.
 - `src/renderer/views/config/index.vue` fetches cron preview data through `window.electron.ipcRenderer.invoke('cron', ...)`.
-- `src/docker/webui-src/composables/use-cron-preview.ts` fetches Docker cron preview data through `/api/cron-preview` and centralizes loading/error/display text for task pages.
+- `src/docker/webui/composables/use-cron-preview.ts` fetches Docker cron preview data through `/api/cron-preview` and centralizes loading/error/display text for task pages.
 
 ---
 

@@ -11,5 +11,5 @@ export default defineConfig({
     },
   },
   plugins: [vue()],
-  root: 'src/docker/webui-src',
+  root: 'src/docker/webui',
 })

@@ -21,8 +21,8 @@
     "noEmit": true
   },
   "include": [
-    "src/docker/webui-src/**/*.d.ts",
-    "src/docker/webui-src/**/*.ts",
-    "src/docker/webui-src/**/*.vue"
+    "src/docker/webui/**/*.d.ts",
+    "src/docker/webui/**/*.ts",
+    "src/docker/webui/**/*.vue"
   ]
 }

@@ -543,13 +543,14 @@ await requestJson('/api/auth/login', {
 ### 1. Scope / Trigger
 
 - Trigger: Moving Docker WebUI read-only system resource loading out of `src/docker/webui/*.js` while legacy page renderers still consume the loaded state.
-- Scope: `/api/config/raw`, `/api/overview`, `/api/logs`, loading/error state for these read-only resources, the Vue-owned logs page, the `douyu-keep-webui:config` theme notification, and the compatibility bridge used by `app-resource-actions.js`.
+- Scope: `/api/config/raw`, `/api/overview`, `/api/logs`, loading/error state for these read-only resources, the Vue-owned logs page, the `douyu-keep-webui:config` theme notification, and the compatibility bridge used by remaining legacy action assembly.
 
 ### 2. Signatures
 
 ```typescript
 export function installLegacySystemResourceBridge(): void
 export function installLegacyFansResourceBridge(): void
+export function installLegacyResourceActionsBridge(): void
 export function useLogsPage(activeTab: Readonly<Ref<string>>, authenticated: Readonly<Ref<boolean>>): {
   clearLogs: () => Promise<void>
   clearingLogs: Ref<boolean>
@@ -588,7 +589,8 @@ window.DOUYU_KEEP_WEBUI_FANS_RESOURCE_ACTIONS.create({
 ### 3. Contracts
 
 - `src/docker/webui-src/resources.ts` owns read-only system resource requests and fans reconcile/list/status requests through the shared `requestJson()` helper.
-- `main.ts` must install `installLegacySystemResourceBridge()` and `installLegacyFansResourceBridge()` before `app-resource-actions.js` is imported.
+- `src/docker/webui-src/resources.ts` owns resource action composition and active-surface refresh orchestration through `installLegacyResourceActionsBridge()`.
+- `main.ts` must install `installLegacySystemResourceBridge()`, `installLegacyFansResourceBridge()`, `installLegacyYubaBridge()`, and `installLegacyResourceActionsBridge()` before `app-actions.js` is imported.
 - `loadRawConfig()` writes `state.rawConfig`, falls back to a cloned `DEFAULT_RAW_CONFIG` when `/api/config/raw` returns `{ exists: false }`, dispatches `douyu-keep-webui:config`, then calls `renderAll()`.
 - `loadOverview()` writes `state.overview` and calls `renderOverview()`.
 - `loadLogs()` writes the shared Vue logs ref, syncs `state.logs` / `state.logsRefreshedAt` for transitional consumers, and lets Vue render the visible logs page.
@@ -601,7 +603,8 @@ window.DOUYU_KEEP_WEBUI_FANS_RESOURCE_ACTIONS.create({
 - Legacy modules may call the bridge while they still render forms/task pages, but they must not reintroduce `app-system-resource-actions.js`.
 - Fans resource actions must preserve legacy request smoothing: reuse `resource.pending`, guard stale responses with `requestSeq`, and return `trackResourceRequest(resource, requestSeq, pending)`.
 - Fans status loading remains progressive: request `/api/fans/status/base`, render overview/expiring surfaces, and only request `/api/fans/status/details` when the base response is not complete.
-- Legacy modules may call the fans bridge while they still orchestrate refresh/task pages, but they must not reintroduce `app-fans-resource-actions.js`.
+- Legacy modules may call the fans/resource bridges while they still orchestrate refresh/task pages, but they must not reintroduce `app-fans-resource-actions.js` or `app-resource-actions.js`.
+- `refreshOverviewSurface()` must preserve the legacy flow: load raw config first, return early when unauthenticated, clear cookie-backed state when no cookie source is configured, otherwise reload overview plus the active tab's resource surface, and show `状态已刷新` only when requested.
 
 ### 4. Validation & Error Matrix
 
@@ -624,19 +627,20 @@ window.DOUYU_KEEP_WEBUI_FANS_RESOURCE_ACTIONS.create({
 
 - Good: Vue/TS resource code owns fetch/error/loading mechanics while legacy page renderers only consume state and render DOM.
 - Good: The logs page renders log lines with Vue interpolation instead of legacy `innerHTML`, preserving escaping by default.
-- Base: `app-resource-actions.js` still composes system, fans, and Yuba resource actions through Vue-owned resource bridges.
+- Base: `app-actions.js` still consumes `DOUYU_KEEP_WEBUI_RESOURCE_ACTIONS`, but the bridge is installed by `resources.ts`.
 - Bad: `main.ts` imports `src/docker/webui/app-system-resource-actions.js` after the bridge is installed, overwriting the Vue/TS owner.
 - Bad: `main.ts` imports `src/docker/webui/app-fans-resource-actions.js` after the bridge is installed, overwriting the Vue/TS owner.
+- Bad: `main.ts` imports `src/docker/webui/app-resource-actions.js` after the bridge is installed, overwriting the Vue/TS owner.
 - Bad: A resource failure is converted to an empty config, empty overview, or empty log list without surfacing an error.
 - Bad: Legacy `app-pages.js` writes `byId('logs-summary').textContent` or `full-log-box.innerHTML` after Vue owns the logs page.
 
 ### 6. Tests Required
 
-- Contract tests should assert that `resources.ts` exports `installLegacySystemResourceBridge()` and `installLegacyFansResourceBridge()`, owns `/api/config/raw`, `/api/overview`, `/api/logs`, `/api/fans/reconcile`, `/api/fans/status/base`, and `/api/fans/status/details`, and dispatches `douyu-keep-webui:config`.
+- Contract tests should assert that `resources.ts` exports `installLegacySystemResourceBridge()`, `installLegacyFansResourceBridge()`, and `installLegacyResourceActionsBridge()`, owns `/api/config/raw`, `/api/overview`, `/api/logs`, `/api/fans/reconcile`, `/api/fans/status/base`, `/api/fans/status/details`, and active-surface refresh orchestration, and dispatches `douyu-keep-webui:config`.
 - Contract tests should assert that `App.vue` uses `useLogsPage()`, binds log refresh/clear buttons through Vue events, and removes `data-action="refresh-logs"` / `data-action="clear-logs"`.
 - Contract tests should assert that legacy `app-pages.js` no longer writes `#logs-summary` or `#full-log-box`, and `app-events.js` no longer handles logs refresh/clear actions or `#logs-auto-refresh`.
-- Contract tests should assert that `main.ts` installs the resource bridges and no longer imports `app-system-resource-actions.js` or `app-fans-resource-actions.js`.
-- Contract tests should assert that `src/docker/webui/app-system-resource-actions.js` and `src/docker/webui/app-fans-resource-actions.js` do not exist.
+- Contract tests should assert that `main.ts` installs the resource bridges and no longer imports `app-system-resource-actions.js`, `app-fans-resource-actions.js`, or `app-resource-actions.js`.
+- Contract tests should assert that `src/docker/webui/app-system-resource-actions.js`, `src/docker/webui/app-fans-resource-actions.js`, and `src/docker/webui/app-resource-actions.js` do not exist.
 - Run `npm run lint`, `npm run type-check`, `npm run test:contracts`, `npm run build:webui`, and `npm test` after this migration.
 
 ### 7. Wrong vs Correct
@@ -949,7 +953,7 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:refresh-overview-reques
 
 - Good: Vue owns the overview DOM and legacy code sends a single `overview-page` snapshot whenever overview or fans state changes.
 - Good: Refresh button state flows from legacy active-surface loading calculation into Vue through a small event payload.
-- Base: Keep refresh orchestration in `app-resource-actions.js` while fans request coalescing lives in the Vue-owned `resources.ts` bridge.
+- Base: Keep refresh orchestration in the Vue-owned `resources.ts` bridge while remaining legacy action modules consume `DOUYU_KEEP_WEBUI_RESOURCE_ACTIONS`.
 - Bad: Reintroducing `innerHTML` writes for overview cards or tables after Vue owns the page.
 - Bad: Keeping a `data-action="refresh-overview"` button in `App.vue`; that lets the legacy click dispatcher own a Vue control.
 - Bad: Rendering the fans table with different classes/headers during a framework-only migration, because responsive table CSS depends on those names.
@@ -1037,12 +1041,12 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:yuba-page', {
 ### 3. Contracts
 
 - `src/docker/webui-src/yuba.ts` owns visible Yuba page DOM state and actions through Vue refs, computed table rows, and `requestJson()`.
-- `main.ts` must install `installLegacyYubaBridge()` before `app-resource-actions.js`, `app-simple-task-actions.js`, and `app-task-actions.js` are imported.
+- `main.ts` must install `installLegacyYubaBridge()` before `installLegacyResourceActionsBridge()`, `app-simple-task-actions.js`, and `app-task-actions.js` are imported.
 - `App.vue` must bind the Yuba enable switch, cron input, mode select, cron preview, save button, trigger button, note, status card, and table through Vue state/events.
 - Legacy `app-task-pages.js` must dispatch `douyu-keep-webui:yuba-page` details and call `ensureYubaStatusForActiveTab()` instead of mutating `#yuba-task-card`, `#yuba-enable`, `#yuba-cron`, `#yuba-note`, or `#yuba-table-wrap`.
 - Legacy `app-events.js` must not handle `data-action="save-yuba"`, `#yuba-cron`, or `#yuba-enable` after Vue owns the Yuba page.
 - `app-simple-task-actions.js` must delegate Yuba save/disable through `window.DOUYU_KEEP_WEBUI_YUBA_TASK_ACTIONS.create(...)`.
-- `app-resource-actions.js` must consume `window.DOUYU_KEEP_WEBUI_YUBA_RESOURCE_ACTIONS.create(...)`; do not reintroduce `src/docker/webui/app-yuba-resource-actions.js`.
+- `resources.ts` must compose Yuba resource actions through `window.DOUYU_KEEP_WEBUI_YUBA_RESOURCE_ACTIONS.create(...)`; do not reintroduce `src/docker/webui/app-yuba-resource-actions.js` or `src/docker/webui/app-resource-actions.js`.
 - Save/disable requests preserve the existing API contract: `POST /api/config` with `yubaCheckIn: { active, cron, mode: 'followed' }`.
 - Manual trigger preserves the existing user-facing behavior: `POST /api/trigger/yubaCheckIn`, `执行完成` success toast, then refresh overview/logs/Yuba status through transitional refresh functions.
 - Yuba status loading preserves the existing coalescing contract: reuse `resource.pending`, increment `requestSeq`, update legacy `state.yubaStatus*`, call `markResourceLoaded('yubaStatus')`, and return `trackResourceRequest(resource, requestSeq, pending)`.

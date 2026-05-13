@@ -7,7 +7,7 @@ import { installLegacyExpiringTaskBridge } from './expiring'
 import { installLegacyKeepaliveTaskBridge } from './keepalive'
 import { installLegacyCoreBridge } from './legacy-core'
 import { installLegacyRequestBridge } from './request'
-import { installLegacyFansResourceBridge, installLegacySystemResourceBridge } from './resources'
+import { installLegacyFansResourceBridge, installLegacyResourceActionsBridge, installLegacySystemResourceBridge } from './resources'
 import { installLegacyManagedDataBridge, installLegacyProtectedStateBridge, installLegacyStateBridge } from './legacy-state'
 import { installLegacyYubaBridge } from './yuba'
 
@@ -20,7 +20,6 @@ async function bootstrapLegacyBehavior(): Promise<void> {
   installLegacySystemResourceBridge()
   await import('../webui/app-task-pages.js')
   await import('../webui/app-pages.js')
-  await import('../webui/app-resource-actions.js')
   await import('../webui/app-actions.js')
   await import('../webui/app-simple-task-actions.js')
   await import('../webui/app-send-task-actions.js')
@@ -41,5 +40,6 @@ installLegacyDoubleTaskBridge()
 installLegacyExpiringTaskBridge()
 installLegacyFansResourceBridge()
 installLegacyYubaBridge()
+installLegacyResourceActionsBridge()
 createApp(App).mount('#app')
 void bootstrapLegacyBehavior()

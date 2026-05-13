@@ -1,4 +1,4 @@
-import type { Fans, FanStatus, FansStatusResponse, GiftStatus } from '../../core/types'
+import type { Fans, FanStatus, FansStatusResponse, GiftStatus, YubaGroupStatus } from '../../core/types'
 import type { WebUiRequestError } from './request'
 import type { Ref } from 'vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -96,6 +96,47 @@ interface LegacyFansResourceActions {
   syncFans: (showToast?: boolean) => Promise<unknown>
 }
 
+interface LegacyYubaResourceActions {
+  loadYubaStatus: (showToast?: boolean) => Promise<unknown>
+}
+
+interface LegacyResourceActionState extends LegacySystemResourceState, LegacyFansResourceState {
+  activeTab: string
+  auth: {
+    authenticated: boolean
+  }
+  yubaStatus: YubaGroupStatus[]
+  yubaStatusError: string
+  yubaStatusLoaded: boolean
+  yubaStatusLoading: boolean
+}
+
+interface LegacyResourceActionDeps {
+  applyFansStatusBase: (data: FansStatusResponse) => void
+  applyFansStatusDetails: (data: FansStatusResponse) => void
+  defaultRawConfig: unknown
+  getRawConfig: () => unknown
+  getResourceRequest: (key: 'fansSync' | 'fansList' | 'fansStatus' | 'yubaStatus') => LegacyResourceRequest
+  hasCookieSourceConfigured: (config?: unknown) => boolean
+  invalidateResourceRequest: (key: 'fansSync' | 'fansList' | 'fansStatus' | 'yubaStatus') => void
+  invalidateResourceRequests: (keys: Array<'fansSync' | 'fansList' | 'fansStatus' | 'yubaStatus'>) => void
+  isUnauthorizedError: (error: unknown) => boolean
+  markResourceLoaded: (key: 'fansList' | 'fansStatus' | 'yubaStatus') => void
+  renderAll: () => void
+  renderExpiringGiftPage: () => void
+  renderLogsPage: () => void
+  renderOverview: () => void
+  renderYubaPage: () => void
+  setManagedFans: (fans: Fans[]) => void
+  state: LegacyResourceActionState
+  toast: (message: string, ok: boolean) => void
+  trackResourceRequest: <T>(resource: LegacyResourceRequest, requestSeq: number, pending: Promise<T>) => Promise<T>
+}
+
+interface LegacyResourceActions extends LegacySystemResourceActions, LegacyFansResourceActions, LegacyYubaResourceActions {
+  refreshOverviewSurface: (showToast?: boolean) => Promise<unknown>
+}
+
 interface ReadOnlyResource<T> {
   data: T | null
   error: string
@@ -119,6 +160,9 @@ declare global {
     }
     DOUYU_KEEP_WEBUI_FANS_RESOURCE_ACTIONS?: {
       create: (deps: LegacyFansResourceDeps) => LegacyFansResourceActions
+    }
+    DOUYU_KEEP_WEBUI_RESOURCE_ACTIONS?: {
+      create: (deps: LegacyResourceActionDeps) => LegacyResourceActions
     }
   }
 }
@@ -626,5 +670,84 @@ function createLegacyFansResourceActions(deps: LegacyFansResourceDeps): LegacyFa
 export function installLegacyFansResourceBridge(): void {
   window.DOUYU_KEEP_WEBUI_FANS_RESOURCE_ACTIONS = {
     create: createLegacyFansResourceActions,
+  }
+}
+
+function createLegacyResourceActions(deps: LegacyResourceActionDeps): LegacyResourceActions {
+  const systemActions = createLegacySystemResourceActions(deps)
+  const fansActions = createLegacyFansResourceActions(deps)
+  const yubaActions = window.DOUYU_KEEP_WEBUI_YUBA_RESOURCE_ACTIONS?.create(deps)
+
+  const loadRawConfig = systemActions.loadRawConfig
+  const loadOverview = systemActions.loadOverview
+  const loadLogs = systemActions.loadLogs
+  const syncFans = fansActions.syncFans
+  const loadFansList = fansActions.loadFansList
+  const loadFansStatus = fansActions.loadFansStatus
+  const loadYubaStatus = yubaActions?.loadYubaStatus || (() => Promise.resolve())
+
+  function refreshOverviewSurface(showSuccessToast?: boolean): Promise<unknown> {
+    return loadRawConfig().then(() => {
+      if (!deps.state.auth.authenticated) {
+        return undefined
+      }
+
+      const rawConfig = deps.getRawConfig()
+      if (!deps.hasCookieSourceConfigured(rawConfig)) {
+        deps.invalidateResourceRequests(['fansSync', 'fansList', 'fansStatus', 'yubaStatus'])
+        deps.state.managed = null
+        deps.state.fansStatus = []
+        deps.state.giftStatus = null
+        deps.state.managedLoading = false
+        deps.state.fansStatusLoading = false
+        deps.state.fansStatusLoaded = false
+        deps.state.fansStatusDetailsLoaded = false
+        deps.state.fansStatusDetailsLoading = false
+        deps.state.yubaStatus = []
+        deps.state.yubaStatusLoaded = false
+        deps.state.yubaStatusLoading = false
+        deps.renderAll()
+        return loadOverview().then(() => {
+          if (showSuccessToast) {
+            deps.toast('状态已刷新', true)
+          }
+        })
+      }
+
+      const reloads: Array<Promise<unknown>> = [loadOverview()]
+      if (deps.state.activeTab === 'overview' || deps.state.activeTab === 'expiring-gift') {
+        reloads.push(loadFansStatus(false))
+      } else if (deps.state.activeTab === 'keepalive' || deps.state.activeTab === 'double-card') {
+        reloads.push(loadFansList(false))
+      } else if (deps.state.activeTab === 'yuba') {
+        reloads.push(loadYubaStatus(false))
+      } else if (deps.state.activeTab === 'logs') {
+        reloads.push(loadLogs())
+      }
+
+      return Promise.all(reloads).then(() => {
+        if (showSuccessToast) {
+          deps.toast('状态已刷新', true)
+        }
+      })
+    })
+  }
+
+  return {
+    loadRawConfig,
+    loadOverview,
+    loadLogs,
+    clearLogs: systemActions.clearLogs,
+    syncFans,
+    loadFansList,
+    loadFansStatus,
+    loadYubaStatus,
+    refreshOverviewSurface,
+  }
+}
+
+export function installLegacyResourceActionsBridge(): void {
+  window.DOUYU_KEEP_WEBUI_RESOURCE_ACTIONS = {
+    create: createLegacyResourceActions,
   }
 }

@@ -44,7 +44,6 @@ src/
 │       ├── app-actions.js
 │       ├── app-events.js
 │       ├── app-pages.js
-│       ├── app-resource-actions.js
 │       ├── app-send-task-actions.js
 │       ├── app-simple-task-actions.js
 │       ├── app-task-actions.js
@@ -105,7 +104,7 @@ Examples:
 - `src/docker/webui-src/navigation.ts` owns Vue-side page route state, History API syncing, tab keyboard navigation, and the legacy navigation event bridge.
 - `src/docker/webui-src/overview.ts` owns Vue-side Docker WebUI overview page status cards, gift summary, fans status table view models, refresh button state, and the legacy overview/refresh event bridge.
 - `src/docker/webui-src/request.ts` owns Vue-side JSON request handling, unauthorized forwarding, optional toast feedback, and the legacy `DOUYU_KEEP_WEBUI_REQUEST` bridge.
-- `src/docker/webui-src/resources.ts` owns Vue-side resource loading for raw config, overview, logs, and fans reconcile/list/status plus the legacy `DOUYU_KEEP_WEBUI_SYSTEM_RESOURCE_ACTIONS` and `DOUYU_KEEP_WEBUI_FANS_RESOURCE_ACTIONS` bridges.
+- `src/docker/webui-src/resources.ts` owns Vue-side resource loading for raw config, overview, logs, fans reconcile/list/status, and active-surface refresh orchestration plus the legacy `DOUYU_KEEP_WEBUI_SYSTEM_RESOURCE_ACTIONS`, `DOUYU_KEEP_WEBUI_FANS_RESOURCE_ACTIONS`, and `DOUYU_KEEP_WEBUI_RESOURCE_ACTIONS` bridges.
 - `src/docker/webui-src/cookie.ts` owns Vue-side manual Cookie and CookieCloud form state, save/sync/check actions, CookieCloud cron preview loading, and the legacy `DOUYU_KEEP_WEBUI_COOKIE_ACTIONS` bridge.
 - `src/docker/webui-src/collect.ts` owns Vue-side collect task page state, save/disable/trigger actions, collect cron preview loading, and the legacy `DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS` bridge.
 - `src/docker/webui-src/keepalive.ts` owns Vue-side keepalive task page state, save/disable/trigger actions, keepalive cron preview loading, fan allocation payload creation, and the legacy `DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS` bridge.
@@ -121,10 +120,9 @@ Examples:
 - `src/docker/webui/app-actions.js` owns Docker WebUI action assembly and trigger actions while consuming the Vue-owned Cookie action bridge during migration.
 - `src/docker/webui/app-events.js` owns Docker WebUI bootstrap, still-legacy task event listeners, overview auto-refresh, and startup auth flow.
 - `src/docker/webui/app-pages.js` owns Docker WebUI page state dispatch for migrated Vue surfaces; it must not depend on legacy HTML render-helper modules.
-- `src/docker/webui/app-resource-actions.js` owns Docker WebUI resource action assembly and active-surface refresh orchestration.
 - `src/docker/webui/app-send-task-actions.js` delegates keepalive, double-card, and expiring-gift room-send task actions through Vue-owned bridges during migration.
 - `src/docker/webui/app-simple-task-actions.js` delegates collect-gift and Yuba check-in simple task save/disable actions through Vue-owned bridges while it remains part of transitional task action assembly.
-- `src/docker/webui-src/resources.ts` replaces the former `src/docker/webui/app-system-resource-actions.js` and `src/docker/webui/app-fans-resource-actions.js` owners for Docker WebUI raw config, overview, log, and fans resource loading actions during the Vue migration.
+- `src/docker/webui-src/resources.ts` replaces the former `src/docker/webui/app-system-resource-actions.js`, `src/docker/webui/app-fans-resource-actions.js`, and `src/docker/webui/app-resource-actions.js` owners for Docker WebUI raw config, overview, log, fans resource loading actions, resource action assembly, and active-surface refresh orchestration during the Vue migration.
 - `src/docker/webui-src/legacy-core.ts` replaces the former `src/docker/webui/app-data.js`, `src/docker/webui/app-routing.js`, and `src/docker/webui/app-dom.js` owners for Docker WebUI legacy metadata, routing helpers, and DOM helper compatibility during the Vue migration.
 - `src/docker/webui-src/legacy-state.ts` replaces the former `src/docker/webui/app-state.js`, `src/docker/webui/app-managed-data.js`, and `src/docker/webui/app-protected-state.js` owners for Docker WebUI transitional state, managed fan derivation, request coalescing metadata, and protected-state clearing during the Vue migration.
 - `src/docker/webui-src/overview.ts` replaces the overview rendering portion of `src/docker/webui/app-pages.js` during the Vue migration; `app-pages.js` dispatches overview state snapshots instead of mutating overview DOM nodes.

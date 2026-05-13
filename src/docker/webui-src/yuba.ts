@@ -47,8 +47,8 @@ interface LegacyResourceRequest {
 }
 
 interface LegacyYubaState {
-  overview: YubaOverview | null
-  rawConfig: RawYubaConfig | null
+  overview: unknown
+  rawConfig: unknown
   yubaStatus: YubaGroupStatus[]
   yubaStatusError: string
   yubaStatusLoaded: boolean
@@ -56,9 +56,9 @@ interface LegacyYubaState {
 }
 
 interface LegacyYubaResourceDeps {
-  getRawConfig: () => RawYubaConfig
+  getRawConfig: () => unknown
   getResourceRequest: (key: 'yubaStatus') => LegacyResourceRequest
-  hasCookieSourceConfigured: (config?: RawYubaConfig | null) => boolean
+  hasCookieSourceConfigured: (config?: unknown) => boolean
   invalidateResourceRequest: (key: 'yubaStatus') => void
   isUnauthorizedError: (error: unknown) => boolean
   markResourceLoaded: (key: 'yubaStatus') => void
@@ -317,7 +317,7 @@ async function loadYubaStatus(showSuccessToast = false): Promise<unknown> {
   }
 
   const deps = legacyResourceDeps
-  const config = deps.getRawConfig()
+  const config = deps.getRawConfig() as RawYubaConfig
   const resource = deps.getResourceRequest('yubaStatus')
   if (!deps.hasCookieSourceConfigured(config)) {
     deps.invalidateResourceRequest('yubaStatus')
@@ -566,7 +566,7 @@ export function useYubaTaskPage() {
 
 function createLegacyYubaResourceActions(deps: LegacyYubaResourceDeps): LegacyYubaResourceActions {
   legacyResourceDeps = deps
-  applyRawConfig(deps.getRawConfig())
+  applyRawConfig(deps.getRawConfig() as RawYubaConfig)
   applyYubaStatusState({
     yubaStatus: deps.state.yubaStatus || [],
     yubaStatusError: deps.state.yubaStatusError || '',

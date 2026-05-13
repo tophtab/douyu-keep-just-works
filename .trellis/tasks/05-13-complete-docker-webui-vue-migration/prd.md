@@ -92,6 +92,11 @@ The first implementation commit should migrate the login page, app shell visibil
 
 ## Verification Results
 
+- Resource action assembly slice:
+  - Moved `DOUYU_KEEP_WEBUI_RESOURCE_ACTIONS` composition and active-surface refresh orchestration from `src/docker/webui/app-resource-actions.js` into `src/docker/webui-src/resources.ts`.
+  - Removed `src/docker/webui/app-resource-actions.js` from the Vite boot path and deleted the former legacy owner file.
+  - Kept the compatibility bridge shape so `app-actions.js` can still consume `loadRawConfig`, `loadOverview`, `loadLogs`, fans actions, Yuba status loading, and `refreshOverviewSurface`.
+  - Updated contract tests and specs so future migration work treats `resources.ts` as the owner for resource action assembly.
 - Legacy state bridge slice:
   - Added `src/docker/webui-src/legacy-state.ts` as the TypeScript owner for transitional shared state, managed fan/config derivation, fan-status merge helpers, request coalescing metadata, and protected-state clearing.
   - Removed `src/docker/webui/app-state.js`, `src/docker/webui/app-managed-data.js`, and `src/docker/webui/app-protected-state.js` from the Vite boot path and deleted the former legacy owner files.

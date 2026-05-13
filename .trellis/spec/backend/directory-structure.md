@@ -325,7 +325,7 @@ await collectGiftViaDanmu(cookie, fans[0].roomId)
 ### 1. Scope / Trigger
 
 - Trigger: Any change to Docker WebUI routes or client flows that fetch Douyu-backed status/list data, especially fans, backpack, double-card, or Yuba status.
-- Scope: Request throttling belongs in `src/docker/runtime.ts` at the Docker runtime boundary. Douyu parsing remains in `src/core/`; route registration remains thin in `src/docker/server.ts`; client-side lazy loading belongs in `src/docker/webui/index.html`.
+- Scope: Request throttling belongs in `src/docker/runtime.ts` at the Docker runtime boundary. Douyu parsing remains in `src/core/`; route registration remains thin in `src/docker/server.ts`; client-side lazy loading belongs in the Vue/Vite WebUI under `src/docker/webui-src/`.
 
 ### 2. Signatures
 

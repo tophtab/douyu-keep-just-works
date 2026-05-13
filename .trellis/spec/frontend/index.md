@@ -55,6 +55,7 @@ When changing files under `src/docker/webui-src/` or transitional files under `s
 
 - Keep Vue/Vite source under `src/docker/webui-src/`.
 - Keep transitional legacy browser modules under `src/docker/webui/` until each behavior area is migrated into Vue components/composables.
+- Keep `src/docker/webui/index.html` as a source-tree placeholder next to shared styles only; do not restore old static UI markup there.
 - `src/docker/webui-src/main.ts` owns the legacy module import order while the transition layer exists.
 - `src/docker/webui-src/index.html` owns the Vite HTML shell and the `DOUYU_KEEP_WEBUI_BOOTSTRAP` runtime token placeholders.
 - `src/docker/webui-src/App.vue` currently preserves the existing Docker WebUI shell markup; future work may split it into smaller Vue components.

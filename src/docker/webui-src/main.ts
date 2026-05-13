@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import App from './App.vue'
+import { installLegacyCookieActionBridge } from './cookie'
 import { installLegacyRequestBridge } from './request'
 import { installLegacySystemResourceBridge } from './resources'
 
@@ -22,7 +23,6 @@ async function bootstrapLegacyBehavior(): Promise<void> {
   await import('../webui/app-double-task-page.js')
   await import('../webui/app-task-pages.js')
   await import('../webui/app-pages.js')
-  await import('../webui/app-cookie-actions.js')
   await import('../webui/app-fans-resource-actions.js')
   await import('../webui/app-yuba-resource-actions.js')
   await import('../webui/app-resource-actions.js')
@@ -35,5 +35,6 @@ async function bootstrapLegacyBehavior(): Promise<void> {
 }
 
 installLegacyRequestBridge()
+installLegacyCookieActionBridge()
 createApp(App).mount('#app')
 void bootstrapLegacyBehavior()

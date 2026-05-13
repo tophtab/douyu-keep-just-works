@@ -4,17 +4,13 @@
     var escapeHtml = deps.escapeHtml;
     var formatDate = deps.formatDate;
     var state = deps.state;
-    var buildCookieCheckText = deps.buildCookieCheckText;
     var getRawConfig = deps.getRawConfig;
-    var getCookieCloudConfig = deps.getCookieCloudConfig;
-    var getManualCookiesConfig = deps.getManualCookiesConfig;
     var hasCookieSourceConfigured = deps.hasCookieSourceConfigured;
     var getManagedFans = deps.getManagedFans;
     var renderRefreshButton = deps.renderRefreshButton;
     var buildOverviewGiftSummary = deps.buildOverviewGiftSummary;
     var buildSummaryStatusCell = deps.buildSummaryStatusCell;
     var buildFansStatusTable = deps.buildFansStatusTable;
-    var buildLoginStatusCard = deps.buildLoginStatusCard;
 
     var CRON_RENDERERS = window.DOUYU_KEEP_WEBUI_PAGE_CRON.create({
       byId: byId,
@@ -59,11 +55,11 @@
     var applyDoubleRatioPreset = TASK_PAGE_RENDERERS.applyDoubleRatioPreset;
 
     function renderCookieCheck() {
-      var note = byId('cookie-cloud-note');
-      if (!note) {
-        return;
-      }
-      note.textContent = buildCookieCheckText(state.cookieCheck);
+      document.dispatchEvent(new CustomEvent('douyu-keep-webui:login-page', {
+        detail: {
+          cookieCheck: state.cookieCheck
+        }
+      }));
     }
 
     function renderOverview() {
@@ -148,18 +144,14 @@
     function renderLoginPage() {
       var config = getRawConfig();
       var fansCount = state.fansStatusLoaded ? state.fansStatus.length : getManagedFans().length;
-      byId('cookie-login-card').innerHTML = buildLoginStatusCard(state.overview, fansCount);
-      var manualCookies = getManualCookiesConfig(config);
-      byId('main-cookie-input').value = manualCookies.main || '';
-      byId('yuba-cookie-input').value = manualCookies.yuba || '';
-      var cookieCloud = getCookieCloudConfig(config);
-      byId('cookie-cloud-enable').checked = cookieCloud.active === true;
-      byId('cookie-cloud-endpoint').value = cookieCloud.endpoint || '';
-      byId('cookie-cloud-uuid').value = cookieCloud.uuid || '';
-      byId('cookie-cloud-cron').value = cookieCloud.cron || '0 5 0 * * *';
-      byId('cookie-cloud-password').value = cookieCloud.password || '';
-      void ensureCronPreview('cookieCloud', byId('cookie-cloud-cron').value, 'cookie-cloud-cron-preview');
-      renderCookieCheck();
+      document.dispatchEvent(new CustomEvent('douyu-keep-webui:login-page', {
+        detail: {
+          rawConfig: config,
+          overview: state.overview,
+          fansCount: fansCount,
+          cookieCheck: state.cookieCheck
+        }
+      }));
     }
 
     function renderLogsPage() {

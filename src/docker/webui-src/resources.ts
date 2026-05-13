@@ -105,7 +105,7 @@ function formatShanghaiMinuteFallback(date: Date): string {
   return `${shanghaiDate.getUTCFullYear()}-${padDatePart(shanghaiDate.getUTCMonth() + 1)}-${padDatePart(shanghaiDate.getUTCDate())} ${padDatePart(shanghaiDate.getUTCHours())}:${padDatePart(shanghaiDate.getUTCMinutes())}`
 }
 
-function formatDate(value: string | null): string {
+export function formatDate(value: string | null): string {
   if (!value) {
     return '无'
   }
@@ -177,7 +177,16 @@ function getConfiguredThemeMode(rawConfig: unknown): string {
 function dispatchConfigLoaded(rawConfig: unknown): void {
   document.dispatchEvent(new CustomEvent('douyu-keep-webui:config', {
     detail: {
+      rawConfig,
       themeMode: getConfiguredThemeMode(rawConfig),
+    },
+  }))
+}
+
+function dispatchOverviewLoaded(overview: unknown): void {
+  document.dispatchEvent(new CustomEvent('douyu-keep-webui:overview', {
+    detail: {
+      overview,
     },
   }))
 }
@@ -337,6 +346,7 @@ function createLegacySystemResourceActions(deps: LegacySystemResourceDeps): Lega
     },
     onSuccess(data) {
       deps.state.overview = data
+      dispatchOverviewLoaded(data)
       deps.renderOverview()
     },
   })

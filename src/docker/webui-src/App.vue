@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAuthSession } from './auth'
+import { useCookieLoginPage } from './cookie'
 import { usePageNavigation } from './navigation'
 import { useLogsPage } from './resources'
 import { useThemeMode } from './theme'
@@ -65,6 +66,20 @@ const {
   logBoxRef,
   refreshLogs,
 } = useLogsPage(activeTab, authenticated)
+
+const {
+  checkCookieSource,
+  cookieCheckText,
+  cookieCloud,
+  cronPreviewText,
+  handleCookieCloudToggle,
+  loadCookieCloudCronPreview,
+  loginStatus,
+  mainCookie,
+  saveAndEnableCookieCloud,
+  saveCookie,
+  yubaCookie,
+} = useCookieLoginPage()
 </script>
 
 <!-- eslint-disable -->
@@ -231,7 +246,21 @@ const {
 
     <section class="page" :class="{ active: activeTab === 'login' }" id="page-login" role="tabpanel" aria-labelledby="tab-login" tabindex="0" :aria-hidden="activeTab === 'login' ? 'false' : 'true'" :hidden="activeTab !== 'login'">
       <div class="task-card" id="cookie-login-card" style="margin-bottom:16px">
-        <div class="task-card-title">登录状态</div>
+        <div class="task-card-head">
+          <div>
+            <div class="section-kicker">登录状态</div>
+            <h3 class="task-card-title">登录</h3>
+          </div>
+        </div>
+        <div class="task-card-pills">
+          <span v-for="pill in loginStatus.pills" :key="pill.label" class="pill" :class="pill.kind">{{ pill.label }}</span>
+        </div>
+        <div class="summary-grid">
+          <div v-for="cell in loginStatus.cells" :key="cell.label" class="summary-cell">
+            <div class="mini-label">{{ cell.label }}</div>
+            <div class="mini-value">{{ cell.value }}</div>
+          </div>
+        </div>
       </div>
 
       <div class="panel">
@@ -240,15 +269,15 @@ const {
         <div class="grid cols-2" style="margin-top:16px">
           <div class="field-block" style="margin-top:0">
             <label class="field-label" for="main-cookie-input">斗鱼直播的 Cookie</label>
-            <textarea id="main-cookie-input" name="main-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 www.douyu.com / douyu.com 登录 Cookie"></textarea>
+            <textarea id="main-cookie-input" v-model="mainCookie" name="main-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 www.douyu.com / douyu.com 登录 Cookie"></textarea>
           </div>
           <div class="field-block" style="margin-top:0">
             <label class="field-label" for="yuba-cookie-input">斗鱼鱼吧的 Cookie</label>
-            <textarea id="yuba-cookie-input" name="yuba-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 yuba.douyu.com 登录 Cookie"></textarea>
+            <textarea id="yuba-cookie-input" v-model="yubaCookie" name="yuba-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 yuba.douyu.com 登录 Cookie"></textarea>
           </div>
         </div>
         <div class="actions">
-          <button class="btn btn-success" type="button" data-action="save-cookie">保存手填 Cookie</button>
+          <button class="btn btn-success" type="button" @click="saveCookie">保存手填 Cookie</button>
         </div>
       </div>
 
@@ -260,7 +289,7 @@ const {
           </div>
           <div class="field-block" style="margin:0">
             <label class="switch-control">
-              <input class="switch-input" type="checkbox" id="cookie-cloud-enable" name="cookie-cloud-enable" aria-label="启用 CookieCloud 同步">
+              <input id="cookie-cloud-enable" v-model="cookieCloud.active" class="switch-input" type="checkbox" name="cookie-cloud-enable" aria-label="启用 CookieCloud 同步" @change="handleCookieCloudToggle">
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -268,26 +297,26 @@ const {
         <div class="grid cols-2">
           <div class="field-block">
             <label class="field-label" for="cookie-cloud-endpoint">Endpoint</label>
-            <input id="cookie-cloud-endpoint" name="cookie-cloud-endpoint" type="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="https://cookiecloud.example.com">
+            <input id="cookie-cloud-endpoint" v-model="cookieCloud.endpoint" name="cookie-cloud-endpoint" type="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="https://cookiecloud.example.com">
           </div>
           <div class="field-block">
             <label class="field-label" for="cookie-cloud-uuid">UUID</label>
-            <input id="cookie-cloud-uuid" name="cookie-cloud-uuid" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="CookieCloud UUID">
+            <input id="cookie-cloud-uuid" v-model="cookieCloud.uuid" name="cookie-cloud-uuid" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="CookieCloud UUID">
           </div>
           <div class="field-block">
             <label class="field-label" for="cookie-cloud-cron">同步 Cron</label>
-            <input id="cookie-cloud-cron" name="cookie-cloud-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="0 5 0 * * *">
-            <div class="helper cron-preview" id="cookie-cloud-cron-preview" role="status" aria-live="polite">正在计算未来执行时间…</div>
+            <input id="cookie-cloud-cron" v-model="cookieCloud.cron" name="cookie-cloud-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="0 5 0 * * *" @input="loadCookieCloudCronPreview">
+            <div class="helper cron-preview" id="cookie-cloud-cron-preview" role="status" aria-live="polite">{{ cronPreviewText }}</div>
           </div>
           <div class="field-block">
             <label class="field-label" for="cookie-cloud-password">密码</label>
-            <input id="cookie-cloud-password" name="cookie-cloud-password" type="password" autocomplete="current-password" spellcheck="false" placeholder="CookieCloud Password">
+            <input id="cookie-cloud-password" v-model="cookieCloud.password" name="cookie-cloud-password" type="password" autocomplete="current-password" spellcheck="false" placeholder="CookieCloud Password">
           </div>
         </div>
-        <div class="status-box" id="cookie-cloud-note" role="status" aria-live="polite" style="margin-top:16px">等待校验…</div>
+        <div class="status-box" id="cookie-cloud-note" role="status" aria-live="polite" style="margin-top:16px">{{ cookieCheckText }}</div>
         <div class="actions cookie-cloud-actions" style="margin-top:16px">
-          <button class="btn btn-success" type="button" data-action="save-cookie-cloud">保存并启用</button>
-          <button class="btn btn-secondary" type="button" data-action="check-cookie-source">同步并校验</button>
+          <button class="btn btn-success" type="button" @click="saveAndEnableCookieCloud">保存并启用</button>
+          <button class="btn btn-secondary" type="button" @click="checkCookieSource()">同步并校验</button>
         </div>
       </div>
     </section>

@@ -5,9 +5,6 @@
     var setActiveTab = deps.setActiveTab;
     var handleVueNavigation = deps.handleVueNavigation;
     var refreshOverviewSurface = deps.refreshOverviewSurface;
-    var saveCookie = deps.saveCookie;
-    var saveAndEnableCookieCloud = deps.saveAndEnableCookieCloud;
-    var checkCookieSource = deps.checkCookieSource;
     var saveCollectConfig = deps.saveCollectConfig;
     var saveYubaConfig = deps.saveYubaConfig;
     var saveKeepaliveConfig = deps.saveKeepaliveConfig;
@@ -16,8 +13,6 @@
     var applyDoubleRatioPreset = deps.applyDoubleRatioPreset;
     var triggerTask = deps.triggerTask;
     var loadCronPreview = deps.loadCronPreview;
-    var saveCookieCloudToggle = deps.saveCookieCloudToggle;
-    var disableCookieCloud = deps.disableCookieCloud;
     var disableCollectConfig = deps.disableCollectConfig;
     var disableYubaConfig = deps.disableYubaConfig;
     var disableKeepaliveConfig = deps.disableKeepaliveConfig;
@@ -47,18 +42,6 @@
       var action = target.getAttribute('data-action');
       if (action === 'refresh-overview') {
         refreshOverviewSurface(true);
-        return;
-      }
-      if (action === 'save-cookie') {
-        saveCookie();
-        return;
-      }
-      if (action === 'save-cookie-cloud') {
-        saveAndEnableCookieCloud();
-        return;
-      }
-      if (action === 'check-cookie-source') {
-        checkCookieSource();
         return;
       }
       if (action === 'save-collect') {
@@ -111,12 +94,6 @@
       });
       byId('collect-enable').addEventListener('change', function (event) {
         handleTaskToggleChange(event, saveCollectConfig, disableCollectConfig);
-      });
-      byId('cookie-cloud-cron').addEventListener('input', function (event) {
-        void loadCronPreview('cookieCloud', event.target.value, 'cookie-cloud-cron-preview');
-      });
-      byId('cookie-cloud-enable').addEventListener('change', function (event) {
-        handleTaskToggleChange(event, saveCookieCloudToggle, disableCookieCloud);
       });
       byId('yuba-cron').addEventListener('input', function (event) {
         void loadCronPreview('yubaCheckIn', event.target.value, 'yuba-cron-preview');

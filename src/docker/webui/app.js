@@ -286,12 +286,6 @@
   var loadFansStatus = ACTIONS.loadFansStatus;
   var loadYubaStatus = ACTIONS.loadYubaStatus;
   var refreshOverviewSurface = ACTIONS.refreshOverviewSurface;
-  var saveCookie = ACTIONS.saveCookie;
-  var saveCookieCloud = ACTIONS.saveCookieCloud;
-  var checkCookieSource = ACTIONS.checkCookieSource;
-  var saveCookieCloudToggle = ACTIONS.saveCookieCloudToggle;
-  var saveAndEnableCookieCloud = ACTIONS.saveAndEnableCookieCloud;
-  var disableCookieCloud = ACTIONS.disableCookieCloud;
   var triggerTask = ACTIONS.triggerTask;
 
   var TASK_ACTIONS = window.DOUYU_KEEP_WEBUI_TASK_ACTIONS.create({
@@ -322,11 +316,6 @@
     handleVueNavigation: handleVueNavigation,
     refreshOverviewSurface: refreshOverviewSurface,
     loadOverview: loadOverview,
-    saveCookie: saveCookie,
-    saveAndEnableCookieCloud: saveAndEnableCookieCloud,
-    checkCookieSource: checkCookieSource,
-    saveCookieCloudToggle: saveCookieCloudToggle,
-    disableCookieCloud: disableCookieCloud,
     saveCollectConfig: saveCollectConfig,
     disableCollectConfig: disableCollectConfig,
     saveYubaConfig: saveYubaConfig,

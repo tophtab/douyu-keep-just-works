@@ -44,6 +44,8 @@ src/
 │       ├── index.html
 │   └── webui-src/
 │       ├── App.vue
+│       ├── components/
+│       │   └── AuthShell.vue
 │       ├── actions.ts
 │       ├── auth.ts
 │       ├── collect.ts
@@ -94,7 +96,8 @@ Examples:
 - `src/docker/server-*-routes.ts` files own cohesive Docker HTTP route groups and delegate work through `AppContext`.
 - `src/docker/server-types.ts` owns the shared `AppContext` and `JobStatus` types re-exported by `server.ts` for existing imports.
 - `src/docker/webui-src/index.html` owns the Vite HTML shell and runtime token placeholders.
-- `src/docker/webui-src/App.vue` owns the current Docker WebUI document shell markup during the conservative Vue migration.
+- `src/docker/webui-src/App.vue` owns app-level Docker WebUI composition during the conservative Vue migration.
+- `src/docker/webui-src/components/AuthShell.vue` owns the login shell markup while `App.vue` wires it to `useAuthSession()`.
 - `src/docker/webui-src/main.ts` owns Vue bootstrapping, CSS imports, TypeScript bridge installation order, and starting the transitional legacy app bridge.
 - `src/docker/webui-src/legacy-core.ts` owns Vue/TypeScript-side legacy core bridge setup for Docker WebUI page metadata, default raw config constants, route/path helpers, DOM lookup, HTML escaping, date formatting, and toast helper compatibility while transitional TypeScript orchestration consumes `DOUYU_KEEP_WEBUI_DATA`, `DOUYU_KEEP_WEBUI_ROUTING`, and `DOUYU_KEEP_WEBUI_DOM`.
 - `src/docker/webui-src/legacy-state.ts` owns Vue/TypeScript-side transitional shared state helpers, managed fan/config derivation, fan-status merge helpers, protected-state clearing, and the legacy `DOUYU_KEEP_WEBUI_STATE`, `DOUYU_KEEP_WEBUI_MANAGED_DATA`, and `DOUYU_KEEP_WEBUI_PROTECTED_STATE` bridges while transitional TypeScript orchestration consumes those APIs.

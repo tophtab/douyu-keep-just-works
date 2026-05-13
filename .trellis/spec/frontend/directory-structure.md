@@ -23,6 +23,8 @@ This project does not currently use Vue Router, Pinia, Vuetify, UnoCSS, or an El
 src/docker/
 ├── webui-src/
 │   ├── App.vue
+│   ├── components/
+│   │   └── AuthShell.vue
 │   ├── legacy-app.ts
 │   ├── index.html
 │   ├── main.ts
@@ -42,6 +44,7 @@ src/docker/
 - Put Vue app entry code in `src/docker/webui-src/main.ts`.
 - Put the Vite HTML shell in `src/docker/webui-src/index.html`.
 - Put Vue shell/component code in `src/docker/webui-src/*.vue`.
+- Put extracted cohesive shell/page components under `src/docker/webui-src/components/`.
 - Put shared Docker WebUI styles under `src/docker/webui-src/styles/`, imported by `main.ts` in base, components, tables, responsive order.
 - Keep `src/docker/webui/index.html` as a source-tree placeholder only; it must not contain migrated UI markup or boot scripts.
 - Keep Docker runtime serving concerns in `src/docker/webui.ts` and `src/docker/server-webui-routes.ts`.

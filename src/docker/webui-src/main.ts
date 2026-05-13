@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import App from './App.vue'
+import { installLegacyRequestBridge } from './request'
 
 import '../webui/styles.css'
 import '../webui/styles-components.css'
@@ -13,7 +14,6 @@ async function bootstrapLegacyBehavior(): Promise<void> {
   await import('../webui/app-state.js')
   await import('../webui/app-managed-data.js')
   await import('../webui/app-protected-state.js')
-  await import('../webui/app-request.js')
   await import('../webui/app-table-render.js')
   await import('../webui/app-render.js')
   await import('../webui/app-page-cron.js')
@@ -33,5 +33,6 @@ async function bootstrapLegacyBehavior(): Promise<void> {
   await import('../webui/app.js')
 }
 
+installLegacyRequestBridge()
 createApp(App).mount('#app')
 void bootstrapLegacyBehavior()

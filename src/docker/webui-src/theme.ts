@@ -1,6 +1,6 @@
 import type { ThemeMode } from '../../core/types'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { showToast } from './toast'
+import { requestJson } from './request'
 
 type ResolvedThemeMode = 'light' | 'dark'
 
@@ -8,12 +8,7 @@ interface ThemeConfigDetail {
   themeMode?: unknown
 }
 
-interface WebUiRequestError extends Error {
-  status?: number
-}
-
 const CONFIG_EVENT_NAME = 'douyu-keep-webui:config'
-const UNAUTHORIZED_EVENT_NAME = 'douyu-keep-webui:unauthorized'
 const THEME_COLOR_BY_MODE: Record<ResolvedThemeMode, string> = {
   dark: '#000000',
   light: '#f4ede4',
@@ -39,34 +34,6 @@ function getSystemPrefersDark(): boolean {
   } catch {
     return true
   }
-}
-
-function parseJson(text: string): unknown {
-  if (!text) {
-    return {}
-  }
-  return JSON.parse(text)
-}
-
-function getErrorMessage(data: unknown): string {
-  if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') {
-    return data.error
-  }
-  return '请求失败'
-}
-
-async function requestJson(url: string, options: RequestInit): Promise<unknown> {
-  const response = await fetch(url, options)
-  const text = await response.text()
-  const data = parseJson(text)
-
-  if (!response.ok) {
-    const error = new Error(getErrorMessage(data)) as WebUiRequestError
-    error.status = response.status
-    throw error
-  }
-
-  return data
 }
 
 function setThemeMeta(resolvedTheme: ResolvedThemeMode): void {
@@ -119,15 +86,10 @@ export function useThemeMode() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ui: { themeMode: nextThemeMode } }),
+        errorToast: message => `保存主题失败：${message}`,
       })
-    } catch (error) {
+    } catch {
       themeMode.value = previousThemeMode
-      if (error instanceof Error && (error as WebUiRequestError).status === 401) {
-        document.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT_NAME))
-        return
-      }
-      const message = error instanceof Error ? error.message : String(error)
-      showToast(`保存主题失败：${message}`, false)
     } finally {
       savingThemeMode.value = null
     }

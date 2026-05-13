@@ -1,12 +1,9 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { requestJson, UNAUTHORIZED_EVENT_NAME } from './request'
 import { showToast } from './toast'
 
 interface AuthStatusResponse {
   authenticated?: unknown
-}
-
-interface WebUiRequestError extends Error {
-  status?: number
 }
 
 interface LegacyAuthBridge {
@@ -26,35 +23,7 @@ declare global {
 
 export const AUTH_STATE_EVENT_NAME = 'douyu-keep-webui:auth-state'
 export const LEGACY_READY_EVENT_NAME = 'douyu-keep-webui:legacy-ready'
-export const UNAUTHORIZED_EVENT_NAME = 'douyu-keep-webui:unauthorized'
-
-function parseJson(text: string): unknown {
-  if (!text) {
-    return {}
-  }
-  return JSON.parse(text)
-}
-
-function getErrorMessage(data: unknown): string {
-  if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') {
-    return data.error
-  }
-  return '请求失败'
-}
-
-async function requestJson<T>(url: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(url, options)
-  const text = await response.text()
-  const data = parseJson(text)
-
-  if (!response.ok) {
-    const error = new Error(getErrorMessage(data)) as WebUiRequestError
-    error.status = response.status
-    throw error
-  }
-
-  return data as T
-}
+export { UNAUTHORIZED_EVENT_NAME }
 
 function dispatchAuthState(authenticated: boolean): void {
   document.dispatchEvent(new CustomEvent<AuthStateDetail>(AUTH_STATE_EVENT_NAME, {
@@ -136,7 +105,9 @@ export function useAuthSession() {
     const requestSeq = nextAuthRequestSeq()
 
     try {
-      const data = await requestJson<AuthStatusResponse>('/api/auth/status')
+      const data = await requestJson<AuthStatusResponse>('/api/auth/status', {
+        onUnauthorized: false,
+      })
       if (!isLatestAuthRequest(requestSeq)) {
         return authenticated.value
       }
@@ -180,6 +151,7 @@ export function useAuthSession() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: nextPassword }),
+        onUnauthorized: false,
       })
       if (!isLatestAuthRequest(requestSeq)) {
         return false
@@ -220,7 +192,7 @@ export function useAuthSession() {
     nextAuthRequestSeq()
 
     try {
-      await requestJson('/api/auth/logout', { method: 'POST' })
+      await requestJson('/api/auth/logout', { method: 'POST', onUnauthorized: false })
     } catch {
       // Client-side logout should still clear local protected state if the request fails.
     }

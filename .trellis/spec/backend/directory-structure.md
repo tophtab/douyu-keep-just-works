@@ -109,6 +109,7 @@ Examples:
 - `src/docker/webui-src/main.ts` owns Vue bootstrapping, CSS imports, and transitional legacy module import order.
 - `src/docker/webui-src/auth.ts` owns Vue-side WebUI session checks, login, logout, unauthorized handling, and the legacy auth-state bridge.
 - `src/docker/webui-src/navigation.ts` owns Vue-side page route state, History API syncing, tab keyboard navigation, and the legacy navigation event bridge.
+- `src/docker/webui-src/overview.ts` owns Vue-side Docker WebUI overview page status cards, gift summary, fans status table view models, refresh button state, and the legacy overview/refresh event bridge.
 - `src/docker/webui-src/request.ts` owns Vue-side JSON request handling, unauthorized forwarding, optional toast feedback, and the legacy `DOUYU_KEEP_WEBUI_REQUEST` bridge.
 - `src/docker/webui-src/resources.ts` owns Vue-side read-only system resource loading for raw config, overview, and logs plus the legacy `DOUYU_KEEP_WEBUI_SYSTEM_RESOURCE_ACTIONS` bridge.
 - `src/docker/webui-src/cookie.ts` owns Vue-side manual Cookie and CookieCloud form state, save/sync/check actions, CookieCloud cron preview loading, and the legacy `DOUYU_KEEP_WEBUI_COOKIE_ACTIONS` bridge.
@@ -138,6 +139,7 @@ Examples:
 - `src/docker/webui/app-send-task-actions.js` delegates keepalive, double-card, and expiring-gift room-send task actions through Vue-owned bridges during migration.
 - `src/docker/webui/app-simple-task-actions.js` delegates collect-gift and Yuba check-in simple task save/disable actions through Vue-owned bridges while it remains part of transitional task action assembly.
 - `src/docker/webui-src/resources.ts` replaces the former `src/docker/webui/app-system-resource-actions.js` owner for Docker WebUI raw config, overview, and log resource loading actions during the Vue migration.
+- `src/docker/webui-src/overview.ts` replaces the overview rendering portion of `src/docker/webui/app-pages.js` during the Vue migration; `app-pages.js` dispatches overview state snapshots instead of mutating overview DOM nodes.
 - `src/docker/webui-src/cookie.ts` replaces the former `src/docker/webui/app-cookie-actions.js` owner for Docker WebUI manual Cookie and CookieCloud actions during the Vue migration.
 - `src/docker/webui-src/collect.ts` replaces the collect-gift portion of `src/docker/webui/app-simple-task-actions.js` and `src/docker/webui/app-task-pages.js` during the Vue migration.
 - `src/docker/webui-src/keepalive.ts` replaces the keepalive portions of `src/docker/webui/app-send-task-actions.js` and `src/docker/webui/app-task-pages.js` during the Vue migration.

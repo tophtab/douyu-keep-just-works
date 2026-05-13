@@ -764,6 +764,129 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:collect-page', {
 }))
 ```
 
+## Scenario: Vue-Owned Transitional Overview Page
+
+### 1. Scope / Trigger
+
+- Trigger: Moving the Docker WebUI overview page from legacy `innerHTML` rendering into Vue while legacy modules still own raw config, overview, fans-status loading, and protected-state reset orchestration.
+- Scope: Overview status cards, gift summary metrics, fans status note, fans status table, "前往登录" empty-state action, refresh button busy state, and the legacy bridge events that feed those surfaces.
+
+### 2. Signatures
+
+```typescript
+export function useOverviewPage(): {
+  overviewFansEmptyText: ComputedRef<string>
+  overviewFansNote: ComputedRef<string>
+  overviewFansRows: ComputedRef<Array<{
+    doubleKind: string
+    doubleLabel: string
+    index: number
+    intimacy: string
+    level: number | string
+    name: string
+    rank: number | string
+    roomId: number
+    today: number | string
+  }>>
+  overviewGiftMetrics: ComputedRef<Array<{ label: string, value: string }>>
+  overviewStatusCells: ComputedRef<Array<{
+    disabledText: string
+    enabled: boolean
+    enabledText: string
+    label: string
+  }>>
+  refreshLoading: Ref<boolean>
+  refreshOverview: () => void
+  refreshOverviewTitle: ComputedRef<string>
+  showOverviewFansTable: ComputedRef<boolean>
+  showOverviewLoginAction: ComputedRef<boolean>
+}
+```
+
+```javascript
+document.dispatchEvent(new CustomEvent('douyu-keep-webui:overview-page', {
+  detail: {
+    fansStatus,
+    fansStatusDetailsLoaded,
+    fansStatusDetailsLoading,
+    fansStatusLoaded,
+    fansStatusLoading,
+    giftStatus,
+    hasCookieSourceConfigured,
+    managedLoading,
+    overview,
+  },
+}))
+```
+
+```javascript
+document.dispatchEvent(new CustomEvent('douyu-keep-webui:refresh-state', {
+  detail: { loading },
+}))
+```
+
+```typescript
+document.dispatchEvent(new CustomEvent('douyu-keep-webui:refresh-overview-request'))
+```
+
+### 3. Contracts
+
+- `src/docker/webui-src/overview.ts` owns visible overview page state and converts legacy state snapshots into Vue-computed view models.
+- `App.vue` must render overview cards, gift metrics, note text, login empty-state action, and the fans status table through Vue bindings.
+- Legacy `app-pages.js` must dispatch `douyu-keep-webui:overview-page` details and must not mutate `#overview-basic-summary`, `#overview-gift-summary`, `#overview-fans-note`, or `#overview-fans-table-wrap`.
+- Legacy `app.js` may compute active refresh loading from transitional state, but it must publish that state through `douyu-keep-webui:refresh-state` instead of mutating the refresh button DOM.
+- Legacy `app-events.js` must listen for `douyu-keep-webui:refresh-overview-request` and call `refreshOverviewSurface(true)`; `App.vue` must not use `data-action="refresh-overview"` after Vue owns the button.
+- The overview page must preserve the existing lazy-load behavior: selecting overview with a configured cookie source still asks legacy resource actions to load fans status when needed.
+- Empty/loading/error copy must stay stable during framework-only migration.
+
+### 4. Validation & Error Matrix
+
+| Case | Expected behavior |
+|------|-------------------|
+| Overview has not loaded | Vue shows `-` summary values, `正在加载粉丝牌状态…`, and `请稍候…` |
+| No Cookie source is configured | Vue shows `未配置` gift metrics, the existing Cookie requirement note, and a Vue `@click` login navigation button |
+| Fans status is loading for the first time | Vue shows `同步中` gift metrics and the existing loading copy |
+| Fans status has not loaded yet | Vue shows `待刷新` gift metrics and the refresh hint |
+| Gift details are still loading | Vue shows `检测中` when no previous gift status exists, and keeps the fans table visible when previous fans data exists |
+| Gift status has an error | Vue shows `未知` gift metrics and includes the backpack error in the note |
+| Fans status is empty | Vue shows the existing empty text without rendering an empty table |
+| Fans status has rows | Vue renders the table with the existing classes, `data-label` mobile labels, scoped headers, and double-card status pills |
+| Active refresh is loading | Vue disables the refresh button, sets `aria-busy="true"`, and uses the `正在刷新` title |
+| Refresh is clicked | Vue dispatches `douyu-keep-webui:refresh-overview-request`; legacy resource actions perform the refresh and success toast |
+
+### 5. Good/Base/Bad Cases
+
+- Good: Vue owns the overview DOM and legacy code sends a single `overview-page` snapshot whenever overview or fans state changes.
+- Good: Refresh button state flows from legacy active-surface loading calculation into Vue through a small event payload.
+- Base: Keep legacy resource orchestration and request coalescing in `app-resource-actions.js` and `app-fans-resource-actions.js` until those loaders are intentionally migrated.
+- Bad: Reintroducing `innerHTML` writes for overview cards or tables after Vue owns the page.
+- Bad: Keeping a `data-action="refresh-overview"` button in `App.vue`; that lets the legacy click dispatcher own a Vue control.
+- Bad: Rendering the fans table with different classes/headers during a framework-only migration, because responsive table CSS depends on those names.
+
+### 6. Tests Required
+
+- Contract tests should assert that `App.vue` uses `useOverviewPage()` and binds overview summary, gift metrics, fans note, fans table, login action, and refresh button through Vue.
+- Contract tests should assert that `overview.ts` listens for `douyu-keep-webui:overview-page` and `douyu-keep-webui:refresh-state`, and dispatches `douyu-keep-webui:refresh-overview-request`.
+- Contract tests should assert that `app-pages.js` dispatches `douyu-keep-webui:overview-page` and no longer mutates overview DOM ids.
+- Contract tests should assert that `app-events.js` listens for `douyu-keep-webui:refresh-overview-request` and no longer handles `action === 'refresh-overview'`.
+- Run `npm run lint`, `npm run type-check:webui`, `npm run test:contracts`, and `npm test` after this migration.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```javascript
+byId('overview-fans-table-wrap').innerHTML = buildFansStatusTable(state.fansStatus)
+```
+
+#### Correct
+
+```javascript
+document.dispatchEvent(new CustomEvent('douyu-keep-webui:overview-page', {
+  detail: { overview: state.overview, fansStatus: state.fansStatus },
+}))
+```
+
 ## Scenario: Vue-Owned Transitional Yuba Task Page
 
 ### 1. Scope / Trigger

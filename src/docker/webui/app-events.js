@@ -5,13 +5,11 @@
     var setActiveTab = deps.setActiveTab;
     var handleVueNavigation = deps.handleVueNavigation;
     var refreshOverviewSurface = deps.refreshOverviewSurface;
-    var saveKeepaliveConfig = deps.saveKeepaliveConfig;
     var saveDoubleConfig = deps.saveDoubleConfig;
     var saveExpiringGiftConfig = deps.saveExpiringGiftConfig;
     var applyDoubleRatioPreset = deps.applyDoubleRatioPreset;
     var triggerTask = deps.triggerTask;
     var loadCronPreview = deps.loadCronPreview;
-    var disableKeepaliveConfig = deps.disableKeepaliveConfig;
     var disableDoubleConfig = deps.disableDoubleConfig;
     var disableExpiringGiftConfig = deps.disableExpiringGiftConfig;
     var buildBackpackRowsTable = deps.buildBackpackRowsTable;
@@ -38,10 +36,6 @@
       var action = target.getAttribute('data-action');
       if (action === 'refresh-overview') {
         refreshOverviewSurface(true);
-        return;
-      }
-      if (action === 'save-keepalive') {
-        saveKeepaliveConfig();
         return;
       }
       if (action === 'save-double') {
@@ -77,12 +71,6 @@
       document.addEventListener('click', handleActionClick);
       document.addEventListener('douyu-keep-webui:navigation', handleVueNavigation);
 
-      byId('keepalive-cron').addEventListener('input', function (event) {
-        void loadCronPreview('keepalive', event.target.value, 'keepalive-cron-preview');
-      });
-      byId('keepalive-enable').addEventListener('change', function (event) {
-        handleTaskToggleChange(event, saveKeepaliveConfig, disableKeepaliveConfig);
-      });
       byId('double-cron').addEventListener('input', function (event) {
         void loadCronPreview('doubleCard', event.target.value, 'double-cron-preview');
       });

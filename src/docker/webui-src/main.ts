@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import { installLegacyCollectTaskBridge } from './collect'
 import { installLegacyCookieActionBridge } from './cookie'
+import { installLegacyKeepaliveTaskBridge } from './keepalive'
 import { installLegacyRequestBridge } from './request'
 import { installLegacySystemResourceBridge } from './resources'
 import { installLegacyYubaBridge } from './yuba'
@@ -38,6 +39,7 @@ async function bootstrapLegacyBehavior(): Promise<void> {
 installLegacyRequestBridge()
 installLegacyCookieActionBridge()
 installLegacyCollectTaskBridge()
+installLegacyKeepaliveTaskBridge()
 installLegacyYubaBridge()
 createApp(App).mount('#app')
 void bootstrapLegacyBehavior()

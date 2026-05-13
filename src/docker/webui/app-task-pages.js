@@ -52,44 +52,18 @@
     function renderKeepalivePage() {
       renderRefreshButton();
       var rawConfig = getRawConfig();
-      var config = getManagedConfig().keepalive || rawConfig.keepalive || { active: true, cron: '0 0 8 */6 * *', model: 2, send: {} };
-      var fans = getManagedFans();
-      byId('keepalive-task-card').innerHTML = state.overview
-        ? buildTaskCard('保活', state.overview.keepaliveConfigured, state.overview.status.keepalive, '房间数', state.overview.keepaliveRooms)
-        : buildLoadingTaskCard('保活');
-      byId('keepalive-enable').checked = isTaskActive(getManagedConfig().keepalive || rawConfig.keepalive);
-      byId('keepalive-cron').value = config.cron || '0 0 8 */6 * *';
-      byId('keepalive-model').value = String(config.model || 2);
-      void ensureCronPreview('keepalive', byId('keepalive-cron').value, 'keepalive-cron-preview');
-
-      if (!hasCookieSourceConfigured(rawConfig)) {
-        byId('keepalive-note').textContent = '请先保存 Cookie 或启用 CookieCloud。没有登录凭证时无法同步粉丝牌，也不会生成保活房间列表。';
-        byId('keepalive-table-wrap').innerHTML = '<div class="empty">保存 Cookie 或启用 CookieCloud 后再同步粉丝牌，这里才会出现房间列表。</div>';
-        return;
-      }
-
-      if (state.managedLoading && !fans.length) {
-        byId('keepalive-note').textContent = '正在同步粉丝牌与保活配置…';
-        byId('keepalive-table-wrap').innerHTML = '<div class="empty">请稍候…</div>';
-        return;
-      }
-
-      if (!fans.length) {
-        if (state.fansListError) {
-          byId('keepalive-note').textContent = '粉丝牌列表加载失败。';
-          byId('keepalive-table-wrap').innerHTML = '<div class="empty">加载粉丝牌列表失败：' + escapeHtml(state.fansListError) + '。请点击顶部“刷新”重试。</div>';
-          return;
+      document.dispatchEvent(new CustomEvent('douyu-keep-webui:keepalive-page', {
+        detail: {
+          rawConfig: rawConfig,
+          managedConfig: getManagedConfig(),
+          overview: state.overview,
+          fans: getManagedFans(),
+          managedLoading: state.managedLoading,
+          fansListError: state.fansListError,
+          fansListLoaded: hasLoadedFansList()
         }
-        byId('keepalive-note').textContent = hasLoadedFansList() ? '当前没有可用粉丝牌。' : '粉丝牌列表尚未加载。';
-        byId('keepalive-table-wrap').innerHTML = hasLoadedFansList()
-          ? '<div class="empty">已同步，但当前账号没有可用粉丝牌数据。</div>'
-          : '<div class="empty">正在准备加载粉丝牌列表，也可以点击刷新手动加载。</div>';
-        ensureFansListForActiveTab();
-        return;
-      }
-
-      byId('keepalive-note').textContent = (state.managedLoading ? '正在后台同步，当前显示上次结果。' : '') + '当前已同步 ' + fans.length + ' 个粉丝牌房间。';
-      byId('keepalive-table-wrap').innerHTML = buildSendTable(fans, config, false, 'keepalive-value');
+      }));
+      ensureFansListForActiveTab();
     }
 
     function renderExpiringGiftPage() {

@@ -2,6 +2,7 @@
 import { useAuthSession } from './auth'
 import { useCollectTaskPage } from './collect'
 import { useCookieLoginPage } from './cookie'
+import { useKeepaliveTaskPage } from './keepalive'
 import { usePageNavigation } from './navigation'
 import { useLogsPage } from './resources'
 import { useThemeMode } from './theme'
@@ -109,6 +110,24 @@ const {
   yubaTableRows,
   yubaTaskCard,
 } = useYubaTaskPage()
+
+const {
+  fanRows: keepaliveFanRows,
+  handleKeepaliveModelChange,
+  handleKeepaliveToggle,
+  keepaliveCron,
+  keepaliveCronPreviewText,
+  keepaliveEmptyText,
+  keepaliveEnabled,
+  keepaliveModel,
+  keepaliveNote,
+  keepaliveTaskCard,
+  keepaliveValueLabel,
+  loadKeepaliveCronPreview,
+  saveKeepaliveConfig,
+  showKeepaliveTable,
+  triggerKeepaliveTask,
+} = useKeepaliveTaskPage()
 </script>
 
 <!-- eslint-disable -->
@@ -493,9 +512,23 @@ const {
 
     <section class="page" :class="{ active: activeTab === 'keepalive' }" id="page-keepalive" role="tabpanel" aria-labelledby="tab-keepalive" tabindex="0" :aria-hidden="activeTab === 'keepalive' ? 'false' : 'true'" :hidden="activeTab !== 'keepalive'">
       <div class="task-card" id="keepalive-task-card">
-        <div class="task-card-title">保活状态</div>
+        <div class="task-card-head">
+          <div>
+            <div class="section-kicker">任务状态</div>
+            <h3 class="task-card-title">保活</h3>
+          </div>
+        </div>
+        <div class="task-card-pills">
+          <span v-for="pill in keepaliveTaskCard.pills" :key="pill.label" class="pill" :class="pill.kind">{{ pill.label }}</span>
+        </div>
+        <div class="summary-grid">
+          <div v-for="cell in keepaliveTaskCard.cells" :key="cell.label" class="summary-cell">
+            <div class="mini-label">{{ cell.label }}</div>
+            <div class="mini-value">{{ cell.value }}</div>
+          </div>
+        </div>
       </div>
-      <div class="status-box" id="keepalive-note" role="status" aria-live="polite" style="margin-top:16px">等待加载…</div>
+      <div class="status-box" id="keepalive-note" role="status" aria-live="polite" style="margin-top:16px">{{ keepaliveNote }}</div>
 
       <div class="panel" style="margin-top:16px">
         <div class="field-block">
@@ -505,7 +538,7 @@ const {
               <div class="switch-note">关闭后保留配置，但不执行保活调度。</div>
             </div>
             <label class="switch-control">
-              <input class="switch-input" type="checkbox" id="keepalive-enable" name="keepalive-enable" aria-label="启用保活任务">
+              <input id="keepalive-enable" v-model="keepaliveEnabled" class="switch-input" type="checkbox" name="keepalive-enable" aria-label="启用保活任务" @change="handleKeepaliveToggle">
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -513,22 +546,64 @@ const {
         <div class="grid cols-2">
           <div class="field-block">
             <label class="field-label" for="keepalive-cron">Cron 表达式</label>
-            <input id="keepalive-cron" name="keepalive-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
-            <div class="helper cron-preview" id="keepalive-cron-preview" role="status" aria-live="polite">正在计算未来执行时间…</div>
+            <input id="keepalive-cron" v-model="keepaliveCron" name="keepalive-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" @input="loadKeepaliveCronPreview">
+            <div class="helper cron-preview" id="keepalive-cron-preview" role="status" aria-live="polite">{{ keepaliveCronPreviewText }}</div>
           </div>
           <div class="field-block">
             <label class="field-label" for="keepalive-model">分配模式</label>
-            <select id="keepalive-model" name="keepalive-model">
+            <select id="keepalive-model" v-model.number="keepaliveModel" name="keepalive-model" @change="handleKeepaliveModelChange">
               <option value="1">按权重</option>
               <option value="2">按固定数量</option>
             </select>
           </div>
         </div>
         <div class="actions" style="margin-top:16px">
-          <button class="btn btn-success" type="button" data-action="save-keepalive">保存并启用</button>
-          <button class="btn btn-secondary" type="button" data-action="trigger" data-trigger="keepalive">立即保活</button>
+          <button class="btn btn-success" type="button" @click="saveKeepaliveConfig()">保存并启用</button>
+          <button class="btn btn-secondary" type="button" @click="triggerKeepaliveTask">立即保活</button>
         </div>
-        <div id="keepalive-table-wrap" style="margin-top:16px"></div>
+        <div id="keepalive-table-wrap" style="margin-top:16px">
+          <div v-if="!showKeepaliveTable" class="empty">{{ keepaliveEmptyText }}</div>
+          <div v-else class="table-shell">
+            <table class="table table-fixed keepalive-table">
+              <colgroup>
+                <col style="width:56px">
+                <col style="width:156px">
+                <col style="width:104px">
+                <col style="width:94px">
+                <col style="width:94px">
+                <col style="width:94px">
+                <col style="width:94px">
+                <col style="width:112px">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="index-head" scope="col">序号</th>
+                  <th scope="col">主播名称</th>
+                  <th class="num-head" scope="col">房间号</th>
+                  <th class="num-head" scope="col">等级</th>
+                  <th class="num-head" scope="col">排名</th>
+                  <th class="num-head" scope="col">今日亲密度</th>
+                  <th class="num-head" scope="col">亲密度</th>
+                  <th class="control-head" scope="col">{{ keepaliveValueLabel }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in keepaliveFanRows" :key="row.roomId">
+                  <td class="index-cell" data-label="序号">{{ row.index }}</td>
+                  <td class="text-cell" data-label="主播名称" :title="row.name">{{ row.name }}</td>
+                  <td class="num-cell" data-label="房间号">{{ row.roomId }}</td>
+                  <td class="num-cell" data-label="等级">{{ row.level }}</td>
+                  <td class="num-cell" data-label="排名">{{ row.rank }}</td>
+                  <td class="num-cell" data-label="今日亲密度">{{ row.today }}</td>
+                  <td class="num-cell" data-label="亲密度">{{ row.intimacy }}</td>
+                  <td class="control-cell" :data-label="keepaliveValueLabel">
+                    <input v-model.number="row.value" class="keepalive-value" type="number" :name="`keepalive-value-${row.roomId}`" :data-room-id="row.roomId" :data-level="row.level" min="0" step="1" inputmode="numeric" :aria-label="`保活${keepaliveValueLabel}：${row.name}，房间 ${row.roomId}`">
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 

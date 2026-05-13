@@ -8,15 +8,16 @@
     var getManagedConfig = deps.getManagedConfig;
     var getManagedFans = deps.getManagedFans;
     var refreshOverviewSurface = deps.refreshOverviewSurface;
+    var KEEPALIVE_ACTIONS = window.DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS.create(deps);
 
-    function buildSendPayload(valueClass, includeEnabled) {
+    function buildDoublePayload() {
       var fans = getManagedFans();
       var send = {};
-      var model = Number(includeEnabled ? byId('double-model').value : byId('keepalive-model').value);
+      var model = Number(byId('double-model').value);
       var i;
       for (i = 0; i < fans.length; i += 1) {
         var roomId = fans[i].roomId;
-        var input = document.querySelector('.' + valueClass + '[data-room-id="' + roomId + '"]');
+        var input = document.querySelector('.double-value[data-room-id="' + roomId + '"]');
         var value = input ? Number(input.value) : 0;
         send[String(roomId)] = {
           roomId: roomId,
@@ -29,20 +30,18 @@
 
       var result = {
         active: true,
-        cron: includeEnabled ? byId('double-cron').value.trim() : byId('keepalive-cron').value.trim(),
+        cron: byId('double-cron').value.trim(),
         model: model,
         send: send
       };
 
-      if (includeEnabled) {
-        var enabledMap = {};
-        var checkboxes = document.querySelectorAll('.double-enabled');
-        for (i = 0; i < checkboxes.length; i += 1) {
-          enabledMap[String(checkboxes[i].getAttribute('data-room-id'))] = Boolean(checkboxes[i].checked);
-        }
-        result.enabled = enabledMap;
-        result.giftScope = byId('double-gift-scope').value === 'limitedTime' ? 'limitedTime' : 'glowStick';
+      var enabledMap = {};
+      var checkboxes = document.querySelectorAll('.double-enabled');
+      for (i = 0; i < checkboxes.length; i += 1) {
+        enabledMap[String(checkboxes[i].getAttribute('data-room-id'))] = Boolean(checkboxes[i].checked);
       }
+      result.enabled = enabledMap;
+      result.giftScope = byId('double-gift-scope').value === 'limitedTime' ? 'limitedTime' : 'glowStick';
 
       return result;
     }
@@ -75,57 +74,16 @@
     }
 
     function saveKeepaliveConfig(options) {
-      byId('keepalive-enable').checked = true;
-      var payload = {
-        keepalive: buildSendPayload('keepalive-value', false)
-      };
-
-      requestJson('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }).then(function () {
-        toast('保活任务已保存并启用', true);
-        refreshOverviewSurface(false);
-      }).catch(function (error) {
-        if (options && options.revertCheckboxOnError) {
-          byId('keepalive-enable').checked = false;
-        }
-        if (isUnauthorizedError(error)) {
-          return;
-        }
-        toast('保存并启用保活任务失败：' + error.message, false);
-      });
+      return KEEPALIVE_ACTIONS.saveKeepaliveConfig(options);
     }
 
     function disableKeepaliveConfig() {
-      var currentConfig = getManagedConfig().keepalive || getRawConfig().keepalive || { active: true, cron: '0 0 8 */6 * *', model: 2, send: {} };
-      requestJson('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          keepalive: {
-            active: false,
-            cron: currentConfig.cron || '0 0 8 */6 * *',
-            model: Number(currentConfig.model || 2),
-            send: currentConfig.send || {}
-          }
-        })
-      }).then(function () {
-        toast('保活任务已停用', true);
-        refreshOverviewSurface(false);
-      }).catch(function (error) {
-        byId('keepalive-enable').checked = true;
-        if (isUnauthorizedError(error)) {
-          return;
-        }
-        toast('停用保活任务失败：' + error.message, false);
-      });
+      return KEEPALIVE_ACTIONS.disableKeepaliveConfig();
     }
 
     function saveDoubleConfig(options) {
       byId('double-enable').checked = true;
-      var nextConfig = buildSendPayload('double-value', true);
+      var nextConfig = buildDoublePayload();
       if (nextConfig.model === 1) {
         var enabledKeys = Object.keys(nextConfig.enabled || {}).filter(function (key) {
           return nextConfig.enabled[key];

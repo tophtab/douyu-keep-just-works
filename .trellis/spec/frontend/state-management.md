@@ -979,7 +979,7 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:yuba-page', {
 
 - Good: Vue owns Yuba inputs, buttons, note, and table while legacy resource orchestration still calls a bridge named `DOUYU_KEEP_WEBUI_YUBA_RESOURCE_ACTIONS`.
 - Good: `app-task-pages.js` sends `douyu-keep-webui:yuba-page` state details and leaves visible DOM updates to Vue bindings.
-- Base: Keep `app-table-render.js` Yuba helpers until all remaining legacy table consumers are retired; Vue can render the Yuba table directly with the same classes.
+- Base: Yuba status tables are Vue-rendered with the same classes after the legacy table helper cleanup; do not reintroduce `app-table-render.js` for migrated table surfaces.
 - Bad: `app-events.js` handles `data-action="save-yuba"` after Vue owns the Yuba save button.
 - Bad: `app-task-pages.js` writes `.value`, `.checked`, `.textContent`, or `.innerHTML` on Yuba nodes after Vue owns them.
 - Bad: Moving Yuba status loading to Vue but dropping `resource.pending` coalescing or `trackResourceRequest()` breaks the request-smoothing contract.

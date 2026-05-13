@@ -73,8 +73,6 @@ Use a strangler migration: move one behavior owner at a time into Vue while main
   - `src/docker/webui/app-auth-actions.js`
   - `src/docker/webui/app-request.js`
   - `src/docker/webui/app-pages.js`
-  - `src/docker/webui/app-render.js`
-  - `src/docker/webui/app-table-render.js`
   - task/resource/action modules under `src/docker/webui/app-*.js`
 - Relevant specs:
   - `.trellis/spec/frontend/index.md`
@@ -94,6 +92,14 @@ The first implementation commit should migrate the login page, app shell visibil
 
 ## Verification Results
 
+- Legacy render-helper cleanup slice:
+  - Removed `src/docker/webui/app-render.js`, `src/docker/webui/app-table-render.js`, and `src/docker/webui/app-page-cron.js` after their card/table/cron-preview consumers moved into Vue modules.
+  - Removed those helper imports from `src/docker/webui-src/main.ts` and deleted the `window.DOUYU_KEEP_WEBUI_RENDER`, `window.DOUYU_KEEP_WEBUI_TABLE_RENDER`, and `window.DOUYU_KEEP_WEBUI_PAGE_CRON` plumbing from `app.js`, `app-pages.js`, and `app-state.js`.
+  - Updated contract tests and specs so future migration work treats Vue modules as the owner for migrated card/table/cron-preview DOM.
+  - `npm run lint` passed.
+  - `npm run type-check:webui` passed.
+  - `npm run test:contracts` passed.
+  - `npm run build:webui` passed.
 - Expiring-gift task page slice:
   - `App.vue` now renders the expiring-gift task status card, enable switch, cron input/preview, threshold-hours input, allocation mode selector, save action, manual trigger action, backpack rows table, and fan allocation table from Vue state.
   - `src/docker/webui-src/expiring.ts` owns expiring-gift task save/disable/trigger behavior, cron preview loading, threshold-aware backpack row status, allocation payload creation, and the narrow legacy `DOUYU_KEEP_WEBUI_EXPIRING_TASK_ACTIONS` bridge.

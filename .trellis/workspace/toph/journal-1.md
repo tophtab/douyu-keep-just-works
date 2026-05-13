@@ -38,3 +38,36 @@ Simplified Docker WebUI task-page shared messaging, centralized Docker task meta
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: Optimize and simplify code
+
+**Date**: 2026-05-13
+**Task**: Optimize and simplify code
+**Branch**: `master`
+
+### Summary
+
+Completed behavior-preserving cleanup across WebUI allocation task helpers, resource/protected-state boundaries, and Docker task scheduling metadata.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0417e56` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

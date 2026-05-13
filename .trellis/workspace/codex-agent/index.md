@@ -7,8 +7,8 @@
 ## Current Status
 
 <!-- @@@auto:current-status -->
-- **Active File**: `journal-1.md`
-- **Total Sessions**: 54
+- **Active File**: `journal-2.md`
+- **Total Sessions**: 55
 - **Last Active**: 2026-05-13
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,8 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1988 | Active |
+| `journal-2.md` | ~40 | Active |
+| `journal-1.md` | ~1988 | Archived |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 55 | 2026-05-13 | Verify Docker image build after WebUI migration | `3166599` | `master` |
 | 54 | 2026-05-13 | Migrate Docker WebUI to Vue/Vite | `4a80d70` | `master` |
 | 53 | 2026-05-12 | Split remaining large files | `202ec3e` | `master` |
 | 52 | 2026-05-12 | Further split Docker WebUI sources | `5153daf` | `master` |

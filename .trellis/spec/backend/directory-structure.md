@@ -191,7 +191,9 @@ Examples:
 - `npm run build:docker` runs Vite first, writing static assets to `build/docker/docker/webui`, then compiles Docker TypeScript into the same build root.
 - Runtime entrypoint remains `node dist/docker/index.js` inside the container.
 - Local compiled entrypoint is `node build/docker/docker/index.js` before the Dockerfile copy step.
+- Builder Docker install must keep optional dependencies so Vite/Rolldown can load its platform native binding.
 - Runtime Docker install must omit dev dependencies, so Vue/Vite tooling stays builder-only and does not inflate production `node_modules`.
+- Runtime Docker install may omit optional dependencies because it does not run Vite.
 
 ### 4. Validation & Error Matrix
 

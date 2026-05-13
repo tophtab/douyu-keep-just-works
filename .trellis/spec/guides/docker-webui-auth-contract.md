@@ -36,10 +36,10 @@ Required behavior:
 1. Docker image build must compile Docker runtime code from `src/core/**/*.ts` and `src/docker/**/*.ts` inside the image.
 2. `docker compose up -d --build` must not depend on prebuilt local `build/docker` artifacts.
 3. Builder stage must run:
-   - `npm ci --omit=optional --ignore-scripts`
+   - `npm ci --ignore-scripts`
    - `npm run build:docker`
 4. Runtime stage must:
-   - install production deps only
+   - install production deps only with dev and optional dependencies omitted
    - copy compiled output from builder stage into `/app/dist`
    - start with `node dist/docker/index.js`
 5. Docker and CI builds must suppress Puppeteer browser download during dependency install with:
@@ -51,13 +51,19 @@ Current command/file contract:
 ```dockerfile
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 COPY package.json package-lock.json tsconfig.docker.json tsconfig.webui.json vite.config.ts ./
-RUN npm ci --omit=optional --ignore-scripts
+RUN npm ci --ignore-scripts
 COPY src ./src
 RUN npm run build:docker
 COPY --from=builder /app/build/docker ./dist/
 ENV PUPPETEER_SKIP_DOWNLOAD=true
+RUN npm ci --omit=dev --omit=optional --ignore-scripts
 CMD ["node", "dist/docker/index.js"]
 ```
+
+Builder installs must keep optional dependencies because Vite/Rolldown native
+bindings are published as platform optional packages. The runtime stage can omit
+optional dependencies because it serves already-built static assets and does not
+run Vite.
 
 GitHub Actions contract:
 

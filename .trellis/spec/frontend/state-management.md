@@ -480,6 +480,7 @@ await requestJson('/api/auth/login', {
 
 ```typescript
 export function installLegacySystemResourceBridge(): void
+export function installLegacyFansResourceBridge(): void
 export function useLogsPage(activeTab: Readonly<Ref<string>>, authenticated: Readonly<Ref<boolean>>): {
   clearLogs: () => Promise<void>
   clearingLogs: Ref<boolean>
@@ -502,10 +503,23 @@ window.DOUYU_KEEP_WEBUI_SYSTEM_RESOURCE_ACTIONS.create({
 }).loadOverview()
 ```
 
+```typescript
+window.DOUYU_KEEP_WEBUI_FANS_RESOURCE_ACTIONS.create({
+  state,
+  getRawConfig,
+  getResourceRequest,
+  hasCookieSourceConfigured,
+  trackResourceRequest,
+  renderAll,
+  renderOverview,
+  renderExpiringGiftPage,
+}).loadFansStatus(false)
+```
+
 ### 3. Contracts
 
-- `src/docker/webui-src/resources.ts` owns read-only system resource requests through the shared `requestJson()` helper.
-- `main.ts` must install `installLegacySystemResourceBridge()` after `app-data.js` is imported and before `app-resource-actions.js` is imported.
+- `src/docker/webui-src/resources.ts` owns read-only system resource requests and fans reconcile/list/status requests through the shared `requestJson()` helper.
+- `main.ts` must install `installLegacySystemResourceBridge()` and `installLegacyFansResourceBridge()` before `app-resource-actions.js` is imported.
 - `loadRawConfig()` writes `state.rawConfig`, falls back to a cloned `DEFAULT_RAW_CONFIG` when `/api/config/raw` returns `{ exists: false }`, dispatches `douyu-keep-webui:config`, then calls `renderAll()`.
 - `loadOverview()` writes `state.overview` and calls `renderOverview()`.
 - `loadLogs()` writes the shared Vue logs ref, syncs `state.logs` / `state.logsRefreshedAt` for transitional consumers, and lets Vue render the visible logs page.
@@ -516,6 +530,9 @@ window.DOUYU_KEEP_WEBUI_SYSTEM_RESOURCE_ACTIONS.create({
 - Unauthorized errors must flow through the shared request helper's `douyu-keep-webui:unauthorized` event and must not show duplicate resource toasts.
 - Non-401 failures keep the existing Chinese toast prefixes: `加载配置失败：`, `加载概览失败：`, and `加载日志失败：`.
 - Legacy modules may call the bridge while they still render forms/task pages, but they must not reintroduce `app-system-resource-actions.js`.
+- Fans resource actions must preserve legacy request smoothing: reuse `resource.pending`, guard stale responses with `requestSeq`, and return `trackResourceRequest(resource, requestSeq, pending)`.
+- Fans status loading remains progressive: request `/api/fans/status/base`, render overview/expiring surfaces, and only request `/api/fans/status/details` when the base response is not complete.
+- Legacy modules may call the fans bridge while they still orchestrate refresh/task pages, but they must not reintroduce `app-fans-resource-actions.js`.
 
 ### 4. Validation & Error Matrix
 
@@ -530,23 +547,27 @@ window.DOUYU_KEEP_WEBUI_SYSTEM_RESOURCE_ACTIONS.create({
 | User clears logs | `DELETE /api/logs`, success toast, logs reload, overview refresh |
 | Any system resource returns `401` | Dispatch/keep the global unauthorized transition without a duplicate toast |
 | Any system resource fails with non-401 | Preserve the existing user-facing toast prefix for that resource |
+| Fans sync/list/status starts while an identical request is pending | Return the in-flight promise and do not start a duplicate fetch |
+| Fans status base response has `complete: true` | Mark fans status loaded and skip `/api/fans/status/details` |
+| Fans status base response is incomplete | Fetch details, merge them through the legacy managed-data helpers, and update overview/expiring surfaces |
 
 ### 5. Good/Base/Bad Cases
 
 - Good: Vue/TS resource code owns fetch/error/loading mechanics while legacy page renderers only consume state and render DOM.
 - Good: The logs page renders log lines with Vue interpolation instead of legacy `innerHTML`, preserving escaping by default.
-- Base: `app-resource-actions.js` still composes system, fans, and Yuba resource actions through `window.DOUYU_KEEP_WEBUI_SYSTEM_RESOURCE_ACTIONS.create(...)`.
+- Base: `app-resource-actions.js` still composes system, fans, and Yuba resource actions through Vue-owned resource bridges.
 - Bad: `main.ts` imports `src/docker/webui/app-system-resource-actions.js` after the bridge is installed, overwriting the Vue/TS owner.
+- Bad: `main.ts` imports `src/docker/webui/app-fans-resource-actions.js` after the bridge is installed, overwriting the Vue/TS owner.
 - Bad: A resource failure is converted to an empty config, empty overview, or empty log list without surfacing an error.
 - Bad: Legacy `app-pages.js` writes `byId('logs-summary').textContent` or `full-log-box.innerHTML` after Vue owns the logs page.
 
 ### 6. Tests Required
 
-- Contract tests should assert that `resources.ts` exports `installLegacySystemResourceBridge()`, owns `/api/config/raw`, `/api/overview`, `/api/logs`, and dispatches `douyu-keep-webui:config`.
+- Contract tests should assert that `resources.ts` exports `installLegacySystemResourceBridge()` and `installLegacyFansResourceBridge()`, owns `/api/config/raw`, `/api/overview`, `/api/logs`, `/api/fans/reconcile`, `/api/fans/status/base`, and `/api/fans/status/details`, and dispatches `douyu-keep-webui:config`.
 - Contract tests should assert that `App.vue` uses `useLogsPage()`, binds log refresh/clear buttons through Vue events, and removes `data-action="refresh-logs"` / `data-action="clear-logs"`.
 - Contract tests should assert that legacy `app-pages.js` no longer writes `#logs-summary` or `#full-log-box`, and `app-events.js` no longer handles logs refresh/clear actions or `#logs-auto-refresh`.
-- Contract tests should assert that `main.ts` installs the bridge and no longer imports `app-system-resource-actions.js`.
-- Contract tests should assert that `src/docker/webui/app-system-resource-actions.js` does not exist.
+- Contract tests should assert that `main.ts` installs the resource bridges and no longer imports `app-system-resource-actions.js` or `app-fans-resource-actions.js`.
+- Contract tests should assert that `src/docker/webui/app-system-resource-actions.js` and `src/docker/webui/app-fans-resource-actions.js` do not exist.
 - Run `npm run lint`, `npm run type-check`, `npm run test:contracts`, `npm run build:webui`, and `npm test` after this migration.
 
 ### 7. Wrong vs Correct
@@ -562,6 +583,7 @@ await import('../webui/app-system-resource-actions.js')
 ```typescript
 await import('../webui/app-data.js')
 installLegacySystemResourceBridge()
+installLegacyFansResourceBridge()
 ```
 
 ## Scenario: Vue-Owned Transitional Cookie/Login Config Page
@@ -858,7 +880,7 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:refresh-overview-reques
 
 - Good: Vue owns the overview DOM and legacy code sends a single `overview-page` snapshot whenever overview or fans state changes.
 - Good: Refresh button state flows from legacy active-surface loading calculation into Vue through a small event payload.
-- Base: Keep legacy resource orchestration and request coalescing in `app-resource-actions.js` and `app-fans-resource-actions.js` until those loaders are intentionally migrated.
+- Base: Keep refresh orchestration in `app-resource-actions.js` while fans request coalescing lives in the Vue-owned `resources.ts` bridge.
 - Bad: Reintroducing `innerHTML` writes for overview cards or tables after Vue owns the page.
 - Bad: Keeping a `data-action="refresh-overview"` button in `App.vue`; that lets the legacy click dispatcher own a Vue control.
 - Bad: Rendering the fans table with different classes/headers during a framework-only migration, because responsive table CSS depends on those names.

@@ -45,20 +45,6 @@ Examples:
 
 ---
 
-## Testing Requirements
-
-Current reality:
-
-- Run TypeScript builds as the primary safety net:
-  - `npm run build`
-  - `npm run build:docker`
-- Run `npm run lint`; it is scoped to `src/**/*.{js,ts}`, `test/**/*.js`, and `eslint.config.mjs`.
-- Run `npm test`; it runs lightweight contract tests and then `build:docker`.
-- For Docker features, verify the WebUI can read config, save config, trigger jobs, and fetch logs
-
-If you change shared logic in `src/core/`, verify the Docker compile path still succeeds.
-
----
 
 ## Code Review Checklist
 

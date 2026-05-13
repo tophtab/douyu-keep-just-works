@@ -640,30 +640,6 @@ UI state rules:
 
 ---
 
-## Tests Required
-
-Commands:
-
-- `pnpm lint`
-- `pnpm type-check`
-- `pnpm test`
-
-Assertion points:
-
-- unauthenticated `GET /api/overview` returns `401 { "error": "请先登录" }`
-- authenticated `GET /api/config` returns masked cookie fields
-- authenticated `GET /api/config/raw` returns unmasked `manualCookies` and `cookieCloud`
-- `POST /api/cookie` accepts main-only, yuba-only, and dual-cookie payloads
-- `POST /api/cookie-source/check` returns readiness booleans and missing-key arrays
-- `POST /api/cookie-source/persist` writes effective CookieCloud results back into `manualCookies`
-- CookieCloud “同步并校验” performs persist before check, and missing-key diagnostics reflect the synced local snapshot
-- direct route boot still works for `/Configurations/LoginConfig`, `/Configurations/CollectGiftConfig`, and `/Configurations/YubaCheckInConfig`
-- `buildBackpackEndpoints()` returns default IDs first, appends deduped candidate room IDs, and emits `v5 -> v1` order per room
-- `getGiftStatus()` converts backpack code `9` plus missing `acf_auth` / `acf_stk` into a clear message
-- `GET /api/fans/status` still returns `fans` when gift lookup fails and exposes failure through `gift.error`
-- Docker CI still builds through Buildx and sets `PUPPETEER_SKIP_DOWNLOAD=true`
-
----
 
 ## Wrong vs Correct
 

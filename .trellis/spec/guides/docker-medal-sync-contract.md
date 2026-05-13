@@ -739,14 +739,8 @@ loadYubaStatus(showToast)
 - Bad: clearing `state.fansStatus` before every refresh, causing the UI to flash empty while an avoidable duplicate request runs.
 - Bad: changing `state.activeTab` without re-rendering the newly visible panel, leaving stale hidden-panel HTML visible until a full browser refresh.
 
-6. Tests Required
 
-- Run `npm run lint`, `npm run type-check`, and `npm test`; `npm test` includes the request-smoothing contract guard before the Docker build.
-- Smoke-test a deep-linked WebUI page and verify no browser console errors.
-- Smoke-test SPA navigation from overview to keepalive, double-card, and yuba after data has loaded; the target page must show rows or an active loading/error state without requiring F5.
-- Verify repeated refresh attempts cannot create duplicate visible-resource requests while the button is busy.
-
-7. Wrong vs Correct
+6. Wrong vs Correct
 
 Wrong:
 
@@ -985,52 +979,6 @@ Expected:
 
 ---
 
-## Tests Required
-
-Commands:
-
-- `npm run lint`
-- `npm run type-check`
-- `npm test`
-
-Manual assertions:
-
-- WebUI loads with no cookie and can save theme-only changes
-- WebUI can save collect-gift cron before cookie is present
-- WebUI can save CookieCloud config and manual cookies independently
-- saving Cookie enables medal reconciliation actions
-- overview medal panel shows current fluorescent stick count beside the medal table
-- overview medal panel shows the formatted fluorescent stick expiry when backpack `met` exists
-- collect-gift can be enabled, disabled, and manually triggered from `领取任务`
-- yuba task can be enabled, disabled, and manually triggered from `鱼吧签到`
-- keepalive fixed-count mode defaults new rows to `1`
-- keepalive fixed-count mode with all rows set to `1` sends only those explicit counts and preserves any remainder
-- keepalive fixed-count mode with exactly one row set to `-1` sends the remainder only to that row
-- keepalive weight mode accepts raw weights such as `1 / 3` and allocates by total weight, not `/100`
-- after medal reconciliation, keepalive rooms match medal list
-- unchanged keepalive room values remain untouched
-- disabling keepalive preserves the previously saved cron / model / send config after page refresh
-- re-enabling keepalive resumes with the preserved user config instead of rebuilding defaults
-- unchanged double-card room values and checked states remain untouched
-- new medal rooms appear in keepalive and double-card
-- new medal rooms appear in expiring-gift
-- new medal rooms are unchecked in double-card
-- removed medal rooms disappear from keepalive, double-card, and expiring-gift task configs
-- keepalive form no longer exposes custom gift timing
-- double-card execution skips when no room is checked
-- double-card weight mode accepts raw weights such as `1 / 2 / 3` without requiring total `100`
-- double-card page shows a weight preview for enabled rooms
-- overview displays collect-gift / keepalive / double-card status using Shanghai-time display
-- overview displays expiring-gift enabled/scheduler status using Shanghai-time display
-- expiring-gift can be enabled, disabled, and manually triggered from `临期任务`
-- expiring-gift skips when the earliest visible fluorescent-stick expiry is outside the configured threshold
-- expiring-gift sends current visible fluorescent-stick inventory once when the earliest expiry is inside the configured threshold
-- expiring-gift weight mode accepts raw weights such as `1 / 3` and allocates each due gift group by total weight, not `/100`
-- yuba page loads followed-group rows and sorts by current exp descending
-- yuba page displays `经验值` as `当前经验/下级经验`
-- CookieCloud-to-login persistence updates the login Cookie textareas instead of a second synthetic field
-
----
 
 ## Wrong vs Correct
 

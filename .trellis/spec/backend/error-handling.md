@@ -108,14 +108,8 @@ AppContext.fetchFansStatus(): Promise<FansStatusResponse>
 - Base: `getFansList()` returns `[]` only when the fan-badge table exists and has no data rows.
 - Bad: `sendGift()` returns `JSON.stringify(res.data)` for any HTTP 200 response and lets the caller log success.
 
-### 6. Tests Required
 
-- Run `npm run lint`.
-- Run `npm run type-check`.
-- Run `npm run build:docker` or `npm test`.
-- For manual WebUI checks, verify config load, fan status refresh, and logs after a simulated room-level double-card failure.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 

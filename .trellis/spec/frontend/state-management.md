@@ -88,14 +88,8 @@ window.DOUYU_KEEP_WEBUI_STATE.create({
 - Base: Migrated Vue resource modules still receive state helpers through legacy deps until the remaining compatibility bridge surface is removed.
 - Bad: Recreate `src/docker/webui/app-state.js` or split request-coalescing metadata across multiple independent stores.
 
-### 6. Tests Required
 
-- Contract tests should assert `main.ts` installs the state bridges and no longer imports `app-state.js`, `app-managed-data.js`, or `app-protected-state.js`.
-- Contract tests should assert those three former JS files do not exist.
-- Request-smoothing tests should inspect `legacy-state.ts` for `pending`, `fetchedAt`, `requestSeq`, and no client cooldown logic.
-- Run `npm run lint`, `npm run type-check:webui`, `npm run test:contracts`, and `npm run build:webui` after changing this bridge.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 
@@ -160,13 +154,8 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:navigation', {
 - Base: Legacy receives the navigation event and refreshes only data/render surfaces that still belong to legacy modules.
 - Bad: Legacy click handlers call `querySelectorAll('.tab-btn')`, toggle `.page.hidden`, or rewrite `#page-title` after Vue owns navigation.
 
-### 6. Tests Required
 
-- Contract tests should assert that Vue navigation code exists and listens for legacy `data-action="tab"` bridge clicks.
-- Contract tests should assert that `legacy-app.ts` no longer mutates `.tab-btn`, `.page`, `#page-title`, or `#page-subtitle` for the migrated surface.
-- Run `npm run lint`, `npm run type-check`, and `npm test` after navigation changes.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 
@@ -243,15 +232,8 @@ fetch('/api/config', {
 - Base: Legacy `loadRawConfig()` dispatches the loaded theme mode once config is available; Vue updates its local state from that event.
 - Bad: Legacy code uses `querySelectorAll('.theme-option')`, rewrites `#theme-note`, or listens to `prefers-color-scheme` to mutate the same theme surface after migration.
 
-### 6. Tests Required
 
-- Contract tests should assert that `App.vue` uses `useThemeMode()` and binds theme buttons through Vue events/state.
-- Contract tests should assert that `theme.ts` persists `ui.themeMode`, updates `body[data-theme]`, updates theme meta tags, and listens for `prefers-color-scheme`.
-- Contract tests should assert that legacy action/event/page modules no longer contain `saveTheme`, `data-theme-mode` action handling, or `#theme-note` mutation.
-- Browser smoke testing should verify login, light/dark/system button selected state, `aria-pressed`, `body[data-theme]`, and persisted config.
-- Run `npm run lint`, `npm run type-check`, and `npm test` after theme migration changes.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 
@@ -331,15 +313,8 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:toast', {
 - Base: Legacy actions keep their existing `toast('...', true/false)` calls and the helper bridges them to the Vue event.
 - Bad: a legacy DOM helper calls `byId('toast')`, edits `#toast-live`, stores `window.__toastTimer`, or a Vue composable duplicates those DOM mutations.
 
-### 6. Tests Required
 
-- Contract tests should assert that `App.vue` uses `useToastRegion()` and binds `#toast-live` to Vue state.
-- Contract tests should assert that `toast.ts` exports `useToastRegion()` and the `douyu-keep-webui:toast` bridge.
-- Contract tests should assert that `theme.ts` requests shared error-toast feedback through `requestJson()` and no longer queries `#toast`.
-- Contract tests should assert that `legacy-core.ts` installs `DOUYU_KEEP_WEBUI_DOM.toast` through `showToast()` and no longer touches `#toast`, `#toast-live`, or `window.__toastTimer`.
-- Run `npm run lint`, `npm run type-check`, `npm run test:contracts`, and `npm run build:webui` after this migration.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 
@@ -424,14 +399,8 @@ window.DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS = {
 - Base: `task-actions.ts` delegates keepalive save/disable through `DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS` while the aggregate compatibility bridge remains.
 - Bad: Legacy code still calls `byId('keepalive-cron').value`, `byId('keepalive-enable').checked`, or rewrites `#keepalive-table-wrap` after the Vue page is mounted.
 
-### 6. Tests Required
 
-- Contract tests should assert that `App.vue` uses `useKeepaliveTaskPage()`, binds keepalive controls with `v-model`, and removes legacy `data-action="save-keepalive"` / `data-trigger="keepalive"` ownership.
-- Contract tests should assert that the Vue module installs a narrow legacy bridge, calls `/api/config`, `/api/trigger/keepalive`, and `/api/cron-preview`.
-- Contract tests should assert that legacy page/action/event modules no longer mutate migrated keepalive DOM ids or bind keepalive-specific events.
-- Run `npm run lint`, `npm run type-check:webui`, `npm run test:contracts`, and `npm run build:webui`; run `npm test` before committing a rollback slice.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 
@@ -510,14 +479,8 @@ window.DOUYU_KEEP_WEBUI_REQUEST.create({
 - Base: Legacy modules keep receiving a `requestJson` function from `window.DOUYU_KEEP_WEBUI_REQUEST.create(...)`, and their existing `isUnauthorizedError(error)` checks keep working through `error.status`.
 - Bad: A legacy `app-request.js` import overwrites the Vue bridge after boot, or a login failure dispatches the global unauthorized event and replaces the login error with the session-expired copy.
 
-### 6. Tests Required
 
-- Contract tests should assert that `main.ts` installs `installLegacyRequestBridge()` and no longer imports `app-request.js`.
-- Contract tests should assert that `request.ts` exports `requestJson()`, dispatches `douyu-keep-webui:unauthorized`, supports toast feedback, and installs `window.DOUYU_KEEP_WEBUI_REQUEST`.
-- Contract tests should assert that auth-owned requests pass `onUnauthorized: false`.
-- Run `npm run lint`, `npm run type-check`, `npm run test:contracts`, and `npm run build:webui` after request helper changes.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 
@@ -634,16 +597,8 @@ window.DOUYU_KEEP_WEBUI_FANS_RESOURCE_ACTIONS.create({
 - Bad: A resource failure is converted to an empty config, empty overview, or empty log list without surfacing an error.
 - Bad: `pages.ts` writes `byId('logs-summary').textContent` or `full-log-box.innerHTML` after Vue owns the logs page.
 
-### 6. Tests Required
 
-- Contract tests should assert that `resources.ts` exports `installLegacySystemResourceBridge()`, `installLegacyFansResourceBridge()`, and `installLegacyResourceActionsBridge()`, owns `/api/config/raw`, `/api/overview`, `/api/logs`, `/api/fans/reconcile`, `/api/fans/status/base`, `/api/fans/status/details`, and active-surface refresh orchestration, and dispatches `douyu-keep-webui:config`.
-- Contract tests should assert that `App.vue` uses `useLogsPage()`, binds log refresh/clear buttons through Vue events, and removes `data-action="refresh-logs"` / `data-action="clear-logs"`.
-- Contract tests should assert that `pages.ts` no longer writes `#logs-summary` or `#full-log-box`, and the transitional event bridge in `events.ts` does not handle logs refresh/clear actions or `#logs-auto-refresh`.
-- Contract tests should assert that `main.ts` installs the resource bridges and no longer imports `app-system-resource-actions.js`, `app-fans-resource-actions.js`, or `app-resource-actions.js`.
-- Contract tests should assert that `src/docker/webui/app-system-resource-actions.js`, `src/docker/webui/app-fans-resource-actions.js`, and `src/docker/webui/app-resource-actions.js` do not exist.
-- Run `npm run lint`, `npm run type-check`, `npm run test:contracts`, `npm run build:webui`, and `npm test` after this migration.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 
@@ -738,17 +693,8 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:login-page', {
 - Bad: `pages.ts` writes `.value` or `.checked` on Cookie/Login form nodes after Vue owns them.
 - Bad: Reintroducing `src/docker/webui/app-cookie-actions.js` overwrites the Vue bridge.
 
-### 6. Tests Required
 
-- Contract tests should assert that `App.vue` uses `useCookieLoginPage()` and binds manual Cookie, CookieCloud fields, save/check buttons, note text, and cron preview through Vue.
-- Contract tests should assert that `cookie.ts` exports `installLegacyCookieActionBridge()`, installs `window.DOUYU_KEEP_WEBUI_COOKIE_ACTIONS`, and calls `/api/config`, `/api/cookie-source/persist`, `/api/cookie-source/check`, and `/api/cron-preview`.
-- Contract tests should assert that `main.ts` installs the bridge and no longer imports `app-cookie-actions.js`.
-- Contract tests should assert that `src/docker/webui/app-cookie-actions.js` does not exist.
-- Contract tests should assert that `pages.ts` dispatches `douyu-keep-webui:login-page` and no longer mutates Cookie/Login DOM fields.
-- Contract tests should assert that `events.ts` does not handle Cookie save/check actions or CookieCloud cron/toggle listeners.
-- Run `npm run lint`, `npm run type-check:webui`, `npm run test:contracts`, `npm run build:webui`, and `npm test` after this migration.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 
@@ -833,17 +779,8 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:collect-page', {
 - Bad: `task-pages.ts` writes `.value`, `.checked`, or `.innerHTML` on collect nodes after Vue owns them.
 - Bad: Collect trigger remains only as `data-action="trigger"` / `data-trigger="collectGift"` after Vue owns the collect page.
 
-### 6. Tests Required
 
-- Contract tests should assert that `App.vue` uses `useCollectTaskPage()` and binds collect switch, cron input, save button, trigger button, and cron preview through Vue.
-- Contract tests should assert that `collect.ts` exports `installLegacyCollectTaskBridge()`, installs `window.DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS`, and calls `/api/config`, `/api/trigger/collectGift`, and `/api/cron-preview`.
-- Contract tests should assert that `main.ts` installs the bridge before legacy task-action assembly.
-- Contract tests should assert that `task-pages.ts` dispatches `douyu-keep-webui:collect-page` and no longer mutates collect DOM fields.
-- Contract tests should assert that `events.ts` does not handle collect save/toggle/cron listeners.
-- Contract tests should assert that `task-actions.ts` delegates collect actions through `DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS`.
-- Run `npm run lint`, `npm run type-check:webui`, `npm run test:contracts`, `npm run build:webui`, and `npm test` after this migration.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 
@@ -958,15 +895,8 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:refresh-overview-reques
 - Bad: Keeping a `data-action="refresh-overview"` button in `App.vue`; that lets the legacy click dispatcher own a Vue control.
 - Bad: Rendering the fans table with different classes/headers during a framework-only migration, because responsive table CSS depends on those names.
 
-### 6. Tests Required
 
-- Contract tests should assert that `App.vue` uses `useOverviewPage()` and binds overview summary, gift metrics, fans note, fans table, login action, and refresh button through Vue.
-- Contract tests should assert that `overview.ts` listens for `douyu-keep-webui:overview-page` and `douyu-keep-webui:refresh-state`, and dispatches `douyu-keep-webui:refresh-overview-request`.
-- Contract tests should assert that `pages.ts` dispatches `douyu-keep-webui:overview-page` and no longer mutates overview DOM ids.
-- Contract tests should assert that `events.ts` listens for `douyu-keep-webui:refresh-overview-request`, no longer handles `action === 'refresh-overview'`, and the former `app-events.js` is absent.
-- Run `npm run lint`, `npm run type-check:webui`, `npm run test:contracts`, and `npm test` after this migration.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 
@@ -1079,18 +1009,8 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:yuba-page', {
 - Bad: `task-pages.ts` writes `.value`, `.checked`, `.textContent`, or `.innerHTML` on Yuba nodes after Vue owns them.
 - Bad: Moving Yuba status loading to Vue but dropping `resource.pending` coalescing or `trackResourceRequest()` breaks the request-smoothing contract.
 
-### 6. Tests Required
 
-- Contract tests should assert that `App.vue` uses `useYubaTaskPage()` and binds Yuba switch, cron input, mode select, save button, trigger button, note, and table through Vue.
-- Contract tests should assert that `yuba.ts` exports `installLegacyYubaBridge()`, installs `window.DOUYU_KEEP_WEBUI_YUBA_RESOURCE_ACTIONS` and `window.DOUYU_KEEP_WEBUI_YUBA_TASK_ACTIONS`, and calls `/api/config`, `/api/trigger/yubaCheckIn`, `/api/yuba/status`, and `/api/cron-preview`.
-- Contract tests should assert that `main.ts` installs the Yuba bridge and no longer imports `app-yuba-resource-actions.js`.
-- Contract tests should assert that `task-pages.ts` dispatches `douyu-keep-webui:yuba-page` and no longer mutates Yuba DOM fields.
-- Contract tests should assert that `events.ts` does not handle Yuba save/toggle/cron listeners.
-- Contract tests should assert that `task-actions.ts` delegates Yuba actions through `DOUYU_KEEP_WEBUI_YUBA_TASK_ACTIONS`.
-- Request-smoothing tests should include `src/docker/webui-src/yuba.ts` when checking that `loadYubaStatus()` reuses pending requests and calls `trackResourceRequest()`.
-- Run `npm run lint`, `npm run type-check:webui`, `npm run test:contracts`, `npm run build:webui`, and `npm test` after this migration.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 
@@ -1132,10 +1052,3 @@ startLegacyApp()
 - `src/docker/webui-src/legacy-app.ts` owns transitional app startup and publishes `DOUYU_KEEP_WEBUI_LEGACY`.
 - `src/docker/webui-src/actions.ts`, `src/docker/webui-src/pages.ts`, `src/docker/webui-src/task-pages.ts`, and `src/docker/webui-src/events.ts` own the former production boot bridge surfaces for actions, page state dispatch, task-page state dispatch, and event binding.
 - The former production boot modules `src/docker/webui/app.js`, `src/docker/webui/app-actions.js`, `src/docker/webui/app-events.js`, `src/docker/webui/app-pages.js`, and `src/docker/webui/app-task-pages.js` must not exist.
-
-### 4. Tests Required
-
-- Contract tests should assert that `main.ts` installs `installLegacyActionBridge()`, `installLegacyPageBridge()`, `installLegacyTaskPageBridge()`, `installLegacyEventBridge()`, mounts Vue, and calls `startLegacyApp()`.
-- Contract tests should assert that `main.ts` does not import the former `src/docker/webui/app*.js` production boot modules.
-- Contract tests should assert that the former production boot files are absent.
-- Run `npm run lint`, `npm run type-check:webui`, `npm run test:contracts`, and `npm run build:webui` after changing this bridge.

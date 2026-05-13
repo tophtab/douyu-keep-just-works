@@ -29,21 +29,6 @@ Frontend quality in this project is based on:
 - Do not let `npm run build:docker` depend on prebuilt local artifacts.
 - Do not broaden lint/test scopes to unrelated archived Trellis or generated build output.
 
-## Testing Requirements
-
-Current expected checks:
-
-- `npm run lint`
-- `npm run type-check`
-- `npm run build:webui` for frontend source changes
-- `npm test` for contract tests plus Docker build
-
-For UI work, manually verify:
-
-- page loads without console-breaking errors
-- route navigation still works for deep-linked WebUI paths
-- login, form validation, save flows, and task actions still behave correctly
-- job progress, loading states, and logs still update visibly
 
 ## Code Review Checklist
 

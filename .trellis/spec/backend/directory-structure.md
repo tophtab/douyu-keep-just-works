@@ -238,14 +238,8 @@ Examples:
 - Bad: Add `electron`, `src/main`, or `src/renderer` for behavior only used by Docker WebUI.
 - Bad: Add Vue/Vite to production `dependencies` when they are only needed for builder-time WebUI assets.
 
-### 6. Tests Required
 
-- Run `npm run build:docker`.
-- Run `npm run type-check` when TypeScript contracts changed.
-- Run `npm run lint` for touched TypeScript and config files.
-- For Docker WebUI source changes, run `npm run build:webui` or `npm test`.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 
@@ -312,15 +306,8 @@ export async function collectGiftViaDanmu(cookie: string, roomId: number | strin
 - Base: If Douyu changes the room-entry protocol, update `collectGiftViaDanmu()` and preserve explicit timeout/auth errors.
 - Bad: Re-add `puppeteer`, install Chromium in `Dockerfile`, or hide WebSocket failures by treating them as a successful collect.
 
-### 6. Tests Required
 
-- Run `npm run type-check`.
-- Run `npm run lint`.
-- Run `npm run build:docker`.
-- Run `make docker-build` and verify Docker history has no Chromium install layer.
-- Start the local image with `make docker-up` and verify the WebUI boots.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 
@@ -387,15 +374,8 @@ AppContext.fetchYubaStatus(): Promise<YubaStatusResponse>
 - Bad: WebUI startup calls fans status and Yuba status for every page load, or each browser tab starts its own full Douyu fan-out while another identical request is still in flight.
 - Bad: The base phase calls `getGiftStatus()` or `checkDoubleCard()` before returning list rows.
 
-### 6. Tests Required
 
-- Run `npm run type-check`.
-- Run `npm run lint`.
-- Run `npm test` when Docker runtime wiring or build output may be affected.
-- Review the client flow so non-Yuba page initialization does not call `/api/yuba/status`.
-- Review invalidation paths for cookie save, CookieCloud persistence/sync, task config saves, fan sync, scheduled task execution, and manual task execution.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 
@@ -464,15 +444,8 @@ export function selectExpiringGiftCandidates(status: BackpackStatus, options: {
 - Base: Single visible gift row behaves like the MVP: when it enters the threshold, its full visible count becomes the budget.
 - Bad: Use `status.count` from `getGiftStatus()` as the expiring send budget after only `status.expireTime` enters the threshold.
 
-### 6. Tests Required
 
-- Run `npm run lint`.
-- Run `npm run type-check`.
-- Run `npm run build:docker`.
-- For parser/selection changes, cover or manually verify: single gift row, multiple rows with only one expiring, multiple candidate gift IDs, missing absolute expiry, malformed backpack response, and Douyu business-error response.
-- For WebUI changes, verify the expiring table shows per-row threshold status and auto-release status without a skip/release reason column, raw cookies, or raw backpack payloads.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 
@@ -580,29 +553,8 @@ pull request build   -> build only, no Docker Hub login or push
 - Bad: A branch build publishes `latest` or a numeric Docker tag.
 - Bad: A normal branch build spends CI time on QEMU-backed arm64 image construction.
 
-### 6. Tests Required
 
-- Run `npm run lint`.
-- Run `npm run type-check`.
-- Run `npm run build:docker`.
-- Run `npm test`.
-- Validate workflow YAML syntax.
-- Simulate default-branch Docker tag preparation and verify it publishes `edge` only.
-- Simulate manual `Vx.y.z` and `vx.y.z` tag preparation.
-- Simulate pull request tag preparation and verify `push=false`.
-- Verify pull request and default-branch Docker builds use `platforms: linux/amd64` only.
-- Verify release tag builds cover both `linux/amd64` and `linux/arm64`.
-- Verify release arm64 builds use `ubuntu-24.04-arm` or another native arm64 runner label when available.
-- Verify release manifest creation combines per-platform digests with `docker buildx imagetools create`.
-- Verify Docker Buildx steps include `cache-from: type=gha` and `cache-to: type=gha`.
-- Search the workflow for forbidden published aliases such as `sha-*` and major/minor-only Docker tags.
-- Search the workflow to verify it does not read `package.json.version` or query Docker Hub during tag preparation.
-- Verify `package.json` has no `version:*` or `release:*` scripts.
-- Verify `package.json`, `package-lock.json`, and `package-lock.json#packages[""].version` match.
-- Verify QEMU is not used for normal Docker builds.
-- Verify no git commit, git tag, GitHub Release, or Docker image was created unless the user explicitly requested publishing.
-
-### 7. Wrong vs Correct
+### 6. Wrong vs Correct
 
 #### Wrong
 

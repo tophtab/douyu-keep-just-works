@@ -92,6 +92,16 @@ The first implementation commit should migrate the login page, app shell visibil
 
 ## Verification Results
 
+- Task action assembly slice:
+  - Added `src/docker/webui-src/task-actions.ts` as the TypeScript owner for simple, room-send, and aggregate task action assembly.
+  - Removed `src/docker/webui/app-simple-task-actions.js`, `src/docker/webui/app-send-task-actions.js`, and `src/docker/webui/app-task-actions.js` from the Vite boot path and deleted the former legacy owner files.
+  - Kept the compatibility bridge shape so `app.js` can still consume `DOUYU_KEEP_WEBUI_TASK_ACTIONS` while individual task behavior remains owned by Vue task modules.
+  - Updated contract tests and specs so future migration work treats `task-actions.ts` as the owner for task action assembly.
+  - `npm run lint` passed.
+  - `npm run type-check:webui` passed.
+  - `npm run test:contracts` passed.
+  - `npm run build:webui` passed.
+  - `npm test` passed, including `npm run build:docker`.
 - Resource action assembly slice:
   - Moved `DOUYU_KEEP_WEBUI_RESOURCE_ACTIONS` composition and active-surface refresh orchestration from `src/docker/webui/app-resource-actions.js` into `src/docker/webui-src/resources.ts`.
   - Removed `src/docker/webui/app-resource-actions.js` from the Vite boot path and deleted the former legacy owner file.

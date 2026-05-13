@@ -405,7 +405,7 @@ window.DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS = {
 - Vue save actions build the persisted task payload from reactive state and post only the corresponding config key through `/api/config`.
 - Vue disable actions preserve the current cron/model/send values while setting `active: false`.
 - Vue manual trigger actions call `/api/trigger/<task>` and then ask legacy loaders to refresh overview, logs, and fan status as appropriate.
-- Existing fan-list loading remains legacy-owned until resource actions migrate; the migrated page may still rely on `ensureFansListForActiveTab()` being called after state dispatch.
+- Existing fan-list loading is owned by `resources.ts`; the migrated page may still rely on `ensureFansListForActiveTab()` being called after state dispatch while legacy navigation orchestration remains.
 
 ### 4. Validation & Error Matrix
 
@@ -421,7 +421,7 @@ window.DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS = {
 ### 5. Good/Base/Bad Cases
 
 - Good: `app-task-pages.js` dispatches `douyu-keep-webui:keepalive-page`, then calls `ensureFansListForActiveTab()` for the still-legacy loader.
-- Base: `app-send-task-actions.js` delegates keepalive save/disable through `DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS` while continuing to own unmigrated sibling pages.
+- Base: `task-actions.ts` delegates keepalive save/disable through `DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS` while the aggregate compatibility bridge remains.
 - Bad: Legacy code still calls `byId('keepalive-cron').value`, `byId('keepalive-enable').checked`, or rewrites `#keepalive-table-wrap` after the Vue page is mounted.
 
 ### 6. Tests Required
@@ -801,11 +801,11 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:collect-page', {
 ### 3. Contracts
 
 - `src/docker/webui-src/collect.ts` owns visible collect page DOM state and actions through Vue refs and `requestJson()`.
-- `main.ts` must install `installLegacyCollectTaskBridge()` before `app-simple-task-actions.js` and `app-task-actions.js` are imported.
+- `main.ts` must install `installLegacyCollectTaskBridge()` before `installLegacySimpleTaskActionsBridge()` and `installLegacyTaskActionsBridge()`.
 - `App.vue` must bind the collect enable switch, cron input, cron preview, save button, and manual trigger button through Vue state/events.
 - Legacy `app-task-pages.js` must dispatch `douyu-keep-webui:collect-page` details instead of mutating `#collect-task-card`, `#collect-enable`, `#collect-cron`, or `#collect-cron-preview`.
 - Legacy `app-events.js` must not handle `data-action="save-collect"`, `#collect-cron`, or `#collect-enable` after Vue owns the collect page.
-- `app-simple-task-actions.js` may keep owning Yuba actions, but collect save/disable must delegate to `window.DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS.create(...)`.
+- `task-actions.ts` must delegate collect save/disable through `window.DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS.create(...)`.
 - Save/disable requests preserve the existing API contract: `POST /api/config` with `collectGift: { active, cron }`.
 - Manual trigger preserves the existing user-facing behavior: `POST /api/trigger/collectGift`, `执行完成` success toast, then refresh overview/logs/fan status through legacy refresh functions while those surfaces remain transitional.
 - Unauthorized errors must flow through the shared request helper and avoid duplicate local toasts.
@@ -826,7 +826,7 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:collect-page', {
 
 ### 5. Good/Base/Bad Cases
 
-- Good: Vue owns collect inputs/buttons while `app-simple-task-actions.js` delegates collect actions to the bridge for transitional callers.
+- Good: Vue owns collect inputs/buttons while `task-actions.ts` delegates collect actions to the bridge for transitional callers.
 - Good: `app-task-pages.js` sends `douyu-keep-webui:collect-page` state details, leaving DOM updates to Vue bindings.
 - Base: Other send-room task pages remain in legacy task renderers until their own slices migrate.
 - Bad: `app-events.js` handles `data-action="save-collect"` after Vue owns the collect save button.
@@ -840,7 +840,7 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:collect-page', {
 - Contract tests should assert that `main.ts` installs the bridge before legacy task-action assembly.
 - Contract tests should assert that legacy `app-task-pages.js` dispatches `douyu-keep-webui:collect-page` and no longer mutates collect DOM fields.
 - Contract tests should assert that legacy `app-events.js` no longer handles collect save/toggle/cron listeners.
-- Contract tests should assert that legacy `app-simple-task-actions.js` delegates collect actions through `DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS` and keeps Yuba behavior intact.
+- Contract tests should assert that `task-actions.ts` delegates collect actions through `DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS`.
 - Run `npm run lint`, `npm run type-check:webui`, `npm run test:contracts`, `npm run build:webui`, and `npm test` after this migration.
 
 ### 7. Wrong vs Correct
@@ -1041,11 +1041,11 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:yuba-page', {
 ### 3. Contracts
 
 - `src/docker/webui-src/yuba.ts` owns visible Yuba page DOM state and actions through Vue refs, computed table rows, and `requestJson()`.
-- `main.ts` must install `installLegacyYubaBridge()` before `installLegacyResourceActionsBridge()`, `app-simple-task-actions.js`, and `app-task-actions.js` are imported.
+- `main.ts` must install `installLegacyYubaBridge()` before `installLegacyResourceActionsBridge()`, `installLegacySimpleTaskActionsBridge()`, and `installLegacyTaskActionsBridge()`.
 - `App.vue` must bind the Yuba enable switch, cron input, mode select, cron preview, save button, trigger button, note, status card, and table through Vue state/events.
 - Legacy `app-task-pages.js` must dispatch `douyu-keep-webui:yuba-page` details and call `ensureYubaStatusForActiveTab()` instead of mutating `#yuba-task-card`, `#yuba-enable`, `#yuba-cron`, `#yuba-note`, or `#yuba-table-wrap`.
 - Legacy `app-events.js` must not handle `data-action="save-yuba"`, `#yuba-cron`, or `#yuba-enable` after Vue owns the Yuba page.
-- `app-simple-task-actions.js` must delegate Yuba save/disable through `window.DOUYU_KEEP_WEBUI_YUBA_TASK_ACTIONS.create(...)`.
+- `task-actions.ts` must delegate Yuba save/disable through `window.DOUYU_KEEP_WEBUI_YUBA_TASK_ACTIONS.create(...)`.
 - `resources.ts` must compose Yuba resource actions through `window.DOUYU_KEEP_WEBUI_YUBA_RESOURCE_ACTIONS.create(...)`; do not reintroduce `src/docker/webui/app-yuba-resource-actions.js` or `src/docker/webui/app-resource-actions.js`.
 - Save/disable requests preserve the existing API contract: `POST /api/config` with `yubaCheckIn: { active, cron, mode: 'followed' }`.
 - Manual trigger preserves the existing user-facing behavior: `POST /api/trigger/yubaCheckIn`, `执行完成` success toast, then refresh overview/logs/Yuba status through transitional refresh functions.
@@ -1086,7 +1086,7 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:yuba-page', {
 - Contract tests should assert that `main.ts` installs the Yuba bridge and no longer imports `app-yuba-resource-actions.js`.
 - Contract tests should assert that legacy `app-task-pages.js` dispatches `douyu-keep-webui:yuba-page` and no longer mutates Yuba DOM fields.
 - Contract tests should assert that legacy `app-events.js` no longer handles Yuba save/toggle/cron listeners.
-- Contract tests should assert that `app-simple-task-actions.js` delegates Yuba actions through `DOUYU_KEEP_WEBUI_YUBA_TASK_ACTIONS`.
+- Contract tests should assert that `task-actions.ts` delegates Yuba actions through `DOUYU_KEEP_WEBUI_YUBA_TASK_ACTIONS`.
 - Request-smoothing tests should include `src/docker/webui-src/yuba.ts` when checking that `loadYubaStatus()` reuses pending requests and calls `trackResourceRequest()`.
 - Run `npm run lint`, `npm run type-check:webui`, `npm run test:contracts`, `npm run build:webui`, and `npm test` after this migration.
 

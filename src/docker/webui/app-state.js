@@ -1,4 +1,6 @@
 (function () {
+  var formatDate = window.DOUYU_KEEP_WEBUI_DOM.formatDate;
+
   function createStateModule(deps) {
     var defaultRawConfig = deps.defaultRawConfig;
     var initialTab = deps.initialTab;

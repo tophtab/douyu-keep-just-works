@@ -240,7 +240,7 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:toast', {
 ### 3. Contracts
 
 - Vue owns the toast DOM state: `#toast` text, display, background, `aria-hidden`, and `#toast-live` text.
-- Legacy modules may keep calling `DOUYU_KEEP_WEBUI_DOM.toast(message, ok)`, but that helper must dispatch `douyu-keep-webui:toast` instead of mutating `#toast` or `#toast-live`.
+- Legacy modules may keep calling `DOUYU_KEEP_WEBUI_DOM.toast(message, ok)`, but the helper installed by `legacy-core.ts` must dispatch through `showToast(message, ok)` instead of mutating `#toast` or `#toast-live`.
 - Vue must clear the live-region text before setting the new message asynchronously so repeated identical messages are announced.
 - Toast visibility must still auto-hide after the existing 3200ms duration.
 - Theme and future Vue-owned slices should call `showToast(message, ok)` instead of duplicating toast DOM mutation.
@@ -260,14 +260,14 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:toast', {
 - Good: Vue listens for `douyu-keep-webui:toast`, stores the message in refs, renders `#toast-live` and `#toast` from state, and clears timers on unmount.
 
 - Base: Legacy actions keep their existing `toast('...', true/false)` calls and the helper bridges them to the Vue event.
-- Bad: `app-dom.js` calls `byId('toast')`, edits `#toast-live`, stores `window.__toastTimer`, or a Vue composable duplicates those DOM mutations.
+- Bad: a legacy DOM helper calls `byId('toast')`, edits `#toast-live`, stores `window.__toastTimer`, or a Vue composable duplicates those DOM mutations.
 
 ### 6. Tests Required
 
 - Contract tests should assert that `App.vue` uses `useToastRegion()` and binds `#toast-live` to Vue state.
 - Contract tests should assert that `toast.ts` exports `useToastRegion()` and the `douyu-keep-webui:toast` bridge.
 - Contract tests should assert that `theme.ts` requests shared error-toast feedback through `requestJson()` and no longer queries `#toast`.
-- Contract tests should assert that legacy `app-dom.js` dispatches the toast event and no longer touches `#toast`, `#toast-live`, or `window.__toastTimer`.
+- Contract tests should assert that `legacy-core.ts` installs `DOUYU_KEEP_WEBUI_DOM.toast` through `showToast()` and no longer touches `#toast`, `#toast-live`, or `window.__toastTimer`.
 - Run `npm run lint`, `npm run type-check`, `npm run test:contracts`, and `npm run build:webui` after this migration.
 
 ### 7. Wrong vs Correct
@@ -581,7 +581,7 @@ await import('../webui/app-system-resource-actions.js')
 #### Correct
 
 ```typescript
-await import('../webui/app-data.js')
+installLegacyCoreBridge()
 installLegacySystemResourceBridge()
 installLegacyFansResourceBridge()
 ```

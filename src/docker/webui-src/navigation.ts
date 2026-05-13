@@ -97,18 +97,18 @@ const PAGE_META_BY_TAB = new Map<WebUiPageTab, WebUiPageMeta>(
   WEBUI_PAGE_TABS.map(tab => [tab.key, tab]),
 )
 
-function normalizePagePath(path: string): string {
+export function normalizePagePath(path: string): string {
   if (!path || path === '/') {
     return '/'
   }
   return path.replace(/\/+$/, '') || '/'
 }
 
-function isWebUiPageTab(value: string): value is WebUiPageTab {
+export function isWebUiPageTab(value: string): value is WebUiPageTab {
   return PAGE_META_BY_TAB.has(value as WebUiPageTab)
 }
 
-function normalizeRoutes(routes: WebUiPageRoutes): Record<WebUiPageTab, string> {
+export function normalizePageRoutes(routes: WebUiPageRoutes): Record<WebUiPageTab, string> {
   return WEBUI_PAGE_TABS.reduce<Record<WebUiPageTab, string>>((normalizedRoutes, tab) => {
     const route = routes[tab.key]
     normalizedRoutes[tab.key] = typeof route === 'string' && route
@@ -136,7 +136,7 @@ function findTabActionTarget(target: EventTarget | null): HTMLElement | null {
 }
 
 export function usePageNavigation(pageRoutes: WebUiPageRoutes) {
-  const routes = normalizeRoutes(pageRoutes)
+  const routes = normalizePageRoutes(pageRoutes)
   const activeTab = ref<WebUiPageTab>(getTabByPath(window.location.pathname))
   const activePageMeta = computed(() => PAGE_META_BY_TAB.get(activeTab.value) ?? WEBUI_PAGE_TABS[0])
 

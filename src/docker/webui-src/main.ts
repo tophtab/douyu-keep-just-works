@@ -5,6 +5,7 @@ import { installLegacyCookieActionBridge } from './cookie'
 import { installLegacyDoubleTaskBridge } from './double'
 import { installLegacyExpiringTaskBridge } from './expiring'
 import { installLegacyKeepaliveTaskBridge } from './keepalive'
+import { installLegacyCoreBridge } from './legacy-core'
 import { installLegacyRequestBridge } from './request'
 import { installLegacyFansResourceBridge, installLegacySystemResourceBridge } from './resources'
 import { installLegacyYubaBridge } from './yuba'
@@ -15,10 +16,7 @@ import '../webui/styles-tables.css'
 import '../webui/styles-responsive.css'
 
 async function bootstrapLegacyBehavior(): Promise<void> {
-  await import('../webui/app-data.js')
   installLegacySystemResourceBridge()
-  await import('../webui/app-routing.js')
-  await import('../webui/app-dom.js')
   await import('../webui/app-state.js')
   await import('../webui/app-managed-data.js')
   await import('../webui/app-protected-state.js')
@@ -33,6 +31,7 @@ async function bootstrapLegacyBehavior(): Promise<void> {
   await import('../webui/app.js')
 }
 
+installLegacyCoreBridge()
 installLegacyRequestBridge()
 installLegacyCookieActionBridge()
 installLegacyCollectTaskBridge()

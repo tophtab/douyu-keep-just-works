@@ -142,3 +142,36 @@ Confirmed Docker WebUI Vue migration is complete, committed Trellis platform syn
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: Consolidate Docker task plumbing
+
+**Date**: 2026-05-13
+**Task**: Consolidate Docker task plumbing
+**Branch**: `master`
+
+### Summary
+
+Refactored backend task metadata/runners and WebUI task page actions, updated contracts and specs, and verified lint, type-check, and tests.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `605313f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

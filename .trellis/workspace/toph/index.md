@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 4
+- **Total Sessions**: 5
 - **Last Active**: 2026-05-13
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~144 | Active |
+| `journal-1.md` | ~177 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 5 | 2026-05-13 | Consolidate Docker task plumbing | `605313f` | `master` |
 | 4 | 2026-05-13 | Vue migration status review | `a3eeb08`, `5093ae6` | `master` |
 | 3 | 2026-05-13 | Remove WebUI legacy bridge runtime | `808cccb` | `master` |
 | 2 | 2026-05-13 | Optimize and simplify code | `0417e56` | `master` |

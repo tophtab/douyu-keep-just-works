@@ -94,6 +94,15 @@ The first implementation commit should migrate the login page, app shell visibil
 
 ## Verification Results
 
+- Collect task page slice:
+  - `App.vue` now renders the collect task status card, enable switch, cron input/preview, save action, and manual trigger action from Vue state.
+  - `src/docker/webui-src/collect.ts` owns collect task save/disable/trigger behavior, collect cron preview loading, and the narrow legacy `DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS` bridge.
+  - Legacy `app-task-pages.js` now dispatches collect-page state to Vue instead of mutating `#collect-task-card`, `#collect-enable`, or `#collect-cron`.
+  - Legacy `app-events.js` no longer handles collect save/toggle/cron events, and legacy `app-simple-task-actions.js` delegates collect actions through the Vue bridge while still owning Yuba actions.
+  - `npm run lint` passed.
+  - `npm run type-check:webui` passed.
+  - `npm run test:contracts` passed.
+  - `npm run build:webui` passed.
 - Cookie/Login config page slice:
   - `App.vue` now renders the login status card, manual Cookie fields, CookieCloud form, CookieCloud note, and CookieCloud cron preview from Vue state.
   - `src/docker/webui-src/cookie.ts` owns manual Cookie save, CookieCloud save/toggle/sync/check actions, cron preview loading, and the narrow legacy `DOUYU_KEEP_WEBUI_COOKIE_ACTIONS` bridge.

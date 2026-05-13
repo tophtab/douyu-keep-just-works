@@ -574,3 +574,99 @@ await import('../webui/app-cookie-actions.js')
 installLegacyCookieActionBridge()
 await import('../webui/app-actions.js')
 ```
+
+## Scenario: Vue-Owned Transitional Collect Task Page
+
+### 1. Scope / Trigger
+
+- Trigger: Moving the Docker WebUI collect-gift task page from legacy DOM mutation into Vue while the remaining task pages still use legacy task renderers and action modules.
+- Scope: Collect task status card, enable switch, cron input, cron preview, save/disable actions, manual trigger action, and the collect action bridge used by transitional task action assembly.
+
+### 2. Signatures
+
+```typescript
+export function useCollectTaskPage(): {
+  collectCron: Ref<string>
+  collectCronPreviewText: ComputedRef<string>
+  collectEnabled: Ref<boolean>
+  collectTaskCard: ComputedRef<{
+    pills: Array<{ label: string, kind: string }>
+    cells: Array<{ label: string, value: string }>
+  }>
+  handleCollectToggle: () => void
+  loadCollectCronPreview: () => Promise<void>
+  saveCollectConfig: (options?: { revertCheckboxOnError?: boolean }) => Promise<void>
+  triggerCollectTask: () => Promise<void>
+}
+```
+
+```typescript
+export function installLegacyCollectTaskBridge(): void
+```
+
+```javascript
+document.dispatchEvent(new CustomEvent('douyu-keep-webui:collect-page', {
+  detail: { rawConfig, overview },
+}))
+```
+
+### 3. Contracts
+
+- `src/docker/webui-src/collect.ts` owns visible collect page DOM state and actions through Vue refs and `requestJson()`.
+- `main.ts` must install `installLegacyCollectTaskBridge()` before `app-simple-task-actions.js` and `app-task-actions.js` are imported.
+- `App.vue` must bind the collect enable switch, cron input, cron preview, save button, and manual trigger button through Vue state/events.
+- Legacy `app-task-pages.js` must dispatch `douyu-keep-webui:collect-page` details instead of mutating `#collect-task-card`, `#collect-enable`, `#collect-cron`, or `#collect-cron-preview`.
+- Legacy `app-events.js` must not handle `data-action="save-collect"`, `#collect-cron`, or `#collect-enable` after Vue owns the collect page.
+- `app-simple-task-actions.js` may keep owning Yuba actions, but collect save/disable must delegate to `window.DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS.create(...)`.
+- Save/disable requests preserve the existing API contract: `POST /api/config` with `collectGift: { active, cron }`.
+- Manual trigger preserves the existing user-facing behavior: `POST /api/trigger/collectGift`, `执行完成` success toast, then refresh overview/logs/fan status through legacy refresh functions while those surfaces remain transitional.
+- Unauthorized errors must flow through the shared request helper and avoid duplicate local toasts.
+- Non-401 failures must keep existing Chinese toast prefixes for save, disable, and trigger failures.
+
+### 4. Validation & Error Matrix
+
+| Case | Expected behavior |
+|------|-------------------|
+| Raw config loads | Vue populates collect enabled state and cron field |
+| Overview loads | Vue updates the collect task status card |
+| User saves collect task | `POST /api/config` with `active: true`, success toast, overview refresh |
+| User disables collect task | `POST /api/config` with `active: false`, success toast, overview refresh |
+| User edits collect cron | Vue refreshes the preview through `/api/cron-preview` and ignores stale responses |
+| User triggers collect manually | `POST /api/trigger/collectGift`, success toast, overview/log/fan-status refresh |
+| Any action returns `401` | Global unauthorized handling runs without a duplicate collect page toast |
+| Any action fails with non-401 | Preserve the existing action-specific error toast |
+
+### 5. Good/Base/Bad Cases
+
+- Good: Vue owns collect inputs/buttons while `app-simple-task-actions.js` delegates collect actions to the bridge for transitional callers.
+- Good: `app-task-pages.js` sends `douyu-keep-webui:collect-page` state details, leaving DOM updates to Vue bindings.
+- Base: Yuba remains in `app-simple-task-actions.js` until its own task-page slice migrates.
+- Bad: `app-events.js` handles `data-action="save-collect"` after Vue owns the collect save button.
+- Bad: `app-task-pages.js` writes `.value`, `.checked`, or `.innerHTML` on collect nodes after Vue owns them.
+- Bad: Collect trigger remains only as `data-action="trigger"` / `data-trigger="collectGift"` after Vue owns the collect page.
+
+### 6. Tests Required
+
+- Contract tests should assert that `App.vue` uses `useCollectTaskPage()` and binds collect switch, cron input, save button, trigger button, and cron preview through Vue.
+- Contract tests should assert that `collect.ts` exports `installLegacyCollectTaskBridge()`, installs `window.DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS`, and calls `/api/config`, `/api/trigger/collectGift`, and `/api/cron-preview`.
+- Contract tests should assert that `main.ts` installs the bridge before legacy task-action assembly.
+- Contract tests should assert that legacy `app-task-pages.js` dispatches `douyu-keep-webui:collect-page` and no longer mutates collect DOM fields.
+- Contract tests should assert that legacy `app-events.js` no longer handles collect save/toggle/cron listeners.
+- Contract tests should assert that legacy `app-simple-task-actions.js` delegates collect actions through `DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS` and keeps Yuba behavior intact.
+- Run `npm run lint`, `npm run type-check:webui`, `npm run test:contracts`, `npm run build:webui`, and `npm test` after this migration.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```javascript
+byId('collect-cron').value = config.collectGift.cron
+```
+
+#### Correct
+
+```javascript
+document.dispatchEvent(new CustomEvent('douyu-keep-webui:collect-page', {
+  detail: { rawConfig: config, overview: state.overview },
+}))
+```

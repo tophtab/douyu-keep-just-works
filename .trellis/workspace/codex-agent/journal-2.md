@@ -140,3 +140,37 @@ Removed outdated Docker WebUI Vue migration guidance that encouraged gradual App
 ### Next Steps
 
 - None - task complete
+
+
+## Session 59: WebUI componentization cleanup
+
+**Date**: 2026-05-13
+**Task**: WebUI componentization cleanup
+**Branch**: `master`
+
+### Summary
+
+Split Docker WebUI App.vue into shell, page, task control, and table Vue components; added shell style layer, updated contract tests and Trellis specs, and verified lint/type-check/build/test.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2e48762` | (see git log) |
+| `f654887` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

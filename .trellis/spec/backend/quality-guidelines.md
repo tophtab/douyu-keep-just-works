@@ -53,7 +53,17 @@ export function isTaskActive(config: { active?: boolean } | null | undefined): b
 }
 ```
 
-Do not copy equivalent task messages or `config && config.active !== false` checks into multiple modules. Reuse metadata helpers from `runtime-scheduler.ts`, `runtime-task-runners.ts`, and future task route code where practical.
+Do not copy equivalent task messages, task-list iteration, or `config && config.active !== false` checks into multiple modules. Reuse metadata helpers from `runtime.ts`, `server-config-routes.ts`, `runtime-scheduler.ts`, `runtime-task-runners.ts`, and future task route code where practical.
+
+When a module needs to know whether any Docker task is enabled, use `hasActiveTaskConfig(config)` from `src/docker/task-metadata.ts` instead of hand-writing an `||` chain across `collectGift`, `keepalive`, `doubleCard`, `expiringGift`, and `yubaCheckIn`.
+
+Scheduled and manual task dispatch should share the runtime runner entry point:
+
+```typescript
+await runRuntimeTask(type, taskConfig, deps)
+```
+
+Keep task-specific cookie/status-cache behavior in `runtime-task-runners.ts`; scheduler code should own cron lifecycle and locks, not duplicate task execution switches.
 
 ### Validate Before Persisting
 

@@ -51,6 +51,21 @@ await requestJson('/api/config', {
 
 Resource loaders in `resources.ts` track pending requests and request sequence numbers for expensive server resources. Reuse those patterns when preventing duplicate in-flight reads or stale responses.
 
+## Task Page Actions
+
+Task pages that save/disable/trigger scheduled Docker tasks should keep page-specific form state, table rows, and user-facing copy in the page composable, but share mechanical actions through `src/docker/webui/task-page-actions.ts`.
+
+Use these helpers before adding another local copy of the same task-page plumbing:
+
+```typescript
+await saveEnabledTask({ payload, enabled, successMessage, failurePrefix, refresh })
+await disableEnabledTask({ payload, successMessage, failurePrefix, restoreEnabled, refresh })
+toggleEnabledTask(enabled, saveTask, disableTask)
+await triggerFansBackedTask('keepalive')
+```
+
+Use `refreshTaskSurface(activeTab)` for the common `refreshOverviewSurface(activeTab, false)` pattern. This keeps the page composables focused on task-specific defaults, validation, and computed UI text while preserving the existing optimistic-toggle rollback behavior.
+
 ---
 
 ## Naming Conventions

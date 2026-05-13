@@ -4,8 +4,9 @@ import { DEFAULT_KEEPALIVE_CRON, DEFAULT_KEEPALIVE_MODEL } from '../../core/task
 import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationModel } from './allocation-task'
 import { useCronPreview } from './composables/use-cron-preview'
-import { fansListError as sharedFansListError, fansListLoaded as sharedFansListLoaded, fansStatus as sharedFansStatus, getManagedConfig, getManagedFans, loadFansStatus, loadLogs, loadOverview, managed, managedLoading as sharedManagedLoading, overview as sharedOverview, rawConfig as sharedRawConfig, refreshOverviewSurface } from './resource-state'
-import { createFanListMessages, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getAllocationValueLabel, hasFanTaskTableRows, isHttpUnauthorized, isTaskActive, resolveCurrentTaskConfig, saveTaskConfig, triggerTask } from './task-shared'
+import { fansListError as sharedFansListError, fansListLoaded as sharedFansListLoaded, fansStatus as sharedFansStatus, getManagedConfig, getManagedFans, managed, managedLoading as sharedManagedLoading, overview as sharedOverview, rawConfig as sharedRawConfig } from './resource-state'
+import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
+import { createFanListMessages, getAllocationValueLabel, hasFanTaskTableRows, isTaskActive, resolveCurrentTaskConfig } from './task-shared'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface KeepaliveOverview {
@@ -34,10 +35,6 @@ const keepaliveCron = ref(DEFAULT_KEEPALIVE_CRON)
 const keepaliveModel = ref<1 | 2>(DEFAULT_KEEPALIVE_MODEL)
 const fanRows = ref<KeepaliveFanRow[]>([])
 const { cronPreviewText: keepaliveCronPreviewText, ensureCronPreview, loadCronPreview: loadKeepaliveCronPreview } = useCronPreview(() => keepaliveCron.value)
-
-function isUnauthorizedError(error: unknown): boolean {
-  return isHttpUnauthorized(error)
-}
 
 function normalizeModel(model: unknown): 1 | 2 {
   return normalizeAllocationModel(model, DEFAULT_KEEPALIVE_MODEL)
@@ -92,19 +89,16 @@ function buildSendPayload(): JobConfig {
 }
 
 async function refreshKeepaliveSurfaces(): Promise<void> {
-  await refreshOverviewSurface('keepalive', false)
+  await refreshTaskSurface('keepalive')
 }
 
 async function saveKeepaliveConfig(options?: { revertCheckboxOnError?: boolean }): Promise<void> {
-  await saveTaskConfig({
+  await saveEnabledTask({
     payload: { keepalive: buildSendPayload() },
     successMessage: '保活任务已保存并启用',
     failurePrefix: '保存并启用保活任务失败：',
-    setEnabled: (enabled) => {
-      keepaliveEnabled.value = enabled
-    },
+    enabled: keepaliveEnabled,
     revertCheckboxOnError: options?.revertCheckboxOnError,
-    isUnauthorizedError,
     refresh: refreshKeepaliveSurfaces,
   })
 }
@@ -121,7 +115,11 @@ async function disableKeepaliveConfig(): Promise<void> {
       send: {},
     },
   })
-  await disableTaskConfig({
+  await saveDisabledKeepaliveConfig(currentConfig)
+}
+
+async function saveDisabledKeepaliveConfig(currentConfig: JobConfig): Promise<void> {
+  await disableEnabledTask({
     payload: {
       keepalive: {
         active: false,
@@ -135,32 +133,26 @@ async function disableKeepaliveConfig(): Promise<void> {
     restoreEnabled: () => {
       keepaliveEnabled.value = true
     },
-    isUnauthorizedError,
     refresh: refreshKeepaliveSurfaces,
   })
 }
 
 async function triggerKeepaliveTask(): Promise<void> {
-  await triggerTask({
-    taskType: 'keepalive',
-    isUnauthorizedError,
-    refresh: [
-      () => loadOverview(),
-      () => loadLogs(),
-      () => loadFansStatus(false),
-    ],
-  })
+  await triggerFansBackedTask('keepalive')
 }
 
 export function useKeepaliveTaskPage() {
   const keepaliveTaskCard = computed(() => {
-    if (!overview.value) {
-      return createPendingTaskCard('房间数')
-    }
-
-    const configured = Boolean(overview.value.keepaliveConfigured)
-    const status = overview.value.status?.keepalive || {}
-    return createScheduledTaskCard(configured, status, { label: '房间数', value: configured ? String(overview.value.keepaliveRooms ?? 0) : '0' })
+    const currentOverview = overview.value
+    const configured = Boolean(currentOverview?.keepaliveConfigured)
+    const status = currentOverview?.status?.keepalive || {}
+    return createOverviewTaskCard({
+      overviewReady: Boolean(currentOverview),
+      pendingThirdLabel: '房间数',
+      configured,
+      status,
+      thirdCell: { label: '房间数', value: configured ? String(currentOverview?.keepaliveRooms ?? 0) : '0' },
+    })
   })
 
   const keepaliveMessages = computed(() => {
@@ -184,11 +176,7 @@ export function useKeepaliveTaskPage() {
   const keepaliveValueLabel = computed(() => getAllocationValueLabel(keepaliveModel.value))
 
   function handleKeepaliveToggle(): void {
-    if (keepaliveEnabled.value) {
-      void saveKeepaliveConfig({ revertCheckboxOnError: true })
-      return
-    }
-    void disableKeepaliveConfig()
+    toggleEnabledTask(keepaliveEnabled, saveKeepaliveConfig, disableKeepaliveConfig)
   }
 
   function handleKeepaliveModelChange(): void {

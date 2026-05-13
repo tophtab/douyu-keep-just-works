@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Quality gate and task metadata ownership checks"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Vue-only WebUI contract and build checks"}

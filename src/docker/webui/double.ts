@@ -4,8 +4,9 @@ import { DEFAULT_DOUBLE_CARD_CRON, DEFAULT_DOUBLE_CARD_GIFT_SCOPE, DEFAULT_DOUBL
 import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, buildEnabledRoomMap, formatRatioPercent, normalizeAllocationModel } from './allocation-task'
 import { useCronPreview } from './composables/use-cron-preview'
-import { fansListError as sharedFansListError, fansListLoaded as sharedFansListLoaded, fansStatus as sharedFansStatus, getManagedConfig, getManagedFans, loadFansStatus, loadLogs, loadOverview, managed, managedLoading as sharedManagedLoading, overview as sharedOverview, rawConfig as sharedRawConfig, refreshOverviewSurface } from './resource-state'
-import { createFanListMessages, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isHttpUnauthorized, isTaskActive, resolveCurrentTaskConfig, saveTaskConfig, triggerTask } from './task-shared'
+import { fansListError as sharedFansListError, fansListLoaded as sharedFansListLoaded, fansStatus as sharedFansStatus, getManagedConfig, getManagedFans, managed, managedLoading as sharedManagedLoading, overview as sharedOverview, rawConfig as sharedRawConfig } from './resource-state'
+import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
+import { createFanListMessages, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isTaskActive, resolveCurrentTaskConfig } from './task-shared'
 import { showToast } from './toast'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
@@ -41,10 +42,6 @@ const doubleModel = ref<1 | 2>(DEFAULT_DOUBLE_CARD_MODEL)
 const doubleGiftScope = ref<DoubleCardGiftScope>(DEFAULT_DOUBLE_CARD_GIFT_SCOPE)
 const fanRows = ref<DoubleFanRow[]>([])
 const { cronPreviewText: doubleCronPreviewText, ensureCronPreview, loadCronPreview: loadDoubleCronPreview } = useCronPreview(() => doubleCron.value)
-
-function isUnauthorizedError(error: unknown): boolean {
-  return isHttpUnauthorized(error)
-}
 
 function normalizeModel(model: unknown): 1 | 2 {
   return normalizeAllocationModel(model, DEFAULT_DOUBLE_CARD_MODEL)
@@ -115,7 +112,7 @@ function buildDoublePayload(): DoubleCardConfig {
 }
 
 async function refreshDoubleSurfaces(): Promise<void> {
-  await refreshOverviewSurface('double-card', false)
+  await refreshTaskSurface('double-card')
 }
 
 async function saveDoubleConfig(options?: { revertCheckboxOnError?: boolean }): Promise<void> {
@@ -130,15 +127,12 @@ async function saveDoubleConfig(options?: { revertCheckboxOnError?: boolean }): 
     }
   }
 
-  await saveTaskConfig({
+  await saveEnabledTask({
     payload: { doubleCard: nextConfig },
     successMessage: '双倍任务已保存并启用',
     failurePrefix: '保存并启用双倍任务失败：',
-    setEnabled: (enabled) => {
-      doubleEnabled.value = enabled
-    },
+    enabled: doubleEnabled,
     revertCheckboxOnError: options?.revertCheckboxOnError,
-    isUnauthorizedError,
     refresh: refreshDoubleSurfaces,
   })
 }
@@ -157,7 +151,7 @@ async function disableDoubleConfig(): Promise<void> {
       enabled: {},
     },
   })
-  await disableTaskConfig({
+  await disableEnabledTask({
     payload: {
       doubleCard: {
         active: false,
@@ -173,33 +167,26 @@ async function disableDoubleConfig(): Promise<void> {
     restoreEnabled: () => {
       doubleEnabled.value = true
     },
-    isUnauthorizedError,
     refresh: refreshDoubleSurfaces,
   })
 }
 
 async function triggerDoubleTask(): Promise<void> {
-  await triggerTask({
-    taskType: 'doubleCard',
-    isUnauthorizedError,
-    refresh: [
-      () => loadOverview(),
-      () => loadLogs(),
-      () => loadFansStatus(false),
-    ],
-    onSuccess: applyResourceState,
-  })
+  await triggerFansBackedTask('doubleCard', applyResourceState)
 }
 
 export function useDoubleTaskPage() {
   const doubleTaskCard = computed(() => {
-    if (!overview.value) {
-      return createPendingTaskCard('房间数')
-    }
-
-    const configured = Boolean(overview.value.doubleCardConfigured)
-    const status = overview.value.status?.doubleCard || {}
-    return createScheduledTaskCard(configured, status, { label: '房间数', value: configured ? String(overview.value.doubleCardRooms ?? 0) : '0' })
+    const currentOverview = overview.value
+    const configured = Boolean(currentOverview?.doubleCardConfigured)
+    const status = currentOverview?.status?.doubleCard || {}
+    return createOverviewTaskCard({
+      overviewReady: Boolean(currentOverview),
+      pendingThirdLabel: '房间数',
+      configured,
+      status,
+      thirdCell: { label: '房间数', value: configured ? String(currentOverview?.doubleCardRooms ?? 0) : '0' },
+    })
   })
 
   const enabledCount = computed(() => fanRows.value.filter(row => row.enabled).length)
@@ -274,11 +261,7 @@ export function useDoubleTaskPage() {
   })
 
   function handleDoubleToggle(): void {
-    if (doubleEnabled.value) {
-      void saveDoubleConfig({ revertCheckboxOnError: true })
-      return
-    }
-    void disableDoubleConfig()
+    toggleEnabledTask(doubleEnabled, saveDoubleConfig, disableDoubleConfig)
   }
 
   function applyDoubleRatioPreset(preset: 'equal' | 'level'): void {

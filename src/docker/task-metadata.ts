@@ -60,6 +60,10 @@ export function isTaskActive(config: { active?: boolean } | null | undefined): b
   return Boolean(config && config.active !== false)
 }
 
+export function hasActiveTaskConfig(config: DockerConfig | null | undefined): boolean {
+  return TASK_TYPES.some(type => isTaskActive(getTaskConfig(config, type)))
+}
+
 export function getTaskScheduleSummary(type: TaskType, config: DockerConfig[TaskType]): string | undefined {
   switch (type) {
     case 'collectGift':

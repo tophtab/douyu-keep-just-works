@@ -5,10 +5,7 @@ import { getNextCronRuns, validateCronExpression } from './cron'
 import { validateCookieCloudConfig, validateCronConfig, validateDoubleCardConfig, validateExpiringGiftConfig, validateJobConfig, validateYubaCheckInConfig } from './config-validation'
 import { errorMessage } from './server-errors'
 import type { AppContext } from './server-types'
-
-function isTaskActive(config: { active?: boolean } | null | undefined): boolean {
-  return Boolean(config && config.active !== false)
-}
+import { hasActiveTaskConfig, isTaskActive } from './task-metadata'
 
 function hasConfiguredCookieSource(config: DockerConfig | null | undefined): boolean {
   return Boolean(
@@ -83,6 +80,52 @@ function summarizeConfig(config: DockerConfig | null) {
   }
 }
 
+function validateConfigPayload(payload: Partial<DockerConfig>): string | null {
+  if (payload.collectGift) {
+    const error = validateCronConfig('collectGift', payload.collectGift)
+    if (error) {
+      return error
+    }
+  }
+  if (payload.keepalive) {
+    const error = validateJobConfig('keepalive', payload.keepalive)
+    if (error) {
+      return error
+    }
+  }
+  if (payload.doubleCard) {
+    const error = validateDoubleCardConfig(payload.doubleCard)
+    if (error) {
+      return error
+    }
+  }
+  if (payload.expiringGift) {
+    const error = validateExpiringGiftConfig(payload.expiringGift)
+    if (error) {
+      return error
+    }
+  }
+  if (payload.yubaCheckIn) {
+    const error = validateYubaCheckInConfig(payload.yubaCheckIn)
+    if (error) {
+      return error
+    }
+  }
+  if (payload.manualCookies && (typeof payload.manualCookies !== 'object' || Array.isArray(payload.manualCookies))) {
+    return 'manualCookies 配置无效'
+  }
+  if (payload.cookieCloud) {
+    const error = validateCookieCloudConfig(payload.cookieCloud)
+    if (error) {
+      return error
+    }
+  }
+  if (payload.ui && typeof payload.ui !== 'object') {
+    return 'ui 配置无效'
+  }
+  return null
+}
+
 export function registerConfigRoutes(app: express.Express, ctx: AppContext): void {
   app.get('/api/config', (_req, res) => {
     const config = ctx.getConfig()
@@ -115,13 +158,7 @@ export function registerConfigRoutes(app: express.Express, ctx: AppContext): voi
     res.json({
       ...summarizeConfig(config),
       timezone: 'Asia/Shanghai',
-      ready: Boolean(hasConfiguredCookieSource(config) && (
-        isTaskActive(config?.collectGift)
-        || isTaskActive(config?.keepalive)
-        || isTaskActive(config?.doubleCard)
-        || isTaskActive(config?.expiringGift)
-        || isTaskActive(config?.yubaCheckIn)
-      )),
+      ready: Boolean(hasConfiguredCookieSource(config) && hasActiveTaskConfig(config)),
       status,
       recentLogs,
     })
@@ -144,49 +181,9 @@ export function registerConfigRoutes(app: express.Express, ctx: AppContext): voi
   app.post('/api/config', (req, res) => {
     try {
       const payload = req.body as Partial<DockerConfig>
-      if (payload.collectGift) {
-        const error = validateCronConfig('collectGift', payload.collectGift)
-        if (error) {
-          return res.status(400).json({ error })
-        }
-      }
-      if (payload.keepalive) {
-        const error = validateJobConfig('keepalive', payload.keepalive)
-        if (error) {
-          return res.status(400).json({ error })
-        }
-      }
-      if (payload.doubleCard) {
-        const error = validateDoubleCardConfig(payload.doubleCard)
-        if (error) {
-          return res.status(400).json({ error })
-        }
-      }
-      if (payload.expiringGift) {
-        const error = validateExpiringGiftConfig(payload.expiringGift)
-        if (error) {
-          return res.status(400).json({ error })
-        }
-      }
-      if (payload.yubaCheckIn) {
-        const error = validateYubaCheckInConfig(payload.yubaCheckIn)
-        if (error) {
-          return res.status(400).json({ error })
-        }
-      }
-      if (payload.manualCookies) {
-        if (typeof payload.manualCookies !== 'object' || Array.isArray(payload.manualCookies)) {
-          return res.status(400).json({ error: 'manualCookies 配置无效' })
-        }
-      }
-      if (payload.cookieCloud) {
-        const error = validateCookieCloudConfig(payload.cookieCloud)
-        if (error) {
-          return res.status(400).json({ error })
-        }
-      }
-      if (payload.ui && typeof payload.ui !== 'object') {
-        return res.status(400).json({ error: 'ui 配置无效' })
+      const validationError = validateConfigPayload(payload)
+      if (validationError) {
+        return res.status(400).json({ error: validationError })
       }
       ctx.saveTaskConfig({
         manualCookies: payload.manualCookies,

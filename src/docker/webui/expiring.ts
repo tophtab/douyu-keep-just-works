@@ -5,8 +5,9 @@ import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationModel } from './allocation-task'
 import { useCronPreview } from './composables/use-cron-preview'
 import { formatDate } from './datetime'
-import { fansListError as sharedFansListError, fansListLoaded as sharedFansListLoaded, fansStatus as sharedFansStatus, fansStatusDetailsLoading as sharedFansStatusDetailsLoading, fansStatusLoaded as sharedFansStatusLoaded, fansStatusLoading as sharedFansStatusLoading, getManagedConfig, getManagedFans, giftStatus as sharedGiftStatus, loadFansStatus, loadLogs, loadOverview, managed, managedLoading as sharedManagedLoading, overview as sharedOverview, rawConfig as sharedRawConfig, refreshOverviewSurface } from './resource-state'
-import { createFanListMessages, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isHttpUnauthorized, isTaskActive, resolveCurrentTaskConfig, saveTaskConfig, triggerTask } from './task-shared'
+import { fansListError as sharedFansListError, fansListLoaded as sharedFansListLoaded, fansStatus as sharedFansStatus, fansStatusDetailsLoading as sharedFansStatusDetailsLoading, fansStatusLoaded as sharedFansStatusLoaded, fansStatusLoading as sharedFansStatusLoading, getManagedConfig, getManagedFans, giftStatus as sharedGiftStatus, managed, managedLoading as sharedManagedLoading, overview as sharedOverview, rawConfig as sharedRawConfig } from './resource-state'
+import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
+import { createFanListMessages, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isTaskActive, resolveCurrentTaskConfig } from './task-shared'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface ExpiringOverview {
@@ -51,10 +52,6 @@ const expiringThresholdHours = ref(DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS)
 const expiringModel = ref<1 | 2>(DEFAULT_EXPIRING_GIFT_MODEL)
 const fanRows = ref<ExpiringFanRow[]>([])
 const { cronPreviewText: expiringCronPreviewText, ensureCronPreview, loadCronPreview: loadExpiringCronPreview } = useCronPreview(() => expiringCron.value)
-
-function isUnauthorizedError(error: unknown): boolean {
-  return isHttpUnauthorized(error)
-}
 
 function normalizeModel(model: unknown): 1 | 2 {
   return normalizeAllocationModel(model, DEFAULT_EXPIRING_GIFT_MODEL)
@@ -124,19 +121,16 @@ function buildExpiringPayload(): ExpiringGiftConfig {
 }
 
 async function refreshExpiringSurfaces(): Promise<void> {
-  await refreshOverviewSurface('expiring-gift', false)
+  await refreshTaskSurface('expiring-gift')
 }
 
 async function saveExpiringGiftConfig(options?: { revertCheckboxOnError?: boolean }): Promise<void> {
-  await saveTaskConfig({
+  await saveEnabledTask({
     payload: { expiringGift: buildExpiringPayload() },
     successMessage: '临期任务已保存并启用',
     failurePrefix: '保存并启用临期任务失败：',
-    setEnabled: (enabled) => {
-      expiringEnabled.value = enabled
-    },
+    enabled: expiringEnabled,
     revertCheckboxOnError: options?.revertCheckboxOnError,
-    isUnauthorizedError,
     refresh: refreshExpiringSurfaces,
   })
 }
@@ -154,7 +148,7 @@ async function disableExpiringGiftConfig(): Promise<void> {
       send: {},
     },
   })
-  await disableTaskConfig({
+  await disableEnabledTask({
     payload: {
       expiringGift: {
         active: false,
@@ -169,22 +163,12 @@ async function disableExpiringGiftConfig(): Promise<void> {
     restoreEnabled: () => {
       expiringEnabled.value = true
     },
-    isUnauthorizedError,
     refresh: refreshExpiringSurfaces,
   })
 }
 
 async function triggerExpiringTask(): Promise<void> {
-  await triggerTask({
-    taskType: 'expiringGift',
-    isUnauthorizedError,
-    refresh: [
-      () => loadOverview(),
-      () => loadLogs(),
-      () => loadFansStatus(false),
-    ],
-    onSuccess: applyResourceState,
-  })
+  await triggerFansBackedTask('expiringGift', applyResourceState)
 }
 
 function formatTimestamp(value: number | undefined): string {
@@ -218,13 +202,16 @@ function describeBackpackRow(row: BackpackGiftRow, thresholdHours: number): { au
 
 export function useExpiringGiftTaskPage() {
   const expiringTaskCard = computed(() => {
-    if (!overview.value) {
-      return createPendingTaskCard('阈值')
-    }
-
-    const configured = Boolean(overview.value.expiringGiftConfigured)
-    const status = overview.value.status?.expiringGift || {}
-    return createScheduledTaskCard(configured, status, { label: '阈值', value: `${normalizeThresholdHours(getExpiringConfig().thresholdHours)} 小时` })
+    const currentOverview = overview.value
+    const configured = Boolean(currentOverview?.expiringGiftConfigured)
+    const status = currentOverview?.status?.expiringGift || {}
+    return createOverviewTaskCard({
+      overviewReady: Boolean(currentOverview),
+      pendingThirdLabel: '阈值',
+      configured,
+      status,
+      thirdCell: { label: '阈值', value: `${normalizeThresholdHours(getExpiringConfig().thresholdHours)} 小时` },
+    })
   })
 
   const expiringMessages = computed(() => {
@@ -285,11 +272,7 @@ export function useExpiringGiftTaskPage() {
   const expiringValueLabel = computed(() => getAllocationValueLabel(expiringModel.value))
 
   function handleExpiringToggle(): void {
-    if (expiringEnabled.value) {
-      void saveExpiringGiftConfig({ revertCheckboxOnError: true })
-      return
-    }
-    void disableExpiringGiftConfig()
+    toggleEnabledTask(expiringEnabled, saveExpiringGiftConfig, disableExpiringGiftConfig)
   }
 
   function handleExpiringModelChange(): void {

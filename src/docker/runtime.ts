@@ -14,7 +14,7 @@ import { DockerCookieSourceManager } from './runtime-cookie-source'
 import { DOCKER_TIMEZONE, MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
 import { DockerTaskScheduler } from './runtime-scheduler'
 import { formatScheduleForLog } from './runtime-time'
-import { createTaskRecord, TASK_LOG_CATEGORIES } from './task-metadata'
+import { createTaskRecord, hasActiveTaskConfig, TASK_LOG_CATEGORIES } from './task-metadata'
 import type { TaskType } from './task-metadata'
 
 function errorMessage(error: unknown): string {
@@ -46,10 +46,6 @@ const scheduler = new DockerTaskScheduler(
   targetUrl => cookieSource.resolveCookieForUrl(targetUrl),
   (scope, runTask) => runtimeCache.runAndInvalidateStatus(scope, runTask),
 )
-
-function isTaskActive(config: { active?: boolean } | null | undefined): boolean {
-  return Boolean(config && config.active !== false)
-}
 
 function jsonEquals(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b)
@@ -126,11 +122,7 @@ function reconcileCookieCloudSyncJob(prevConfig: DockerConfig | null, nextConfig
 }
 
 function hasConfiguredJobs(config: DockerConfig): boolean {
-  return isTaskActive(config.collectGift)
-    || isTaskActive(config.keepalive)
-    || isTaskActive(config.doubleCard)
-    || isTaskActive(config.expiringGift)
-    || isTaskActive(config.yubaCheckIn)
+  return hasActiveTaskConfig(config)
 }
 
 function hasSendRooms(config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined): boolean {

@@ -2,7 +2,7 @@ import { executeCollectGiftJob, executeDoubleCardJob, executeExpiringGiftJob, ex
 import type { DockerConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig, YubaCheckInConfig } from '../core/types'
 import type { StatusCacheScope } from './runtime-cache'
 import { MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
-import { getTaskNotConfiguredMessage } from './task-metadata'
+import { getTaskNotConfiguredMessage, createTaskRecord } from './task-metadata'
 import type { TaskType } from './task-metadata'
 
 type TaskLoggerMap = Record<TaskType, (message: string) => void>
@@ -28,6 +28,40 @@ const manualTriggerOptions = {
   busyMessage: '任务正在执行中，请稍后再试',
 }
 
+type TaskConfigResolver = (
+  config: DockerConfig | null,
+  hasSendRooms: (config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined) => boolean,
+) => DockerConfig[TaskType] | null | undefined
+
+type RuntimeTaskRunner = (config: DockerConfig[TaskType], deps: RuntimeTaskRunnerDeps) => Promise<void>
+
+const taskConfigResolvers: Record<TaskType, TaskConfigResolver> = {
+  collectGift: config => config?.collectGift,
+  keepalive: config => config?.keepalive,
+  doubleCard: config => config?.doubleCard,
+  expiringGift: (config, hasSendRooms) => hasSendRooms(config?.expiringGift) ? config?.expiringGift : null,
+  yubaCheckIn: config => config?.yubaCheckIn,
+}
+
+const runtimeTaskRunners: Record<TaskType, RuntimeTaskRunner> = createTaskRecord(type => async (config, deps) => {
+  switch (type) {
+    case 'collectGift':
+      await runCollectGiftTask(deps)
+      return
+    case 'keepalive':
+      await runKeepaliveTask(config as JobConfig, deps)
+      return
+    case 'doubleCard':
+      await runDoubleCardTask(config as DoubleCardConfig, deps)
+      return
+    case 'expiringGift':
+      await runExpiringGiftTask(config as ExpiringGiftConfig, deps)
+      return
+    case 'yubaCheckIn':
+      await runYubaCheckInTask(config as YubaCheckInConfig, deps)
+  }
+})
+
 async function triggerConfiguredTask<TConfig>(options: {
   config: TConfig | null | undefined
   deps: RuntimeTaskRunnerDeps
@@ -44,55 +78,8 @@ async function triggerConfiguredTask<TConfig>(options: {
   }, manualTriggerOptions)
 }
 
-export async function triggerCollectGiftTask(config: DockerConfig | null, deps: RuntimeTaskRunnerDeps): Promise<void> {
-  await triggerConfiguredTask({
-    config: config?.collectGift,
-    deps,
-    taskType: 'collectGift',
-    runTask: async () => {
-      await runCollectGiftTask(deps)
-    },
-  })
-}
-
-export async function triggerKeepaliveTask(config: DockerConfig | null, deps: RuntimeTaskRunnerDeps): Promise<void> {
-  await triggerConfiguredTask({
-    config: config?.keepalive,
-    deps,
-    taskType: 'keepalive',
-    runTask: async taskConfig => await runKeepaliveTask(taskConfig, deps),
-  })
-}
-
-export async function triggerDoubleCardTask(config: DockerConfig | null, deps: RuntimeTaskRunnerDeps): Promise<void> {
-  await triggerConfiguredTask({
-    config: config?.doubleCard,
-    deps,
-    taskType: 'doubleCard',
-    runTask: async taskConfig => await runDoubleCardTask(taskConfig, deps),
-  })
-}
-
-export async function triggerExpiringGiftTask(
-  config: DockerConfig | null,
-  hasSendRooms: (config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined) => boolean,
-  deps: RuntimeTaskRunnerDeps,
-): Promise<void> {
-  await triggerConfiguredTask({
-    config: hasSendRooms(config?.expiringGift) ? config?.expiringGift : null,
-    deps,
-    taskType: 'expiringGift',
-    runTask: async taskConfig => await runExpiringGiftTask(taskConfig, deps),
-  })
-}
-
-export async function triggerYubaCheckInTask(config: DockerConfig | null, deps: RuntimeTaskRunnerDeps): Promise<void> {
-  await triggerConfiguredTask({
-    config: config?.yubaCheckIn,
-    deps,
-    taskType: 'yubaCheckIn',
-    runTask: async taskConfig => await runYubaCheckInTask(taskConfig, deps),
-  })
+export async function runRuntimeTask(type: TaskType, config: DockerConfig[TaskType], deps: RuntimeTaskRunnerDeps): Promise<void> {
+  await runtimeTaskRunners[type](config, deps)
 }
 
 export async function triggerRuntimeTask(
@@ -101,22 +88,13 @@ export async function triggerRuntimeTask(
   hasSendRooms: (config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined) => boolean,
   deps: RuntimeTaskRunnerDeps,
 ): Promise<void> {
-  switch (type) {
-    case 'collectGift':
-      await triggerCollectGiftTask(config, deps)
-      return
-    case 'keepalive':
-      await triggerKeepaliveTask(config, deps)
-      return
-    case 'doubleCard':
-      await triggerDoubleCardTask(config, deps)
-      return
-    case 'expiringGift':
-      await triggerExpiringGiftTask(config, hasSendRooms, deps)
-      return
-    case 'yubaCheckIn':
-      await triggerYubaCheckInTask(config, deps)
-  }
+  const taskConfig = taskConfigResolvers[type](config, hasSendRooms)
+  await triggerConfiguredTask({
+    config: taskConfig,
+    deps,
+    taskType: type,
+    runTask: async resolvedConfig => await runRuntimeTask(type, resolvedConfig, deps),
+  })
 }
 
 export async function runCollectGiftTask(deps: RuntimeTaskRunnerDeps): Promise<void> {

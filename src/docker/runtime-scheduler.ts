@@ -7,12 +7,8 @@ import { DOCKER_TIMEZONE } from './runtime-constants'
 import type { StatusCacheScope } from './runtime-cache'
 import { createStatusTimestamp, formatScheduleForLog } from './runtime-time'
 import {
-  runCollectGiftTask,
-  runDoubleCardTask,
-  runExpiringGiftTask,
-  runKeepaliveTask,
   triggerRuntimeTask,
-  runYubaCheckInTask,
+  runRuntimeTask,
 } from './runtime-task-runners'
 import type { RuntimeTaskRunnerDeps } from './runtime-task-runners'
 
@@ -234,28 +230,9 @@ export class DockerTaskScheduler {
       getTaskLabel(type),
       cron,
       async () => {
-        await this.runScheduledTask(type, taskConfig)
+        await runRuntimeTask(type, taskConfig, this.createTaskRunnerDeps())
       },
       getTaskScheduleSummary(type, taskConfig),
     )
-  }
-
-  private async runScheduledTask(type: TaskType, config: DockerConfig[TaskType]): Promise<void> {
-    switch (type) {
-      case 'collectGift':
-        await runCollectGiftTask(this.createTaskRunnerDeps())
-        return
-      case 'keepalive':
-        await runKeepaliveTask(config as JobConfig, this.createTaskRunnerDeps())
-        return
-      case 'doubleCard':
-        await runDoubleCardTask(config as DoubleCardConfig, this.createTaskRunnerDeps())
-        return
-      case 'expiringGift':
-        await runExpiringGiftTask(config as ExpiringGiftConfig, this.createTaskRunnerDeps())
-        return
-      case 'yubaCheckIn':
-        await runYubaCheckInTask(config as NonNullable<DockerConfig['yubaCheckIn']>, this.createTaskRunnerDeps())
-    }
   }
 }

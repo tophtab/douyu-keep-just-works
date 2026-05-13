@@ -94,6 +94,16 @@ The first implementation commit should migrate the login page, app shell visibil
 
 ## Verification Results
 
+- Cookie/Login config page slice:
+  - `App.vue` now renders the login status card, manual Cookie fields, CookieCloud form, CookieCloud note, and CookieCloud cron preview from Vue state.
+  - `src/docker/webui-src/cookie.ts` owns manual Cookie save, CookieCloud save/toggle/sync/check actions, cron preview loading, and the narrow legacy `DOUYU_KEEP_WEBUI_COOKIE_ACTIONS` bridge.
+  - Removed `src/docker/webui/app-cookie-actions.js` from the Vite boot path and deleted the transitional legacy owner file.
+  - Legacy `app-pages.js` now dispatches login-page state to Vue instead of mutating `#cookie-login-card`, `#main-cookie-input`, or CookieCloud DOM fields.
+  - `npm run lint` passed.
+  - `npm run type-check:webui` passed.
+  - `npm run test:contracts` passed.
+  - `npm run build:webui` passed.
+  - `npm test` passed, including `npm run build:docker`.
 - Vue-owned logs page slice:
   - `App.vue` now renders the logs summary, auto-refresh toggle, log rows, and empty state from Vue state.
   - `resources.ts` owns log refresh, clear-log action, auto-refresh timing, log timestamp formatting, and legacy log-state syncing.

@@ -470,3 +470,107 @@ await import('../webui/app-system-resource-actions.js')
 await import('../webui/app-data.js')
 installLegacySystemResourceBridge()
 ```
+
+## Scenario: Vue-Owned Transitional Cookie/Login Config Page
+
+### 1. Scope / Trigger
+
+- Trigger: Moving Docker WebUI manual Cookie and CookieCloud behavior from `src/docker/webui/*.js` into Vue while legacy task pages still consume raw config, overview, and cookie-backed refresh state.
+- Scope: Login status card, manual Cookie textareas, CookieCloud enable/config form, CookieCloud note text, CookieCloud cron preview, save/sync/check actions, and the legacy Cookie action bridge.
+
+### 2. Signatures
+
+```typescript
+export function useCookieLoginPage(): {
+  checkCookieSource: (showToast?: boolean) => Promise<CookieDiagnostics | undefined>
+  cookieCheckText: ComputedRef<string>
+  cookieCloud: {
+    active: boolean
+    endpoint: string
+    uuid: string
+    cron: string
+    password: string
+  }
+  cronPreviewText: ComputedRef<string>
+  handleCookieCloudToggle: () => void
+  loadCookieCloudCronPreview: () => Promise<void>
+  loginStatus: ComputedRef<{
+    pills: Array<{ label: string, kind: string }>
+    cells: Array<{ label: string, value: string }>
+  }>
+  mainCookie: Ref<string>
+  saveAndEnableCookieCloud: () => Promise<void>
+  saveCookie: () => Promise<void>
+  yubaCookie: Ref<string>
+}
+```
+
+```typescript
+export function installLegacyCookieActionBridge(): void
+```
+
+```javascript
+document.dispatchEvent(new CustomEvent('douyu-keep-webui:login-page', {
+  detail: { rawConfig, overview, fansCount, cookieCheck },
+}))
+```
+
+### 3. Contracts
+
+- `src/docker/webui-src/cookie.ts` owns visible Cookie/Login DOM state and actions through Vue refs and the shared `requestJson()` helper.
+- `main.ts` must install `installLegacyCookieActionBridge()` before `app-actions.js` is imported, and must not import `app-cookie-actions.js`.
+- `App.vue` must bind manual Cookie fields, CookieCloud fields, CookieCloud toggle, save buttons, check button, note text, and cron preview through Vue state/events.
+- Legacy `app-actions.js` may keep calling `window.DOUYU_KEEP_WEBUI_COOKIE_ACTIONS.create(...)` during migration; the installed bridge must provide `syncCookieCloudToLoginCookies`, `saveCookie`, `saveCookieCloud`, `checkCookieSource`, `saveCookieCloudToggle`, `saveAndEnableCookieCloud`, and `disableCookieCloud`.
+- Legacy `app-pages.js` must dispatch `douyu-keep-webui:login-page` details instead of mutating `#cookie-login-card`, `#main-cookie-input`, `#yuba-cookie-input`, `#cookie-cloud-enable`, or other CookieCloud fields.
+- Legacy `app-events.js` must not handle `data-action="save-cookie"`, `data-action="save-cookie-cloud"`, `data-action="check-cookie-source"`, `#cookie-cloud-cron`, or `#cookie-cloud-enable` after Vue owns the page.
+- Save/check requests preserve existing API contracts: manual Cookie writes `POST /api/config` with `manualCookies`, CookieCloud writes `POST /api/config` with `cookieCloud`, sync uses `POST /api/cookie-source/persist`, check uses `POST /api/cookie-source/check`, and cron preview uses `GET /api/cron-preview?value=...`.
+- Unauthorized errors must flow through the shared request helper and avoid duplicate local toasts.
+- Non-401 failures must keep existing Chinese toast prefixes for manual save, CookieCloud save, CookieCloud sync, and cookie-source check.
+
+### 4. Validation & Error Matrix
+
+| Case | Expected behavior |
+|------|-------------------|
+| Raw config loads | Vue populates manual Cookie fields, CookieCloud fields, note text, and cron preview |
+| Overview loads | Vue updates login status card without legacy DOM mutation |
+| User saves manual Cookie | `POST /api/config`, clear cookie-backed data through the bridge dependency, success toast, overview refresh |
+| User enables CookieCloud | `POST /api/config`, clear cookie-backed data, optional cookie-source check, overview refresh |
+| User disables CookieCloud | Persist inactive CookieCloud config quietly and refresh overview |
+| User clicks sync/check | Persist CookieCloud snapshot when active, then `POST /api/cookie-source/check`, update note text, show success/failure toast |
+| CookieCloud cron changes | Vue refreshes the preview through `/api/cron-preview` and ignores stale responses |
+| Any action returns `401` | Global unauthorized handling runs without a duplicate Cookie page toast |
+| Any action fails with non-401 | Preserve the existing action-specific error toast |
+
+### 5. Good/Base/Bad Cases
+
+- Good: Vue owns the form inputs and buttons while legacy startup code still calls the bridge for protected-data synchronization.
+- Good: `app-pages.js` sends `douyu-keep-webui:login-page` state details, leaving DOM updates to Vue interpolation and bindings.
+- Base: `app-actions.js` still composes Cookie actions via `window.DOUYU_KEEP_WEBUI_COOKIE_ACTIONS.create(...)` until the broader action layer is migrated.
+- Bad: `app-events.js` handles `data-action="save-cookie"` after Vue owns the save button.
+- Bad: `app-pages.js` writes `.value` or `.checked` on Cookie/Login form nodes after Vue owns them.
+- Bad: Reintroducing `src/docker/webui/app-cookie-actions.js` overwrites the Vue bridge.
+
+### 6. Tests Required
+
+- Contract tests should assert that `App.vue` uses `useCookieLoginPage()` and binds manual Cookie, CookieCloud fields, save/check buttons, note text, and cron preview through Vue.
+- Contract tests should assert that `cookie.ts` exports `installLegacyCookieActionBridge()`, installs `window.DOUYU_KEEP_WEBUI_COOKIE_ACTIONS`, and calls `/api/config`, `/api/cookie-source/persist`, `/api/cookie-source/check`, and `/api/cron-preview`.
+- Contract tests should assert that `main.ts` installs the bridge and no longer imports `app-cookie-actions.js`.
+- Contract tests should assert that `src/docker/webui/app-cookie-actions.js` does not exist.
+- Contract tests should assert that legacy `app-pages.js` dispatches `douyu-keep-webui:login-page` and no longer mutates Cookie/Login DOM fields.
+- Contract tests should assert that legacy `app-events.js` no longer handles Cookie save/check actions or CookieCloud cron/toggle listeners.
+- Run `npm run lint`, `npm run type-check:webui`, `npm run test:contracts`, `npm run build:webui`, and `npm test` after this migration.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```javascript
+await import('../webui/app-cookie-actions.js')
+```
+
+#### Correct
+
+```typescript
+installLegacyCookieActionBridge()
+await import('../webui/app-actions.js')
+```

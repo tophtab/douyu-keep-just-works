@@ -8,7 +8,7 @@
 
 The supported UI is the Docker WebUI Vue/Vite application under `src/docker/webui-src/`, served by the Docker Express runtime after `npm run build:docker`.
 
-The current migration keeps the existing browser behavior modules under `src/docker/webui/*.js` as a transitional legacy layer bundled by Vite. New UI structure should move toward Vue single-file components under `src/docker/webui-src/` while preserving Docker deployment semantics.
+The current WebUI source lives under `src/docker/webui-src/`. New UI structure should continue moving cohesive markup into Vue single-file components while preserving Docker deployment semantics.
 
 ---
 
@@ -54,15 +54,14 @@ When changing files under `src/docker/webui-src/` or transitional files under `s
 ## Current Docker WebUI Source Split
 
 - Keep Vue/Vite source under `src/docker/webui-src/`.
-- Keep transitional legacy browser modules under `src/docker/webui/` until each behavior area is migrated into Vue components/composables.
-- Keep shared Docker WebUI styles under `src/docker/webui-src/styles/`; `src/docker/webui/` should contain only source-side placeholders while production assets come from the Vite build output.
-- Keep `src/docker/webui/index.html` as a source-tree placeholder only; do not restore old static UI markup there.
+- Do not keep source files under `src/docker/webui/`; production assets in the built `webui/` directory come from Vite output.
+- Keep shared Docker WebUI styles under `src/docker/webui-src/styles/`.
 - `src/docker/webui-src/main.ts` owns the legacy module import order while the transition layer exists.
 - `src/docker/webui-src/index.html` owns the Vite HTML shell and the `DOUYU_KEEP_WEBUI_BOOTSTRAP` runtime token placeholders.
 - `src/docker/webui-src/App.vue` owns app-level composition and may delegate cohesive shell/page regions to `src/docker/webui-src/components/`.
 - `src/docker/webui.ts` reads the Vite-built `webui/index.html`, injects app version and route tokens, and does not inline ordered scripts/styles.
 - `src/docker/server-webui-routes.ts` serves Vite output from `WEBUI_ASSET_ROOT` with `express.static()` before returning the HTML shell for Docker WebUI page routes.
-- If a contract test needs to inspect transitional client-side functions, read `src/docker/webui/*.js`. If a test verifies the build contract, check `vite.config.ts`, `src/docker/webui-src/main.ts`, and `src/docker/server-webui-routes.ts`.
+- If a test verifies the build contract, check `vite.config.ts`, `src/docker/webui-src/main.ts`, and `src/docker/server-webui-routes.ts`.
 
 ---
 

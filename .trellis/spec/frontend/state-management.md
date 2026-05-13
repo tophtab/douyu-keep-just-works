@@ -46,7 +46,7 @@ Until then, prefer component state plus small helper modules.
 
 ### 1. Scope / Trigger
 
-- Trigger: Moving Docker WebUI shared state helpers out of `src/docker/webui/*.js` while action/resource/page assembly still consumes `DOUYU_KEEP_WEBUI_*` bridge objects.
+- Trigger: Maintaining the TypeScript-owned Docker WebUI shared state bridge after the former `src/docker/webui/*.js` helpers have moved into `src/docker/webui-src/`.
 - Scope: Raw config fallback, cookie-source helpers, request coalescing metadata, managed fan derivation, fans-status merge helpers, active refresh loading, protected-state clearing, and the compatibility bridges consumed by `legacy-app.ts`.
 
 ### 2. Signatures
@@ -115,7 +115,7 @@ installLegacyProtectedStateBridge()
 
 ### 1. Scope / Trigger
 
-- Trigger: Moving a Docker WebUI behavior slice from `src/docker/webui/*.js` into Vue while the legacy modules still own data fetching/actions.
+- Trigger: Maintaining Vue-owned navigation after the former `src/docker/webui/*.js` behavior slice has moved into `src/docker/webui-src/`.
 - Scope: Navigation tabs, active page visibility, page title/subtitle, browser history, and legacy lazy-load notification.
 
 ### 2. Signatures
@@ -189,7 +189,7 @@ byId('page-title').textContent = PAGE_META[nextTab].title;
 
 ### 1. Scope / Trigger
 
-- Trigger: Moving a Docker WebUI shell-level control from `src/docker/webui/*.js` into Vue while legacy modules still own auth, raw config loading, and most data actions.
+- Trigger: Maintaining Vue-owned theme mode after the former `src/docker/webui/*.js` shell control has moved into `src/docker/webui-src/`.
 - Scope: Theme mode buttons, selected button state, theme note copy, `body[data-theme]`, `theme-color` / `color-scheme` meta tags, system color-scheme changes, and theme-mode persistence.
 
 ### 2. Signatures
@@ -280,7 +280,7 @@ byId('theme-note').textContent = '当前固定为 深色 模式';
 
 ### 1. Scope / Trigger
 
-- Trigger: Moving Docker WebUI toast and screen-reader live-region feedback from `src/docker/webui/*.js` into Vue while legacy modules still call a shared `toast(message, ok)` helper.
+- Trigger: Maintaining Vue-owned toast and screen-reader live-region feedback after the former `src/docker/webui/*.js` helper has moved into `src/docker/webui-src/`.
 - Scope: visible toast message, success/error color, `aria-hidden`, the `#toast-live` polite status region, repeated-message announcements, and the legacy compatibility event bridge.
 
 ### 2. Signatures
@@ -361,7 +361,7 @@ node.style.display = 'block';
 
 ### 1. Scope / Trigger
 
-- Trigger: Moving a Docker WebUI task page that depends on synced fan-list data from `src/docker/webui/*.js` into Vue while overview, fan loading, and some sibling task pages remain legacy-owned.
+- Trigger: Maintaining a Vue-owned fan allocation task page after the former `src/docker/webui/*.js` page behavior has moved into `src/docker/webui-src/`.
 - Scope: Task status card, enable switch, cron preview, allocation mode, fan allocation table inputs, save/disable actions, manual trigger action, and legacy fan-list refresh orchestration.
 
 ### 2. Signatures
@@ -542,7 +542,7 @@ await requestJson('/api/auth/login', {
 
 ### 1. Scope / Trigger
 
-- Trigger: Moving Docker WebUI read-only system resource loading out of `src/docker/webui/*.js` while legacy page renderers still consume the loaded state.
+- Trigger: Maintaining Docker WebUI read-only system resource loading after the former `src/docker/webui/*.js` resource behavior has moved into `src/docker/webui-src/`.
 - Scope: `/api/config/raw`, `/api/overview`, `/api/logs`, loading/error state for these read-only resources, the Vue-owned logs page, the `douyu-keep-webui:config` theme notification, and the compatibility bridge used by remaining legacy action assembly.
 
 ### 2. Signatures
@@ -663,7 +663,7 @@ installLegacyFansResourceBridge()
 
 ### 1. Scope / Trigger
 
-- Trigger: Moving Docker WebUI manual Cookie and CookieCloud behavior from `src/docker/webui/*.js` into Vue while legacy task pages still consume raw config, overview, and cookie-backed refresh state.
+- Trigger: Maintaining Vue-owned Docker WebUI manual Cookie and CookieCloud behavior after the former `src/docker/webui/*.js` behavior has moved into `src/docker/webui-src/`.
 - Scope: Login status card, manual Cookie textareas, CookieCloud enable/config form, CookieCloud note text, CookieCloud cron preview, save/sync/check actions, and the legacy Cookie action bridge.
 
 ### 2. Signatures

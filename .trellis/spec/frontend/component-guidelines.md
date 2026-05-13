@@ -8,8 +8,6 @@
 
 Docker WebUI components use Vue single-file components with `<script setup lang="ts">`.
 
-The first Vue migration intentionally keeps most existing markup in `App.vue` and bundles the transitional `src/docker/webui/*.js` behavior modules. Future work should gradually extract cohesive components from `App.vue` instead of redesigning every page at once.
-
 ## Component Structure
 
 Preferred file shape:

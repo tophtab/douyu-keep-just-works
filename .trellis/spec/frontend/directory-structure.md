@@ -11,7 +11,7 @@ The frontend is a Docker WebUI Vue 3 application under `src/docker/webui-src/`. 
 - Vue single-file components
 - Vite for development and production bundling
 - TypeScript checked by `vue-tsc`
-- Existing CSS and transitional browser modules under `src/docker/webui/`
+- Docker WebUI source files under `src/docker/webui-src/`
 
 This project does not currently use Vue Router, Pinia, Vuetify, UnoCSS, or an Electron renderer.
 
@@ -33,8 +33,6 @@ src/docker/
 │       ├── components.css
 │       ├── responsive.css
 │       └── tables.css
-└── webui/
-    └── index.html
 ```
 
 ---
@@ -46,7 +44,6 @@ src/docker/
 - Put Vue shell/component code in `src/docker/webui-src/*.vue`.
 - Put extracted cohesive shell/page components under `src/docker/webui-src/components/`.
 - Put shared Docker WebUI styles under `src/docker/webui-src/styles/`, imported by `main.ts` in base, components, tables, responsive order.
-- Keep `src/docker/webui/index.html` as a source-tree placeholder only; it must not contain migrated UI markup or boot scripts.
 - Keep Docker runtime serving concerns in `src/docker/webui.ts` and `src/docker/server-webui-routes.ts`.
 
 ## Naming Conventions

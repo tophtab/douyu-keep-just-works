@@ -40,9 +40,7 @@ src/
 │   ├── server.ts
 │   ├── task-metadata.ts
 │   ├── webui.ts
-│   ├── webui/
-│       ├── index.html
-│   └── webui-src/
+│   ├── webui-src/
 │       ├── App.vue
 │       ├── components/
 │       │   └── AuthShell.vue
@@ -96,7 +94,7 @@ Examples:
 - `src/docker/server-*-routes.ts` files own cohesive Docker HTTP route groups and delegate work through `AppContext`.
 - `src/docker/server-types.ts` owns the shared `AppContext` and `JobStatus` types re-exported by `server.ts` for existing imports.
 - `src/docker/webui-src/index.html` owns the Vite HTML shell and runtime token placeholders.
-- `src/docker/webui-src/App.vue` owns app-level Docker WebUI composition during the conservative Vue migration.
+- `src/docker/webui-src/App.vue` owns app-level Docker WebUI composition during the Vue migration.
 - `src/docker/webui-src/components/AuthShell.vue` owns the login shell markup while `App.vue` wires it to `useAuthSession()`.
 - `src/docker/webui-src/main.ts` owns Vue bootstrapping, CSS imports, TypeScript bridge installation order, and starting the transitional legacy app bridge.
 - `src/docker/webui-src/legacy-core.ts` owns Vue/TypeScript-side legacy core bridge setup for Docker WebUI page metadata, default raw config constants, route/path helpers, DOM lookup, HTML escaping, date formatting, and toast helper compatibility while transitional TypeScript orchestration consumes `DOUYU_KEEP_WEBUI_DATA`, `DOUYU_KEEP_WEBUI_ROUTING`, and `DOUYU_KEEP_WEBUI_DOM`.
@@ -124,6 +122,7 @@ Examples:
 - `src/docker/webui-src/styles/components.css` owns Docker WebUI cards, panels, forms, buttons, and task component styles.
 - `src/docker/webui-src/styles/tables.css` owns Docker WebUI table, empty-state, log, toast, and screen-reader utility styles.
 - `src/docker/webui-src/styles/responsive.css` owns Docker WebUI motion and responsive overrides.
+- `src/docker/webui/` is not a source directory after the Vue/Vite migration; files there are build output only under `build/docker/docker/webui/`.
 - `src/docker/webui-src/resources.ts` replaces the former `src/docker/webui/app-system-resource-actions.js`, `src/docker/webui/app-fans-resource-actions.js`, and `src/docker/webui/app-resource-actions.js` owners for Docker WebUI raw config, overview, log, fans resource loading actions, resource action assembly, and active-surface refresh orchestration during the Vue migration.
 - `src/docker/webui-src/legacy-core.ts` replaces the former `src/docker/webui/app-data.js`, `src/docker/webui/app-routing.js`, and `src/docker/webui/app-dom.js` owners for Docker WebUI legacy metadata, routing helpers, and DOM helper compatibility during the Vue migration.
 - `src/docker/webui-src/legacy-state.ts` replaces the former `src/docker/webui/app-state.js`, `src/docker/webui/app-managed-data.js`, and `src/docker/webui/app-protected-state.js` owners for Docker WebUI transitional state, managed fan derivation, request coalescing metadata, and protected-state clearing during the Vue migration.

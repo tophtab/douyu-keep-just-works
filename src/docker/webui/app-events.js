@@ -5,14 +5,12 @@
     var setActiveTab = deps.setActiveTab;
     var handleVueNavigation = deps.handleVueNavigation;
     var refreshOverviewSurface = deps.refreshOverviewSurface;
-    var saveYubaConfig = deps.saveYubaConfig;
     var saveKeepaliveConfig = deps.saveKeepaliveConfig;
     var saveDoubleConfig = deps.saveDoubleConfig;
     var saveExpiringGiftConfig = deps.saveExpiringGiftConfig;
     var applyDoubleRatioPreset = deps.applyDoubleRatioPreset;
     var triggerTask = deps.triggerTask;
     var loadCronPreview = deps.loadCronPreview;
-    var disableYubaConfig = deps.disableYubaConfig;
     var disableKeepaliveConfig = deps.disableKeepaliveConfig;
     var disableDoubleConfig = deps.disableDoubleConfig;
     var disableExpiringGiftConfig = deps.disableExpiringGiftConfig;
@@ -40,10 +38,6 @@
       var action = target.getAttribute('data-action');
       if (action === 'refresh-overview') {
         refreshOverviewSurface(true);
-        return;
-      }
-      if (action === 'save-yuba') {
-        saveYubaConfig();
         return;
       }
       if (action === 'save-keepalive') {
@@ -83,12 +77,6 @@
       document.addEventListener('click', handleActionClick);
       document.addEventListener('douyu-keep-webui:navigation', handleVueNavigation);
 
-      byId('yuba-cron').addEventListener('input', function (event) {
-        void loadCronPreview('yubaCheckIn', event.target.value, 'yuba-cron-preview');
-      });
-      byId('yuba-enable').addEventListener('change', function (event) {
-        handleTaskToggleChange(event, saveYubaConfig, disableYubaConfig);
-      });
       byId('keepalive-cron').addEventListener('input', function (event) {
         void loadCronPreview('keepalive', event.target.value, 'keepalive-cron-preview');
       });

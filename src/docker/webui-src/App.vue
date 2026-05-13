@@ -6,6 +6,7 @@ import { usePageNavigation } from './navigation'
 import { useLogsPage } from './resources'
 import { useThemeMode } from './theme'
 import { useToastRegion } from './toast'
+import { useYubaTaskPage } from './yuba'
 
 interface WebUiBootstrap {
   appName: string
@@ -92,6 +93,22 @@ const {
   saveCollectConfig,
   triggerCollectTask,
 } = useCollectTaskPage()
+
+const {
+  handleYubaToggle,
+  loadYubaCronPreview,
+  saveYubaConfig,
+  showYubaTable,
+  triggerYubaTask,
+  yubaCron,
+  yubaCronPreviewText,
+  yubaEmptyText,
+  yubaEnabled,
+  yubaMode,
+  yubaNote,
+  yubaTableRows,
+  yubaTaskCard,
+} = useYubaTaskPage()
 </script>
 
 <!-- eslint-disable -->
@@ -379,9 +396,23 @@ const {
 
     <section class="page" :class="{ active: activeTab === 'yuba' }" id="page-yuba" role="tabpanel" aria-labelledby="tab-yuba" tabindex="0" :aria-hidden="activeTab === 'yuba' ? 'false' : 'true'" :hidden="activeTab !== 'yuba'">
       <div class="task-card" id="yuba-task-card">
-        <div class="task-card-title">鱼吧签到状态</div>
+        <div class="task-card-head">
+          <div>
+            <div class="section-kicker">任务状态</div>
+            <h3 class="task-card-title">鱼吧签到</h3>
+          </div>
+        </div>
+        <div class="task-card-pills">
+          <span v-for="pill in yubaTaskCard.pills" :key="pill.label" class="pill" :class="pill.kind">{{ pill.label }}</span>
+        </div>
+        <div class="summary-grid">
+          <div v-for="cell in yubaTaskCard.cells" :key="cell.label" class="summary-cell">
+            <div class="mini-label">{{ cell.label }}</div>
+            <div class="mini-value">{{ cell.value }}</div>
+          </div>
+        </div>
       </div>
-      <div class="status-box" id="yuba-note" role="status" aria-live="polite" style="margin-top:16px">等待加载…</div>
+      <div class="status-box" id="yuba-note" role="status" aria-live="polite" style="margin-top:16px">{{ yubaNote }}</div>
 
       <div class="panel" style="margin-top:16px">
         <div class="field-block">
@@ -391,7 +422,7 @@ const {
               <div class="switch-note">通过当前鱼吧 HTTP 接口签到全部已关注鱼吧，不使用浏览器自动化。</div>
             </div>
             <label class="switch-control">
-              <input class="switch-input" type="checkbox" id="yuba-enable" name="yuba-enable" aria-label="启用鱼吧签到任务">
+              <input id="yuba-enable" v-model="yubaEnabled" class="switch-input" type="checkbox" name="yuba-enable" aria-label="启用鱼吧签到任务" @change="handleYubaToggle">
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -399,21 +430,64 @@ const {
         <div class="grid cols-2">
           <div class="field-block">
             <label class="field-label" for="yuba-cron">Cron 表达式</label>
-            <input id="yuba-cron" name="yuba-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
-            <div class="helper cron-preview" id="yuba-cron-preview" role="status" aria-live="polite">正在计算未来执行时间…</div>
+            <input id="yuba-cron" v-model="yubaCron" name="yuba-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" @input="loadYubaCronPreview">
+            <div class="helper cron-preview" id="yuba-cron-preview" role="status" aria-live="polite">{{ yubaCronPreviewText }}</div>
           </div>
           <div class="field-block">
             <label class="field-label" for="yuba-mode">签到模式</label>
-            <select id="yuba-mode" name="yuba-mode">
+            <select id="yuba-mode" v-model="yubaMode" name="yuba-mode">
               <option value="followed">签到全部已关注鱼吧</option>
             </select>
           </div>
         </div>
         <div class="actions" style="margin-top:16px">
-          <button class="btn btn-success" type="button" data-action="save-yuba">保存并启用</button>
-          <button class="btn btn-secondary" type="button" data-action="trigger" data-trigger="yubaCheckIn">立即签到</button>
+          <button class="btn btn-success" type="button" @click="saveYubaConfig()">保存并启用</button>
+          <button class="btn btn-secondary" type="button" @click="triggerYubaTask">立即签到</button>
         </div>
-        <div id="yuba-table-wrap" style="margin-top:16px"></div>
+        <div id="yuba-table-wrap" style="margin-top:16px">
+          <div v-if="!showYubaTable" class="empty">{{ yubaEmptyText }}</div>
+          <div v-else class="table-shell">
+            <table class="table table-fixed yuba-status-table">
+              <colgroup>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="index-head" scope="col">序号</th>
+                  <th scope="col">鱼吧名称</th>
+                  <th class="num-head" scope="col">鱼吧ID</th>
+                  <th class="num-head" scope="col">等级</th>
+                  <th class="num-head" scope="col">排名</th>
+                  <th class="num-head" scope="col">经验值</th>
+                  <th class="control-head" scope="col">签到状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in yubaTableRows" :key="`${row.groupId}-${row.index}`">
+                  <td class="index-cell" data-label="序号">{{ row.index }}</td>
+                  <td class="text-cell" data-label="鱼吧名称">{{ row.groupName }}</td>
+                  <td class="num-cell" data-label="鱼吧ID">{{ row.groupId }}</td>
+                  <td class="num-cell" data-label="等级">{{ row.groupLevel }}</td>
+                  <td class="num-cell" data-label="排名">{{ row.rank }}</td>
+                  <td class="num-cell" data-label="经验值">{{ row.expText }}</td>
+                  <td class="status-cell" data-label="签到状态">
+                    <template v-if="row.error">
+                      <span class="pill warn">获取失败</span>
+                      <div class="helper error-cell" style="margin-top:6px">{{ row.error }}</div>
+                    </template>
+                    <span v-else class="pill" :class="row.signed ? 'ok' : 'off'">{{ row.signed ? '已签到' : '未签到' }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 

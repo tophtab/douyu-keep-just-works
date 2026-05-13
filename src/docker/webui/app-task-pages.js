@@ -15,7 +15,6 @@
     var ensureCronPreview = deps.ensureCronPreview;
     var buildTaskCard = deps.buildTaskCard;
     var buildLoadingTaskCard = deps.buildLoadingTaskCard;
-    var buildYubaStatusTable = deps.buildYubaStatusTable;
     var buildBackpackRowsTable = deps.buildBackpackRowsTable;
     var buildSendTable = deps.buildSendTable;
 
@@ -37,61 +36,17 @@
 
     function renderYubaPage() {
       renderRefreshButton();
-      var rawConfig = getRawConfig();
-      var config = rawConfig.yubaCheckIn || { active: false, cron: '0 23 0 * * *', mode: 'followed' };
-      byId('yuba-task-card').innerHTML = state.overview
-        ? buildTaskCard(
-          '鱼吧签到',
-          state.overview.yubaCheckInConfigured,
-          state.overview.status.yubaCheckIn,
-          '模式',
-          config.mode === 'followed' ? '签到全部已关注鱼吧' : String(config.mode || '-')
-        )
-        : buildLoadingTaskCard('鱼吧签到');
-      byId('yuba-enable').checked = isTaskActive(config);
-      byId('yuba-cron').value = config.cron || '0 23 0 * * *';
-      byId('yuba-mode').value = config.mode || 'followed';
-      void ensureCronPreview('yubaCheckIn', byId('yuba-cron').value, 'yuba-cron-preview');
-
-      if (!hasCookieSourceConfigured(rawConfig)) {
-        byId('yuba-note').textContent = '请先保存 Cookie 或启用 CookieCloud。鱼吧签到依赖当前账号的鱼吧登录态，以及主站 Cookie 中可组成 dy-token 的 acf 字段。';
-        byId('yuba-table-wrap').innerHTML = '<div class="empty">保存鱼吧登录态后，这里会展示已关注鱼吧的等级、经验和签到状态。</div>';
-        return;
-      }
-
-      if (String(config.mode || 'followed') !== 'followed') {
-        byId('yuba-note').textContent = '当前模式无效，请重新保存鱼吧签到配置。';
-        byId('yuba-table-wrap').innerHTML = '<div class="empty">当前模式无效，无法展示鱼吧状态列表。</div>';
-        return;
-      }
-
-      if (state.yubaStatusLoading && !state.yubaStatusLoaded) {
-        byId('yuba-note').textContent = '正在加载已关注鱼吧列表…';
-        byId('yuba-table-wrap').innerHTML = '<div class="empty">请稍候，鱼吧等级和经验列表正在更新。</div>';
-        return;
-      }
-
-      if (state.yubaStatusError && !state.yubaStatusLoaded) {
-        byId('yuba-note').textContent = '鱼吧列表加载失败。';
-        byId('yuba-table-wrap').innerHTML = '<div class="empty">加载鱼吧列表失败：' + escapeHtml(state.yubaStatusError) + '。请点击顶部“刷新”重试。</div>';
-        return;
-      }
-
-      if (!state.yubaStatusLoaded) {
-        byId('yuba-note').textContent = '当前会通过 HTTP 接口拉取全部已关注鱼吧，再逐个检测签到状态并执行签到。';
-        byId('yuba-table-wrap').innerHTML = '<div class="empty">正在准备加载鱼吧列表，也可以点击刷新手动加载。</div>';
-        ensureYubaStatusForActiveTab();
-        return;
-      }
-
-      if (!state.yubaStatus.length) {
-        byId('yuba-note').textContent = '当前没有可展示的已关注鱼吧。';
-        byId('yuba-table-wrap').innerHTML = '<div class="empty">当前没有可展示的已关注鱼吧数据。</div>';
-        return;
-      }
-
-      byId('yuba-note').textContent = (state.yubaStatusLoading ? '正在后台更新，当前显示上次结果。' : '') + '当前已加载 ' + state.yubaStatus.length + ' 个已关注鱼吧，可直接查看等级、经验、排名和今日签到状态。';
-      byId('yuba-table-wrap').innerHTML = buildYubaStatusTable(state.yubaStatus);
+      document.dispatchEvent(new CustomEvent('douyu-keep-webui:yuba-page', {
+        detail: {
+          rawConfig: getRawConfig(),
+          overview: state.overview,
+          yubaStatus: state.yubaStatus,
+          yubaStatusError: state.yubaStatusError,
+          yubaStatusLoaded: state.yubaStatusLoaded,
+          yubaStatusLoading: state.yubaStatusLoading
+        }
+      }));
+      ensureYubaStatusForActiveTab();
     }
 
     function renderKeepalivePage() {

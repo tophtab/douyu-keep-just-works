@@ -4,6 +4,7 @@ import { installLegacyCollectTaskBridge } from './collect'
 import { installLegacyCookieActionBridge } from './cookie'
 import { installLegacyRequestBridge } from './request'
 import { installLegacySystemResourceBridge } from './resources'
+import { installLegacyYubaBridge } from './yuba'
 
 import '../webui/styles.css'
 import '../webui/styles-components.css'
@@ -25,7 +26,6 @@ async function bootstrapLegacyBehavior(): Promise<void> {
   await import('../webui/app-task-pages.js')
   await import('../webui/app-pages.js')
   await import('../webui/app-fans-resource-actions.js')
-  await import('../webui/app-yuba-resource-actions.js')
   await import('../webui/app-resource-actions.js')
   await import('../webui/app-actions.js')
   await import('../webui/app-simple-task-actions.js')
@@ -38,5 +38,6 @@ async function bootstrapLegacyBehavior(): Promise<void> {
 installLegacyRequestBridge()
 installLegacyCookieActionBridge()
 installLegacyCollectTaskBridge()
+installLegacyYubaBridge()
 createApp(App).mount('#app')
 void bootstrapLegacyBehavior()

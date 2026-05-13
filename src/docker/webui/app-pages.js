@@ -16,10 +16,6 @@
     var buildSummaryStatusCell = deps.buildSummaryStatusCell;
     var buildFansStatusTable = deps.buildFansStatusTable;
     var buildLoginStatusCard = deps.buildLoginStatusCard;
-    var getSystemPrefersDark = deps.getSystemPrefersDark;
-    var setThemeMeta = deps.setThemeMeta;
-    var setThemeButtonState = deps.setThemeButtonState;
-    var isThemeMode = deps.isThemeMode;
 
     var CRON_RENDERERS = window.DOUYU_KEEP_WEBUI_PAGE_CRON.create({
       byId: byId,
@@ -194,24 +190,7 @@
       renderLogBox('full-log-box', state.logs || []);
     }
 
-    function renderTheme() {
-      var config = getRawConfig();
-      var mode = 'system';
-      if (config.ui && isThemeMode(config.ui.themeMode)) {
-        mode = config.ui.themeMode;
-      }
-      state.themeMode = mode;
-      setThemeButtonState(mode);
-      var resolved = mode === 'system' ? (getSystemPrefersDark() ? 'dark' : 'light') : mode;
-      document.body.setAttribute('data-theme', resolved);
-      setThemeMeta(resolved);
-      byId('theme-note').textContent = mode === 'system'
-        ? '当前跟随系统，系统为 ' + (getSystemPrefersDark() ? '深色' : '浅色')
-        : '当前固定为 ' + (mode === 'dark' ? '深色' : '浅色') + ' 模式';
-    }
-
     function renderAll() {
-      renderTheme();
       renderOverview();
       renderLoginPage();
       renderCollectPage();
@@ -259,7 +238,6 @@
       updateDoubleModeUi: updateDoubleModeUi,
       applyDoubleRatioPreset: applyDoubleRatioPreset,
       renderLogsPage: renderLogsPage,
-      renderTheme: renderTheme,
       renderAll: renderAll,
       renderActiveTabPage: renderActiveTabPage
     };

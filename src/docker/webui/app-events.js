@@ -8,7 +8,6 @@
     var handleVueNavigation = deps.handleVueNavigation;
     var refreshOverviewSurface = deps.refreshOverviewSurface;
     var logout = deps.logout;
-    var saveTheme = deps.saveTheme;
     var loadLogs = deps.loadLogs;
     var clearLogs = deps.clearLogs;
     var saveCookie = deps.saveCookie;
@@ -32,7 +31,6 @@
     var disableExpiringGiftConfig = deps.disableExpiringGiftConfig;
     var buildBackpackRowsTable = deps.buildBackpackRowsTable;
     var updateDoubleModeUi = deps.updateDoubleModeUi;
-    var renderTheme = deps.renderTheme;
     var loadOverview = deps.loadOverview;
     var loginWithPassword = deps.loginWithPassword;
     var loadAuthStatus = deps.loadAuthStatus;
@@ -62,10 +60,6 @@
       }
       if (action === 'logout') {
         logout();
-        return;
-      }
-      if (action === 'theme-mode') {
-        saveTheme(target.getAttribute('data-theme-mode'));
         return;
       }
       if (action === 'refresh-logs') {
@@ -189,21 +183,6 @@
       });
     }
 
-    function bindThemeMediaEvents() {
-      if (!window.matchMedia) {
-        return;
-      }
-      try {
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
-          if (state.themeMode === 'system') {
-            renderTheme();
-          }
-        });
-      } catch (error) {
-        // Ignore older browsers that do not support addEventListener on MediaQueryList.
-      }
-    }
-
     function startAutoRefresh() {
       setInterval(function () {
         if (!state.auth.authenticated) {
@@ -220,7 +199,6 @@
 
     function start() {
       bindStaticEvents();
-      bindThemeMediaEvents();
       startAutoRefresh();
 
       renderAuth();

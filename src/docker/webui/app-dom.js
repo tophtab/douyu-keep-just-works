@@ -12,43 +12,6 @@
       .replace(/'/g, '&#39;');
   }
 
-  function getSystemPrefersDark() {
-    if (!window.matchMedia) {
-      return true;
-    }
-    try {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    } catch (error) {
-      return true;
-    }
-  }
-
-  function setThemeMeta(resolvedTheme) {
-    var themeColor = byId('theme-color-meta');
-    var colorScheme = byId('color-scheme-meta');
-    if (themeColor) {
-      themeColor.setAttribute('content', resolvedTheme === 'dark' ? '#000000' : '#f4ede4');
-    }
-    if (colorScheme) {
-      colorScheme.setAttribute('content', resolvedTheme === 'dark' ? 'dark' : 'light');
-    }
-  }
-
-  function isThemeMode(value) {
-    return value === 'system' || value === 'light' || value === 'dark';
-  }
-
-  function setThemeButtonState(mode) {
-    var buttons = document.querySelectorAll('.theme-option[data-theme-mode]');
-    var i;
-    for (i = 0; i < buttons.length; i += 1) {
-      var button = buttons[i];
-      var active = button.getAttribute('data-theme-mode') === mode;
-      button.classList.toggle('active', active);
-      button.setAttribute('aria-pressed', active ? 'true' : 'false');
-    }
-  }
-
   function padDatePart(value) {
     return String(value).padStart(2, '0');
   }
@@ -109,10 +72,6 @@
   window.DOUYU_KEEP_WEBUI_DOM = {
     byId: byId,
     escapeHtml: escapeHtml,
-    getSystemPrefersDark: getSystemPrefersDark,
-    setThemeMeta: setThemeMeta,
-    isThemeMode: isThemeMode,
-    setThemeButtonState: setThemeButtonState,
     formatDate: formatDate,
     toast: toast
   };

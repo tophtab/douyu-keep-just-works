@@ -9,10 +9,6 @@
   var consumeWebPasswordFromUrl = APP_ROUTING.consumeWebPasswordFromUrl;
   var byId = APP_DOM.byId;
   var escapeHtml = APP_DOM.escapeHtml;
-  var getSystemPrefersDark = APP_DOM.getSystemPrefersDark;
-  var setThemeMeta = APP_DOM.setThemeMeta;
-  var isThemeMode = APP_DOM.isThemeMode;
-  var setThemeButtonState = APP_DOM.setThemeButtonState;
   var formatDate = APP_DOM.formatDate;
   var toast = APP_DOM.toast;
 
@@ -132,6 +128,7 @@
     clearProtectedState();
     renderAuth();
   }
+  document.addEventListener('douyu-keep-webui:unauthorized', handleUnauthorized);
 
   var PROTECTED_STATE = window.DOUYU_KEEP_WEBUI_PROTECTED_STATE.create({
     state: state,
@@ -258,11 +255,7 @@
     buildYubaStatusTable: buildYubaStatusTable,
     buildBackpackRowsTable: buildBackpackRowsTable,
     buildSendTable: buildSendTable,
-    formatRatioPercent: formatRatioPercent,
-    getSystemPrefersDark: getSystemPrefersDark,
-    setThemeMeta: setThemeMeta,
-    setThemeButtonState: setThemeButtonState,
-    isThemeMode: isThemeMode
+    formatRatioPercent: formatRatioPercent
   });
   var renderCookieCheck = PAGE_RENDERERS.renderCookieCheck;
   var renderCronPreview = PAGE_RENDERERS.renderCronPreview;
@@ -280,7 +273,6 @@
   var updateDoubleModeUi = PAGE_RENDERERS.updateDoubleModeUi;
   var applyDoubleRatioPreset = PAGE_RENDERERS.applyDoubleRatioPreset;
   var renderLogsPage = PAGE_RENDERERS.renderLogsPage;
-  var renderTheme = PAGE_RENDERERS.renderTheme;
   var renderAll = PAGE_RENDERERS.renderAll;
   var renderActiveTabPage = PAGE_RENDERERS.renderActiveTabPage;
 
@@ -319,8 +311,7 @@
     renderDoublePage: renderDoublePage,
     renderExpiringGiftPage: renderExpiringGiftPage,
     renderYubaPage: renderYubaPage,
-    setActiveTab: setActiveTab,
-    isThemeMode: isThemeMode
+    setActiveTab: setActiveTab
   });
   var syncCookieCloudToLoginCookies = ACTIONS.syncCookieCloudToLoginCookies;
   var loadProtectedData = ACTIONS.loadProtectedData;
@@ -344,7 +335,6 @@
   var disableCookieCloud = ACTIONS.disableCookieCloud;
   var triggerTask = ACTIONS.triggerTask;
   var clearLogs = ACTIONS.clearLogs;
-  var saveTheme = ACTIONS.saveTheme;
 
   var TASK_ACTIONS = window.DOUYU_KEEP_WEBUI_TASK_ACTIONS.create({
     byId: byId,
@@ -374,10 +364,8 @@
     setActiveTab: setActiveTab,
     handleVueNavigation: handleVueNavigation,
     renderAuth: renderAuth,
-    renderTheme: renderTheme,
     refreshOverviewSurface: refreshOverviewSurface,
     logout: logout,
-    saveTheme: saveTheme,
     loadOverview: loadOverview,
     loadLogs: loadLogs,
     clearLogs: clearLogs,

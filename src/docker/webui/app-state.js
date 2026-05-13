@@ -54,7 +54,6 @@
         fansStatus: createResourceRequest(),
         yubaStatus: createResourceRequest()
       },
-      themeMode: 'system',
       cronPreview: {
         cookieCloud: createEmptyCronPreview(),
         collectGift: createEmptyCronPreview(),

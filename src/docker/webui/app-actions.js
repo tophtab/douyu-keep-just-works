@@ -19,9 +19,7 @@
     var renderKeepalivePage = deps.renderKeepalivePage;
     var renderDoublePage = deps.renderDoublePage;
     var renderExpiringGiftPage = deps.renderExpiringGiftPage;
-    var renderTheme = deps.renderTheme;
     var setActiveTab = deps.setActiveTab;
-    var isThemeMode = deps.isThemeMode;
 
     var RESOURCE_ACTIONS = window.DOUYU_KEEP_WEBUI_RESOURCE_ACTIONS.create({
       state: state,
@@ -173,30 +171,6 @@
       });
     }
 
-    function saveTheme(mode) {
-      if (!isThemeMode(mode)) {
-        return;
-      }
-      requestJson('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ui: { themeMode: mode } })
-      }).then(function () {
-        var config = getRawConfig();
-        if (!config.ui) {
-          config.ui = {};
-        }
-        config.ui.themeMode = mode;
-        state.rawConfig = config;
-        renderTheme();
-      }).catch(function (error) {
-        if (isUnauthorizedError(error)) {
-          return;
-        }
-        toast('保存主题失败：' + error.message, false);
-      });
-    }
-
     return {
       syncCookieCloudToLoginCookies: syncCookieCloudToLoginCookies,
       loadProtectedData: loadProtectedData,
@@ -219,8 +193,7 @@
       saveAndEnableCookieCloud: saveAndEnableCookieCloud,
       disableCookieCloud: disableCookieCloud,
       triggerTask: triggerTask,
-      clearLogs: clearLogs,
-      saveTheme: saveTheme
+      clearLogs: clearLogs
     };
   }
 

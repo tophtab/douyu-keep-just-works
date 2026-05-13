@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { usePageNavigation } from './navigation'
+import { useThemeMode } from './theme'
 
 interface WebUiBootstrap {
   appName: string
@@ -26,6 +27,14 @@ const {
   selectTab,
   tabs,
 } = usePageNavigation(bootstrap.pageRoutes)
+
+const {
+  savingThemeMode,
+  selectThemeMode,
+  themeMode,
+  themeModes,
+  themeNote,
+} = useThemeMode()
 </script>
 
 <!-- eslint-disable -->
@@ -91,33 +100,43 @@ const {
     <div class="theme-box">
       <div class="field-label" id="theme-mode-label">主题模式</div>
       <div class="theme-options" role="group" aria-labelledby="theme-mode-label">
-        <button class="theme-option" type="button" data-action="theme-mode" data-theme-mode="light" aria-label="浅色模式" title="浅色模式">
+        <button
+          v-for="option in themeModes"
+          :key="option.mode"
+          class="theme-option"
+          :class="{ active: themeMode === option.mode }"
+          type="button"
+          :data-theme-mode="option.mode"
+          :aria-label="option.label"
+          :aria-pressed="themeMode === option.mode ? 'true' : 'false'"
+          :aria-busy="savingThemeMode === option.mode ? 'true' : 'false'"
+          :title="option.title"
+          @click="selectThemeMode(option.mode)"
+        >
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="4"></circle>
-            <path d="M12 2v2"></path>
-            <path d="M12 20v2"></path>
-            <path d="m4.93 4.93 1.41 1.41"></path>
-            <path d="m17.66 17.66 1.41 1.41"></path>
-            <path d="M2 12h2"></path>
-            <path d="M20 12h2"></path>
-            <path d="m6.34 17.66-1.41 1.41"></path>
-            <path d="m19.07 4.93-1.41 1.41"></path>
-          </svg>
-        </button>
-        <button class="theme-option" type="button" data-action="theme-mode" data-theme-mode="dark" aria-label="深色模式" title="深色模式">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 3a6 6 0 0 0 9 7.4A9 9 0 1 1 12 3Z"></path>
-          </svg>
-        </button>
-        <button class="theme-option" type="button" data-action="theme-mode" data-theme-mode="system" aria-label="自动模式" title="自动模式">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <rect x="3" y="4" width="18" height="12" rx="2"></rect>
-            <path d="M8 20h8"></path>
-            <path d="M12 16v4"></path>
+            <template v-if="option.mode === 'light'">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2"></path>
+              <path d="M12 20v2"></path>
+              <path d="m4.93 4.93 1.41 1.41"></path>
+              <path d="m17.66 17.66 1.41 1.41"></path>
+              <path d="M2 12h2"></path>
+              <path d="M20 12h2"></path>
+              <path d="m6.34 17.66-1.41 1.41"></path>
+              <path d="m19.07 4.93-1.41 1.41"></path>
+            </template>
+            <template v-else-if="option.mode === 'dark'">
+              <path d="M12 3a6 6 0 0 0 9 7.4A9 9 0 1 1 12 3Z"></path>
+            </template>
+            <template v-else>
+              <rect x="3" y="4" width="18" height="12" rx="2"></rect>
+              <path d="M8 20h8"></path>
+              <path d="M12 16v4"></path>
+            </template>
           </svg>
         </button>
       </div>
-      <div class="theme-note" id="theme-note">当前主题由配置加载。</div>
+      <div class="theme-note" id="theme-note">{{ themeNote }}</div>
     </div>
   </aside>
 

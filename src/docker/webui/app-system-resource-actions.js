@@ -16,6 +16,11 @@
     function loadRawConfig() {
       return requestJson('/api/config/raw').then(function (data) {
         state.rawConfig = data.exists ? data.data : cloneDefaultRawConfig();
+        document.dispatchEvent(new CustomEvent('douyu-keep-webui:config', {
+          detail: {
+            themeMode: state.rawConfig && state.rawConfig.ui ? state.rawConfig.ui.themeMode : 'system'
+          }
+        }));
         renderAll();
       }).catch(function (error) {
         if (isUnauthorizedError(error)) {

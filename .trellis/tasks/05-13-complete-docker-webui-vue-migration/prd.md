@@ -94,6 +94,16 @@ The first implementation commit should migrate the login page, app shell visibil
 
 ## Verification Results
 
+- Keepalive task page slice:
+  - `App.vue` now renders the keepalive task status card, enable switch, cron input/preview, allocation mode selector, save action, manual trigger action, and fan allocation table from Vue state.
+  - `src/docker/webui-src/keepalive.ts` owns keepalive task save/disable/trigger behavior, keepalive cron preview loading, allocation payload creation, and the narrow legacy `DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS` bridge.
+  - Legacy `app-task-pages.js` now dispatches keepalive-page state to Vue instead of mutating `#keepalive-task-card`, `#keepalive-enable`, `#keepalive-cron`, or `#keepalive-table-wrap`.
+  - Legacy `app-events.js` no longer handles keepalive save/toggle/cron events, and legacy `app-send-task-actions.js` delegates keepalive actions through the Vue bridge while still owning double-card and expiring-gift actions.
+  - `npm run lint` passed.
+  - `npm run type-check:webui` passed.
+  - `npm run test:contracts` passed.
+  - `npm run build:webui` passed.
+  - `npm test` passed, including `npm run build:docker`.
 - Collect task page slice:
   - `App.vue` now renders the collect task status card, enable switch, cron input/preview, save action, and manual trigger action from Vue state.
   - `src/docker/webui-src/collect.ts` owns collect task save/disable/trigger behavior, collect cron preview loading, and the narrow legacy `DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS` bridge.

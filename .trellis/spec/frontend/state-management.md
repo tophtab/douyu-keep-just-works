@@ -258,6 +258,7 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:toast', {
 ### 5. Good/Base/Bad Cases
 
 - Good: Vue listens for `douyu-keep-webui:toast`, stores the message in refs, renders `#toast-live` and `#toast` from state, and clears timers on unmount.
+
 - Base: Legacy actions keep their existing `toast('...', true/false)` calls and the helper bridges them to the Vue event.
 - Bad: `app-dom.js` calls `byId('toast')`, edits `#toast-live`, stores `window.__toastTimer`, or a Vue composable duplicates those DOM mutations.
 
@@ -285,6 +286,98 @@ node.style.display = 'block';
 ```vue
 <div id="toast-live" role="status" aria-live="polite">{{ toastLiveMessage }}</div>
 <div id="toast" :aria-hidden="toastVisible ? 'false' : 'true'">{{ toastMessage }}</div>
+```
+
+## Scenario: Vue-Owned Transitional Fan Allocation Task Page
+
+### 1. Scope / Trigger
+
+- Trigger: Moving a Docker WebUI task page that depends on synced fan-list data from `src/docker/webui/*.js` into Vue while overview, fan loading, and some sibling task pages remain legacy-owned.
+- Scope: Task status card, enable switch, cron preview, allocation mode, fan allocation table inputs, save/disable actions, manual trigger action, and legacy fan-list refresh orchestration.
+
+### 2. Signatures
+
+```typescript
+document.dispatchEvent(new CustomEvent('douyu-keep-webui:keepalive-page', {
+  detail: {
+    rawConfig,
+    managedConfig,
+    overview,
+    fans,
+    managedLoading,
+    fansListError,
+    fansListLoaded,
+  },
+}))
+```
+
+```typescript
+export function useKeepaliveTaskPage(): {
+  keepaliveCron: Ref<string>
+  keepaliveEnabled: Ref<boolean>
+  keepaliveModel: Ref<1 | 2>
+  saveKeepaliveConfig: (options?: { revertCheckboxOnError?: boolean }) => Promise<void>
+  triggerKeepaliveTask: () => Promise<void>
+}
+```
+
+```javascript
+window.DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS = {
+  create(deps) {
+    return { saveKeepaliveConfig, disableKeepaliveConfig }
+  },
+}
+```
+
+### 3. Contracts
+
+- Vue owns the visible page DOM for the migrated task: task card, note, enable checkbox, cron input/preview, allocation mode selector, action buttons, empty states, and allocation table inputs.
+- Legacy page renderers may dispatch one custom event with the current `rawConfig`, `managedConfig`, fan rows, loading flags, and overview snapshot; they must not mutate the migrated DOM ids after ownership moves.
+- Vue save actions build the persisted task payload from reactive state and post only the corresponding config key through `/api/config`.
+- Vue disable actions preserve the current cron/model/send values while setting `active: false`.
+- Vue manual trigger actions call `/api/trigger/<task>` and then ask legacy loaders to refresh overview, logs, and fan status as appropriate.
+- Existing fan-list loading remains legacy-owned until resource actions migrate; the migrated page may still rely on `ensureFansListForActiveTab()` being called after state dispatch.
+
+### 4. Validation & Error Matrix
+
+| Case | Expected behavior |
+|------|-------------------|
+| No Cookie or CookieCloud configured | Vue shows the existing Chinese "save Cookie first" note and no table |
+| Fan list is loading with no cached fans | Vue shows the syncing note and loading empty state |
+| Fan list request failed before any rows loaded | Vue shows the failure note and includes the error in the empty state |
+| Fan list loaded with zero rows | Vue shows the existing "no usable fan badge" empty state |
+| Save returns `401` | Request helper emits the unauthorized flow; page action does not show a duplicate error toast |
+| Save fails after toggle-on | Vue reverts the checkbox when `revertCheckboxOnError` is set |
+
+### 5. Good/Base/Bad Cases
+
+- Good: `app-task-pages.js` dispatches `douyu-keep-webui:keepalive-page`, then calls `ensureFansListForActiveTab()` for the still-legacy loader.
+- Base: `app-send-task-actions.js` delegates keepalive save/disable through `DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS` while continuing to own unmigrated sibling pages.
+- Bad: Legacy code still calls `byId('keepalive-cron').value`, `byId('keepalive-enable').checked`, or rewrites `#keepalive-table-wrap` after the Vue page is mounted.
+
+### 6. Tests Required
+
+- Contract tests should assert that `App.vue` uses `useKeepaliveTaskPage()`, binds keepalive controls with `v-model`, and removes legacy `data-action="save-keepalive"` / `data-trigger="keepalive"` ownership.
+- Contract tests should assert that the Vue module installs a narrow legacy bridge, calls `/api/config`, `/api/trigger/keepalive`, and `/api/cron-preview`.
+- Contract tests should assert that legacy page/action/event modules no longer mutate migrated keepalive DOM ids or bind keepalive-specific events.
+- Run `npm run lint`, `npm run type-check:webui`, `npm run test:contracts`, and `npm run build:webui`; run `npm test` before committing a rollback slice.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```javascript
+byId('keepalive-enable').checked = isTaskActive(config)
+byId('keepalive-table-wrap').innerHTML = buildSendTable(fans, config, false, 'keepalive-value')
+```
+
+#### Correct
+
+```vue
+<input v-model="keepaliveEnabled" id="keepalive-enable" @change="handleKeepaliveToggle">
+<tr v-for="row in keepaliveFanRows" :key="row.roomId">
+  <input v-model.number="row.value" class="keepalive-value">
+</tr>
 ```
 
 ## Scenario: Vue-Owned Transitional Request Helper

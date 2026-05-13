@@ -94,17 +94,27 @@ The first implementation commit should migrate the login page, app shell visibil
 
 ## Verification Results
 
+- Expiring-gift task page slice:
+  - `App.vue` now renders the expiring-gift task status card, enable switch, cron input/preview, threshold-hours input, allocation mode selector, save action, manual trigger action, backpack rows table, and fan allocation table from Vue state.
+  - `src/docker/webui-src/expiring.ts` owns expiring-gift task save/disable/trigger behavior, cron preview loading, threshold-aware backpack row status, allocation payload creation, and the narrow legacy `DOUYU_KEEP_WEBUI_EXPIRING_TASK_ACTIONS` bridge.
+  - Legacy `app-task-pages.js` now dispatches expiring-gift page state to Vue instead of mutating `#expiring-task-card`, `#expiring-enable`, `#expiring-cron`, `#expiring-backpack-wrap`, or `#expiring-table-wrap`.
+  - Legacy `app-events.js` no longer handles expiring-gift save/toggle/cron/threshold events, and legacy `app-send-task-actions.js` delegates expiring-gift actions through the Vue bridge.
+  - `npm run lint` passed.
+  - `npm run type-check:webui` passed.
+  - `npm run test:contracts` passed.
+  - `npm run build:webui` passed.
+  - `npm test` passed, including `npm run build:docker`.
 - Double-card task page slice:
   - `App.vue` now renders the double-card task status card, enable switch, cron input/preview, gift scope selector, allocation mode selector, save action, manual trigger action, ratio helper/preset controls, and fan allocation table from Vue state.
   - `src/docker/webui-src/double.ts` owns double-card task save/disable/trigger behavior, double-card cron preview loading, enabled-room and allocation payload creation, weight validation, ratio preview/presets, and the narrow legacy `DOUYU_KEEP_WEBUI_DOUBLE_TASK_ACTIONS` bridge.
   - Removed `src/docker/webui/app-double-task-page.js` from the Vite boot path and deleted the transitional legacy owner file.
   - Legacy `app-task-pages.js` now dispatches double-card page state to Vue instead of mutating `#double-task-card`, `#double-enable`, `#double-cron`, `#double-mode-help`, `#double-ratio-preview`, or `#double-table-wrap`.
-  - Legacy `app-events.js` no longer handles double-card save/toggle/cron/ratio events, and legacy `app-send-task-actions.js` delegates double-card actions through the Vue bridge while still owning expiring-gift actions.
+  - Legacy `app-events.js` no longer handles double-card save/toggle/cron/ratio events, and legacy `app-send-task-actions.js` delegates double-card actions through the Vue bridge.
 - Keepalive task page slice:
   - `App.vue` now renders the keepalive task status card, enable switch, cron input/preview, allocation mode selector, save action, manual trigger action, and fan allocation table from Vue state.
   - `src/docker/webui-src/keepalive.ts` owns keepalive task save/disable/trigger behavior, keepalive cron preview loading, allocation payload creation, and the narrow legacy `DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS` bridge.
   - Legacy `app-task-pages.js` now dispatches keepalive-page state to Vue instead of mutating `#keepalive-task-card`, `#keepalive-enable`, `#keepalive-cron`, or `#keepalive-table-wrap`.
-  - Legacy `app-events.js` no longer handles keepalive save/toggle/cron events, and legacy `app-send-task-actions.js` delegates keepalive actions through the Vue bridge while still owning double-card and expiring-gift actions.
+  - Legacy `app-events.js` no longer handles keepalive save/toggle/cron events, and legacy `app-send-task-actions.js` delegates keepalive actions through the Vue bridge.
   - `npm run lint` passed.
   - `npm run type-check:webui` passed.
   - `npm run test:contracts` passed.

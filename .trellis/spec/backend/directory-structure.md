@@ -71,6 +71,7 @@ src/
 │       ├── collect.ts
 │       ├── cookie.ts
 │       ├── double.ts
+│       ├── expiring.ts
 │       ├── index.html
 │       ├── legacy-modules.d.ts
 │       ├── main.ts
@@ -114,6 +115,7 @@ Examples:
 - `src/docker/webui-src/collect.ts` owns Vue-side collect task page state, save/disable/trigger actions, collect cron preview loading, and the legacy `DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS` bridge.
 - `src/docker/webui-src/keepalive.ts` owns Vue-side keepalive task page state, save/disable/trigger actions, keepalive cron preview loading, fan allocation payload creation, and the legacy `DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS` bridge.
 - `src/docker/webui-src/double.ts` owns Vue-side double-card task page state, save/disable/trigger actions, double-card cron preview loading, enabled-room and allocation payload creation, ratio preview/presets, and the legacy `DOUYU_KEEP_WEBUI_DOUBLE_TASK_ACTIONS` bridge.
+- `src/docker/webui-src/expiring.ts` owns Vue-side expiring-gift task page state, save/disable/trigger actions, cron preview loading, threshold-aware backpack table rows, room allocation payload creation, and the legacy `DOUYU_KEEP_WEBUI_EXPIRING_TASK_ACTIONS` bridge.
 - `src/docker/webui-src/yuba.ts` owns Vue-side Yuba task page state, save/disable/trigger actions, Yuba cron preview loading, Yuba status resource loading, and the legacy `DOUYU_KEEP_WEBUI_YUBA_*` bridges.
 - `src/docker/webui-src/theme.ts` owns Vue-side theme mode state, persistence, system preference observation, and browser theme side effects.
 - `src/docker/webui-src/toast.ts` owns Vue-side toast/live-region state and the legacy toast event bridge.
@@ -133,17 +135,18 @@ Examples:
 - `src/docker/webui/app-render.js` owns Docker WebUI shared HTML fragments, task cards, and render helper assembly.
 - `src/docker/webui/app-resource-actions.js` owns Docker WebUI resource action assembly and active-surface refresh orchestration.
 - `src/docker/webui/app-routing.js` owns Docker WebUI client-side route/path helpers.
-- `src/docker/webui/app-send-task-actions.js` delegates keepalive and double-card room-send task actions through Vue-owned bridges while it continues to own expiring-gift save/disable actions during migration.
+- `src/docker/webui/app-send-task-actions.js` delegates keepalive, double-card, and expiring-gift room-send task actions through Vue-owned bridges during migration.
 - `src/docker/webui/app-simple-task-actions.js` delegates collect-gift and Yuba check-in simple task save/disable actions through Vue-owned bridges while it remains part of transitional task action assembly.
 - `src/docker/webui-src/resources.ts` replaces the former `src/docker/webui/app-system-resource-actions.js` owner for Docker WebUI raw config, overview, and log resource loading actions during the Vue migration.
 - `src/docker/webui-src/cookie.ts` replaces the former `src/docker/webui/app-cookie-actions.js` owner for Docker WebUI manual Cookie and CookieCloud actions during the Vue migration.
 - `src/docker/webui-src/collect.ts` replaces the collect-gift portion of `src/docker/webui/app-simple-task-actions.js` and `src/docker/webui/app-task-pages.js` during the Vue migration.
 - `src/docker/webui-src/keepalive.ts` replaces the keepalive portions of `src/docker/webui/app-send-task-actions.js` and `src/docker/webui/app-task-pages.js` during the Vue migration.
 - `src/docker/webui-src/double.ts` replaces `src/docker/webui/app-double-task-page.js` plus the double-card portions of `src/docker/webui/app-send-task-actions.js`, `src/docker/webui/app-events.js`, and `src/docker/webui/app-task-pages.js` during the Vue migration.
+- `src/docker/webui-src/expiring.ts` replaces the expiring-gift portions of `src/docker/webui/app-send-task-actions.js`, `src/docker/webui/app-events.js`, and `src/docker/webui/app-task-pages.js` during the Vue migration.
 - `src/docker/webui-src/yuba.ts` replaces `src/docker/webui/app-yuba-resource-actions.js` plus the Yuba portions of `src/docker/webui/app-simple-task-actions.js` and `src/docker/webui/app-task-pages.js` during the Vue migration.
 - `src/docker/webui/app-table-render.js` owns Docker WebUI table rendering helpers for status, Yuba, backpack, and send-room tables.
 - `src/docker/webui/app-task-actions.js` owns Docker WebUI task action assembly.
-- `src/docker/webui/app-task-pages.js` owns Docker WebUI task page rendering for still-legacy task surfaces.
+- `src/docker/webui/app-task-pages.js` dispatches Vue-owned task page state and owns only still-legacy task page rendering surfaces.
 - `src/docker/webui/app.js` owns the Docker WebUI client-side behavior script.
 - `src/docker/webui.ts` owns Vite-built template loading plus runtime injection for app version and page routes.
 - `src/core/job.ts` runs the gift workflow without knowing which HTTP route or scheduler triggered it.

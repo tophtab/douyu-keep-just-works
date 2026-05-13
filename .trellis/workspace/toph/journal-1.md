@@ -208,3 +208,36 @@ Split WebUI resource ownership into focused modules, extracted core gift task he
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: Remove WebUI resource facade
+
+**Date**: 2026-05-13
+**Task**: Remove WebUI resource facade
+**Branch**: `master`
+
+### Summary
+
+Removed resource-state compatibility re-exports, deleted the resources barrel, updated WebUI modules to import focused resource owners directly, and verified lint/type-check/tests.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fd135b9` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

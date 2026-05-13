@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 6
+- **Total Sessions**: 7
 - **Last Active**: 2026-05-13
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~210 | Active |
+| `journal-1.md` | ~243 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 7 | 2026-05-13 | Remove WebUI resource facade | `fd135b9` | `master` |
 | 6 | 2026-05-13 | Optimize program structure | `eabcec6` | `master` |
 | 5 | 2026-05-13 | Consolidate Docker task plumbing | `605313f` | `master` |
 | 4 | 2026-05-13 | Vue migration status review | `a3eeb08`, `5093ae6` | `master` |

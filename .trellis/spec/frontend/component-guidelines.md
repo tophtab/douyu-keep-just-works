@@ -23,6 +23,8 @@ Preferred file shape:
 - Keep one-off state local to the component or composable that owns it.
 - Extract shared behavior into local helpers/composables only after repetition appears.
 - Do not add Pinia solely to avoid passing a small amount of state.
+- For Docker WebUI pages, keep request/persistence logic in the existing page composables and move markup into SFC page components. Shared shell controls can receive props/events, but should not duplicate API calls.
+- For editable table rows passed into reusable table components, emit row/value events from the table and mutate the composable-owned row model in the page component.
 
 ## Styling Patterns
 
@@ -41,3 +43,4 @@ Preferred file shape:
 - Do not treat a Vue migration as a visual redesign unless the task explicitly asks for redesign.
 - Do not split tiny one-off fragments into deep component trees.
 - Do not let transitional legacy modules and Vue components race to own the same DOM region.
+- Do not move a page composable into a reusable table/control component just to reduce props; keep reusable components presentational unless a repeated behavior clearly belongs there.

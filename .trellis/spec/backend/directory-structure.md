@@ -43,7 +43,10 @@ src/
 │   ├── webui-src/
 │       ├── App.vue
 │       ├── components/
-│       │   └── AuthShell.vue
+│       │   ├── AppShell.vue
+│       │   ├── AuthShell.vue
+│       │   ├── *Page.vue
+│       │   └── reusable task/table components
 │       ├── actions.ts
 │       ├── auth.ts
 │       ├── collect.ts
@@ -67,6 +70,7 @@ src/
 │       ├── yuba.ts
 │       └── styles/
 │           ├── base.css
+│           ├── shell.css
 │           ├── components.css
 │           ├── responsive.css
 │           └── tables.css
@@ -94,8 +98,14 @@ Examples:
 - `src/docker/server-*-routes.ts` files own cohesive Docker HTTP route groups and delegate work through `AppContext`.
 - `src/docker/server-types.ts` owns the shared `AppContext` and `JobStatus` types re-exported by `server.ts` for existing imports.
 - `src/docker/webui-src/index.html` owns the Vite HTML shell and runtime token placeholders.
-- `src/docker/webui-src/App.vue` owns app-level Docker WebUI composition during the Vue migration.
+- `src/docker/webui-src/App.vue` owns root Docker WebUI composition during the Vue migration: bootstrap data, auth session, navigation/theme/toast roots, and overview refresh state shared by the toolbar and overview page.
+- `src/docker/webui-src/components/AppShell.vue` owns the authenticated Docker WebUI shell, page tabpanel mounting, and page-level component composition.
+- `src/docker/webui-src/components/SidebarNav.vue` owns brand, tablist attributes, keyboard handler wiring, and theme selector markup.
+- `src/docker/webui-src/components/TopToolbar.vue` owns the refresh/logout toolbar controls.
 - `src/docker/webui-src/components/AuthShell.vue` owns the login shell markup while `App.vue` wires it to `useAuthSession()`.
+- `src/docker/webui-src/components/*Page.vue` owns page markup and calls its existing page composable unless a parent must share state across shell regions.
+- `src/docker/webui-src/components/TaskStatusCard.vue`, `CronField.vue`, `EnableSwitch.vue`, and `ActionBar.vue` own repeated task page controls while page composables still own request and persistence logic.
+- `src/docker/webui-src/components/*Table.vue` owns repeated fans, Yuba, allocation, and backpack table markup; pages pass reactive row models and handle mutation events.
 - `src/docker/webui-src/main.ts` owns Vue bootstrapping, CSS imports, TypeScript bridge installation order, and starting the transitional legacy app bridge.
 - `src/docker/webui-src/legacy-core.ts` owns Vue/TypeScript-side legacy core bridge setup for Docker WebUI page metadata, default raw config constants, route/path helpers, DOM lookup, HTML escaping, date formatting, and toast helper compatibility while transitional TypeScript orchestration consumes `DOUYU_KEEP_WEBUI_DATA`, `DOUYU_KEEP_WEBUI_ROUTING`, and `DOUYU_KEEP_WEBUI_DOM`.
 - `src/docker/webui-src/legacy-state.ts` owns Vue/TypeScript-side transitional shared state helpers, managed fan/config derivation, fan-status merge helpers, protected-state clearing, and the legacy `DOUYU_KEEP_WEBUI_STATE`, `DOUYU_KEEP_WEBUI_MANAGED_DATA`, and `DOUYU_KEEP_WEBUI_PROTECTED_STATE` bridges while transitional TypeScript orchestration consumes those APIs.
@@ -118,7 +128,8 @@ Examples:
 - `src/docker/webui-src/task-actions.ts` owns Vue/TypeScript-side task action assembly for collect, Yuba, keepalive, double-card, and expiring-gift compatibility through the legacy `DOUYU_KEEP_WEBUI_SIMPLE_TASK_ACTIONS`, `DOUYU_KEEP_WEBUI_SEND_TASK_ACTIONS`, and `DOUYU_KEEP_WEBUI_TASK_ACTIONS` bridges.
 - `src/docker/webui-src/theme.ts` owns Vue-side theme mode state, persistence, system preference observation, and browser theme side effects.
 - `src/docker/webui-src/toast.ts` owns Vue-side toast/live-region state and the legacy toast event bridge.
-- `src/docker/webui-src/styles/base.css` owns Docker WebUI base variables, auth shell, navigation, and page shell styles.
+- `src/docker/webui-src/styles/base.css` owns Docker WebUI base variables and global body/theme foundations.
+- `src/docker/webui-src/styles/shell.css` owns Docker WebUI auth shell, navigation, app shell, header, toolbar, and page visibility styles.
 - `src/docker/webui-src/styles/components.css` owns Docker WebUI cards, panels, forms, buttons, and task component styles.
 - `src/docker/webui-src/styles/tables.css` owns Docker WebUI table, empty-state, log, toast, and screen-reader utility styles.
 - `src/docker/webui-src/styles/responsive.css` owns Docker WebUI motion and responsive overrides.

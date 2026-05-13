@@ -1,9 +1,11 @@
-import type { DoubleCardConfig, DoubleCardGiftScope, Fans, FanStatus, SendGift } from '../../core/types'
+import type { DoubleCardConfig, DoubleCardGiftScope, Fans, FanStatus } from '../../core/types'
 import { computed, ref } from 'vue'
+import type { AllocationFanRow } from './allocation-task'
+import { buildAllocationFanRows, buildAllocationSendMap, buildEnabledRoomMap, formatRatioPercent, normalizeAllocationModel } from './allocation-task'
 import { useCronPreview } from './composables/use-cron-preview'
-import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, formatOptionalNumber, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
 import { showToast } from './toast'
-import type { TaskRunStatus } from './task-shared'
+import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface DoubleOverview {
   doubleCardConfigured?: boolean
@@ -13,18 +15,7 @@ interface DoubleOverview {
   }
 }
 
-interface RawDoubleConfig {
-  cookie?: string
-  manualCookies?: {
-    main?: string
-    yuba?: string
-  }
-  cookieCloud?: {
-    active?: boolean
-    endpoint?: string
-    uuid?: string
-    password?: string
-  }
+interface RawDoubleConfig extends CookieSourceConfig {
   doubleCard?: DoubleCardConfig
 }
 
@@ -56,17 +47,9 @@ interface LegacyDoubleActions {
   saveDoubleConfig: (options?: { revertCheckboxOnError?: boolean }) => Promise<void>
 }
 
-interface DoubleFanRow {
+interface DoubleFanRow extends AllocationFanRow {
   doubleActive?: boolean
   enabled: boolean
-  index: number
-  intimacy: string
-  level: number | string
-  name: string
-  rank: number | string
-  roomId: number
-  today: number | string
-  value: number
 }
 
 const DEFAULT_DOUBLE_CRON = '0 20 17,20,22,23 * * *'
@@ -106,7 +89,7 @@ function isUnauthorizedError(error: unknown): boolean {
 }
 
 function normalizeModel(model: unknown): 1 | 2 {
-  return Number(model) === 2 ? 2 : DEFAULT_DOUBLE_MODEL
+  return normalizeAllocationModel(model, DEFAULT_DOUBLE_MODEL)
 }
 
 function normalizeGiftScope(scope: unknown): DoubleCardGiftScope {
@@ -126,28 +109,14 @@ function getDoubleConfig(): DoubleCardConfig {
 
 function buildFanRows(nextFans: DoubleFan[], config: DoubleCardConfig): DoubleFanRow[] {
   const model = normalizeModel(config.model)
-  return nextFans.map((fan, index) => {
-    const key = String(fan.roomId)
-    const sendItem = config.send && config.send[key]
-      ? config.send[key]
-      : {
-          roomId: fan.roomId,
-          giftId: 268,
-          number: model === 2 ? 1 : 0,
-          weight: model === 1 ? 1 : 0,
-        }
-    return {
+  return buildAllocationFanRows(nextFans, {
+    model,
+    send: config.send,
+    defaultValue: () => 1,
+    extra: fan => ({
       doubleActive: typeof fan.doubleActive === 'boolean' ? fan.doubleActive : undefined,
-      enabled: Boolean(config.enabled && config.enabled[key]),
-      index: index + 1,
-      intimacy: fan.intimacy || '-',
-      level: formatOptionalNumber(fan.level),
-      name: fan.name || '未知主播',
-      rank: formatOptionalNumber(fan.rank),
-      roomId: fan.roomId,
-      today: formatOptionalNumber(fan.today),
-      value: model === 2 ? Number(sendItem.number || 0) : Number(sendItem.weight || 0),
-    }
+      enabled: Boolean(config.enabled?.[String(fan.roomId)]),
+    }),
   })
 }
 
@@ -192,34 +161,14 @@ function applyDoublePageDetail(detail: DoublePageDetail): void {
 }
 
 function buildDoublePayload(): DoubleCardConfig {
-  const send: Record<string, SendGift> = {}
-  const enabled: Record<string, boolean> = {}
-  for (const row of fanRows.value) {
-    const value = Number(row.value || 0)
-    const key = String(row.roomId)
-    send[key] = {
-      roomId: row.roomId,
-      giftId: 268,
-      number: doubleModel.value === 2 ? value : 0,
-      weight: doubleModel.value === 1 ? value : 0,
-      count: 0,
-    }
-    enabled[key] = Boolean(row.enabled)
-  }
-
   return {
     active: true,
     cron: doubleCron.value.trim(),
     model: doubleModel.value,
     giftScope: doubleGiftScope.value,
-    send,
-    enabled,
+    send: buildAllocationSendMap(fanRows.value, doubleModel.value),
+    enabled: buildEnabledRoomMap(fanRows.value),
   }
-}
-
-function formatRatioPercent(value: number): string {
-  const rounded = Math.round(value * 10) / 10
-  return `${rounded.toFixed(1).replace(/\.0$/, '')}%`
 }
 
 async function refreshDoubleSurfaces(): Promise<void> {

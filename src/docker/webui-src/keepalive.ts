@@ -1,8 +1,10 @@
-import type { Fans, JobConfig, SendGift } from '../../core/types'
+import type { Fans, JobConfig } from '../../core/types'
 import { computed, ref } from 'vue'
+import type { AllocationFanRow } from './allocation-task'
+import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationModel } from './allocation-task'
 import { useCronPreview } from './composables/use-cron-preview'
-import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, formatOptionalNumber, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
-import type { TaskRunStatus } from './task-shared'
+import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface KeepaliveOverview {
   keepaliveConfigured?: boolean
@@ -12,18 +14,7 @@ interface KeepaliveOverview {
   }
 }
 
-interface RawKeepaliveConfig {
-  cookie?: string
-  manualCookies?: {
-    main?: string
-    yuba?: string
-  }
-  cookieCloud?: {
-    active?: boolean
-    endpoint?: string
-    uuid?: string
-    password?: string
-  }
+interface RawKeepaliveConfig extends CookieSourceConfig {
   keepalive?: JobConfig
 }
 
@@ -53,16 +44,7 @@ interface LegacyKeepaliveActions {
   saveKeepaliveConfig: (options?: { revertCheckboxOnError?: boolean }) => Promise<void>
 }
 
-interface KeepaliveFanRow {
-  index: number
-  intimacy: string
-  level: number | string
-  name: string
-  rank: number | string
-  roomId: number
-  today: number | string
-  value: number
-}
+type KeepaliveFanRow = AllocationFanRow
 
 const DEFAULT_KEEPALIVE_CRON = '0 0 8 */6 * *'
 const DEFAULT_KEEPALIVE_MODEL: 1 | 2 = 2
@@ -99,7 +81,7 @@ function isUnauthorizedError(error: unknown): boolean {
 }
 
 function normalizeModel(model: unknown): 1 | 2 {
-  return Number(model) === 1 ? 1 : DEFAULT_KEEPALIVE_MODEL
+  return normalizeAllocationModel(model, DEFAULT_KEEPALIVE_MODEL)
 }
 
 function getKeepaliveConfig(): JobConfig {
@@ -113,26 +95,10 @@ function getKeepaliveConfig(): JobConfig {
 
 function buildFanRows(nextFans: Fans[], config: JobConfig): KeepaliveFanRow[] {
   const model = normalizeModel(config.model)
-  return nextFans.map((fan, index) => {
-    const key = String(fan.roomId)
-    const sendItem = config.send && config.send[key]
-      ? config.send[key]
-      : {
-          roomId: fan.roomId,
-          giftId: 268,
-          number: model === 2 ? 1 : 0,
-          weight: model === 1 ? 1 : 0,
-        }
-    return {
-      index: index + 1,
-      intimacy: fan.intimacy || '-',
-      level: formatOptionalNumber(fan.level),
-      name: fan.name || '未知主播',
-      rank: formatOptionalNumber(fan.rank),
-      roomId: fan.roomId,
-      today: formatOptionalNumber(fan.today),
-      value: model === 2 ? Number(sendItem.number || 0) : Number(sendItem.weight || 0),
-    }
+  return buildAllocationFanRows(nextFans, {
+    model,
+    send: config.send,
+    defaultValue: () => 1,
   })
 }
 
@@ -178,23 +144,11 @@ function applyKeepalivePageDetail(detail: KeepalivePageDetail): void {
 }
 
 function buildSendPayload(): JobConfig {
-  const send: Record<string, SendGift> = {}
-  for (const row of fanRows.value) {
-    const value = Number(row.value || 0)
-    send[String(row.roomId)] = {
-      roomId: row.roomId,
-      giftId: 268,
-      number: keepaliveModel.value === 2 ? value : 0,
-      weight: keepaliveModel.value === 1 ? value : 0,
-      count: 0,
-    }
-  }
-
   return {
     active: true,
     cron: keepaliveCron.value.trim(),
     model: keepaliveModel.value,
-    send,
+    send: buildAllocationSendMap(fanRows.value, keepaliveModel.value),
   }
 }
 

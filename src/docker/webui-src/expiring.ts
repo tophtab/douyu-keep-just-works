@@ -1,9 +1,11 @@
-import type { BackpackGiftRow, ExpiringGiftConfig, Fans, GiftStatus, SendGift } from '../../core/types'
+import type { BackpackGiftRow, ExpiringGiftConfig, Fans, GiftStatus } from '../../core/types'
 import { computed, ref } from 'vue'
+import type { AllocationFanRow } from './allocation-task'
+import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationModel } from './allocation-task'
 import { useCronPreview } from './composables/use-cron-preview'
 import { formatDate } from './datetime'
-import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, formatOptionalNumber, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
-import type { TaskRunStatus } from './task-shared'
+import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface ExpiringOverview {
   expiringGiftConfigured?: boolean
@@ -13,18 +15,7 @@ interface ExpiringOverview {
   }
 }
 
-interface RawExpiringConfig {
-  cookie?: string
-  manualCookies?: {
-    main?: string
-    yuba?: string
-  }
-  cookieCloud?: {
-    active?: boolean
-    endpoint?: string
-    uuid?: string
-    password?: string
-  }
+interface RawExpiringConfig extends CookieSourceConfig {
   expiringGift?: ExpiringGiftConfig
 }
 
@@ -58,16 +49,7 @@ interface LegacyExpiringActions {
   saveExpiringGiftConfig: (options?: { revertCheckboxOnError?: boolean }) => Promise<void>
 }
 
-interface ExpiringFanRow {
-  index: number
-  intimacy: string
-  level: number | string
-  name: string
-  rank: number | string
-  roomId: number
-  today: number | string
-  value: number
-}
+type ExpiringFanRow = AllocationFanRow
 
 interface ExpiringBackpackRow {
   autoRelease: boolean
@@ -121,7 +103,7 @@ function isUnauthorizedError(error: unknown): boolean {
 }
 
 function normalizeModel(model: unknown): 1 | 2 {
-  return Number(model) === 2 ? 2 : DEFAULT_EXPIRING_MODEL
+  return normalizeAllocationModel(model, DEFAULT_EXPIRING_MODEL)
 }
 
 function normalizeThresholdHours(value: unknown): number {
@@ -141,26 +123,10 @@ function getExpiringConfig(): ExpiringGiftConfig {
 
 function buildFanRows(nextFans: Fans[], config: ExpiringGiftConfig): ExpiringFanRow[] {
   const model = normalizeModel(config.model)
-  return nextFans.map((fan, index) => {
-    const key = String(fan.roomId)
-    const sendItem = config.send && config.send[key]
-      ? config.send[key]
-      : {
-          roomId: fan.roomId,
-          giftId: 268,
-          number: model === 2 ? 1 : 0,
-          weight: model === 1 ? (index === 0 ? 1 : 0) : 0,
-        }
-    return {
-      index: index + 1,
-      intimacy: fan.intimacy || '-',
-      level: formatOptionalNumber(fan.level),
-      name: fan.name || '未知主播',
-      rank: formatOptionalNumber(fan.rank),
-      roomId: fan.roomId,
-      today: formatOptionalNumber(fan.today),
-      value: model === 2 ? Number(sendItem.number || 0) : Number(sendItem.weight || 0),
-    }
+  return buildAllocationFanRows(nextFans, {
+    model,
+    send: config.send,
+    defaultValue: (_fan, index, currentModel) => currentModel === 2 ? 1 : (index === 0 ? 1 : 0),
   })
 }
 
@@ -217,24 +183,12 @@ function applyExpiringPageDetail(detail: ExpiringPageDetail): void {
 }
 
 function buildExpiringPayload(): ExpiringGiftConfig {
-  const send: Record<string, SendGift> = {}
-  for (const row of fanRows.value) {
-    const value = Number(row.value || 0)
-    send[String(row.roomId)] = {
-      roomId: row.roomId,
-      giftId: 268,
-      number: expiringModel.value === 2 ? value : 0,
-      weight: expiringModel.value === 1 ? value : 0,
-      count: 0,
-    }
-  }
-
   return {
     active: true,
     cron: expiringCron.value.trim(),
     thresholdHours: normalizeThresholdHours(expiringThresholdHours.value),
     model: expiringModel.value,
-    send,
+    send: buildAllocationSendMap(fanRows.value, expiringModel.value),
   }
 }
 

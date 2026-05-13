@@ -2,9 +2,9 @@ import type { YubaCheckInConfig, YubaCheckInMode, YubaGroupStatus, YubaStatusRes
 import { computed, ref } from 'vue'
 import { useCronPreview } from './composables/use-cron-preview'
 import { requestJson } from './request'
-import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getErrorMessage, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getErrorMessage, hasCookieSourceConfigured as hasSharedCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
 import { showToast } from './toast'
-import type { TaskRunStatus } from './task-shared'
+import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface YubaOverview {
   yubaCheckInConfigured?: boolean
@@ -13,18 +13,7 @@ interface YubaOverview {
   }
 }
 
-interface RawYubaConfig {
-  cookie?: string
-  manualCookies?: {
-    main?: string
-    yuba?: string
-  }
-  cookieCloud?: {
-    active?: boolean
-    endpoint?: string
-    uuid?: string
-    password?: string
-  }
+interface RawYubaConfig extends CookieSourceConfig {
   yubaCheckIn?: YubaCheckInConfig
 }
 
@@ -130,13 +119,7 @@ function hasCookieSourceConfigured(config: RawYubaConfig | null): boolean {
     return legacyResourceDeps.hasCookieSourceConfigured(config)
   }
 
-  const cookieCloud = config?.cookieCloud
-  const manualCookies = config?.manualCookies
-  return Boolean(
-    String(manualCookies?.main || config?.cookie || '').trim()
-    || String(manualCookies?.yuba || '').trim()
-    || (cookieCloud?.active && String(cookieCloud.endpoint || '').trim() && String(cookieCloud.uuid || '').trim() && String(cookieCloud.password || '').trim()),
-  )
+  return hasSharedCookieSourceConfigured(config)
 }
 
 function applyRawConfig(config: RawYubaConfig | null): void {

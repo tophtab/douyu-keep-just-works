@@ -6,52 +6,75 @@
 
 ## Overview
 
-Backend code in this repository is pragmatic TypeScript:
-
-- strict TypeScript is enabled, but `noImplicitAny` is intentionally off in backend tsconfigs
-- ESLint uses flat config in `eslint.config.mjs` and imports `@antfu/eslint-config`
-- the lint script intentionally targets source, tests, and `eslint.config.mjs`; do not broaden it to Trellis archives, Markdown specs, or GitHub YAML unless you intend to fix that unrelated format surface
-- braces are required (`curly`, `style/brace-style`)
-- `console.log` is allowed
-
-There is no automated backend test suite yet. Quality mainly comes from shared logic reuse, explicit control flow, and manual verification.
-
----
-
-## Required Patterns
-
-- Reuse `src/core/` logic instead of duplicating the same workflow inside Docker routes or schedulers.
-- Keep runtime entrypoints thin and delegate to helpers.
-- Use shared interfaces from `src/core/types.ts` for config and API payloads.
-- Return plain JSON from Docker routes.
-- Validate user input at the boundary before mutating config or starting jobs.
-- Treat runtime capability assumptions as boundary concerns: Docker root execution, browser API availability, and headless/browser launch flags must be checked where the runtime is assembled.
-- Keep failure semantics explicit: do not silently translate upstream request failures into normal-looking domain values such as `0` or empty payloads.
-
-Examples:
-
-- `src/docker/server.ts` validates config before saving it.
-- `src/core/job.ts` owns the workflow for collecting, computing, and sending gifts.
+Backend changes must preserve the Docker WebUI runtime first. Use Node.js 24, TypeScript, Express 5, `cron`, and the existing config JSON model. Keep behavior focused and covered by contract tests when it affects build, routes, scheduling, config, or migration boundaries.
 
 ---
 
 ## Forbidden Patterns
 
-- Do not duplicate the same Douyu parsing logic in multiple runtimes if it can move to `src/core/`.
-- Do not introduce framework-heavy abstractions for simple flows; the project favors direct functions.
-- Do not bypass shared types with untyped object literals when a type already exists.
-- Do not log or return secret values such as full cookies.
-- Do not add fake tests or aspirational quality requirements that the repository does not currently satisfy.
+- Do not add Electron, Yarn desktop release, or renderer packaging work unless the task explicitly restores desktop support.
+- Do not reintroduce deleted legacy WebUI source modules such as old `app-*.js` files.
+- Do not bypass Vite for Docker WebUI assets; `npm run build:docker` must run `npm run build:webui`.
+- Do not duplicate task-wide facts such as labels, schedule summaries, active checks, or "not configured" messages across route, scheduler, and runner modules.
+- Do not expose secrets in `/api/config`, logs, tests, or docs.
+- Do not use untyped `any` when `unknown`, local interfaces, or shared types from `src/core/types.ts` are available.
 
 ---
 
+## Required Patterns
+
+### Docker-First Runtime
+
+Keep Docker deployment working first. The expected quality gate is:
+
+```bash
+npm run lint
+npm run type-check
+npm run build:docker
+npm test
+```
+
+`npm test` currently runs Node contract tests and then a Docker build.
+
+### Docker Task Metadata Ownership
+
+Task-wide labels, "not configured" messages, active-state checks, and schedule summaries belong in `src/docker/task-metadata.ts` before they are repeated in scheduler, route, or runner code. Keep behavior-specific execution in the owning runtime modules, but centralize task inventory facts.
+
+Use this pattern when adding or changing a Docker task:
+
+```typescript
+export const TASK_NOT_CONFIGURED_MESSAGES: Record<TaskType, string> = {
+  keepalive: '保活任务未配置',
+  // ...
+}
+
+export function isTaskActive(config: { active?: boolean } | null | undefined): boolean {
+  return Boolean(config && config.active !== false)
+}
+```
+
+Do not copy equivalent task messages or `config && config.active !== false` checks into multiple modules. Reuse metadata helpers from `runtime-scheduler.ts`, `runtime-task-runners.ts`, and future task route code where practical.
+
+### Validate Before Persisting
+
+Route handlers should validate config sections before calling `ctx.saveTaskConfig`. Follow `src/docker/server-config-routes.ts`, which returns `400` before persistence when validation fails.
+
+---
+
+## Testing Requirements
+
+- Update `test/project-maintenance-contract.test.js` when changing build architecture, WebUI file organization, Node version alignment, or legacy bridge deletion guarantees.
+- Add or update focused Node contract tests under `test/*.test.js` for request smoothing, config persistence, scheduling contracts, and static architecture rules.
+- Run `npm run type-check` for TypeScript shape changes across backend and WebUI.
+- Run `npm run lint` before handoff.
+
+---
 
 ## Code Review Checklist
 
-- Is shared logic kept in `src/core/` when multiple Docker routes/jobs need it?
-- Does the change preserve existing config shapes and upgrade old persisted data safely?
-- Are boundary inputs validated before scheduling, saving, or triggering jobs?
-- Are user-facing error strings actionable?
-- Are secrets masked or omitted from logs and responses?
-- Does the change preserve the distinction between real empty data and external-call failure?
-- If Docker/UI promises a specific timezone or runtime behavior, is that contract actually enforced in code?
+- Does the change keep the Docker path working and documented in `CONTRIBUTING.md` if needed?
+- Are config changes normalized and validated before save?
+- Are secrets masked in responses and absent from logs?
+- Are task metadata and task behavior kept in the right modules?
+- Does the change preserve Chinese user-facing messages unless behavior text is explicitly in scope?
+- Are contract tests updated when architecture or lifecycle assumptions change?

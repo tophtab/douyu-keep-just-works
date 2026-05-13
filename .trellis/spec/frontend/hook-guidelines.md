@@ -1,66 +1,70 @@
 # Hook Guidelines
 
-> How reusable stateful logic is handled in this project.
+> How Vue composables and stateful frontend helpers are used in this project.
 
 ---
 
 ## Overview
 
-This is a Vue project, so there are no React hooks.
-The closest equivalents are:
-
-- Pinia stores in `src/renderer/stores/`
-- renderer helper modules in `src/renderer/run/`
-- simple local `ref` / `reactive` usage inside view components
-- Docker WebUI composables under `src/docker/webui/composables/` when repeated Vue-owned behavior appears across several Docker pages
-
-When this repository talks about reusable stateful logic, prefer those patterns instead of inventing a separate composables layer unless there is clear repeated behavior.
+This is a Vue project, so "hooks" are Vue composables. Composables live either in `src/docker/webui/composables/` when reusable across pages, or as `use*` exports in feature modules such as `theme.ts`, `overview.ts`, `resources.ts`, and task page modules.
 
 ---
 
-## Reusable Logic Patterns
+## Custom Hook Patterns
 
-- Use a Pinia store when multiple routes need the same reactive state.
-- Use `run/` helpers for async workflows and side-effect-heavy procedures.
-- Keep one-off validation or screen-only state inside the view component.
-- In Docker WebUI, extract a composable only for non-trivial behavior repeated across multiple pages, such as cron preview request sequencing with stale-response protection.
-- In Docker WebUI, put non-lifecycle helpers such as save/disable/trigger request wrappers and legacy event wiring in small shared TypeScript modules instead of page-local copies.
+Use `ref`, `computed`, `watch`, `onMounted`, and `onBeforeUnmount` from Vue. Return only the state and actions that templates or callers need:
 
-Examples:
+```typescript
+export function useThemeMode() {
+  const themeMode = ref<ThemeMode>('system')
+  const savingThemeMode = ref<ThemeMode | null>(null)
+  const themeNote = computed(() => /* derived text */)
 
-- `src/renderer/stores/user.ts` encapsulates login/user state and refresh behavior.
-- `src/renderer/stores/fans.ts` encapsulates fan list loading and loading status.
-- `src/renderer/run/index.ts` contains the multi-step gift workflow instead of placing it in a page.
-- `src/renderer/run/utils.ts` contains renderer-side async helpers for IPC and HTTP calls.
+  onMounted(() => {
+    document.addEventListener(CONFIG_EVENT_NAME, handleConfigEvent)
+  })
+
+  onBeforeUnmount(() => {
+    document.removeEventListener(CONFIG_EVENT_NAME, handleConfigEvent)
+  })
+
+  return { savingThemeMode, selectThemeMode, themeMode, themeModes, themeNote }
+}
+```
+
+Always remove document, window, and media-query listeners in `onBeforeUnmount`.
 
 ---
 
 ## Data Fetching
 
-- Data fetching is done directly with `axios` or IPC invocations.
-- Requests usually happen inside Pinia actions or view initialization functions.
-- Loading flags are explicit `ref<boolean>` values in stores.
+Use `requestJson` from `src/docker/webui/request.ts` for WebUI API calls. It centralizes JSON parsing, unauthorized handling, and optional error toasts.
 
-Examples:
+```typescript
+await requestJson('/api/config', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ ui: { themeMode: nextThemeMode } }),
+  errorToast: message => `保存主题失败：${message}`,
+})
+```
 
-- `src/renderer/stores/fans.ts` fetches the Douyu fans list and toggles `loading`.
-- `src/renderer/stores/user.ts` fetches both the current gift count and profile info.
-- `src/renderer/views/config/index.vue` fetches cron preview data through `window.electron.ipcRenderer.invoke('cron', ...)`.
-- `src/docker/webui/composables/use-cron-preview.ts` fetches Docker cron preview data through `/api/cron-preview` and centralizes loading/error/display text for task pages.
+Resource loaders in `resources.ts` also track pending requests and request sequence numbers for legacy surfaces. Reuse those patterns when preventing stale responses.
 
 ---
 
 ## Naming Conventions
 
-- Pinia store factories use `useXxx` naming: `useLogin`, `useFans`, `useLog`, `useCronStatus`.
-- Store ids are short lowercase strings such as `'user'`, `'fans'`, and `'log'`.
-- Async store methods use verb-based names like `getUser()` and `getFansList()`.
-- Docker WebUI composable filenames use lowercase kebab-style names such as `use-cron-preview.ts`, while exported factories keep `useXxx` names.
+- Composable function names start with `use`.
+- Event bridge installers start with `installLegacy`.
+- Composable files under `composables/` use kebab-case filenames, such as `use-cron-preview.ts`.
+- Returned action names should describe user actions: `refreshOverview`, `selectThemeMode`, `submitLogin`, `saveTaskConfig`.
 
 ---
 
 ## Common Mistakes
 
-- Do not create a new composable/store when the logic is only used once in one screen.
-- Do not destructure store state directly without `storeToRefs()` when reactivity matters.
-- Do not hide loading or error transitions; keep them explicit in store state or component state.
+- Do not fetch with raw `fetch` from new composables when `requestJson` applies.
+- Do not leave global event listeners installed after component unmount.
+- Do not duplicate cron preview logic; use `useCronPreview`.
+- Do not let a failed optimistic save leave toggles permanently out of sync; follow `saveTaskConfig`/`disableTaskConfig` in `task-shared.ts`.

@@ -1,14 +1,14 @@
 # Frontend Development Guidelines
 
-> Best practices for frontend development in this project.
+> Conventions for the Docker WebUI Vue/Vite frontend.
 
 ---
 
 ## Overview
 
-The supported UI is the Docker WebUI Vue/Vite application under `src/docker/webui/`, served by the Docker Express runtime after `npm run build:docker`.
+The maintained frontend is the Docker WebUI under `src/docker/webui/`. It is built by Vite, type-checked by `vue-tsc`, and served as static Docker assets by backend WebUI routes.
 
-The current WebUI source lives under `src/docker/webui/`. New UI structure should continue moving cohesive markup into Vue single-file components while preserving Docker deployment semantics.
+The codebase is currently in a transitional state: Vue components own the user-facing surface, while several `installLegacy*Bridge` modules still provide compatibility with older imperative page logic. Preserve those bridges until a task explicitly removes a bridge and updates the contract tests.
 
 ---
 
@@ -16,52 +16,26 @@ The current WebUI source lives under `src/docker/webui/`. New UI structure shoul
 
 | Guide | Description | Status |
 |-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Vue/Vite Docker WebUI module organization | Current |
-| [Component Guidelines](./component-guidelines.md) | Vue SFC patterns | Current |
-| [Hook Guidelines](./hook-guidelines.md) | Vue reusable-logic patterns | Current |
-| [State Management](./state-management.md) | Vue state patterns | Current |
-| [Quality Guidelines](./quality-guidelines.md) | Vue quality guidance | Current |
-| [Type Safety](./type-safety.md) | Vue type patterns | Current |
+| [Directory Structure](./directory-structure.md) | Component, page, composable, and style layout | Filled |
+| [Component Guidelines](./component-guidelines.md) | Component patterns, props, composition | Filled |
+| [Hook Guidelines](./hook-guidelines.md) | Vue composables and event/data patterns | Filled |
+| [State Management](./state-management.md) | Local, shared, server, and legacy bridge state | Filled |
+| [Quality Guidelines](./quality-guidelines.md) | Linting, testing, accessibility | Filled |
+| [Type Safety](./type-safety.md) | TypeScript and validation patterns | Filled |
 
 ---
 
 ## Pre-Development Checklist
 
-Before changing current UI code:
+Before frontend changes:
 
-1. Read `../backend/directory-structure.md` for Docker-only runtime boundaries and build contracts
-2. Read this frontend index plus the relevant Vue guide for the files you are changing
-3. Read `../backend/error-handling.md` if route responses or frontend API error handling change
-4. Read `../backend/logging-guidelines.md` if diagnostics or logs change
-5. Read `../backend/quality-guidelines.md` before final review
-
-Do not reintroduce `src/renderer/`, Electron renderer IPC, Pinia, Vuetify, or a heavy UI framework unless support is explicitly restored for that scope.
-
-## Current Docker WebUI Accessibility Checklist
-
-When changing files under `src/docker/webui/` or transitional files under `src/docker/webui/`, keep the controls accessible:
-
-- Interactive controls need visible `:focus-visible` states, including custom switches and icon-only buttons.
-- Async feedback needs a live region (`role="status"` / `aria-live="polite"`), especially toast and validation/status text.
-- ARIA tab semantics require selected state, controlled panels, and keyboard navigation for arrow/Home/End keys.
-- Dynamically generated table inputs need row-specific accessible names.
-- Tables and log-style lists should use tabular numerals for comparable numbers and timestamps.
-- Docker WebUI tables should define stable column roles and widths together: use scoped headers (`scope="col"`), align numeric headers with numeric cells, center control/status columns, and keep header/body padding on the same rhythm.
-- Read-only status/detail tables should keep key names, row errors, and primary labels readable instead of blindly forcing one-line ellipsis; add a compact mobile representation when horizontal scrolling hurts scanability.
-- Theme changes should keep `color-scheme` and `theme-color` aligned with the resolved theme.
-- Motion and hover transforms must honor `prefers-reduced-motion`.
-
-## Current Docker WebUI Source Split
-
-- Keep Vue/Vite source under `src/docker/webui/`.
-- Do not reintroduce the former legacy `src/docker/webui/app-*.js` source modules; production assets in the built `webui/` directory come from Vite output under `build/docker/docker/webui/`.
-- Keep shared Docker WebUI styles under `src/docker/webui/styles/`.
-- `src/docker/webui/main.ts` owns the legacy module import order while the transition layer exists.
-- `src/docker/webui/index.html` owns the Vite HTML shell and the `DOUYU_KEEP_WEBUI_BOOTSTRAP` runtime token placeholders.
-- `src/docker/webui/App.vue` owns app-level composition and may delegate cohesive shell/page regions to `src/docker/webui/components/`.
-- `src/docker/webui.ts` reads the Vite-built `webui/index.html`, injects app version and route tokens, and does not inline ordered scripts/styles.
-- `src/docker/server-webui-routes.ts` serves Vite output from `WEBUI_ASSET_ROOT` with `express.static()` before returning the HTML shell for Docker WebUI page routes.
-- If a test verifies the build contract, check `vite.config.ts`, `src/docker/webui/main.ts`, and `src/docker/server-webui-routes.ts`.
+- Read `CONTRIBUTING.md`, especially Docker WebUI build requirements.
+- Read [Directory Structure](./directory-structure.md) before adding or moving WebUI files.
+- Read [Component Guidelines](./component-guidelines.md) before editing Vue components.
+- Read [Hook Guidelines](./hook-guidelines.md) before adding composables or bridge event handlers.
+- Read [State Management](./state-management.md) before changing data loading, refresh, or legacy bridge state.
+- Read [Type Safety](./type-safety.md) before changing config/API shapes.
+- Read [Quality Guidelines](./quality-guidelines.md) before final verification.
 
 ---
 

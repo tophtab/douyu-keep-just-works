@@ -6,34 +6,61 @@
 
 ## Overview
 
-The Docker WebUI uses TypeScript for Vue/Vite source under `src/docker/webui/`. Vue SFCs are checked with:
+Frontend code is TypeScript plus Vue SFC templates checked by `vue-tsc`. Shared API and config contracts live in `src/core/types.ts`; frontend-only component and bridge shapes live near their consumers.
 
-```bash
-npm run type-check:webui
-```
-
-Shared backend/core TypeScript is checked separately through `tsconfig.docker.json`.
+---
 
 ## Type Organization
 
-- Put cross-runtime domain types in `src/core/types.ts`.
-- Define UI-only interfaces next to the component or helper that owns them.
-- Do not add `legacy-modules.d.ts` for Docker WebUI boot code; the production WebUI boot path is TypeScript-owned.
+- Shared backend/frontend domain types: `src/core/types.ts`.
+- WebUI navigation/page types: `src/docker/webui/navigation.ts`.
+- Request error type: `src/docker/webui/request.ts`.
+- Task UI helper types: `src/docker/webui/task-shared.ts`.
+- Component-local prop types: inline in the component's `<script setup>`.
+
+Use type-only imports for types:
+
+```typescript
+import type { ThemeMode } from '../../core/types'
+import type { Ref } from 'vue'
+```
+
+---
 
 ## Validation
 
-- Use explicit runtime checks at API boundaries.
-- Keep backend validation authoritative for persisted config and scheduled jobs.
-- Parse loosely typed browser bootstrap values defensively, with sensible local fallbacks.
+There is no runtime schema library. Validate unknown data with local type guards and cautious property reads.
+
+Examples:
+
+- `request.ts` checks whether an error response contains a string `error`.
+- `theme.ts` uses `isThemeMode(value): value is ThemeMode`.
+- `resources.ts` normalizes log entries from `unknown` API data.
+- `task-shared.ts` uses `isHttpUnauthorized` and `isWebUiTaskType` helpers.
+
+---
 
 ## Common Patterns
 
-- Use explicit interfaces for runtime bootstrap data, such as `WebUiBootstrap`.
-- Keep helper signatures explicit when they return promises or parsed API data.
-- Prefer literal unions for page keys, task types, modes, and theme choices when Vue code starts owning those values.
+Prefer `unknown` at boundaries, then narrow:
+
+```typescript
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+export function isWebUiTaskType(value: string | null): value is WebUiTaskType {
+  return Boolean(value && (WEBUI_TASK_TYPES as string[]).includes(value))
+}
+```
+
+Use `Record<string, unknown>` only for truly dynamic response summaries, such as overview response data.
+
+---
 
 ## Forbidden Patterns
 
-- Do not add a local copy of a shared type when `src/core/types.ts` already owns it.
-- Do not use type assertions to skip validation when parsing config or external responses.
-- Do not let Docker backend types and WebUI API assumptions drift apart without updating tests and specs.
+- Do not use `any` for API responses, config payloads, or component props.
+- Do not cast server responses directly to rich types without checking the fields the UI needs.
+- Do not duplicate shared config interfaces in WebUI modules when `src/core/types.ts` already owns the shape.
+- Do not weaken `vue-tsc` errors with broad assertions; fix the model or add a narrow guard.

@@ -1,46 +1,78 @@
 # Component Guidelines
 
-> How components are built in this project.
+> How Vue components are built in this project.
 
 ---
 
 ## Overview
 
-Docker WebUI components use Vue single-file components with `<script setup lang="ts">`.
+Components use Vue 3 single-file components with `<script setup lang="ts">`. The root app composes shell components and page components, while page-specific behavior is usually provided by composables in sibling TypeScript modules.
+
+---
 
 ## Component Structure
 
-Preferred file shape:
+Use typed props and emits at the top of `<script setup>`:
 
-1. `<script setup lang="ts">`
-2. imports from Vue and local helpers
-3. typed props/state/helpers
-4. `<template>`
-5. optional scoped styles
+```vue
+<script setup lang="ts">
+defineProps<{
+  loginError: string
+  password: string
+  submittingLogin: boolean
+}>()
 
-## Props And Composition
+const emit = defineEmits<{
+  submit: []
+  'update:password': [value: string]
+}>()
+</script>
+```
 
-- Keep one-off state local to the component or composable that owns it.
-- Extract shared behavior into local helpers/composables only after repetition appears.
-- Do not add Pinia solely to avoid passing a small amount of state.
-- For Docker WebUI pages, keep request/persistence logic in the existing page composables and move markup into SFC page components. Shared shell controls can receive props/events, but should not duplicate API calls.
-- For editable table rows passed into reusable table components, emit row/value events from the table and mutate the composable-owned row model in the page component.
+Keep templates declarative. Prefer passing callback props or emitting events over querying DOM nodes for Vue-owned controls.
+
+---
+
+## Props Conventions
+
+- Use `defineProps<T>()` with inline interfaces for component-local shapes.
+- Import shared domain types from `src/core/types.ts` when the shape crosses backend/frontend boundaries.
+- For `v-model`, expose `update:*` emits as shown in `AuthShell.vue`.
+- Function props are accepted for shell-level composition when the caller owns navigation or task actions, as in `AppShell.vue`.
+
+---
 
 ## Styling Patterns
 
-- Reuse the existing Docker WebUI CSS variables and classes unless a component genuinely needs local styling.
-- Keep user-facing Chinese copy stable during framework-only migrations.
-- Avoid adding a heavy UI library for basic buttons, forms, tables, or cards.
+Current styling is global CSS imported by `main.ts`:
+
+```typescript
+import './styles/base.css'
+import './styles/shell.css'
+import './styles/components.css'
+import './styles/tables.css'
+import './styles/responsive.css'
+```
+
+Use existing classes such as `btn`, `actions`, `page`, `field-block`, and table classes before inventing new styling primitives. Keep repeated visual structures as components rather than copying large template blocks.
+
+---
 
 ## Accessibility
 
-- Preserve visible labels for form controls.
-- Keep live regions for async validation/status text.
-- Preserve tab semantics and keyboard navigation when moving markup into components.
+Current patterns to preserve:
+
+- Login errors use `role="alert"`.
+- Toast live updates use an off-screen `role="status"` region with `aria-live="polite"`.
+- Page sections use tabpanel semantics and `aria-hidden`/`hidden` tied to the active tab.
+- Inputs have visible labels connected with `for`/`id`.
+- Navigation key handling is centralized by `usePageNavigation`.
+
+---
 
 ## Common Mistakes
 
-- Do not treat a Vue migration as a visual redesign unless the task explicitly asks for redesign.
-- Do not split tiny one-off fragments into deep component trees.
-- Do not let transitional legacy modules and Vue components race to own the same DOM region.
-- Do not move a page composable into a reusable table/control component just to reduce props; keep reusable components presentational unless a repeated behavior clearly belongs there.
+- Do not add imperative `data-action` handlers for Vue-owned controls.
+- Do not hide authenticated shell state with inline `style="display:none"`; use Vue state as in `App.vue`.
+- Do not put API fetch logic directly into deeply presentational table components.
+- Do not create a new one-off CSS theme when existing global styles cover the surface.

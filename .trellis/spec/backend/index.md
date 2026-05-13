@@ -1,12 +1,18 @@
 # Backend Development Guidelines
 
-> Best practices for backend development in this project.
+> Conventions for the maintained Node.js Docker runtime and shared Douyu logic.
 
 ---
 
 ## Overview
 
-This directory contains the current backend conventions for this project. The backend here includes shared core logic, Electron main-process code, and the Docker Express runtime.
+This project is a single-repo TypeScript application. The maintained backend runtime is the Docker deployment path:
+
+- shared Douyu API and task logic live in `src/core/`
+- Docker runtime, Express routes, scheduling, config IO, logs, and static WebUI serving live in `src/docker/`
+- the Docker WebUI build must remain part of `npm run build:docker`
+
+These guidelines document current project reality, not an aspirational rewrite.
 
 ---
 
@@ -14,23 +20,24 @@ This directory contains the current backend conventions for this project. The ba
 
 | Guide | Description | Status |
 |-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Module organization and file layout | Current |
-| [Database Guidelines](./database-guidelines.md) | Persistence and config storage patterns | Current |
-| [Error Handling](./error-handling.md) | Error types, handling strategies | Current |
-| [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | Current |
-| [Logging Guidelines](./logging-guidelines.md) | Structured logging, log levels | Current |
+| [Directory Structure](./directory-structure.md) | Module organization and file layout | Filled |
+| [Database Guidelines](./database-guidelines.md) | Persistence and config storage patterns | Filled |
+| [Error Handling](./error-handling.md) | Error types, handling strategies | Filled |
+| [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | Filled |
+| [Logging Guidelines](./logging-guidelines.md) | Runtime logging conventions | Filled |
 
 ---
 
 ## Pre-Development Checklist
 
-Read these files before changing backend-related code:
+Before backend changes:
 
-1. `directory-structure.md` for runtime boundaries
-2. `database-guidelines.md` if persistence or config shape changes
-3. `error-handling.md` if you add routes, IPC handlers, or scheduler behavior
-4. `logging-guidelines.md` if you change Docker logs or user-visible diagnostics
-5. `quality-guidelines.md` before final review
+- Read `CONTRIBUTING.md`, especially "Docker-First Development".
+- Read [Directory Structure](./directory-structure.md) when adding, moving, or splitting modules.
+- Read [Database Guidelines](./database-guidelines.md) before changing config persistence or adding durable state.
+- Read [Error Handling](./error-handling.md) before touching routes, task runners, cookie handling, or Douyu API calls.
+- Read [Logging Guidelines](./logging-guidelines.md) before adding runtime messages.
+- Read [Quality Guidelines](./quality-guidelines.md) before finishing any backend change.
 
 ---
 

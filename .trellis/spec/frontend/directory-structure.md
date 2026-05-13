@@ -6,90 +6,64 @@
 
 ## Overview
 
-The frontend is a Docker WebUI Vue 3 application under `src/docker/webui/`. It uses:
-
-- Vue single-file components
-- Vite for development and production bundling
-- TypeScript checked by `vue-tsc`
-- Docker WebUI source files under `src/docker/webui/`
-
-This project does not currently use Vue Router, Pinia, Vuetify, UnoCSS, or an Electron renderer.
+Docker WebUI source lives entirely under `src/docker/webui/`. Vite builds it into `build/docker/docker/webui/`; do not copy source files manually into the build output.
 
 ---
 
 ## Directory Layout
 
 ```text
-src/docker/
-├── webui/
-│   ├── App.vue
-│   ├── components/
-│   │   ├── AppShell.vue
-│   │   ├── AuthShell.vue
-│   │   ├── *Page.vue
-│   │   └── reusable task/table components
-│   ├── composables/
-│   │   └── reusable Vue state helpers used by multiple pages
-│   ├── legacy-app.ts
-│   ├── bridge-contract.ts
-│   ├── index.html
-│   ├── main.ts
-│   ├── task-shared.ts
-│   ├── datetime.ts
-│   └── styles/
-│       ├── base.css
-│       ├── shell.css
-│       ├── components.css
-│       ├── responsive.css
-│       └── tables.css
+src/docker/webui/
+  App.vue                    Vue root.
+  main.ts                    Bridge installers, CSS imports, Vue mount.
+  components/                Vue single-file components for shell and pages.
+  composables/               Reusable Vue composables.
+  styles/                    Global CSS split by base, shell, components, tables, responsive.
+  *.ts                       Page composables, bridge modules, request helpers, utilities.
+  index.html                 Vite HTML entry with Docker bootstrap tokens.
 ```
+
+Current examples:
+
+- `components/AppShell.vue` composes navigation, toolbar, and tab panels.
+- `components/LoginConfigPage.vue`, `CollectPage.vue`, `YubaPage.vue`, `KeepalivePage.vue`, `DoublePage.vue`, `ExpiringPage.vue`, and `LogsPage.vue` are page components.
+- `composables/use-cron-preview.ts` is a reusable composable.
+- `request.ts`, `resources.ts`, `task-shared.ts`, `theme.ts`, and `toast.ts` hold shared frontend logic.
 
 ---
 
 ## Module Organization
 
-- Put Vue app entry code in `src/docker/webui/main.ts`.
-- Put the Vite HTML shell in `src/docker/webui/index.html`.
-- Put Vue shell/component code in `src/docker/webui/*.vue`.
-- Put extracted cohesive shell/page components under `src/docker/webui/components/`.
-- Put reusable Vue-owned state helpers under `src/docker/webui/composables/` only when the same non-trivial behavior is used by multiple pages.
-- Put cross-page task helpers that are not Vue lifecycle/state factories in small `src/docker/webui/*-shared.ts` modules.
-- Put shared Docker WebUI styles under `src/docker/webui/styles/`, imported by `main.ts` in base, shell, components, tables, responsive order.
-- Keep Docker runtime serving concerns in `src/docker/webui.ts` and `src/docker/server-webui-routes.ts`.
+Vue components should stay presentational where practical. Stateful page logic belongs in a nearby `use*` composable module, usually a sibling `.ts` file:
 
-## Docker WebUI Component Boundaries
+```typescript
+// src/docker/webui/theme.ts
+export function useThemeMode() {
+  const themeMode = ref<ThemeMode>('system')
+  // ...
+  return { savingThemeMode, selectThemeMode, themeMode, themeModes, themeNote }
+}
+```
 
-- `App.vue` owns root composition: bootstrap data, auth session, navigation/theme/toast roots, and overview refresh state shared by the toolbar and overview page.
-- `components/AppShell.vue` owns the authenticated layout, page tabpanel mounting, and page-level component composition.
-- `components/SidebarNav.vue` owns brand, tablist attributes, keyboard handler wiring, and theme selector markup.
-- `components/TopToolbar.vue` owns the refresh/logout toolbar controls.
-- `components/AuthShell.vue` owns the login shell markup while `App.vue` wires it to `useAuthSession()`.
-- `components/*Page.vue` owns page markup and calls its existing page composable unless a parent must share state across shell regions.
-- `components/TaskStatusCard.vue`, `CronField.vue`, `EnableSwitch.vue`, and `ActionBar.vue` own repeated task page controls while page composables still own request and persistence logic.
-- `components/*Table.vue` owns repeated fans, Yuba, allocation, and backpack table markup; pages pass reactive row models and handle mutation events.
-- `composables/use-cron-preview.ts` owns shared cron preview request sequencing and display text for task pages and CookieCloud.
-- `bridge-contract.ts` owns transitional Docker WebUI CustomEvent names while legacy bridge modules still communicate through document events.
-- `task-shared.ts` owns shared task-page request helpers, task trigger endpoint construction, legacy page event wiring, shared fan-task page detail application, cookie-source checks, unauthorized detection helpers, and task-card state helpers.
-- `allocation-task.ts` owns shared allocation-task model normalization, fan row view-model construction, send-map payload construction, enabled-room map construction, and ratio formatting for keepalive, double-card, and expiring-gift pages; shared defaults come from `src/core/task-defaults.ts`, while page modules still own validation and user-facing copy.
-- `resources.ts` owns Docker WebUI resource bridges and the current logs page composable while the legacy transition exists.
+Compatibility bridges follow `installLegacy*Bridge()` naming and are installed from `main.ts`. Remove one only when the replacement owner is in place and the maintenance contract test is updated.
 
-## Style Ownership
-
-- `styles/base.css` owns Docker WebUI base variables and global body/theme foundations.
-- `styles/shell.css` owns Docker WebUI auth shell, navigation, app shell, header, toolbar, and page visibility styles.
-- `styles/components.css` owns Docker WebUI cards, panels, forms, buttons, and task component primitives.
-- `styles/tables.css` owns Docker WebUI table, empty-state, log, toast, and screen-reader utility styles.
-- `styles/responsive.css` owns Docker WebUI motion and responsive overrides.
+---
 
 ## Naming Conventions
 
-- Use PascalCase for Vue component filenames such as `App.vue`.
-- Use lowercase TypeScript filenames for frontend helpers such as `main.ts`.
-- Keep transitional legacy module filenames stable until their behavior is migrated and the contract tests are updated.
+- Vue components use PascalCase filenames: `TaskStatusCard.vue`, `AllocationTable.vue`.
+- Composables use `use*` function names: `useThemeMode`, `useOverviewPage`, `useCronPreview`.
+- Bridge installers use `installLegacy*Bridge`.
+- Shared helpers use clear action names such as `requestJson`, `showToast`, `formatDate`, and `saveTaskConfig`.
+- CSS is global and split by surface area under `styles/`; do not add component-scoped styling unless a task intentionally changes the style architecture.
 
-## Anti-Patterns
+---
 
-- Do not create `src/renderer/` or Electron renderer entrypoints for Docker WebUI work.
-- Do not introduce Vue Router until route ownership moves from the existing page route map to Vue.
-- Do not introduce Pinia or a UI component framework without a repeated concrete need.
-- Do not put Docker API route behavior in Vue components; call the existing Express JSON APIs.
+## Examples
+
+Good patterns to copy:
+
+- `App.vue` wires top-level composables and passes state into shells.
+- `AppShell.vue` keeps tab panels accessible with `role="tabpanel"`, `aria-labelledby`, and `hidden`.
+- `task-shared.ts` centralizes task UI helpers used by several task pages.
+- `resources.ts` centralizes server-resource loading and legacy event dispatch.

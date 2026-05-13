@@ -6,12 +6,7 @@
 
 ## Overview
 
-This repository currently has one supported runtime:
-
-- `src/docker/`: Express-based WebUI and scheduler for Docker deployments
-- `src/core/`: Shared Douyu business logic used by the Docker runtime
-
-The important rule is to keep runtime-specific wiring out of `src/core/`. HTTP routes, config file IO, scheduler assembly, browser launch flags, and log buffering belong in `src/docker/`; reusable Douyu API calls and gift workflows belong in `src/core/`.
+Backend code is split by deployment and responsibility, not by framework layer folders. The Docker runtime is the maintained runtime. Do not add Electron, Yarn desktop packaging, or renderer release work unless desktop support is explicitly restored.
 
 ---
 
@@ -19,571 +14,61 @@ The important rule is to keep runtime-specific wiring out of `src/core/`. HTTP r
 
 ```text
 src/
-├── core/
-│   ├── api.ts
-│   ├── collect-gift.ts
-│   ├── double-card.ts
-│   ├── gift.ts
-│   ├── job.ts
-│   ├── task-defaults.ts
-│   ├── yuba-check-in.ts
-│   ├── yuba.ts
-│   ├── yuba-common.ts
-│   ├── yuba-status.ts
-│   └── types.ts
-├── docker/
-│   ├── cron.ts
-│   ├── config-validation.ts
-│   ├── config-store.ts
-│   ├── index.ts
-│   ├── logger.ts
-│   ├── runtime.ts
-│   ├── server.ts
-│   ├── task-metadata.ts
-│   ├── webui.ts
-│   ├── webui/
-│       ├── App.vue
-│       ├── components/
-│       │   ├── AppShell.vue
-│       │   ├── AuthShell.vue
-│       │   ├── *Page.vue
-│       │   └── reusable task/table components
-│       ├── actions.ts
-│       ├── auth.ts
-│       ├── collect.ts
-│       ├── cookie.ts
-│       ├── double.ts
-│       ├── events.ts
-│       ├── expiring.ts
-│       ├── index.html
-│       ├── legacy-app.ts
-│       ├── legacy-core.ts
-│       ├── legacy-state.ts
-│       ├── main.ts
-│       ├── navigation.ts
-│       ├── pages.ts
-│       ├── request.ts
-│       ├── resources.ts
-│       ├── task-actions.ts
-│       ├── task-pages.ts
-│       ├── theme.ts
-│       ├── toast.ts
-│       ├── yuba.ts
-│       └── styles/
-│           ├── base.css
-│           ├── shell.css
-│           ├── components.css
-│           ├── responsive.css
-│           └── tables.css
+  core/                 Shared Douyu APIs, task logic, config types, defaults.
+  docker/               Docker runtime, Express routes, scheduler, config IO.
+  docker/webui.ts       Static WebUI asset/template serving helpers.
+  docker/webui/         Vite/Vue WebUI source, documented by frontend specs.
+test/                   Node contract tests for repo maintenance and behavior.
 ```
+
+Current examples:
+
+- `src/core/api.ts` owns low-level Douyu HTTP helpers, cookie parsing, and response normalization.
+- `src/core/job.ts` coordinates task execution using shared APIs.
+- `src/docker/runtime.ts` wires config loading, CookieCloud sync, scheduler reconciliation, and Express app startup.
+- `src/docker/server.ts` creates the Express app and registers route modules.
+- `src/docker/runtime-scheduler.ts` owns cron job lifecycle and task locking.
+- `src/docker/runtime-task-runners.ts` adapts runtime dependencies into `src/core/job.ts`.
 
 ---
 
 ## Module Organization
 
-- Put Douyu-specific API calls, gift computation, and scheduling logic in `src/core/`.
-- Put Docker-only bootstrapping, in-memory logs, config file IO, and Express routes in `src/docker/`.
-- Keep shared runtime/domain types in `src/core/types.ts`; `src/docker/` imports from there.
-- Prefer thin entrypoints that assemble dependencies and call shared functions.
+Keep shared business behavior in `src/core/`. Runtime-specific behavior belongs in `src/docker/`.
 
-Examples:
+Use small files named for the thing they own:
 
-- `src/docker/index.ts` owns environment parsing and calls the Docker runtime.
-- `src/docker/runtime.ts` owns startup, cron creation, and `AppContext` assembly.
-- `src/docker/config-store.ts` owns config file IO and config-update assembly.
-- `src/docker/config-validation.ts` owns Docker config validation used by HTTP save routes.
-- `src/core/task-defaults.ts` owns shared Docker task defaults consumed by backend normalization/runtime code and Docker WebUI fallback state.
-- `src/docker/task-metadata.ts` owns task type labels, log categories, task-record construction, task-config lookup, and route-level task type validation shared by runtime scheduling and task trigger routes.
-- `src/docker/runtime-task-runners.ts` owns Docker scheduled/manual task execution functions and status-cache invalidation scopes.
-- `src/docker/server.ts` is a thin Express assembler: JSON middleware, WebUI fallback, auth boundary, and route-module registration.
-- `src/docker/server-auth.ts` owns Docker WebUI session cookies, in-memory session lifecycle, auth routes, and the protected API boundary.
-- `src/docker/server-*-routes.ts` files own cohesive Docker HTTP route groups and delegate work through `AppContext`.
-- `src/docker/server-route-utils.ts` owns small shared Express JSON response helpers for route groups with the same try/catch and error-status classification shape.
-- `src/docker/server-types.ts` owns the shared `AppContext` and `JobStatus` types re-exported by `server.ts` for existing imports.
-- `src/docker/webui/index.html` owns the Vite HTML shell and runtime token placeholders.
-- `src/docker/webui/App.vue` owns root Docker WebUI composition during the Vue migration: bootstrap data, auth session, navigation/theme/toast roots, and overview refresh state shared by the toolbar and overview page.
-- `src/docker/webui/components/AppShell.vue` owns the authenticated Docker WebUI shell, page tabpanel mounting, and page-level component composition.
-- `src/docker/webui/components/SidebarNav.vue` owns brand, tablist attributes, keyboard handler wiring, and theme selector markup.
-- `src/docker/webui/components/TopToolbar.vue` owns the refresh/logout toolbar controls.
-- `src/docker/webui/components/AuthShell.vue` owns the login shell markup while `App.vue` wires it to `useAuthSession()`.
-- `src/docker/webui/components/*Page.vue` owns page markup and calls its existing page composable unless a parent must share state across shell regions.
-- `src/docker/webui/components/TaskStatusCard.vue`, `CronField.vue`, `EnableSwitch.vue`, and `ActionBar.vue` own repeated task page controls while page composables still own request and persistence logic.
-- `src/docker/webui/components/*Table.vue` owns repeated fans, Yuba, allocation, and backpack table markup; pages pass reactive row models and handle mutation events.
-- `src/docker/webui/main.ts` owns Vue bootstrapping, CSS imports, TypeScript bridge installation order, and starting the transitional legacy app bridge.
-- `src/docker/webui/legacy-core.ts` owns Vue/TypeScript-side legacy core bridge setup for Docker WebUI page metadata, default raw config constants, route/path helpers, DOM lookup, HTML escaping, date formatting, and toast helper compatibility while transitional TypeScript orchestration consumes `DOUYU_KEEP_WEBUI_DATA`, `DOUYU_KEEP_WEBUI_ROUTING`, and `DOUYU_KEEP_WEBUI_DOM`.
-- `src/docker/webui/legacy-state.ts` owns Vue/TypeScript-side transitional shared state helpers, managed fan/config derivation, fan-status merge helpers, protected-state clearing, and the legacy `DOUYU_KEEP_WEBUI_STATE`, `DOUYU_KEEP_WEBUI_MANAGED_DATA`, and `DOUYU_KEEP_WEBUI_PROTECTED_STATE` bridges while transitional TypeScript orchestration consumes those APIs.
-- `src/docker/webui/auth.ts` owns Vue-side WebUI session checks, login, logout, unauthorized handling, and the legacy auth-state bridge.
-- `src/docker/webui/navigation.ts` owns Vue-side page route state, History API syncing, tab keyboard navigation, and the legacy navigation event bridge.
-- `src/docker/webui/overview.ts` owns Vue-side Docker WebUI overview page status cards, gift summary, fans status table view models, refresh button state, and the legacy overview/refresh event bridge.
-- `src/docker/webui/request.ts` owns Vue-side JSON request handling, unauthorized forwarding, optional toast feedback, and the legacy `DOUYU_KEEP_WEBUI_REQUEST` bridge.
-- `src/docker/webui/resources.ts` owns Vue-side resource loading for raw config, overview, logs, fans reconcile/list/status, and active-surface refresh orchestration plus the legacy `DOUYU_KEEP_WEBUI_SYSTEM_RESOURCE_ACTIONS`, `DOUYU_KEEP_WEBUI_FANS_RESOURCE_ACTIONS`, and `DOUYU_KEEP_WEBUI_RESOURCE_ACTIONS` bridges.
-- `src/docker/webui/cookie.ts` owns Vue-side manual Cookie and CookieCloud form state, save/sync/check actions, CookieCloud cron preview loading, and the legacy `DOUYU_KEEP_WEBUI_COOKIE_ACTIONS` bridge.
-- `src/docker/webui/collect.ts` owns Vue-side collect task page state, save/disable/trigger actions, collect cron preview loading, and the legacy `DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS` bridge.
-- `src/docker/webui/keepalive.ts` owns Vue-side keepalive task page state, save/disable/trigger actions, keepalive cron preview loading, keepalive-specific allocation defaults, and the legacy `DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS` bridge.
-- `src/docker/webui/double.ts` owns Vue-side double-card task page state, save/disable/trigger actions, double-card cron preview loading, double-card-specific allocation defaults and validation, ratio preview/presets, and the legacy `DOUYU_KEEP_WEBUI_DOUBLE_TASK_ACTIONS` bridge.
-- `src/docker/webui/events.ts` owns Vue/TypeScript-side transitional document event binding, legacy trigger delegation, Vue navigation event bridging, overview refresh requests, overview auto-refresh timing, and the legacy `DOUYU_KEEP_WEBUI_EVENTS` bridge.
-- `src/docker/webui/expiring.ts` owns Vue-side expiring-gift task page state, save/disable/trigger actions, cron preview loading, threshold-aware backpack table rows, expiring-specific allocation defaults, and the legacy `DOUYU_KEEP_WEBUI_EXPIRING_TASK_ACTIONS` bridge.
-- `src/docker/webui/legacy-app.ts` owns Vue/TypeScript-side transitional app startup, shared legacy dependency assembly, active-tab lazy loading, and the legacy-ready bridge.
-- `src/docker/webui/pages.ts` owns Vue/TypeScript-side page-state dispatch for overview, login, logs, and task pages through the legacy `DOUYU_KEEP_WEBUI_PAGES` bridge.
-- `src/docker/webui/actions.ts` owns Vue/TypeScript-side action assembly and trigger-task orchestration through the legacy `DOUYU_KEEP_WEBUI_ACTIONS` bridge.
-- `src/docker/webui/task-pages.ts` owns Vue/TypeScript-side task-page state dispatch through the legacy `DOUYU_KEEP_WEBUI_TASK_PAGES` bridge.
-- `src/docker/webui/yuba.ts` owns Vue-side Yuba task page state, save/disable/trigger actions, Yuba cron preview loading, Yuba status resource loading, and the legacy `DOUYU_KEEP_WEBUI_YUBA_*` bridges.
-- `src/docker/webui/task-actions.ts` owns Vue/TypeScript-side task action assembly for collect, Yuba, keepalive, double-card, and expiring-gift compatibility through the legacy `DOUYU_KEEP_WEBUI_SIMPLE_TASK_ACTIONS`, `DOUYU_KEEP_WEBUI_SEND_TASK_ACTIONS`, and `DOUYU_KEEP_WEBUI_TASK_ACTIONS` bridges.
-- `src/docker/webui/allocation-task.ts` owns shared Docker WebUI allocation-task helpers for model normalization, fan row view-model construction, send-map payload construction, enabled-room maps, and ratio formatting used by keepalive, double-card, and expiring-gift pages.
-- `src/docker/webui/theme.ts` owns Vue-side theme mode state, persistence, system preference observation, and browser theme side effects.
-- `src/docker/webui/toast.ts` owns Vue-side toast/live-region state and the legacy toast event bridge.
-- `src/docker/webui/styles/base.css` owns Docker WebUI base variables and global body/theme foundations.
-- `src/docker/webui/styles/shell.css` owns Docker WebUI auth shell, navigation, app shell, header, toolbar, and page visibility styles.
-- `src/docker/webui/styles/components.css` owns Docker WebUI cards, panels, forms, buttons, and task component styles.
-- `src/docker/webui/styles/tables.css` owns Docker WebUI table, empty-state, log, toast, and screen-reader utility styles.
-- `src/docker/webui/styles/responsive.css` owns Docker WebUI motion and responsive overrides.
-- `src/docker/webui/` is the Vue/Vite source directory after the migration; generated WebUI assets are build output only under `build/docker/docker/webui/`.
-- `src/docker/webui/resources.ts` replaces the former `src/docker/webui/app-system-resource-actions.js`, `src/docker/webui/app-fans-resource-actions.js`, and `src/docker/webui/app-resource-actions.js` owners for Docker WebUI raw config, overview, log, fans resource loading actions, resource action assembly, and active-surface refresh orchestration during the Vue migration.
-- `src/docker/webui/legacy-core.ts` replaces the former `src/docker/webui/app-data.js`, `src/docker/webui/app-routing.js`, and `src/docker/webui/app-dom.js` owners for Docker WebUI legacy metadata, routing helpers, and DOM helper compatibility during the Vue migration.
-- `src/docker/webui/legacy-state.ts` replaces the former `src/docker/webui/app-state.js`, `src/docker/webui/app-managed-data.js`, and `src/docker/webui/app-protected-state.js` owners for Docker WebUI transitional state, managed fan derivation, request coalescing metadata, and protected-state clearing during the Vue migration.
-- `src/docker/webui/overview.ts` replaces the overview rendering portion of the former `src/docker/webui/app-pages.js` during the Vue migration; `pages.ts` dispatches overview state snapshots instead of mutating overview DOM nodes.
-- `src/docker/webui/cookie.ts` replaces the former `src/docker/webui/app-cookie-actions.js` owner for Docker WebUI manual Cookie and CookieCloud actions during the Vue migration.
-- `src/docker/webui/actions.ts` replaces the former `src/docker/webui/app-actions.js` owner for Docker WebUI action assembly, protected-data loading, and trigger-task orchestration during the Vue migration.
-- `src/docker/webui/pages.ts` replaces the former `src/docker/webui/app-pages.js` owner for Docker WebUI page-state dispatch during the Vue migration.
-- `src/docker/webui/task-pages.ts` replaces the former `src/docker/webui/app-task-pages.js` owner for Docker WebUI task-page state dispatch during the Vue migration.
-- `src/docker/webui/legacy-app.ts` replaces the former `src/docker/webui/app.js` owner for Docker WebUI client-side behavior startup during the Vue migration.
-- `src/docker/webui/collect.ts` replaces the collect-gift portion of `src/docker/webui/app-simple-task-actions.js` and the former `src/docker/webui/app-task-pages.js` during the Vue migration.
-- `src/docker/webui/keepalive.ts` replaces the keepalive portions of `src/docker/webui/app-send-task-actions.js` and the former `src/docker/webui/app-task-pages.js` during the Vue migration.
-- `src/docker/webui/double.ts` replaces `src/docker/webui/app-double-task-page.js` plus the double-card portions of `src/docker/webui/app-send-task-actions.js`, the former `src/docker/webui/app-events.js`, and the former `src/docker/webui/app-task-pages.js` during the Vue migration.
-- `src/docker/webui/events.ts` replaces the former `src/docker/webui/app-events.js` owner for Docker WebUI document-level action delegation, navigation/refresh event binding, overview auto-refresh, and initial legacy tab synchronization during the Vue migration.
-- `src/docker/webui/expiring.ts` replaces the expiring-gift portions of `src/docker/webui/app-send-task-actions.js`, the former `src/docker/webui/app-events.js`, and the former `src/docker/webui/app-task-pages.js` during the Vue migration.
-- `src/docker/webui/yuba.ts` replaces `src/docker/webui/app-yuba-resource-actions.js` plus the Yuba portions of `src/docker/webui/app-simple-task-actions.js` and the former `src/docker/webui/app-task-pages.js` during the Vue migration.
-- `src/docker/webui/task-actions.ts` replaces the former `src/docker/webui/app-simple-task-actions.js`, `src/docker/webui/app-send-task-actions.js`, and `src/docker/webui/app-task-actions.js` owners for Docker WebUI task action assembly during the Vue migration.
-- Legacy `src/docker/webui/app-render.js`, `src/docker/webui/app-table-render.js`, and `src/docker/webui/app-page-cron.js` are removed from the WebUI boot path after their card/table/cron preview consumers move to Vue-owned modules.
-- The former production boot modules `src/docker/webui/app.js`, `src/docker/webui/app-actions.js`, `src/docker/webui/app-events.js`, `src/docker/webui/app-pages.js`, and `src/docker/webui/app-task-pages.js` must remain deleted; `main.ts` starts the TypeScript bridge path instead.
-- `src/docker/webui.ts` owns Vite-built template loading plus runtime injection for app version and page routes.
-- `src/core/job.ts` runs the gift workflow without knowing which HTTP route or scheduler triggered it.
-- `src/core/yuba.ts` is the public Yuba facade that re-exports status and check-in workflows.
-- `src/core/yuba-check-in.ts` owns Yuba sign-in, fast sign, supplementary sign, and followed-group check-in execution.
-- `src/core/yuba-common.ts` owns reusable Yuba HTTP/header/body/parsing helpers shared by Yuba status and check-in code.
-- `src/core/yuba-status.ts` owns followed Yuba group discovery, group-head parsing, and status aggregation.
+```typescript
+// src/docker/server.ts
+registerConfigRoutes(app, ctx)
+registerFansRoutes(app, ctx)
+registerCookieSourceRoutes(app, ctx)
+registerTaskRoutes(app, ctx)
+```
+
+Route modules should register routes through a `register*Routes(app, ctx)` function, as in `src/docker/server-config-routes.ts`, `src/docker/server-fans-routes.ts`, and `src/docker/server-task-routes.ts`.
+
+Runtime orchestration should stay in `src/docker/runtime.ts`; scheduling and task execution details should stay in `src/docker/runtime-scheduler.ts` and `src/docker/runtime-task-runners.ts`.
 
 ---
 
 ## Naming Conventions
 
-- Use lowercase kebab-free filenames with short nouns: `server.ts`, `logger.ts`, `job.ts`, `gift.ts`.
-- Use `index.ts` only for runtime entrypoints such as `src/docker/index.ts`.
-- Use verb-first exported function names for actions: `executeKeepaliveJob`, `createServer`, `parseDyAndSidFromCookie`.
-- Use interface names in PascalCase and shared aliases in camelCase when the project already does so, for example `DockerConfig`, `JobConfig`, `sendConfig`.
+- Use kebab-case filenames for backend modules: `server-route-utils.ts`, `runtime-task-runners.ts`, `config-store.ts`.
+- Use `Docker*` prefixes for runtime classes and types that are specific to the container runtime, such as `DockerTaskScheduler` and `DockerRuntimeCache`.
+- Use `register*Routes` for Express route installers.
+- Use `validate*Config` for synchronous validation helpers.
+- Use `create*` for factory functions such as `createServer`, `createLogger`, and `createDefaultDockerConfig`.
 
 ---
 
 ## Examples
 
-- Shared business logic: `src/core/job.ts`, `src/core/api.ts`, `src/core/gift.ts`
-- Docker runtime wiring: `src/docker/index.ts`, `src/docker/runtime.ts`, `src/docker/server.ts`, `src/docker/logger.ts`, `src/docker/webui.ts`, `src/docker/webui/index.html`
+Good patterns to copy:
 
----
+- `src/docker/server.ts` keeps server assembly declarative.
+- `src/docker/config-store.ts` isolates disk read/write and config merging.
+- `src/docker/task-metadata.ts` centralizes task labels, task types, and task-wide metadata.
+- `src/core/types.ts` is the shared contract for config and API response shapes.
 
-## Anti-Patterns
-
-- Do not put Electron-only APIs such as `BrowserWindow`, `ipcMain`, or `session` into `src/core/`.
-- Do not reintroduce `src/main/`, `src/renderer/`, Electron packaging config, or desktop-only dependencies unless desktop support is explicitly restored.
-- Do not duplicate Douyu API parsing logic in Docker route handlers when it can live in `src/core/api.ts`.
-- Do not make route handlers contain large business workflows; keep those in reusable functions.
-- Do not move Vite dev server into the Docker runtime; production must serve static Vite output through Express.
-- Do not use Express wildcard path strings such as `app.get('*')` for WebUI fallback routing. Express 5 uses stricter path parsing; use an unmounted middleware that checks `req.method` and `req.path` instead.
-
----
-
-## Scenario: Docker-Only Runtime Boundary
-
-### 1. Scope / Trigger
-
-- Trigger: Any change that adds a runtime entrypoint, package script, build config, or dependency.
-- Scope: The supported deployable is the Docker WebUI compiled by `npm run build:docker`.
-
-### 2. Signatures
-
-```json
-{
-  "scripts": {
-    "build": "npm run build:docker",
-    "build:webui": "npm run type-check:webui && vite build",
-    "build:docker": "rm -rf build/docker && npm run build:webui && tsc -p tsconfig.docker.json",
-    "type-check": "npm run type-check:docker && npm run type-check:webui"
-  }
-}
-```
-
-### 3. Contracts
-
-- `tsconfig.docker.json` includes only `src/core/**/*.ts` and `src/docker/**/*.ts`.
-- `tsconfig.docker.json` excludes `src/docker/webui`; Vue SFC checks run through `vue-tsc -p tsconfig.webui.json --noEmit`.
-- Docker image build copies `src/` and runs `npm run build:docker`.
-- `npm run build:docker` runs Vite first, writing static assets to `build/docker/docker/webui`, then compiles Docker TypeScript into the same build root.
-- Runtime entrypoint remains `node dist/docker/index.js` inside the container.
-- Local compiled entrypoint is `node build/docker/docker/index.js` before the Dockerfile copy step.
-- Builder Docker install must keep optional dependencies so Vite/Rolldown can load its platform native binding.
-- Runtime Docker install must omit dev dependencies, so Vue/Vite tooling stays builder-only and does not inflate production `node_modules`.
-- Runtime Docker install may omit optional dependencies because it does not run Vite.
-
-### 4. Validation & Error Matrix
-
-| Case | Expected result |
-|------|-----------------|
-| New Docker route/service code | Compiles through `npm run build:docker` |
-| New shared core code | Compiles through `npm run build:docker` and remains free of Express/runtime wiring |
-| New Electron/Vue desktop code | Reject unless desktop support has been explicitly restored |
-| New Docker WebUI Vue code | Build with `npm run build:webui` and keep Vite output under `build/docker/docker/webui` |
-| New dependency | Verify it is imported by `src/core` or `src/docker`, not by deleted desktop paths |
-
-### 5. Good/Base/Bad Cases
-
-- Good: Add Express route handling in `src/docker/server.ts` and shared API parsing in `src/core/api.ts`.
-- Base: Add a config field in `src/core/types.ts`, normalize it in `src/core/medal-sync.ts`, and expose it through Docker routes.
-- Bad: Add `electron`, `src/main`, or `src/renderer` for behavior only used by Docker WebUI.
-- Bad: Add Vue/Vite to production `dependencies` when they are only needed for builder-time WebUI assets.
-
-
-### 6. Wrong vs Correct
-
-#### Wrong
-
-```text
-src/main/main.ts
-src/renderer/App.vue
-electron-builder.json
-```
-
-#### Correct
-
-```text
-src/core/<shared-domain>.ts
-src/docker/<runtime-boundary>.ts
-```
-
-## Scenario: Browserless Collect-Gift Runtime
-
-### 1. Scope / Trigger
-
-- Trigger: Any change to `src/core/collect-gift.ts`, Docker runtime dependencies, or the Docker image browser/system packages.
-- Scope: The Docker runtime claims daily glow sticks by simulating Douyu live-room entry through the danmu WebSocket protocol, not by launching a browser.
-
-### 2. Signatures
-
-```typescript
-export async function collectGiftViaDanmu(cookie: string, roomId: number | string): Promise<void>
-```
-
-```json
-{
-  "dependencies": {
-    "ws": "<current>"
-  }
-}
-```
-
-### 3. Contracts
-
-- `executeCollectGiftJob()` fetches the user's fans medal rooms with `getFansList()`, randomly selects one room, then calls `collectGiftViaDanmu(cookie, roomId)` before querying backpack status.
-- `collectGiftViaDanmu()` opens `wss://wsproxy.douyu.com:6672`, sends `loginreq`, then sends `h5ckreq` after a successful `loginres`.
-- A collect attempt succeeds only after receiving `type@=h5ckres`.
-- The collect room must come from the current fans medal room list; do not hard-code a public room id.
-- Runtime dependencies must stay lightweight: use `ws` for the WebSocket connection.
-- The Docker image must not install Chromium or Puppeteer for collect-gift behavior unless the browser-based path is explicitly restored.
-- Cookie values must only be sent to Douyu request headers/protocol payloads; never log full cookies.
-
-### 4. Validation & Error Matrix
-
-| Case | Expected result |
-|------|-----------------|
-| WebSocket handshake fails | Throw `领取荧光棒失败: <connection error>` |
-| No expected Douyu response before timeout | Throw timeout error and close the socket |
-| Fans medal list cannot be loaded | Throw collect failure before opening WebSocket |
-| Fans medal list is empty | Throw collect failure before opening WebSocket |
-| Selected room id is invalid | Throw invalid fans room error before opening WebSocket |
-| `loginres` does not include `roomgroup@=1` | Throw Cookie danmu auth failure, including missing required cookie key names when known |
-| `h5ckres` received | Resolve and let caller query backpack count |
-| Docker image build | Runtime `node_modules` includes `ws`; Chromium/Puppeteer are absent |
-
-### 5. Good/Base/Bad Cases
-
-- Good: Keep Douyu packet encoding/decoding in `src/core/collect-gift.ts`; choose the room from `getFansList()` in `src/core/job.ts`.
-- Base: If Douyu changes the room-entry protocol, update `collectGiftViaDanmu()` and preserve explicit timeout/auth errors.
-- Bad: Re-add `puppeteer`, install Chromium in `Dockerfile`, or hide WebSocket failures by treating them as a successful collect.
-
-
-### 6. Wrong vs Correct
-
-#### Wrong
-
-```dockerfile
-RUN apt-get update && apt-get install -y chromium --no-install-recommends
-```
-
-#### Correct
-
-```typescript
-const fans = await getFansList(cookie)
-await collectGiftViaDanmu(cookie, fans[0].roomId)
-```
-
-## Scenario: Docker WebUI External Status Request Guardrails
-
-### 1. Scope / Trigger
-
-- Trigger: Any change to Docker WebUI routes or client flows that fetch Douyu-backed status/list data, especially fans, backpack, double-card, or Yuba status.
-- Scope: Request throttling belongs in `src/docker/runtime.ts` at the Docker runtime boundary. Douyu parsing remains in `src/core/`; route registration remains thin in `src/docker/server.ts`; client-side lazy loading belongs in the Vue/Vite WebUI under `src/docker/webui/`.
-
-### 2. Signatures
-
-```typescript
-AppContext.fetchFansStatusBase(): Promise<FansStatusResponse>
-AppContext.fetchFansStatusDetails(): Promise<FansStatusResponse>
-AppContext.fetchFansStatus(): Promise<FansStatusResponse>
-AppContext.fetchYubaStatus(): Promise<YubaStatusResponse>
-```
-
-### 3. Contracts
-
-- Docker WebUI status endpoints that fan out to multiple Douyu requests must use bounded in-memory cache slots instead of persistent storage or unbounded per-key caches.
-- Each cached status endpoint may keep only the latest snapshot, an expiry timestamp, and at most one pending promise for request coalescing.
-- General WebUI initialization must not eagerly fetch Yuba status. Load Yuba status only when the user opens the Yuba page or after Yuba-specific task actions.
-- Cache invalidation must happen when cookies, CookieCloud-derived login state, related task configuration, fan-room synchronization, or status-changing tasks mutate the data shown by the endpoint.
-- Response shapes must stay compatible with the existing Docker routes; caching must not add wrapper fields that the WebUI has to understand.
-- Progressive fans status may split the read path into a list phase and a detail phase. The list phase may return `FanStatus` rows without `doubleActive` and with `complete: false`; the detail phase fills `doubleActive`, `doubleExpireTime`, and `gift`, stores the same full snapshot used by `/api/fans/status`, and returns `complete: true`.
-- The list phase must not wait for backpack or per-room double-card calls when no complete status snapshot is fresh. It should use only the shared medal-list cache so large fan lists render quickly.
-- Do not add Redis, databases, LRU libraries, or background polling for this guardrail unless requirements explicitly change.
-
-### 4. Validation & Error Matrix
-
-| Case | Expected result |
-|------|-----------------|
-| First status request and no valid cache | Fetch Douyu-backed status, store one snapshot, return existing response shape |
-| Progressive base request and no complete cache | Return medal rows after the shared fan-list read; do not call backpack or double-card APIs |
-| Progressive details request and no complete cache | Fetch backpack plus bounded double-card fan-out, store one complete snapshot, and return it |
-| Progressive base request while complete cache is fresh | Return the complete snapshot immediately and let the client skip the detail request |
-| Repeated request before TTL expiry | Return the cached snapshot without new Douyu requests |
-| Concurrent requests while fetch is pending | Share the same pending promise; do not start duplicate upstream fan-out |
-| TTL expires but no user requests status | Do nothing; do not refresh in the background |
-| Cookie or CookieCloud login state changes | Clear fans and Yuba status caches |
-| Fans/double/expiring task configuration changes | Clear fans status cache |
-| Yuba task configuration changes | Clear Yuba status cache |
-| Status-changing task completes or fails | Clear the relevant status cache in `finally` so later UI reads are not stale |
-
-### 5. Good/Base/Bad Cases
-
-- Good: `/api/fans/status` keeps one short-lived snapshot and coalesces overlapping WebUI refreshes.
-- Good: WebUI overview calls `/api/fans/status/base` first, renders the table, then calls `/api/fans/status/details` to fill backpack and double-card state.
-- Base: `/api/yuba/status` is loaded lazily from the Yuba page and uses a longer TTL because it can fan out across many followed groups.
-- Base: Existing callers can continue to call `/api/fans/status` for the full response shape.
-- Bad: WebUI startup calls fans status and Yuba status for every page load, or each browser tab starts its own full Douyu fan-out while another identical request is still in flight.
-- Bad: The base phase calls `getGiftStatus()` or `checkDoubleCard()` before returning list rows.
-
-
-### 6. Wrong vs Correct
-
-#### Wrong
-
-```typescript
-fetchYubaStatus: async () => {
-  const groups = await getFollowedYubaStatusesWithDyToken(yubaCookie, mainCookie)
-  return { groups }
-}
-```
-
-#### Correct
-
-```typescript
-fetchYubaStatus: async () => {
-  return await getCachedStatus(yubaStatusCache, YUBA_STATUS_CACHE_TTL_MS, async () => {
-    const groups = await getFollowedYubaStatusesWithDyToken(yubaCookie, mainCookie)
-    return { groups }
-  })
-}
-```
-
-## Scenario: Row-Level Backpack Status and Expiring Gift Budget
-
-### 1. Scope / Trigger
-
-- Trigger: Any change to Douyu backpack parsing, `/api/fans/status` gift fields, or expiring-gift send budgeting.
-- Scope: Backpack parsing belongs in `src/core/api.ts`; expiring candidate selection belongs in `src/core/job.ts`; Docker routes and WebUI must consume normalized fields instead of raw Douyu payloads.
-
-### 2. Signatures
-
-```typescript
-export async function getBackpackStatus(cookie: string, candidateRoomIds?: number[]): Promise<BackpackStatus>
-export async function getGiftStatus(cookie: string, candidateRoomIds?: number[]): Promise<GiftStatus>
-export function selectExpiringGiftCandidates(status: BackpackStatus, options: {
-  thresholdHours: number
-  now?: number
-}): ExpiringGiftSelection
-```
-
-### 3. Contracts
-
-- `getBackpackStatus()` returns normalized row data only: `giftId`, `name`, `count`, optional `expiry`/`expiryDays`, optional absolute millisecond `expireTime`, `batchInfoPresent`, `isValuable`, `price`, and `intimacy`.
-- Absolute expiry fields must be normalized from known Douyu fields such as `expireTime`, `expire_time`, `expireAt`, `expiresAt`, `met`, or `endTime`. Unix seconds are converted to milliseconds.
-- `getGiftStatus()` remains backward-compatible by returning the glow-stick summary as `count` and earliest glow-stick `expireTime`, while also exposing `rows` and `totalRows` for observability.
-- `/api/fans/status` may return `gift.error` when backpack lookup fails after the fan list succeeds; failure must not be converted to `count: 0`.
-- Expiring-gift jobs must budget from selected expiring rows, not from all visible glow-stick inventory after the earliest row enters the threshold.
-- Automatic expiring-gift sending has no gift-ID whitelist. Any positive-count row with a normalized absolute `expireTime` inside `thresholdHours` is a candidate.
-- Candidate counts are grouped by `giftId`; each group uses the existing room allocation settings and generated send jobs must set that group's `giftId`.
-- The send API cannot target a backpack batch. Logs and UI must describe that only the candidate count is limited; Douyu controls the actual deduction order.
-
-### 4. Validation & Error Matrix
-
-| Case | Expected result |
-|------|-----------------|
-| Backpack body has non-zero Douyu `error`/`code` | Throw an actionable backpack error with upstream code/message |
-| Backpack list is malformed | Throw an actionable format error |
-| Row has no positive `count` | Exclude from expiring selection |
-| Row has no absolute `expireTime` | Count as skipped without expiry; do not auto-send |
-| Row expires after `thresholdHours` | Count as skipped not-expiring; do not include in budget |
-| Multiple rows share `giftId` | Sum only candidate row counts for the send budget |
-| Multiple candidate `giftId` values exist | Compute allocation separately per gift group and send each group with its own `giftId` |
-
-### 5. Good/Base/Bad Cases
-
-- Good: Parse every backpack `data.list[]` item once in `src/core/api.ts`, then reuse normalized rows for summary cards, WebUI tables, and expiring selection.
-- Base: Single visible gift row behaves like the MVP: when it enters the threshold, its full visible count becomes the budget.
-- Bad: Use `status.count` from `getGiftStatus()` as the expiring send budget after only `status.expireTime` enters the threshold.
-
-
-### 6. Wrong vs Correct
-
-#### Wrong
-
-```typescript
-if (status.expireTime && status.expireTime - Date.now() <= thresholdMs) {
-  jobs = computeGiftCountOfProportion(status.count, send)
-}
-```
-
-#### Correct
-
-```typescript
-const selection = selectExpiringGiftCandidates(backpackStatus, {
-  thresholdHours,
-})
-jobs = computeGiftCountOfProportion(selection.budgetCount, send)
-```
-
-## Scenario: Docker-Only Edge/Latest Publishing
-
-### 1. Scope / Trigger
-
-- Trigger: Any change to package version metadata, release scripts, or workflow tag expectations.
-- Scope: This is a Docker-only project. Default-branch pushes publish the moving development Docker tag `edge`; explicit semver git tags publish immutable numeric Docker tags and move `latest`. npm version/release helper scripts and Docker Hub tag queries are intentionally absent.
-
-### 2. Signatures
-
-```json
-{
-  "version": "2.2.0",
-  "scripts": {
-    "build": "npm run build:docker",
-    "build:docker": "rm -rf build/docker && tsc -p tsconfig.docker.json",
-    "type-check": "tsc -p tsconfig.docker.json --noEmit"
-  }
-}
-```
-
-```yaml
-on:
-  push:
-    branches: [master]
-    tags: ['V*.*.*', 'v*.*.*']
-  pull_request:
-    branches: [master]
-```
-
-```text
-default branch push  -> edge
-Vx.y.z tag build     -> exact x.y.z, latest
-vx.y.z tag build     -> exact x.y.z, latest
-pull request build   -> build only, no Docker Hub login or push
-```
-
-### 3. Contracts
-
-- `package.json` and root `package-lock.json` version metadata must stay in sync.
-- `package.json.version` is project metadata only; default-branch Docker publishing must not read it to decide image tags.
-- Do not keep or add `version:*` or `release:*` package scripts. Docker image publishing is owned by `.github/workflows/docker.yml`.
-- Ordinary `build`, `build:docker`, `test`, `type-check`, `lint`, and `start` scripts must not mutate package versions, create commits, create tags, or publish artifacts.
-- Default-branch push builds must publish only the moving `edge` Docker tag.
-- Default-branch push builds must not query Docker Hub for existing tags or auto-increment patch versions.
-- Default-branch push builds must not publish `latest`.
-- Manual release tag builds accept either `Vx.y.z` or `vx.y.z` and publish the exact numeric `x.y.z` Docker tag plus `latest`.
-- Docker publishing must not create or publish major/minor aliases such as `2.1` or `2`.
-- Docker publishing must not create or publish commit aliases such as `sha-*`.
-- Pull request builds must validate the Docker image build without logging in to Docker Hub or pushing tags.
-- The workflow must use least-privilege permissions and run lint, type-check, and Docker runtime build before Buildx publishing.
-- Normal pull request and default-branch Docker builds must build only `linux/amd64`.
-- Release tag Docker builds must publish a multi-arch manifest for `linux/amd64` and `linux/arm64`.
-- Release tag Docker builds should build each architecture in a separate job:
-  - `linux/amd64` on `ubuntu-latest`
-  - `linux/arm64` on `ubuntu-24.04-arm`
-- Do not use QEMU for normal Docker builds. Prefer native arm64 GitHub-hosted runners for release arm64 builds.
-- Buildx Docker builds should use the GitHub Actions cache backend with platform-scoped caches such as `cache-from: type=gha,scope=docker-amd64` and `cache-to: type=gha,mode=max,scope=docker-amd64`.
-- Release multi-arch publishing may push per-platform images by digest first, then combine them with `docker buildx imagetools create` for the public release tags.
-- Pushed Docker builds may request Buildx SBOM and provenance output when supported without extra release steps.
-
-### 4. Validation & Error Matrix
-
-| Case | Expected result |
-|------|-----------------|
-| `master` push with package `2.2.0` | Publish `edge` only |
-| `V2.2.0` tag push | Publish `2.2.0` and `latest` only |
-| `v2.2.0` tag push | Publish `2.2.0` and `latest` only |
-| `V2.1` or malformed release tag | Workflow rejects the tag |
-| Pull request | Build validates, no Docker Hub login, no push |
-| Workflow contains `2.1` or `2` tag aliases | Reject as moving major/minor aliases |
-| Workflow contains `sha-*` publishing | Reject as unsupported commit aliases |
-| Default-branch path reads `package.json.version` or queries Docker Hub tags | Reject as unsupported auto-patch publishing |
-| Pull request or default-branch build enables `linux/arm64` | Reject because normal builds must stay amd64-only |
-| Normal build sets up QEMU | Reject because QEMU is only a fallback for non-native multi-arch release builds |
-| Release tag build publishes only one architecture | Reject because release tags must resolve to a multi-arch manifest |
-| Release arm64 build runs on an amd64 runner through QEMU | Reject unless native arm64 hosted runners are unavailable and the fallback is intentional |
-| Release platform jobs push public tags directly before manifest merge | Reject because public release tags should be written by the manifest job |
-| Docker build omits Buildx GHA cache | Review why cache is intentionally disabled |
-
-### 5. Good/Base/Bad Cases
-
-- Good: A normal `master` push publishes `tophtab/douyu-keep-just-works:edge` only.
-- Base: A pushed `v2.2.0` tag publishes `2.2.0` plus `latest`.
-- Bad: Add npm release helper scripts for Docker publishing.
-- Bad: Query Docker Hub to invent the next numeric patch tag on a branch push.
-- Bad: A stable release publishes `2.1` or `2` aliases.
-- Bad: A branch build publishes `latest` or a numeric Docker tag.
-- Bad: A normal branch build spends CI time on QEMU-backed arm64 image construction.
-
-
-### 6. Wrong vs Correct
-
-#### Wrong
-
-```yaml
-tags: |
-  type=raw,value=latest,enable={{is_default_branch}}
-  type=semver,pattern={{major}}.{{minor}}
-  type=semver,pattern={{major}}
-```
-
-#### Correct
-
-```text
-master branch -> edge
-V2.2.0        -> 2.2.0, latest
-v2.2.0        -> 2.2.0, latest
-pull request  -> build only, no push
-```
-
-```yaml
-release-platform:
-  strategy:
-    matrix:
-      include:
-        - platform: linux/amd64
-          runner: ubuntu-latest
-        - platform: linux/arm64
-          runner: ubuntu-24.04-arm
-```
+Avoid adding new cross-cutting constants inside route or scheduler files when they describe all tasks. Put those in `task-metadata.ts` first.

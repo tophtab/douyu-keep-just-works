@@ -6,55 +6,55 @@
 
 ## Overview
 
-This project does not use a relational database or ORM.
+This project does not use a database, ORM, migrations, or query layer. Durable backend state is the Docker config JSON file selected by runtime options and maintained through `src/docker/config-store.ts`.
 
-Persistence is Docker-only:
-
-- Docker app: JSON file persistence at `CONFIG_PATH` in `src/docker/index.ts`
-
-There are no migrations, transactions, or schema tools. Changes are handled by reading old config and patching missing fields in application code.
+The config object shape is defined in `src/core/types.ts`, normalized by `src/core/medal-sync.ts`, validated by `src/docker/config-validation.ts`, and persisted by `saveConfigToDisk`.
 
 ---
 
 ## Persistence Patterns
 
-- Persist small configuration payloads as whole JSON blobs, not as many small records.
-- Parse persisted JSON at the edge and repair missing fields during startup.
-- In Docker mode, resolve the target path from environment variables and create the directory lazily before writing.
+Treat config writes as full normalized snapshots:
 
-Examples:
+```typescript
+export function saveConfigToDisk(configPath: string, config: DockerConfig): void {
+  const resolvedConfigPath = path.resolve(configPath)
+  const dir = path.dirname(resolvedConfigPath)
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+  }
+  fs.writeFileSync(resolvedConfigPath, JSON.stringify(config, null, 2), 'utf-8')
+}
+```
 
-- `src/docker/index.ts` uses `loadConfigFromDisk()` and `saveConfigToDisk()` for the JSON file workflow.
-- `src/core/medal-sync.ts` normalizes missing config fields before Docker starts jobs.
+When applying partial WebUI updates, merge through `buildConfigWithPartialUpdate` and then normalize. Do not mutate route payloads directly into the persisted object without validation.
 
 ---
 
 ## Migrations
 
-- There is no migration framework.
-- Backward compatibility is handled in code:
-  - add optional fields in shared types first
-  - default missing fields during read/init
-  - write back normalized config when needed
+There is no formal migration system. Backward compatibility is handled by config normalization when loading or saving:
 
-Current examples:
+- `loadConfigFromDisk` parses JSON and passes it to `normalizeDockerConfig`.
+- runtime startup rewrites normalized config back to disk after a successful load.
+- `createDefaultDockerConfig` supplies new default config shape.
 
-- `src/docker/index.ts` generates a default config file if none exists
-- `src/docker/index.ts` calls `normalizeDockerConfig()` when loading persisted JSON
+If a future config shape changes, update the normalization path and contract tests rather than adding a separate migration directory.
 
 ---
 
 ## Naming Conventions
 
-- Docker config files use a single `config.json` document.
-- Shared persisted object types live in `src/core/types.ts`.
-- Prefer descriptive top-level keys such as `cookie`, `keepalive`, `doubleCard`, `cron`, and `send`.
+- Config interfaces live in `src/core/types.ts`.
+- Runtime config persistence helpers live in `src/docker/config-store.ts`.
+- Runtime validation helpers live in `src/docker/config-validation.ts`.
+- User-facing config routes live in `src/docker/server-config-routes.ts`.
 
 ---
 
 ## Common Mistakes
 
-- Do not assume persisted JSON already contains newly added fields.
-- Do not introduce a second source of truth for the same config shape in each runtime.
-- Do not store secrets in logs while debugging persistence issues.
-- Do not add database-oriented abstractions like repositories or migrations unless the storage model actually changes.
+- Do not introduce a database dependency for Docker runtime state without a task that explicitly changes storage architecture.
+- Do not write raw request bodies directly to disk.
+- Do not skip `normalizeDockerConfig`; it preserves compatibility with older config files.
+- Do not log or expose raw cookies from config responses. `/api/config` masks secrets, while `/api/config/raw` is the intentional internal raw endpoint.

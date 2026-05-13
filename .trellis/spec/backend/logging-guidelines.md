@@ -6,68 +6,72 @@
 
 ## Overview
 
-Logging is intentionally simple.
+Runtime logs are in-memory entries plus console output. The public WebUI log API reads from `src/docker/logger.ts`. There is no external logging library.
 
-- Docker runtime has an in-memory log buffer in `src/docker/logger.ts`
-- Logs are also written to stdout with `console.log`
-- Desktop runtime mainly updates UI state instead of keeping a formal backend logger
+```typescript
+export interface LogEntry {
+  timestamp: string
+  category: string
+  message: string
+}
+```
 
-There are no formal log levels today. The effective structure comes from category labels such as `系统`, `保活`, and `双倍`.
+Timestamps are formatted for `Asia/Shanghai`, matching runtime scheduling.
 
 ---
 
-## Log Structure
+## Log Levels
 
-Each Docker log entry contains:
+There are no explicit log levels. Use categories instead:
+
+- `系统` for runtime lifecycle, config, CookieCloud sync, and scheduler reconciliation.
+- task categories from `TASK_LOG_CATEGORIES` for task-specific execution messages.
+
+Use `console.log` only through `addLog`/`createLogger` so logs are available in the WebUI.
+
+---
+
+## Structured Logging
+
+Each log entry has:
 
 - `timestamp`
 - `category`
 - `message`
 
-Example implementation:
+The logger keeps a bounded in-memory list with `MAX_LOGS = 500`:
 
-- `src/docker/logger.ts` builds `LogEntry` objects and caps the buffer at `MAX_LOGS = 500`
-- `src/docker/index.ts` creates scoped loggers with `createLogger('系统')`, `createLogger('保活')`, and `createLogger('双倍')`
-
-### Timestamp Contract
-
-- User-facing Docker timestamps must follow the same timezone semantics the WebUI claims to use.
-- Do not mix UTC `toISOString()` output with UI text that says times are Shanghai-local unless the conversion is explicit.
-- If the runtime chooses a display timezone such as `Asia/Shanghai`, keep log timestamps and task-status timestamps aligned with that contract.
-
----
-
-## What To Log
-
-- Process startup and shutdown
-- Config load/save outcomes
-- Scheduler start/stop state
-- Manual trigger execution
-- Per-job progress messages that help diagnose room-level failures
-
-Good examples:
-
-- `src/docker/index.ts`: startup, config load result, task restarts, shutdown
-- `src/core/job.ts`: task progress, gift counts, room-level success/failure
-- `src/docker/server.ts`: route layer is intentionally quiet and delegates to the log-producing services
+```typescript
+export function addLog(category: string, message: string): void {
+  const entry: LogEntry = { timestamp: createTimestamp(), category, message }
+  logs.push(entry)
+  if (logs.length > MAX_LOGS) {
+    logs.shift()
+  }
+  console.log(`[${entry.timestamp}] [${category}] ${message}`)
+}
+```
 
 ---
 
-## What Not To Log
+## What to Log
 
-- Full cookies or other secrets
-- Raw config objects when they include auth material
-- Excessive per-request noise on simple read routes
+Log operational state changes that help a Docker user understand what happened:
 
-The existing code already masks the cookie in `/api/config` via `maskCookie()` in `src/docker/server.ts`. Follow that pattern whenever config data is returned or logged.
+- startup and config load result
+- missing login credentials
+- CookieCloud sync start/failure/update status
+- task start, manual trigger, busy-skip, and execution failure
+- targeted task reload summaries after config, cookie, or medal-list changes
+
+Keep user-facing runtime messages in Chinese, matching the current WebUI and logs.
 
 ---
 
-## Common Mistakes
+## What NOT to Log
 
-- Do not add a new ad hoc log format when `LogEntry` already exists.
-- Do not let the in-memory buffer grow without bounds.
-- Do not log the full cookie for debugging.
-- Do not use logs as a substitute for returning actionable errors to the caller.
-- Do not let a failed external request look identical to a legitimate business result such as `0` gifts or an empty list.
-- Do not log timestamps in one timezone while the UI explains them in another.
+- Raw Douyu cookies.
+- CookieCloud password values.
+- Full config JSON.
+- WebUI password values.
+- Large Douyu API response bodies unless a task explicitly introduces sanitized diagnostics.

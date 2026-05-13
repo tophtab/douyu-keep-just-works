@@ -75,6 +75,17 @@ export interface TaskTriggerOptions {
   taskType: WebUiTaskType
 }
 
+export interface LegacyFanTaskDeps<RawConfig, TFan> {
+  getManagedConfig: () => RawConfig
+  getManagedFans: () => TFan[]
+  getRawConfig: () => RawConfig
+  isUnauthorizedError: (error: unknown) => boolean
+  loadFansStatus?: (forceRefresh?: boolean) => Promise<unknown>
+  loadLogs?: () => Promise<unknown>
+  loadOverview?: () => Promise<unknown>
+  refreshOverviewSurface: (showToast: boolean) => Promise<unknown>
+}
+
 export interface SaveTaskConfigOptions {
   failurePrefix: string
   isUnauthorizedError: (error: unknown) => boolean
@@ -104,6 +115,11 @@ export interface FanListMessageOptions {
   rawConfig: CookieSourceConfig | null
   readyText: string
   rowCount: number
+}
+
+export interface FanListMessages {
+  emptyText: string
+  note: string
 }
 
 export type UnauthorizedChecker = (error: unknown) => boolean
@@ -201,6 +217,13 @@ export function createFanListEmptyText(options: FanListMessageOptions): string {
   return '正在准备加载粉丝牌列表，也可以点击刷新手动加载。'
 }
 
+export function createFanListMessages(options: FanListMessageOptions): FanListMessages {
+  return {
+    note: createFanListNote(options),
+    emptyText: createFanListEmptyText(options),
+  }
+}
+
 export function formatOptionalNumber(value: unknown): number | string {
   return value !== undefined && value !== null && value !== '' ? Number(value) : '-'
 }
@@ -218,6 +241,46 @@ export function createPendingTaskCard(thirdLabel: string): TaskStatusCardState {
       { label: thirdLabel, value: '-' },
     ],
   }
+}
+
+export function createFanTaskTriggerRefreshes(deps: {
+  loadFansStatus?: (forceRefresh?: boolean) => Promise<unknown>
+  loadLogs?: () => Promise<unknown>
+  loadOverview?: () => Promise<unknown>
+} | null): Array<() => Promise<unknown> | undefined> {
+  return [
+    () => deps?.loadOverview?.(),
+    () => deps?.loadLogs?.(),
+    () => deps?.loadFansStatus?.(false),
+  ]
+}
+
+export function getAllocationValueLabel(model: 1 | 2): string {
+  return model === 2 ? '数量' : '权重值'
+}
+
+export function hasFanTaskTableRows(rawConfig: CookieSourceConfig | null, rowCount: number): boolean {
+  return hasCookieSourceConfigured(rawConfig) && rowCount > 0
+}
+
+export function resolveCurrentTaskConfig<TConfig, RawConfig extends Record<string, unknown>>(options: {
+  configKey: keyof RawConfig
+  fallback: TConfig
+  getManagedConfig?: () => RawConfig
+  getRawConfig?: () => RawConfig
+  managedConfig: RawConfig | null
+  rawConfig: RawConfig | null
+}): TConfig {
+  const key = options.configKey
+  return (
+    options.managedConfig?.[key] as TConfig | undefined
+  ) || (
+    options.rawConfig?.[key] as TConfig | undefined
+  ) || (
+    options.getManagedConfig?.()[key] as TConfig | undefined
+  ) || (
+    options.getRawConfig?.()[key] as TConfig | undefined
+  ) || options.fallback
 }
 
 export function createScheduledTaskCard(configured: boolean, status: TaskRunStatus, thirdCell: TaskCardCell): TaskStatusCardState {

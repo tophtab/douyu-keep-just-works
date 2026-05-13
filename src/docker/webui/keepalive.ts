@@ -5,8 +5,8 @@ import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationModel } from './allocation-task'
 import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
-import { applyFanTaskPageDetail, createFanListEmptyText, createFanListNote, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isLegacyOrHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
-import type { CookieSourceConfig, FanTaskPageDetail, TaskRunStatus } from './task-shared'
+import { applyFanTaskPageDetail, createFanListMessages, createFanTaskTriggerRefreshes, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getAllocationValueLabel, hasFanTaskTableRows, isLegacyOrHttpUnauthorized, isTaskActive, resolveCurrentTaskConfig, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import type { CookieSourceConfig, FanTaskPageDetail, LegacyFanTaskDeps, TaskRunStatus } from './task-shared'
 
 interface KeepaliveOverview {
   keepaliveConfigured?: boolean
@@ -22,16 +22,7 @@ interface RawKeepaliveConfig extends CookieSourceConfig {
 
 type KeepalivePageDetail = FanTaskPageDetail<Fans, RawKeepaliveConfig, KeepaliveOverview>
 
-interface LegacyKeepaliveDeps {
-  getManagedConfig: () => RawKeepaliveConfig
-  getManagedFans: () => Fans[]
-  getRawConfig: () => RawKeepaliveConfig
-  isUnauthorizedError: (error: unknown) => boolean
-  loadFansStatus?: (forceRefresh?: boolean) => Promise<unknown>
-  loadLogs?: () => Promise<unknown>
-  loadOverview?: () => Promise<unknown>
-  refreshOverviewSurface: (showToast: boolean) => Promise<unknown>
-}
+type LegacyKeepaliveDeps = LegacyFanTaskDeps<RawKeepaliveConfig, Fans>
 
 interface LegacyKeepaliveActions {
   disableKeepaliveConfig: () => Promise<void>
@@ -74,12 +65,17 @@ function normalizeModel(model: unknown): 1 | 2 {
 }
 
 function getKeepaliveConfig(): JobConfig {
-  return managedConfig.value?.keepalive || rawConfig.value?.keepalive || {
-    active: true,
-    cron: DEFAULT_KEEPALIVE_CRON,
-    model: DEFAULT_KEEPALIVE_MODEL,
-    send: {},
-  }
+  return resolveCurrentTaskConfig({
+    configKey: 'keepalive',
+    managedConfig: managedConfig.value,
+    rawConfig: rawConfig.value,
+    fallback: {
+      active: true,
+      cron: DEFAULT_KEEPALIVE_CRON,
+      model: DEFAULT_KEEPALIVE_MODEL,
+      send: {},
+    },
+  })
 }
 
 function buildFanRows(nextFans: Fans[], config: JobConfig): KeepaliveFanRow[] {
@@ -139,12 +135,19 @@ async function saveKeepaliveConfig(options?: { revertCheckboxOnError?: boolean }
 }
 
 async function disableKeepaliveConfig(): Promise<void> {
-  const currentConfig = managedConfig.value?.keepalive || rawConfig.value?.keepalive || legacyDeps?.getManagedConfig().keepalive || legacyDeps?.getRawConfig().keepalive || {
-    active: true,
-    cron: DEFAULT_KEEPALIVE_CRON,
-    model: DEFAULT_KEEPALIVE_MODEL,
-    send: {},
-  }
+  const currentConfig = resolveCurrentTaskConfig({
+    configKey: 'keepalive',
+    managedConfig: managedConfig.value,
+    rawConfig: rawConfig.value,
+    getManagedConfig: legacyDeps?.getManagedConfig,
+    getRawConfig: legacyDeps?.getRawConfig,
+    fallback: {
+      active: true,
+      cron: DEFAULT_KEEPALIVE_CRON,
+      model: DEFAULT_KEEPALIVE_MODEL,
+      send: {},
+    },
+  })
   await disableTaskConfig({
     payload: {
       keepalive: {
@@ -168,11 +171,7 @@ async function triggerKeepaliveTask(): Promise<void> {
   await triggerTask({
     taskType: 'keepalive',
     isUnauthorizedError,
-    refresh: [
-      () => legacyDeps?.loadOverview?.(),
-      () => legacyDeps?.loadLogs?.(),
-      () => legacyDeps?.loadFansStatus?.(false),
-    ],
+    refresh: createFanTaskTriggerRefreshes(legacyDeps),
   })
 }
 
@@ -187,8 +186,8 @@ export function useKeepaliveTaskPage() {
     return createScheduledTaskCard(configured, status, { label: '房间数', value: configured ? String(overview.value.keepaliveRooms ?? 0) : '0' })
   })
 
-  const keepaliveNote = computed(() => {
-    return createFanListNote({
+  const keepaliveMessages = computed(() => {
+    return createFanListMessages({
       rawConfig: rawConfig.value,
       managedLoading: managedLoading.value,
       rowCount: fanRows.value.length,
@@ -201,22 +200,11 @@ export function useKeepaliveTaskPage() {
     })
   })
 
-  const keepaliveEmptyText = computed(() => {
-    return createFanListEmptyText({
-      rawConfig: rawConfig.value,
-      managedLoading: managedLoading.value,
-      rowCount: fanRows.value.length,
-      fansListError: fansListError.value,
-      fansListLoaded: fansListLoaded.value,
-      missingCredentialText: '请先保存 Cookie 或启用 CookieCloud。没有登录凭证时无法同步粉丝牌，也不会生成保活房间列表。',
-      emptyMissingCredentialText: '保存 Cookie 或启用 CookieCloud 后再同步粉丝牌，这里才会出现房间列表。',
-      loadingText: '正在同步粉丝牌与保活配置…',
-      readyText: `${managedLoading.value ? '正在后台同步，当前显示上次结果。' : ''}当前已同步 ${fanRows.value.length} 个粉丝牌房间。`,
-    })
-  })
+  const keepaliveNote = computed(() => keepaliveMessages.value.note)
+  const keepaliveEmptyText = computed(() => keepaliveMessages.value.emptyText)
 
-  const showKeepaliveTable = computed(() => hasCookieSourceConfigured(rawConfig.value) && fanRows.value.length > 0)
-  const keepaliveValueLabel = computed(() => keepaliveModel.value === 2 ? '数量' : '权重值')
+  const showKeepaliveTable = computed(() => hasFanTaskTableRows(rawConfig.value, fanRows.value.length))
+  const keepaliveValueLabel = computed(() => getAllocationValueLabel(keepaliveModel.value))
 
   function handleKeepaliveToggle(): void {
     if (keepaliveEnabled.value) {

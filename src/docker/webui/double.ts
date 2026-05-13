@@ -5,9 +5,9 @@ import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, buildEnabledRoomMap, formatRatioPercent, normalizeAllocationModel } from './allocation-task'
 import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
-import { applyFanTaskPageDetail, createFanListEmptyText, createFanListNote, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isLegacyOrHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import { applyFanTaskPageDetail, createFanListMessages, createFanTaskTriggerRefreshes, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isLegacyOrHttpUnauthorized, isTaskActive, resolveCurrentTaskConfig, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
 import { showToast } from './toast'
-import type { CookieSourceConfig, FanTaskPageDetail, TaskRunStatus } from './task-shared'
+import type { CookieSourceConfig, FanTaskPageDetail, LegacyFanTaskDeps, TaskRunStatus } from './task-shared'
 
 interface DoubleOverview {
   doubleCardConfigured?: boolean
@@ -25,16 +25,7 @@ type DoubleFan = Fans & Partial<Pick<FanStatus, 'doubleActive'>>
 
 type DoublePageDetail = FanTaskPageDetail<DoubleFan, RawDoubleConfig, DoubleOverview>
 
-interface LegacyDoubleDeps {
-  getManagedConfig: () => RawDoubleConfig
-  getManagedFans: () => DoubleFan[]
-  getRawConfig: () => RawDoubleConfig
-  isUnauthorizedError: (error: unknown) => boolean
-  loadFansStatus?: (forceRefresh?: boolean) => Promise<unknown>
-  loadLogs?: () => Promise<unknown>
-  loadOverview?: () => Promise<unknown>
-  refreshOverviewSurface: (showToast: boolean) => Promise<unknown>
-}
+type LegacyDoubleDeps = LegacyFanTaskDeps<RawDoubleConfig, DoubleFan>
 
 interface LegacyDoubleActions {
   disableDoubleConfig: () => Promise<void>
@@ -85,14 +76,19 @@ function normalizeGiftScope(scope: unknown): DoubleCardGiftScope {
 }
 
 function getDoubleConfig(): DoubleCardConfig {
-  return managedConfig.value?.doubleCard || rawConfig.value?.doubleCard || {
-    active: true,
-    cron: DEFAULT_DOUBLE_CARD_CRON,
-    model: DEFAULT_DOUBLE_CARD_MODEL,
-    giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
-    send: {},
-    enabled: {},
-  }
+  return resolveCurrentTaskConfig({
+    configKey: 'doubleCard',
+    managedConfig: managedConfig.value,
+    rawConfig: rawConfig.value,
+    fallback: {
+      active: true,
+      cron: DEFAULT_DOUBLE_CARD_CRON,
+      model: DEFAULT_DOUBLE_CARD_MODEL,
+      giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
+      send: {},
+      enabled: {},
+    },
+  })
 }
 
 function buildFanRows(nextFans: DoubleFan[], config: DoubleCardConfig): DoubleFanRow[] {
@@ -168,14 +164,21 @@ async function saveDoubleConfig(options?: { revertCheckboxOnError?: boolean }): 
 }
 
 async function disableDoubleConfig(): Promise<void> {
-  const currentConfig = managedConfig.value?.doubleCard || rawConfig.value?.doubleCard || legacyDeps?.getManagedConfig().doubleCard || legacyDeps?.getRawConfig().doubleCard || {
-    active: true,
-    cron: DEFAULT_DOUBLE_CARD_CRON,
-    model: DEFAULT_DOUBLE_CARD_MODEL,
-    giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
-    send: {},
-    enabled: {},
-  }
+  const currentConfig = resolveCurrentTaskConfig({
+    configKey: 'doubleCard',
+    managedConfig: managedConfig.value,
+    rawConfig: rawConfig.value,
+    getManagedConfig: legacyDeps?.getManagedConfig,
+    getRawConfig: legacyDeps?.getRawConfig,
+    fallback: {
+      active: true,
+      cron: DEFAULT_DOUBLE_CARD_CRON,
+      model: DEFAULT_DOUBLE_CARD_MODEL,
+      giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
+      send: {},
+      enabled: {},
+    },
+  })
   await disableTaskConfig({
     payload: {
       doubleCard: {
@@ -201,11 +204,7 @@ async function triggerDoubleTask(): Promise<void> {
   await triggerTask({
     taskType: 'doubleCard',
     isUnauthorizedError,
-    refresh: [
-      () => legacyDeps?.loadOverview?.(),
-      () => legacyDeps?.loadLogs?.(),
-      () => legacyDeps?.loadFansStatus?.(false),
-    ],
+    refresh: createFanTaskTriggerRefreshes(legacyDeps),
     onSuccess: () => {
       if (legacyDeps) {
         fans.value = legacyDeps.getManagedFans()
@@ -229,8 +228,8 @@ export function useDoubleTaskPage() {
 
   const enabledCount = computed(() => fanRows.value.filter(row => row.enabled).length)
 
-  const doubleNote = computed(() => {
-    return createFanListNote({
+  const doubleMessages = computed(() => {
+    return createFanListMessages({
       rawConfig: rawConfig.value,
       managedLoading: managedLoading.value,
       rowCount: fanRows.value.length,
@@ -243,22 +242,11 @@ export function useDoubleTaskPage() {
     })
   })
 
-  const doubleEmptyText = computed(() => {
-    return createFanListEmptyText({
-      rawConfig: rawConfig.value,
-      managedLoading: managedLoading.value,
-      rowCount: fanRows.value.length,
-      fansListError: fansListError.value,
-      fansListLoaded: fansListLoaded.value,
-      missingCredentialText: '请先保存 Cookie 或启用 CookieCloud。没有登录凭证时无法同步粉丝牌，也不会生成双倍房间列表。',
-      emptyMissingCredentialText: '保存 Cookie 或启用 CookieCloud 后再同步粉丝牌，这里才会出现房间列表。',
-      loadingText: '正在同步粉丝牌与双倍配置…',
-      readyText: `${managedLoading.value ? '正在后台同步，当前显示上次结果。' : ''}当前已勾选 ${enabledCount.value} / ${fanRows.value.length} 个房间参与双倍。`,
-    })
-  })
+  const doubleNote = computed(() => doubleMessages.value.note)
+  const doubleEmptyText = computed(() => doubleMessages.value.emptyText)
 
-  const showDoubleTable = computed(() => hasCookieSourceConfigured(rawConfig.value) && fanRows.value.length > 0)
-  const doubleValueLabel = computed(() => doubleModel.value === 2 ? '数量' : '权重值')
+  const showDoubleTable = computed(() => hasFanTaskTableRows(rawConfig.value, fanRows.value.length))
+  const doubleValueLabel = computed(() => getAllocationValueLabel(doubleModel.value))
   const showDoubleRatioTools = computed(() => doubleModel.value === 1)
   const doubleModeHelp = computed(() => {
     if (!hasCookieSourceConfigured(rawConfig.value)) {

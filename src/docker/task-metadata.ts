@@ -44,6 +44,10 @@ export function getTaskConfig(config: DockerConfig | null | undefined, type: Tas
   return config?.[type]
 }
 
+export function getTaskCron(config: DockerConfig[TaskType]): string | undefined {
+  return config?.cron
+}
+
 export function getTaskLabel(type: TaskType): string {
   return TASK_LABELS[type]
 }

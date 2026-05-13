@@ -6,8 +6,8 @@ import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationMode
 import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
 import { formatDate } from './datetime'
-import { applyFanTaskPageDetail, createFanListEmptyText, createFanListNote, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isLegacyOrHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
-import type { CookieSourceConfig, FanTaskPageDetail, TaskRunStatus } from './task-shared'
+import { applyFanTaskPageDetail, createFanListMessages, createFanTaskTriggerRefreshes, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isLegacyOrHttpUnauthorized, isTaskActive, resolveCurrentTaskConfig, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import type { CookieSourceConfig, FanTaskPageDetail, LegacyFanTaskDeps, TaskRunStatus } from './task-shared'
 
 interface ExpiringOverview {
   expiringGiftConfigured?: boolean
@@ -28,16 +28,7 @@ interface ExpiringPageDetail extends FanTaskPageDetail<Fans, RawExpiringConfig, 
   giftStatus?: GiftStatus | null
 }
 
-interface LegacyExpiringDeps {
-  getManagedConfig: () => RawExpiringConfig
-  getManagedFans: () => Fans[]
-  getRawConfig: () => RawExpiringConfig
-  isUnauthorizedError: (error: unknown) => boolean
-  loadFansStatus?: (forceRefresh?: boolean) => Promise<unknown>
-  loadLogs?: () => Promise<unknown>
-  loadOverview?: () => Promise<unknown>
-  refreshOverviewSurface: (showToast: boolean) => Promise<unknown>
-}
+type LegacyExpiringDeps = LegacyFanTaskDeps<RawExpiringConfig, Fans>
 
 interface LegacyExpiringActions {
   disableExpiringGiftConfig: () => Promise<void>
@@ -101,13 +92,18 @@ function normalizeThresholdHours(value: unknown): number {
 }
 
 function getExpiringConfig(): ExpiringGiftConfig {
-  return managedConfig.value?.expiringGift || rawConfig.value?.expiringGift || {
-    active: false,
-    cron: DEFAULT_EXPIRING_GIFT_CRON,
-    thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
-    model: DEFAULT_EXPIRING_GIFT_MODEL,
-    send: {},
-  }
+  return resolveCurrentTaskConfig({
+    configKey: 'expiringGift',
+    managedConfig: managedConfig.value,
+    rawConfig: rawConfig.value,
+    fallback: {
+      active: false,
+      cron: DEFAULT_EXPIRING_GIFT_CRON,
+      thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
+      model: DEFAULT_EXPIRING_GIFT_MODEL,
+      send: {},
+    },
+  })
 }
 
 function buildFanRows(nextFans: Fans[], config: ExpiringGiftConfig): ExpiringFanRow[] {
@@ -180,13 +176,20 @@ async function saveExpiringGiftConfig(options?: { revertCheckboxOnError?: boolea
 }
 
 async function disableExpiringGiftConfig(): Promise<void> {
-  const currentConfig = managedConfig.value?.expiringGift || rawConfig.value?.expiringGift || legacyDeps?.getManagedConfig().expiringGift || legacyDeps?.getRawConfig().expiringGift || {
-    active: false,
-    cron: DEFAULT_EXPIRING_GIFT_CRON,
-    thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
-    model: DEFAULT_EXPIRING_GIFT_MODEL,
-    send: {},
-  }
+  const currentConfig = resolveCurrentTaskConfig({
+    configKey: 'expiringGift',
+    managedConfig: managedConfig.value,
+    rawConfig: rawConfig.value,
+    getManagedConfig: legacyDeps?.getManagedConfig,
+    getRawConfig: legacyDeps?.getRawConfig,
+    fallback: {
+      active: false,
+      cron: DEFAULT_EXPIRING_GIFT_CRON,
+      thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
+      model: DEFAULT_EXPIRING_GIFT_MODEL,
+      send: {},
+    },
+  })
   await disableTaskConfig({
     payload: {
       expiringGift: {
@@ -211,11 +214,7 @@ async function triggerExpiringTask(): Promise<void> {
   await triggerTask({
     taskType: 'expiringGift',
     isUnauthorizedError,
-    refresh: [
-      () => legacyDeps?.loadOverview?.(),
-      () => legacyDeps?.loadLogs?.(),
-      () => legacyDeps?.loadFansStatus?.(false),
-    ],
+    refresh: createFanTaskTriggerRefreshes(legacyDeps),
     onSuccess: () => {
       if (legacyDeps) {
         fans.value = legacyDeps.getManagedFans()
@@ -266,8 +265,8 @@ export function useExpiringGiftTaskPage() {
     return createScheduledTaskCard(configured, status, { label: '阈值', value: `${normalizeThresholdHours(getExpiringConfig().thresholdHours)} 小时` })
   })
 
-  const expiringNote = computed(() => {
-    return createFanListNote({
+  const expiringMessages = computed(() => {
+    return createFanListMessages({
       rawConfig: rawConfig.value,
       managedLoading: managedLoading.value,
       rowCount: fanRows.value.length,
@@ -280,19 +279,8 @@ export function useExpiringGiftTaskPage() {
     })
   })
 
-  const expiringTableEmptyText = computed(() => {
-    return createFanListEmptyText({
-      rawConfig: rawConfig.value,
-      managedLoading: managedLoading.value,
-      rowCount: fanRows.value.length,
-      fansListError: fansListError.value,
-      fansListLoaded: fansStatusLoaded.value || fansListLoaded.value,
-      missingCredentialText: '请先保存 Cookie 或启用 CookieCloud。没有登录凭证时无法同步粉丝牌，也无法读取背包礼物和过期时间。',
-      emptyMissingCredentialText: '保存 Cookie 或启用 CookieCloud 后再同步粉丝牌，这里才会出现临期赠送房间列表。',
-      loadingText: '正在同步粉丝牌与临期配置…',
-      readyText: `${managedLoading.value || fansStatusLoading.value ? '正在后台更新，当前显示上次结果。' : ''}当前已同步 ${fanRows.value.length} 个粉丝牌房间。临期任务会按背包行筛选进入阈值且有明确过期时间的礼物，并按房间配置释放。`,
-    })
-  })
+  const expiringNote = computed(() => expiringMessages.value.note)
+  const expiringTableEmptyText = computed(() => expiringMessages.value.emptyText)
 
   const expiringBackpackEmptyText = computed(() => {
     if (!hasCookieSourceConfigured(rawConfig.value)) {
@@ -330,9 +318,9 @@ export function useExpiringGiftTaskPage() {
     })
   })
 
-  const showExpiringTable = computed(() => hasCookieSourceConfigured(rawConfig.value) && fanRows.value.length > 0)
+  const showExpiringTable = computed(() => hasFanTaskTableRows(rawConfig.value, fanRows.value.length))
   const showExpiringBackpackTable = computed(() => Boolean(giftStatus.value && !giftStatus.value.error && expiringBackpackRows.value.length))
-  const expiringValueLabel = computed(() => expiringModel.value === 2 ? '数量' : '权重值')
+  const expiringValueLabel = computed(() => getAllocationValueLabel(expiringModel.value))
 
   function handleExpiringToggle(): void {
     if (expiringEnabled.value) {

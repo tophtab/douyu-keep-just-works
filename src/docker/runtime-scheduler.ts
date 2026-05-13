@@ -1,7 +1,7 @@
 import { CronJob } from 'cron'
 import type { DockerConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig } from '../core/types'
 import type { JobStatus } from './server'
-import { createTaskRecord, formatTaskList, getTaskConfig, getTaskLabel, getTaskScheduleSummary, isTaskActive, TASK_TYPES } from './task-metadata'
+import { createTaskRecord, formatTaskList, getTaskConfig, getTaskCron, getTaskLabel, getTaskScheduleSummary, isTaskActive, TASK_TYPES } from './task-metadata'
 import type { TaskType } from './task-metadata'
 import { DOCKER_TIMEZONE } from './runtime-constants'
 import type { StatusCacheScope } from './runtime-cache'
@@ -11,12 +11,8 @@ import {
   runDoubleCardTask,
   runExpiringGiftTask,
   runKeepaliveTask,
+  triggerRuntimeTask,
   runYubaCheckInTask,
-  triggerCollectGiftTask,
-  triggerDoubleCardTask,
-  triggerExpiringGiftTask,
-  triggerKeepaliveTask,
-  triggerYubaCheckInTask,
 } from './runtime-task-runners'
 import type { RuntimeTaskRunnerDeps } from './runtime-task-runners'
 
@@ -169,22 +165,7 @@ export class DockerTaskScheduler {
     config: DockerConfig | null,
     hasSendRooms: (config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined) => boolean,
   ): Promise<void> {
-    switch (type) {
-      case 'collectGift':
-        await triggerCollectGiftTask(config, this.createTaskRunnerDeps())
-        return
-      case 'keepalive':
-        await triggerKeepaliveTask(config, this.createTaskRunnerDeps())
-        return
-      case 'doubleCard':
-        await triggerDoubleCardTask(config, this.createTaskRunnerDeps())
-        return
-      case 'expiringGift':
-        await triggerExpiringGiftTask(config, hasSendRooms, this.createTaskRunnerDeps())
-        return
-      case 'yubaCheckIn':
-        await triggerYubaCheckInTask(config, this.createTaskRunnerDeps())
-    }
+    await triggerRuntimeTask(type, config, hasSendRooms, this.createTaskRunnerDeps())
   }
 
   private createTaskRunnerDeps(): RuntimeTaskRunnerDeps {
@@ -242,95 +223,39 @@ export class DockerTaskScheduler {
   }
 
   private startTask(type: TaskType, config: DockerConfig): void {
+    const taskConfig = getTaskConfig(config, type)
+    const cron = getTaskCron(taskConfig)
+    if (!isTaskActive(taskConfig) || !cron) {
+      return
+    }
+
+    this.startScheduledTask(
+      type,
+      getTaskLabel(type),
+      cron,
+      async () => {
+        await this.runScheduledTask(type, taskConfig)
+      },
+      getTaskScheduleSummary(type, taskConfig),
+    )
+  }
+
+  private async runScheduledTask(type: TaskType, config: DockerConfig[TaskType]): Promise<void> {
     switch (type) {
       case 'collectGift':
-        this.startCollectGiftTask(config.collectGift)
+        await runCollectGiftTask(this.createTaskRunnerDeps())
         return
       case 'keepalive':
-        this.startKeepaliveTask(config.keepalive)
+        await runKeepaliveTask(config as JobConfig, this.createTaskRunnerDeps())
         return
       case 'doubleCard':
-        this.startDoubleCardTask(config.doubleCard)
+        await runDoubleCardTask(config as DoubleCardConfig, this.createTaskRunnerDeps())
         return
       case 'expiringGift':
-        this.startExpiringGiftTask(config.expiringGift)
+        await runExpiringGiftTask(config as ExpiringGiftConfig, this.createTaskRunnerDeps())
         return
       case 'yubaCheckIn':
-        this.startYubaCheckInTask(config.yubaCheckIn)
+        await runYubaCheckInTask(config as NonNullable<DockerConfig['yubaCheckIn']>, this.createTaskRunnerDeps())
     }
-  }
-
-  private startCollectGiftTask(config: DockerConfig['collectGift']): void {
-    if (!config || config.active === false) {
-      return
-    }
-    this.startScheduledTask(
-      'collectGift',
-      getTaskLabel('collectGift'),
-      config.cron,
-      async () => {
-        await runCollectGiftTask(this.createTaskRunnerDeps())
-      },
-    )
-  }
-
-  private startKeepaliveTask(config: JobConfig | undefined): void {
-    if (!config || config.active === false) {
-      return
-    }
-    this.startScheduledTask(
-      'keepalive',
-      getTaskLabel('keepalive'),
-      config.cron,
-      async () => {
-        await runKeepaliveTask(config, this.createTaskRunnerDeps())
-      },
-      getTaskScheduleSummary('keepalive', config),
-    )
-  }
-
-  private startDoubleCardTask(config: DoubleCardConfig | undefined): void {
-    if (!config || config.active === false) {
-      return
-    }
-    this.startScheduledTask(
-      'doubleCard',
-      getTaskLabel('doubleCard'),
-      config.cron,
-      async () => {
-        await runDoubleCardTask(config, this.createTaskRunnerDeps())
-      },
-      getTaskScheduleSummary('doubleCard', config),
-    )
-  }
-
-  private startExpiringGiftTask(config: ExpiringGiftConfig | undefined): void {
-    if (!config || config.active === false) {
-      return
-    }
-    this.startScheduledTask(
-      'expiringGift',
-      getTaskLabel('expiringGift'),
-      config.cron,
-      async () => {
-        await runExpiringGiftTask(config, this.createTaskRunnerDeps())
-      },
-      getTaskScheduleSummary('expiringGift', config),
-    )
-  }
-
-  private startYubaCheckInTask(config: DockerConfig['yubaCheckIn']): void {
-    if (!config || config.active === false) {
-      return
-    }
-    this.startScheduledTask(
-      'yubaCheckIn',
-      getTaskLabel('yubaCheckIn'),
-      config.cron,
-      async () => {
-        await runYubaCheckInTask(config, this.createTaskRunnerDeps())
-      },
-      getTaskScheduleSummary('yubaCheckIn', config),
-    )
   }
 }

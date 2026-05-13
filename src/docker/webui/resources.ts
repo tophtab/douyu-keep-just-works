@@ -118,6 +118,7 @@ interface LegacyResourceActionState extends LegacySystemResourceState, LegacyFan
 interface LegacyResourceActionDeps {
   applyFansStatusBase: (data: FansStatusResponse) => void
   applyFansStatusDetails: (data: FansStatusResponse) => void
+  clearCookieBackedData: () => void
   defaultRawConfig: unknown
   getRawConfig: () => unknown
   getResourceRequest: (key: 'fansSync' | 'fansList' | 'fansStatus' | 'yubaStatus') => LegacyResourceRequest
@@ -663,18 +664,7 @@ function createLegacyResourceActions(deps: LegacyResourceActionDeps): LegacyReso
 
       const rawConfig = deps.getRawConfig()
       if (!deps.hasCookieSourceConfigured(rawConfig)) {
-        deps.invalidateResourceRequests(['fansSync', 'fansList', 'fansStatus', 'yubaStatus'])
-        deps.state.managed = null
-        deps.state.fansStatus = []
-        deps.state.giftStatus = null
-        deps.state.managedLoading = false
-        deps.state.fansStatusLoading = false
-        deps.state.fansStatusLoaded = false
-        deps.state.fansStatusDetailsLoaded = false
-        deps.state.fansStatusDetailsLoading = false
-        deps.state.yubaStatus = []
-        deps.state.yubaStatusLoaded = false
-        deps.state.yubaStatusLoading = false
+        deps.clearCookieBackedData()
         deps.renderAll()
         return loadOverview().then(() => {
           if (showSuccessToast) {

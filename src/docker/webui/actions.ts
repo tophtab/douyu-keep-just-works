@@ -96,6 +96,7 @@ function createActions(deps: LegacyActionDeps): LegacyActions {
     trackResourceRequest: deps.trackResourceRequest,
     applyFansStatusBase: deps.applyFansStatusBase,
     applyFansStatusDetails: deps.applyFansStatusDetails,
+    clearCookieBackedData: deps.clearCookieBackedData,
     renderAll: deps.renderAll,
     renderOverview: deps.renderOverview,
     renderLogsPage: deps.renderLogsPage,

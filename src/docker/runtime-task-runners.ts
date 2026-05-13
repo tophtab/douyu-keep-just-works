@@ -95,6 +95,30 @@ export async function triggerYubaCheckInTask(config: DockerConfig | null, deps: 
   })
 }
 
+export async function triggerRuntimeTask(
+  type: TaskType,
+  config: DockerConfig | null,
+  hasSendRooms: (config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined) => boolean,
+  deps: RuntimeTaskRunnerDeps,
+): Promise<void> {
+  switch (type) {
+    case 'collectGift':
+      await triggerCollectGiftTask(config, deps)
+      return
+    case 'keepalive':
+      await triggerKeepaliveTask(config, deps)
+      return
+    case 'doubleCard':
+      await triggerDoubleCardTask(config, deps)
+      return
+    case 'expiringGift':
+      await triggerExpiringGiftTask(config, hasSendRooms, deps)
+      return
+    case 'yubaCheckIn':
+      await triggerYubaCheckInTask(config, deps)
+  }
+}
+
 export async function runCollectGiftTask(deps: RuntimeTaskRunnerDeps): Promise<void> {
   const cookie = deps.resolveCookieForUrl(MAIN_DOUYU_URL)
   await deps.runAndInvalidateStatusCache('fans', async () => {

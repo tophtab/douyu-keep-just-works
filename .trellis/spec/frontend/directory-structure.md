@@ -23,11 +23,10 @@ This project does not currently use Vue Router, Pinia, Vuetify, UnoCSS, or an El
 src/docker/
 ├── webui-src/
 │   ├── App.vue
+│   ├── legacy-app.ts
 │   ├── index.html
-│   ├── legacy-modules.d.ts
 │   └── main.ts
 └── webui/
-    ├── app-*.js
     ├── styles.css
     ├── styles-components.css
     ├── styles-responsive.css
@@ -41,7 +40,7 @@ src/docker/
 - Put Vue app entry code in `src/docker/webui-src/main.ts`.
 - Put the Vite HTML shell in `src/docker/webui-src/index.html`.
 - Put Vue shell/component code in `src/docker/webui-src/*.vue`.
-- Keep transitional legacy browser modules in `src/docker/webui/*.js` until they are migrated.
+- Keep only the static legacy HTML/CSS compatibility assets in `src/docker/webui/`; production boot behavior now lives in TypeScript under `src/docker/webui-src/`.
 - Keep shared visual styles in `src/docker/webui/styles*.css` while the conservative migration preserves the current UI.
 - Keep Docker runtime serving concerns in `src/docker/webui.ts` and `src/docker/server-webui-routes.ts`.
 

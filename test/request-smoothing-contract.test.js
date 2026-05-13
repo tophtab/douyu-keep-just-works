@@ -67,7 +67,7 @@ function getAsyncMethodBody(source, methodName) {
 }
 
 test('Docker WebUI coalesces duplicate local Douyu-backed reads without client cooldowns', () => {
-  const webui = readRepoFile('src/docker/webui/app.js')
+  const webui = readRepoFile('src/docker/webui-src/legacy-app.ts')
   const legacyState = readRepoFile('src/docker/webui-src/legacy-state.ts')
   const actions = readWebuiResourceActionSources()
 

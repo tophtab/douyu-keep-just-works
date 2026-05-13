@@ -29,9 +29,9 @@ Complete the Docker WebUI migration from the transitional legacy browser modules
 - [x] Legacy modules that still need auth state can consume a narrow compatibility bridge until they are migrated.
 - [x] Vue/TS request helpers provide the shared path for JSON requests, 401/session expiration handling, and toast feedback before page migrations depend on them.
 - [x] Read-only data surfaces establish a reusable Vue loading/error pattern before form-heavy or action-heavy pages move.
-- [ ] Each migration slice removes or disables the corresponding legacy owner and leaves unrelated legacy behavior untouched.
-- [ ] `src/docker/webui-src/main.ts` no longer imports legacy modules when the final migration slice is complete.
-- [ ] `npm run lint`, `npm run type-check`, relevant focused tests, and `npm test` pass at suitable rollback points.
+- [x] Each migration slice removes or disables the corresponding legacy owner and leaves unrelated legacy behavior untouched.
+- [x] `src/docker/webui-src/main.ts` no longer imports legacy modules when the final migration slice is complete.
+- [x] `npm run lint`, `npm run type-check`, relevant focused tests, and `npm test` pass at suitable rollback points.
 
 ## Definition of Done
 
@@ -69,11 +69,12 @@ Use a strangler migration: move one behavior owner at a time into Vue while main
   - `src/docker/webui-src/navigation.ts`
   - `src/docker/webui-src/theme.ts`
   - `src/docker/webui-src/toast.ts`
-- Current transitional legacy modules include:
-  - `src/docker/webui/app-auth-actions.js`
-  - `src/docker/webui/app-request.js`
+- Former transitional production boot modules now removed from the Vite boot path:
+  - `src/docker/webui/app.js`
+  - `src/docker/webui/app-actions.js`
+  - `src/docker/webui/app-events.js`
   - `src/docker/webui/app-pages.js`
-  - task/resource/action modules under `src/docker/webui/app-*.js`
+  - `src/docker/webui/app-task-pages.js`
 - Relevant specs:
   - `.trellis/spec/frontend/index.md`
   - `.trellis/spec/frontend/component-guidelines.md`
@@ -190,6 +191,17 @@ The first implementation commit should migrate the login page, app shell visibil
   - `npm run type-check` passed.
   - `npm run test:contracts` passed.
   - `npm run build:webui` passed.
+- Final TypeScript boot bridge slice:
+  - Added `src/docker/webui-src/legacy-app.ts` as the TypeScript owner for final transitional app startup, shared state/action/page/event assembly, active-tab lazy loading, refresh-state dispatch, auth-state mirroring, and `DOUYU_KEEP_WEBUI_LEGACY` publication.
+  - Added `src/docker/webui-src/actions.ts`, `pages.ts`, `task-pages.ts`, and `events.ts` as the TypeScript owners for the former action/page/task-page/event bridge surfaces.
+  - `src/docker/webui-src/main.ts` now installs TypeScript bridge owners directly, mounts Vue, and calls `startLegacyApp()`; it no longer dynamically imports `../webui/app*.js`.
+  - Removed `src/docker/webui/app.js`, `app-actions.js`, `app-events.js`, `app-pages.js`, `app-task-pages.js`, and the no-longer-needed `src/docker/webui-src/legacy-modules.d.ts`.
+  - Updated contract tests and specs so future work treats the production WebUI boot path as Vue/TypeScript-owned.
+  - `npm run lint` passed.
+  - `npm run type-check:webui` passed.
+  - `npm run test:contracts` passed.
+  - `npm run build:webui` passed.
+  - `npm test` passed, including `npm run build:docker`.
 - `npm run lint` passed.
 - `npm run type-check` passed.
 - `npm run test:contracts` passed.

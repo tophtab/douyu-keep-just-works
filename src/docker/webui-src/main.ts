@@ -1,30 +1,26 @@
 import { createApp } from 'vue'
 import App from './App.vue'
+import { installLegacyActionBridge } from './actions'
 import { installLegacyCollectTaskBridge } from './collect'
 import { installLegacyCookieActionBridge } from './cookie'
 import { installLegacyDoubleTaskBridge } from './double'
+import { installLegacyEventBridge } from './events'
 import { installLegacyExpiringTaskBridge } from './expiring'
 import { installLegacyKeepaliveTaskBridge } from './keepalive'
+import { startLegacyApp } from './legacy-app'
 import { installLegacyCoreBridge } from './legacy-core'
 import { installLegacyRequestBridge } from './request'
 import { installLegacyFansResourceBridge, installLegacyResourceActionsBridge, installLegacySystemResourceBridge } from './resources'
 import { installLegacyManagedDataBridge, installLegacyProtectedStateBridge, installLegacyStateBridge } from './legacy-state'
+import { installLegacyPageBridge } from './pages'
 import { installLegacySendTaskActionsBridge, installLegacySimpleTaskActionsBridge, installLegacyTaskActionsBridge } from './task-actions'
+import { installLegacyTaskPageBridge } from './task-pages'
 import { installLegacyYubaBridge } from './yuba'
 
 import '../webui/styles.css'
 import '../webui/styles-components.css'
 import '../webui/styles-tables.css'
 import '../webui/styles-responsive.css'
-
-async function bootstrapLegacyBehavior(): Promise<void> {
-  installLegacySystemResourceBridge()
-  await import('../webui/app-task-pages.js')
-  await import('../webui/app-pages.js')
-  await import('../webui/app-actions.js')
-  await import('../webui/app-events.js')
-  await import('../webui/app.js')
-}
 
 installLegacyCoreBridge()
 installLegacyStateBridge()
@@ -38,9 +34,14 @@ installLegacyDoubleTaskBridge()
 installLegacyExpiringTaskBridge()
 installLegacyFansResourceBridge()
 installLegacyYubaBridge()
+installLegacySystemResourceBridge()
 installLegacyResourceActionsBridge()
 installLegacySimpleTaskActionsBridge()
 installLegacySendTaskActionsBridge()
 installLegacyTaskActionsBridge()
+installLegacyEventBridge()
+installLegacyTaskPageBridge()
+installLegacyPageBridge()
+installLegacyActionBridge()
 createApp(App).mount('#app')
-void bootstrapLegacyBehavior()
+startLegacyApp()

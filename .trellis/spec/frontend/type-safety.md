@@ -18,7 +18,7 @@ Shared backend/core TypeScript is checked separately through `tsconfig.docker.js
 
 - Put cross-runtime domain types in `src/core/types.ts`.
 - Define UI-only interfaces next to the component or helper that owns them.
-- Use `src/docker/webui-src/legacy-modules.d.ts` only for transitional imports from existing plain JavaScript modules.
+- Do not add `legacy-modules.d.ts` for Docker WebUI boot code; the production WebUI boot path is TypeScript-owned.
 
 ## Validation
 

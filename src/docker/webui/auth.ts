@@ -1,53 +1,28 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { requestJson, UNAUTHORIZED_EVENT_NAME } from './request'
-import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
+import { WEBUI_APP_EVENTS } from './app-events'
 import { showToast } from './toast'
 
 interface AuthStatusResponse {
   authenticated?: unknown
 }
 
-interface LegacyAuthBridge {
-  clearProtectedState: () => void
-  loadProtectedData: () => Promise<void>
-}
-
 interface AuthStateDetail {
   authenticated: boolean
 }
 
-declare global {
-  interface Window {
-    DOUYU_KEEP_WEBUI_LEGACY?: LegacyAuthBridge
-  }
+interface AuthSessionOptions {
+  clearProtectedState: () => void
+  loadProtectedData: () => Promise<void>
 }
 
-export const AUTH_STATE_EVENT_NAME = WEBUI_BRIDGE_EVENTS.authState
-export const LEGACY_READY_EVENT_NAME = WEBUI_BRIDGE_EVENTS.legacyReady
+export const AUTH_STATE_EVENT_NAME = WEBUI_APP_EVENTS.authState
 export { UNAUTHORIZED_EVENT_NAME }
 
 function dispatchAuthState(authenticated: boolean): void {
   document.dispatchEvent(new CustomEvent<AuthStateDetail>(AUTH_STATE_EVENT_NAME, {
     detail: { authenticated },
   }))
-}
-
-function waitForLegacyBridge(): Promise<LegacyAuthBridge> {
-  if (window.DOUYU_KEEP_WEBUI_LEGACY) {
-    return Promise.resolve(window.DOUYU_KEEP_WEBUI_LEGACY)
-  }
-
-  return new Promise((resolve) => {
-    document.addEventListener(LEGACY_READY_EVENT_NAME, () => {
-      if (window.DOUYU_KEEP_WEBUI_LEGACY) {
-        resolve(window.DOUYU_KEEP_WEBUI_LEGACY)
-      }
-    }, { once: true })
-  })
-}
-
-function clearProtectedState(): void {
-  window.DOUYU_KEEP_WEBUI_LEGACY?.clearProtectedState()
 }
 
 function consumeWebPasswordFromUrl(): { password: string, present: boolean } {
@@ -74,7 +49,7 @@ function getRequestErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-export function useAuthSession() {
+export function useAuthSession(options: AuthSessionOptions) {
   const authChecked = ref(false)
   const authenticated = ref(false)
   const loginError = ref('')
@@ -97,9 +72,8 @@ export function useAuthSession() {
   }
 
   async function loadProtectedData(): Promise<void> {
-    const legacyBridge = await waitForLegacyBridge()
     dispatchAuthState(authenticated.value)
-    await legacyBridge.loadProtectedData()
+    await options.loadProtectedData()
   }
 
   async function loadAuthStatus(): Promise<boolean> {
@@ -132,7 +106,7 @@ export function useAuthSession() {
       submittingLogin.value = false
       loginError.value = `检查登录状态失败：${getRequestErrorMessage(error)}`
       setAuthenticated(false)
-      clearProtectedState()
+      options.clearProtectedState()
       return false
     }
   }
@@ -203,7 +177,7 @@ export function useAuthSession() {
     loginError.value = ''
     authChecked.value = true
     setAuthenticated(false)
-    clearProtectedState()
+    options.clearProtectedState()
     showToast('已退出登录', true)
   }
 
@@ -214,7 +188,7 @@ export function useAuthSession() {
     loginError.value = '登录已失效，请重新输入密码。'
     authChecked.value = true
     setAuthenticated(false)
-    clearProtectedState()
+    options.clearProtectedState()
   }
 
   function startAuthSession(): void {

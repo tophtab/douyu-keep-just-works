@@ -1,13 +1,13 @@
 import type { DoubleCardConfig, DoubleCardGiftScope, Fans, FanStatus } from '../../core/types'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { DEFAULT_DOUBLE_CARD_CRON, DEFAULT_DOUBLE_CARD_GIFT_SCOPE, DEFAULT_DOUBLE_CARD_MODEL } from '../../core/task-defaults'
 import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, buildEnabledRoomMap, formatRatioPercent, normalizeAllocationModel } from './allocation-task'
-import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
-import { applyFanTaskPageDetail, createFanListMessages, createFanTaskTriggerRefreshes, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isLegacyOrHttpUnauthorized, isTaskActive, resolveCurrentTaskConfig, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import { fansListError as sharedFansListError, fansListLoaded as sharedFansListLoaded, fansStatus as sharedFansStatus, getManagedConfig, getManagedFans, loadFansStatus, loadLogs, loadOverview, managed, managedLoading as sharedManagedLoading, overview as sharedOverview, rawConfig as sharedRawConfig, refreshOverviewSurface } from './resource-state'
+import { createFanListMessages, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isHttpUnauthorized, isTaskActive, resolveCurrentTaskConfig, saveTaskConfig, triggerTask } from './task-shared'
 import { showToast } from './toast'
-import type { CookieSourceConfig, FanTaskPageDetail, LegacyFanTaskDeps, TaskRunStatus } from './task-shared'
+import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface DoubleOverview {
   doubleCardConfigured?: boolean
@@ -23,21 +23,10 @@ interface RawDoubleConfig extends CookieSourceConfig {
 
 type DoubleFan = Fans & Partial<Pick<FanStatus, 'doubleActive'>>
 
-type DoublePageDetail = FanTaskPageDetail<DoubleFan, RawDoubleConfig, DoubleOverview>
-
-type LegacyDoubleDeps = LegacyFanTaskDeps<RawDoubleConfig, DoubleFan>
-
-interface LegacyDoubleActions {
-  disableDoubleConfig: () => Promise<void>
-  saveDoubleConfig: (options?: { revertCheckboxOnError?: boolean }) => Promise<void>
-}
-
 interface DoubleFanRow extends AllocationFanRow {
   doubleActive?: boolean
   enabled: boolean
 }
-
-const DOUBLE_PAGE_EVENT_NAME = WEBUI_BRIDGE_EVENTS.doublePage
 
 const overview = ref<DoubleOverview | null>(null)
 const rawConfig = ref<RawDoubleConfig | null>(null)
@@ -53,18 +42,8 @@ const doubleGiftScope = ref<DoubleCardGiftScope>(DEFAULT_DOUBLE_CARD_GIFT_SCOPE)
 const fanRows = ref<DoubleFanRow[]>([])
 const { cronPreviewText: doubleCronPreviewText, ensureCronPreview, loadCronPreview: loadDoubleCronPreview } = useCronPreview(() => doubleCron.value)
 
-let legacyDeps: LegacyDoubleDeps | null = null
-
-declare global {
-  interface Window {
-    DOUYU_KEEP_WEBUI_DOUBLE_TASK_ACTIONS?: {
-      create: (deps: LegacyDoubleDeps) => LegacyDoubleActions
-    }
-  }
-}
-
 function isUnauthorizedError(error: unknown): boolean {
-  return isLegacyOrHttpUnauthorized(error, legacyDeps?.isUnauthorizedError)
+  return isHttpUnauthorized(error)
 }
 
 function normalizeModel(model: unknown): 1 | 2 {
@@ -113,13 +92,14 @@ function applyDoubleConfig(config: DoubleCardConfig): void {
   void ensureCronPreview()
 }
 
-function applyRawConfig(config: RawDoubleConfig | null): void {
-  rawConfig.value = config
-  applyDoubleConfig(getDoubleConfig())
-}
-
-function applyDoublePageDetail(detail: DoublePageDetail): void {
-  applyFanTaskPageDetail(detail, { rawConfig, managedConfig, overview, fans, fansListError, fansListLoaded, managedLoading })
+function applyResourceState(): void {
+  rawConfig.value = sharedRawConfig.value
+  managedConfig.value = getManagedConfig()
+  overview.value = sharedOverview.value
+  fans.value = getManagedFans() as DoubleFan[]
+  fansListError.value = sharedFansListError.value
+  fansListLoaded.value = sharedFansListLoaded.value
+  managedLoading.value = sharedManagedLoading.value
   applyDoubleConfig(getDoubleConfig())
 }
 
@@ -135,7 +115,7 @@ function buildDoublePayload(): DoubleCardConfig {
 }
 
 async function refreshDoubleSurfaces(): Promise<void> {
-  await legacyDeps?.refreshOverviewSurface(false)
+  await refreshOverviewSurface('double-card', false)
 }
 
 async function saveDoubleConfig(options?: { revertCheckboxOnError?: boolean }): Promise<void> {
@@ -168,8 +148,6 @@ async function disableDoubleConfig(): Promise<void> {
     configKey: 'doubleCard',
     managedConfig: managedConfig.value,
     rawConfig: rawConfig.value,
-    getManagedConfig: legacyDeps?.getManagedConfig,
-    getRawConfig: legacyDeps?.getRawConfig,
     fallback: {
       active: true,
       cron: DEFAULT_DOUBLE_CARD_CRON,
@@ -204,14 +182,12 @@ async function triggerDoubleTask(): Promise<void> {
   await triggerTask({
     taskType: 'doubleCard',
     isUnauthorizedError,
-    refresh: createFanTaskTriggerRefreshes(legacyDeps),
-    onSuccess: () => {
-      if (legacyDeps) {
-        fans.value = legacyDeps.getManagedFans()
-        managedConfig.value = legacyDeps.getManagedConfig()
-        applyDoubleConfig(getDoubleConfig())
-      }
-    },
+    refresh: [
+      () => loadOverview(),
+      () => loadLogs(),
+      () => loadFansStatus(false),
+    ],
+    onSuccess: applyResourceState,
   })
 }
 
@@ -333,15 +309,7 @@ export function useDoubleTaskPage() {
     showToast(preset === 'level' ? '已按粉丝牌等级填入权重值' : '已将参与房间全部设为 1', true)
   }
 
-  useLegacyPageEvents<DoublePageDetail, RawDoubleConfig, DoubleOverview>({
-    pageEventName: DOUBLE_PAGE_EVENT_NAME,
-    onPageDetail: applyDoublePageDetail,
-    onRawConfig: applyRawConfig,
-    onOverview: (nextOverview) => {
-      overview.value = nextOverview
-    },
-    ensureCronPreview,
-  })
+  watch([sharedRawConfig, managed, sharedFansStatus, sharedOverview, sharedManagedLoading, sharedFansListError, sharedFansListLoaded], applyResourceState, { immediate: true })
 
   return {
     applyDoubleRatioPreset,
@@ -363,28 +331,5 @@ export function useDoubleTaskPage() {
     showDoubleRatioTools,
     showDoubleTable,
     triggerDoubleTask,
-  }
-}
-
-function createLegacyDoubleActions(deps: LegacyDoubleDeps): LegacyDoubleActions {
-  legacyDeps = deps
-  rawConfig.value = deps.getRawConfig()
-  managedConfig.value = deps.getManagedConfig()
-  fans.value = deps.getManagedFans()
-  applyRawConfig(rawConfig.value)
-
-  return {
-    disableDoubleConfig,
-    saveDoubleConfig,
-  }
-}
-
-export function dispatchDoublePageState(detail: DoublePageDetail): void {
-  document.dispatchEvent(new CustomEvent(DOUBLE_PAGE_EVENT_NAME, { detail }))
-}
-
-export function installLegacyDoubleTaskBridge(): void {
-  window.DOUYU_KEEP_WEBUI_DOUBLE_TASK_ACTIONS = {
-    create: createLegacyDoubleActions,
   }
 }

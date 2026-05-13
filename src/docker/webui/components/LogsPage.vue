@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { WebUiPageTab } from '../navigation'
 import { toRef } from 'vue'
-import { useLogsPage } from '../resources'
+import { useLogsPage } from '../logs-resource'
 
 const props = defineProps<{
   activeTab: WebUiPageTab

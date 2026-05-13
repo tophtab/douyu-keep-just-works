@@ -1,6 +1,3 @@
-import { onBeforeUnmount, onMounted } from 'vue'
-import type { Ref } from 'vue'
-import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { formatDate } from './datetime'
 import { requestJson } from './request'
 import { showToast } from './toast'
@@ -40,50 +37,11 @@ export interface CookieSourceConfig {
   }
 }
 
-export interface LegacyPageEventOptions<PageDetail, RawConfig, Overview> {
-  ensureCronPreview?: () => Promise<void>
-  onOverview: (overview: Overview | null) => void
-  onPageDetail: (detail: PageDetail) => void
-  onRawConfig: (rawConfig: RawConfig | null) => void
-  pageEventName: string
-}
-
-export interface FanTaskPageDetail<TFan, RawConfig, Overview> {
-  fans?: TFan[]
-  fansListError?: string
-  fansListLoaded?: boolean
-  managedConfig?: RawConfig | null
-  managedLoading?: boolean
-  overview?: Overview | null
-  rawConfig?: RawConfig | null
-}
-
-export interface FanTaskPageRefs<TFan, RawConfig, Overview> {
-  fans: Ref<TFan[]>
-  fansListError: Ref<string>
-  fansListLoaded: Ref<boolean>
-  managedConfig: Ref<RawConfig | null>
-  managedLoading: Ref<boolean>
-  overview: Ref<Overview | null>
-  rawConfig: Ref<RawConfig | null>
-}
-
 export interface TaskTriggerOptions {
   isUnauthorizedError: (error: unknown) => boolean
   onSuccess?: () => Promise<void> | void
   refresh?: Array<(() => Promise<unknown> | undefined) | undefined>
   taskType: WebUiTaskType
-}
-
-export interface LegacyFanTaskDeps<RawConfig, TFan> {
-  getManagedConfig: () => RawConfig
-  getManagedFans: () => TFan[]
-  getRawConfig: () => RawConfig
-  isUnauthorizedError: (error: unknown) => boolean
-  loadFansStatus?: (forceRefresh?: boolean) => Promise<unknown>
-  loadLogs?: () => Promise<unknown>
-  loadOverview?: () => Promise<unknown>
-  refreshOverviewSurface: (showToast: boolean) => Promise<unknown>
 }
 
 export interface SaveTaskConfigOptions {
@@ -122,8 +80,6 @@ export interface FanListMessages {
   note: string
 }
 
-export type UnauthorizedChecker = (error: unknown) => boolean
-
 export type WebUiTaskType = 'collectGift' | 'keepalive' | 'doubleCard' | 'expiringGift' | 'yubaCheckIn'
 
 const WEBUI_TASK_TYPES: WebUiTaskType[] = ['collectGift', 'keepalive', 'doubleCard', 'expiringGift', 'yubaCheckIn']
@@ -136,43 +92,12 @@ export function getTaskTriggerEndpoint(type: WebUiTaskType): string {
   return `/api/trigger/${type}`
 }
 
-export function applyFanTaskPageDetail<TFan, RawConfig, Overview>(
-  detail: FanTaskPageDetail<TFan, RawConfig, Overview>,
-  refs: FanTaskPageRefs<TFan, RawConfig, Overview>,
-): void {
-  if ('rawConfig' in detail) {
-    refs.rawConfig.value = detail.rawConfig || null
-  }
-  if ('managedConfig' in detail) {
-    refs.managedConfig.value = detail.managedConfig || null
-  }
-  if ('overview' in detail) {
-    refs.overview.value = detail.overview || null
-  }
-  if ('fans' in detail) {
-    refs.fans.value = detail.fans || []
-  }
-  if ('fansListError' in detail) {
-    refs.fansListError.value = detail.fansListError || ''
-  }
-  if ('fansListLoaded' in detail) {
-    refs.fansListLoaded.value = Boolean(detail.fansListLoaded)
-  }
-  if ('managedLoading' in detail) {
-    refs.managedLoading.value = Boolean(detail.managedLoading)
-  }
-}
-
 export function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
 export function isHttpUnauthorized(error: unknown): boolean {
   return Boolean(error && typeof error === 'object' && 'status' in error && error.status === 401)
-}
-
-export function isLegacyOrHttpUnauthorized(error: unknown, ...checkers: Array<UnauthorizedChecker | undefined>): boolean {
-  return checkers.some(checker => checker?.(error)) || isHttpUnauthorized(error)
 }
 
 export function hasCookieSourceConfigured(config: CookieSourceConfig | null): boolean {
@@ -243,18 +168,6 @@ export function createPendingTaskCard(thirdLabel: string): TaskStatusCardState {
   }
 }
 
-export function createFanTaskTriggerRefreshes(deps: {
-  loadFansStatus?: (forceRefresh?: boolean) => Promise<unknown>
-  loadLogs?: () => Promise<unknown>
-  loadOverview?: () => Promise<unknown>
-} | null): Array<() => Promise<unknown> | undefined> {
-  return [
-    () => deps?.loadOverview?.(),
-    () => deps?.loadLogs?.(),
-    () => deps?.loadFansStatus?.(false),
-  ]
-}
-
 export function getAllocationValueLabel(model: 1 | 2): string {
   return model === 2 ? '数量' : '权重值'
 }
@@ -295,39 +208,6 @@ export function createScheduledTaskCard(configured: boolean, status: TaskRunStat
       thirdCell,
     ],
   }
-}
-
-export function useLegacyPageEvents<PageDetail, RawConfig, Overview>(options: LegacyPageEventOptions<PageDetail, RawConfig, Overview>): void {
-  function handlePageEvent(event: Event): void {
-    options.onPageDetail((event as CustomEvent<PageDetail>).detail || {} as PageDetail)
-  }
-
-  function handleConfigEvent(event: Event): void {
-    const detail = (event as CustomEvent<{ rawConfig?: RawConfig | null }>).detail || {}
-    if ('rawConfig' in detail) {
-      options.onRawConfig(detail.rawConfig || null)
-    }
-  }
-
-  function handleOverviewEvent(event: Event): void {
-    const detail = (event as CustomEvent<{ overview?: Overview | null }>).detail || {}
-    if ('overview' in detail) {
-      options.onOverview(detail.overview || null)
-    }
-  }
-
-  onMounted(() => {
-    document.addEventListener(options.pageEventName, handlePageEvent)
-    document.addEventListener(WEBUI_BRIDGE_EVENTS.config, handleConfigEvent)
-    document.addEventListener(WEBUI_BRIDGE_EVENTS.overview, handleOverviewEvent)
-    void options.ensureCronPreview?.()
-  })
-
-  onBeforeUnmount(() => {
-    document.removeEventListener(options.pageEventName, handlePageEvent)
-    document.removeEventListener(WEBUI_BRIDGE_EVENTS.config, handleConfigEvent)
-    document.removeEventListener(WEBUI_BRIDGE_EVENTS.overview, handleOverviewEvent)
-  })
 }
 
 async function postConfigPayload(payload: unknown): Promise<void> {

@@ -1,12 +1,12 @@
 import type { Fans, JobConfig } from '../../core/types'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { DEFAULT_KEEPALIVE_CRON, DEFAULT_KEEPALIVE_MODEL } from '../../core/task-defaults'
 import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationModel } from './allocation-task'
-import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
-import { applyFanTaskPageDetail, createFanListMessages, createFanTaskTriggerRefreshes, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getAllocationValueLabel, hasFanTaskTableRows, isLegacyOrHttpUnauthorized, isTaskActive, resolveCurrentTaskConfig, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
-import type { CookieSourceConfig, FanTaskPageDetail, LegacyFanTaskDeps, TaskRunStatus } from './task-shared'
+import { fansListError as sharedFansListError, fansListLoaded as sharedFansListLoaded, fansStatus as sharedFansStatus, getManagedConfig, getManagedFans, loadFansStatus, loadLogs, loadOverview, managed, managedLoading as sharedManagedLoading, overview as sharedOverview, rawConfig as sharedRawConfig, refreshOverviewSurface } from './resource-state'
+import { createFanListMessages, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getAllocationValueLabel, hasFanTaskTableRows, isHttpUnauthorized, isTaskActive, resolveCurrentTaskConfig, saveTaskConfig, triggerTask } from './task-shared'
+import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface KeepaliveOverview {
   keepaliveConfigured?: boolean
@@ -20,18 +20,7 @@ interface RawKeepaliveConfig extends CookieSourceConfig {
   keepalive?: JobConfig
 }
 
-type KeepalivePageDetail = FanTaskPageDetail<Fans, RawKeepaliveConfig, KeepaliveOverview>
-
-type LegacyKeepaliveDeps = LegacyFanTaskDeps<RawKeepaliveConfig, Fans>
-
-interface LegacyKeepaliveActions {
-  disableKeepaliveConfig: () => Promise<void>
-  saveKeepaliveConfig: (options?: { revertCheckboxOnError?: boolean }) => Promise<void>
-}
-
 type KeepaliveFanRow = AllocationFanRow
-
-const KEEPALIVE_PAGE_EVENT_NAME = WEBUI_BRIDGE_EVENTS.keepalivePage
 
 const overview = ref<KeepaliveOverview | null>(null)
 const rawConfig = ref<RawKeepaliveConfig | null>(null)
@@ -46,18 +35,8 @@ const keepaliveModel = ref<1 | 2>(DEFAULT_KEEPALIVE_MODEL)
 const fanRows = ref<KeepaliveFanRow[]>([])
 const { cronPreviewText: keepaliveCronPreviewText, ensureCronPreview, loadCronPreview: loadKeepaliveCronPreview } = useCronPreview(() => keepaliveCron.value)
 
-let legacyDeps: LegacyKeepaliveDeps | null = null
-
-declare global {
-  interface Window {
-    DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS?: {
-      create: (deps: LegacyKeepaliveDeps) => LegacyKeepaliveActions
-    }
-  }
-}
-
 function isUnauthorizedError(error: unknown): boolean {
-  return isLegacyOrHttpUnauthorized(error, legacyDeps?.isUnauthorizedError)
+  return isHttpUnauthorized(error)
 }
 
 function normalizeModel(model: unknown): 1 | 2 {
@@ -87,18 +66,14 @@ function buildFanRows(nextFans: Fans[], config: JobConfig): KeepaliveFanRow[] {
   })
 }
 
-function applyRawConfig(config: RawKeepaliveConfig | null): void {
-  rawConfig.value = config
-  const keepaliveConfig = getKeepaliveConfig()
-  keepaliveEnabled.value = isTaskActive(keepaliveConfig)
-  keepaliveCron.value = keepaliveConfig.cron || DEFAULT_KEEPALIVE_CRON
-  keepaliveModel.value = normalizeModel(keepaliveConfig.model)
-  fanRows.value = buildFanRows(fans.value, keepaliveConfig)
-  void ensureCronPreview()
-}
-
-function applyKeepalivePageDetail(detail: KeepalivePageDetail): void {
-  applyFanTaskPageDetail(detail, { rawConfig, managedConfig, overview, fans, fansListError, fansListLoaded, managedLoading })
+function applyResourceState(): void {
+  rawConfig.value = sharedRawConfig.value
+  managedConfig.value = getManagedConfig()
+  overview.value = sharedOverview.value
+  fans.value = getManagedFans()
+  fansListError.value = sharedFansListError.value
+  fansListLoaded.value = sharedFansListLoaded.value
+  managedLoading.value = sharedManagedLoading.value
   const keepaliveConfig = getKeepaliveConfig()
   keepaliveEnabled.value = isTaskActive(keepaliveConfig)
   keepaliveCron.value = keepaliveConfig.cron || DEFAULT_KEEPALIVE_CRON
@@ -117,7 +92,7 @@ function buildSendPayload(): JobConfig {
 }
 
 async function refreshKeepaliveSurfaces(): Promise<void> {
-  await legacyDeps?.refreshOverviewSurface(false)
+  await refreshOverviewSurface('keepalive', false)
 }
 
 async function saveKeepaliveConfig(options?: { revertCheckboxOnError?: boolean }): Promise<void> {
@@ -139,8 +114,6 @@ async function disableKeepaliveConfig(): Promise<void> {
     configKey: 'keepalive',
     managedConfig: managedConfig.value,
     rawConfig: rawConfig.value,
-    getManagedConfig: legacyDeps?.getManagedConfig,
-    getRawConfig: legacyDeps?.getRawConfig,
     fallback: {
       active: true,
       cron: DEFAULT_KEEPALIVE_CRON,
@@ -171,7 +144,11 @@ async function triggerKeepaliveTask(): Promise<void> {
   await triggerTask({
     taskType: 'keepalive',
     isUnauthorizedError,
-    refresh: createFanTaskTriggerRefreshes(legacyDeps),
+    refresh: [
+      () => loadOverview(),
+      () => loadLogs(),
+      () => loadFansStatus(false),
+    ],
   })
 }
 
@@ -221,15 +198,7 @@ export function useKeepaliveTaskPage() {
     })
   }
 
-  useLegacyPageEvents<KeepalivePageDetail, RawKeepaliveConfig, KeepaliveOverview>({
-    pageEventName: KEEPALIVE_PAGE_EVENT_NAME,
-    onPageDetail: applyKeepalivePageDetail,
-    onRawConfig: applyRawConfig,
-    onOverview: (nextOverview) => {
-      overview.value = nextOverview
-    },
-    ensureCronPreview,
-  })
+  watch([sharedRawConfig, managed, sharedFansStatus, sharedOverview, sharedManagedLoading, sharedFansListError, sharedFansListLoaded], applyResourceState, { immediate: true })
 
   return {
     fanRows,
@@ -247,28 +216,5 @@ export function useKeepaliveTaskPage() {
     saveKeepaliveConfig,
     showKeepaliveTable,
     triggerKeepaliveTask,
-  }
-}
-
-function createLegacyKeepaliveActions(deps: LegacyKeepaliveDeps): LegacyKeepaliveActions {
-  legacyDeps = deps
-  rawConfig.value = deps.getRawConfig()
-  managedConfig.value = deps.getManagedConfig()
-  fans.value = deps.getManagedFans()
-  applyRawConfig(rawConfig.value)
-
-  return {
-    disableKeepaliveConfig,
-    saveKeepaliveConfig,
-  }
-}
-
-export function dispatchKeepalivePageState(detail: KeepalivePageDetail): void {
-  document.dispatchEvent(new CustomEvent(KEEPALIVE_PAGE_EVENT_NAME, { detail }))
-}
-
-export function installLegacyKeepaliveTaskBridge(): void {
-  window.DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS = {
-    create: createLegacyKeepaliveActions,
   }
 }

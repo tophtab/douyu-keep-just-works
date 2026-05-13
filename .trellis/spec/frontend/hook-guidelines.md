@@ -49,14 +49,13 @@ await requestJson('/api/config', {
 })
 ```
 
-Resource loaders in `resources.ts` also track pending requests and request sequence numbers for legacy surfaces. Reuse those patterns when preventing stale responses.
+Resource loaders in `resources.ts` track pending requests and request sequence numbers for expensive server resources. Reuse those patterns when preventing duplicate in-flight reads or stale responses.
 
 ---
 
 ## Naming Conventions
 
 - Composable function names start with `use`.
-- Event bridge installers start with `installLegacy`.
 - Composable files under `composables/` use kebab-case filenames, such as `use-cron-preview.ts`.
 - Returned action names should describe user actions: `refreshOverview`, `selectThemeMode`, `submitLogin`, `saveTaskConfig`.
 

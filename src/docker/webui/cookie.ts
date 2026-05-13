@@ -1,45 +1,12 @@
 import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, ManualCookieConfig } from '../../core/types'
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { DEFAULT_COOKIE_CLOUD_SYNC_CRON } from '../../core/task-defaults'
-import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
 import { formatDate } from './datetime'
 import { requestJson } from './request'
-import { getErrorMessage, isHttpUnauthorized, useLegacyPageEvents } from './task-shared'
+import { clearCookieBackedData, getManagedFans, overview, rawConfig, refreshOverviewSurface, setRawConfig } from './resource-state'
+import { getErrorMessage, isHttpUnauthorized } from './task-shared'
 import { showToast } from './toast'
-
-interface LoginOverview {
-  cookieSaved?: boolean
-  ready?: boolean
-}
-
-interface LoginPageDetail {
-  cookieCheck?: CookieDiagnostics | null
-  fansCount?: number
-  overview?: LoginOverview | null
-  rawConfig?: DockerConfig | null
-}
-
-interface LegacyCookieDeps {
-  state: {
-    rawConfig: DockerConfig | null
-    cookieCheck: CookieDiagnostics | null
-  }
-  clearCookieBackedData: () => void
-  refreshOverviewSurface: (showToast: boolean) => Promise<unknown>
-  renderLoginPage: () => void
-  renderCookieCheck: () => void
-}
-
-interface LegacyCookieActions {
-  syncCookieCloudToLoginCookies: (showToast?: boolean, rethrowError?: boolean) => Promise<unknown>
-  saveCookie: () => Promise<void>
-  saveCookieCloud: (options?: SaveCookieCloudOptions) => Promise<void>
-  checkCookieSource: (showToast?: boolean) => Promise<CookieDiagnostics | undefined>
-  saveCookieCloudToggle: (options?: { revertCheckboxOnError?: boolean }) => Promise<void>
-  saveAndEnableCookieCloud: () => Promise<void>
-  disableCookieCloud: () => Promise<void>
-}
 
 interface SaveCookieCloudOptions {
   forceEnable?: boolean
@@ -48,11 +15,6 @@ interface SaveCookieCloudOptions {
   revertActiveTo?: boolean
 }
 
-const LOGIN_PAGE_EVENT_NAME = WEBUI_BRIDGE_EVENTS.loginPage
-
-const rawConfig = ref<DockerConfig | null>(null)
-const overview = ref<LoginOverview | null>(null)
-const fansCount = ref(0)
 const cookieCheck = ref<CookieDiagnostics | null>(null)
 const mainCookie = ref('')
 const yubaCookie = ref('')
@@ -64,16 +26,6 @@ const cookieCloud = reactive({
   password: '',
 })
 const { cronPreviewText, ensureCronPreview, loadCronPreview } = useCronPreview(() => cookieCloud.cron)
-
-let legacyDeps: LegacyCookieDeps | null = null
-
-declare global {
-  interface Window {
-    DOUYU_KEEP_WEBUI_COOKIE_ACTIONS?: {
-      create: (deps: LegacyCookieDeps) => LegacyCookieActions
-    }
-  }
-}
 
 function isUnauthorizedError(error: unknown): boolean {
   return isHttpUnauthorized(error)
@@ -117,11 +69,6 @@ function getCookieSourceLabel(config: DockerConfig | null): string {
 }
 
 function applyRawConfig(config: DockerConfig | null): void {
-  rawConfig.value = config
-  if (legacyDeps) {
-    legacyDeps.state.rawConfig = config
-  }
-
   const manualCookies = getManualCookiesConfig(config)
   mainCookie.value = manualCookies.main || ''
   yubaCookie.value = manualCookies.yuba || ''
@@ -133,21 +80,6 @@ function applyRawConfig(config: DockerConfig | null): void {
   cookieCloud.cron = nextCookieCloud.cron || DEFAULT_COOKIE_CLOUD_SYNC_CRON
   cookieCloud.password = nextCookieCloud.password || ''
   void ensureCronPreview()
-}
-
-function applyLoginPageDetail(detail: LoginPageDetail): void {
-  if ('rawConfig' in detail) {
-    applyRawConfig(detail.rawConfig || null)
-  }
-  if ('overview' in detail) {
-    overview.value = detail.overview || null
-  }
-  if (typeof detail.fansCount === 'number') {
-    fansCount.value = detail.fansCount
-  }
-  if ('cookieCheck' in detail) {
-    cookieCheck.value = detail.cookieCheck || null
-  }
 }
 
 function buildCookieCheckText(result: CookieDiagnostics | null): string {
@@ -177,7 +109,7 @@ function buildCookieCheckText(result: CookieDiagnostics | null): string {
 }
 
 async function refreshOverviewAfterCookieChange(showSuccessToast: boolean): Promise<void> {
-  await legacyDeps?.refreshOverviewSurface(false)
+  await refreshOverviewSurface('overview', false)
   if (showSuccessToast) {
     showToast('状态已刷新', true)
   }
@@ -196,9 +128,10 @@ async function saveCookie(): Promise<void> {
       }),
     })
     if (data.data?.config) {
+      setRawConfig(data.data.config)
       applyRawConfig(data.data.config)
     }
-    legacyDeps?.clearCookieBackedData()
+    clearCookieBackedData()
     showToast('手填 Cookie 已保存', true)
     await refreshOverviewAfterCookieChange(false)
   } catch (error) {
@@ -209,7 +142,7 @@ async function saveCookie(): Promise<void> {
   }
 }
 
-async function syncCookieCloudToLoginCookies(showSuccessToast?: boolean, rethrowError?: boolean): Promise<unknown> {
+export async function syncCookieCloudToLoginCookies(showSuccessToast?: boolean, rethrowError?: boolean): Promise<unknown> {
   if (!getCookieCloudConfig(rawConfig.value).active) {
     return null
   }
@@ -219,12 +152,12 @@ async function syncCookieCloudToLoginCookies(showSuccessToast?: boolean, rethrow
       method: 'POST',
     })
     if (data.data?.config) {
+      setRawConfig(data.data.config)
       applyRawConfig(data.data.config)
     }
     if (data.data?.updated) {
-      legacyDeps?.clearCookieBackedData()
+      clearCookieBackedData()
     }
-    legacyDeps?.renderLoginPage()
     if (showSuccessToast) {
       showToast(data.data?.updated ? 'CookieCloud 已同步到本地登录 Cookie' : '本地登录 Cookie 已是最新同步结果', true)
     }
@@ -250,10 +183,6 @@ async function checkCookieSource(showSuccessToast = true): Promise<CookieDiagnos
       method: 'POST',
     })
     cookieCheck.value = data
-    if (legacyDeps) {
-      legacyDeps.state.cookieCheck = data
-    }
-    legacyDeps?.renderCookieCheck()
     if (showSuccessToast !== false) {
       const readyForDyTokenYuba = data.mainCookieReady && data.yubaDyTokenReady
       showToast(readyForDyTokenYuba ? '登录凭证已同步，dy-token 鱼吧请求已就绪' : '登录凭证已同步并校验，请查看缺失项', readyForDyTokenYuba)
@@ -264,10 +193,6 @@ async function checkCookieSource(showSuccessToast = true): Promise<CookieDiagnos
       return undefined
     }
     cookieCheck.value = null
-    if (legacyDeps) {
-      legacyDeps.state.cookieCheck = null
-    }
-    legacyDeps?.renderCookieCheck()
     showToast(`同步并校验登录凭证失败：${getErrorMessage(error)}`, false)
     return undefined
   }
@@ -299,20 +224,16 @@ async function saveCookieCloud(options: SaveCookieCloudOptions = {}): Promise<vo
       body: JSON.stringify(payload),
     })
     cookieCheck.value = null
-    if (legacyDeps) {
-      legacyDeps.state.cookieCheck = null
-    }
     if (data.data?.config) {
+      setRawConfig(data.data.config)
       applyRawConfig(data.data.config)
     }
-    legacyDeps?.clearCookieBackedData()
+    clearCookieBackedData()
     if (!options.quietSuccess) {
       showToast(shouldEnable ? 'CookieCloud 已保存并启用' : 'CookieCloud 配置已保存', true)
     }
     if (payload.cookieCloud.active) {
       await checkCookieSource(false)
-    } else {
-      legacyDeps?.renderLoginPage()
     }
     await refreshOverviewAfterCookieChange(false)
   } catch (error) {
@@ -372,7 +293,7 @@ export function useCookieLoginPage() {
       ],
       cells: [
         { label: '系统就绪', value: overview.value.ready ? '已就绪' : '待配置' },
-        { label: '粉丝牌', value: sourceReady ? `${fansCount.value} 个` : '未同步' },
+        { label: '粉丝牌', value: sourceReady ? `${getManagedFans().length} 个` : '未同步' },
         { label: '来源', value: getCookieSourceLabel(config) },
       ],
     }
@@ -386,13 +307,7 @@ export function useCookieLoginPage() {
     void disableCookieCloud()
   }
 
-  useLegacyPageEvents<LoginPageDetail, DockerConfig, LoginOverview>({
-    pageEventName: LOGIN_PAGE_EVENT_NAME,
-    onPageDetail: applyLoginPageDetail,
-    onRawConfig: applyRawConfig,
-    onOverview: nextOverview => overview.value = nextOverview,
-    ensureCronPreview,
-  })
+  watch(rawConfig, applyRawConfig, { immediate: true })
 
   return {
     checkCookieSource,
@@ -406,35 +321,5 @@ export function useCookieLoginPage() {
     saveAndEnableCookieCloud,
     saveCookie,
     yubaCookie,
-  }
-}
-
-function createLegacyCookieActions(deps: LegacyCookieDeps): LegacyCookieActions {
-  legacyDeps = deps
-  if (deps.state.rawConfig) {
-    applyRawConfig(deps.state.rawConfig)
-  }
-  if (deps.state.cookieCheck) {
-    cookieCheck.value = deps.state.cookieCheck
-  }
-
-  return {
-    syncCookieCloudToLoginCookies,
-    saveCookie,
-    saveCookieCloud,
-    checkCookieSource,
-    saveCookieCloudToggle,
-    saveAndEnableCookieCloud,
-    disableCookieCloud,
-  }
-}
-
-export function dispatchLoginPageState(detail: LoginPageDetail): void {
-  document.dispatchEvent(new CustomEvent(LOGIN_PAGE_EVENT_NAME, { detail }))
-}
-
-export function installLegacyCookieActionBridge(): void {
-  window.DOUYU_KEEP_WEBUI_COOKIE_ACTIONS = {
-    create: createLegacyCookieActions,
   }
 }

@@ -22,6 +22,7 @@ Remove the Docker WebUI migration compatibility layer and make Vue the single ow
 
 ## Requirements
 
+* Migrate responsibilities currently owned by the legacy runtime into Vue first, then remove the bridge layer after Vue owns the behavior.
 * Vue is the only frontend runtime started from `main.ts`; `startLegacyApp()` is removed.
 * `window.DOUYU_KEEP_WEBUI_*` bridge installers are removed where their only purpose is legacy app compatibility.
 * Page composables own their own loading, save, trigger, and refresh flows through `requestJson` and shared Vue helpers.
@@ -32,13 +33,13 @@ Remove the Docker WebUI migration compatibility layer and make Vue the single ow
 
 ## Acceptance Criteria
 
-* [ ] `src/docker/webui/main.ts` mounts Vue without installing legacy bridges or starting `startLegacyApp()`.
-* [ ] No production WebUI module exports `installLegacy*Bridge()` or registers `window.DOUYU_KEEP_WEBUI_*` except bootstrap data that is still required by `index.html`.
-* [ ] Legacy-only modules such as `legacy-app.ts`, `legacy-core.ts`, `legacy-state.ts`, `pages.ts`, `task-pages.ts`, and `actions.ts` are removed or made unnecessary.
-* [ ] `resources.ts` no longer contains legacy bridge action factories and is either small or split into Vue-only resource composables.
-* [ ] Auth, navigation, theme, overview refresh, logs, cookie config, collect/yuba/keepalive/double/expiring task pages continue to type-check and build.
-* [ ] Contract tests cover the new Vue-only ownership and fail if legacy bridge registration returns.
-* [ ] `npm run type-check:webui`, `npm run lint`, and relevant contract/build tests pass.
+* [x] `src/docker/webui/main.ts` mounts Vue without installing legacy bridges or starting `startLegacyApp()`.
+* [x] No production WebUI module exports `installLegacy*Bridge()` or registers `window.DOUYU_KEEP_WEBUI_*` except bootstrap data that is still required by `index.html`.
+* [x] Legacy-only modules such as `legacy-app.ts`, `legacy-core.ts`, `legacy-state.ts`, `pages.ts`, `task-pages.ts`, and `actions.ts` are removed or made unnecessary.
+* [x] `resources.ts` no longer contains legacy bridge action factories and is either small or split into Vue-only resource composables.
+* [x] Auth, navigation, theme, overview refresh, logs, cookie config, collect/yuba/keepalive/double/expiring task pages continue to type-check and build.
+* [x] Contract tests cover the new Vue-only ownership and fail if legacy bridge registration returns.
+* [x] `npm run type-check:webui`, `npm run lint`, and relevant contract/build tests pass.
 
 ## Definition of Done
 
@@ -107,13 +108,38 @@ Cons: riskier and messier; can obscure intended data-flow design.
 
 ## Recommended Direction
 
-Use Approach A, but implement it in small internal slices:
+Use Approach A, with the user-confirmed migration order: move responsibilities into Vue first, then delete the compatibility bridges. Implement it in small internal slices:
 
 1. Make `main.ts` Vue-only and identify all compile failures.
 2. Move auth/unauthorized/refresh responsibilities currently waiting on `legacyReady` into Vue-owned composables.
 3. Replace legacy resource request state with Vue/shared composable request coalescing.
 4. Remove legacy modules and bridge event contracts that are no longer used.
 5. Rewrite contract tests to assert the Vue-only runtime and no legacy bridge registration.
+
+## Decision (ADR-lite)
+
+**Context**: The WebUI migration to Vue left a transitional runtime where Vue components and legacy imperative bridge modules both participate in state, refresh, and action flows. This keeps files such as `resources.ts` large and makes the frontend harder to reason about.
+
+**Decision**: Migrate the remaining runtime responsibilities into Vue composables first, then remove the compatibility bridge modules and `startLegacyApp()` once Vue owns the behavior.
+
+**Consequences**: The implementation will be larger than a file split, but it removes the migration layer instead of preserving it. Contract tests must change from asserting bridge presence to asserting a Vue-only runtime and preventing bridge registration from returning.
+
+## Implementation Plan
+
+1. Move global runtime ownership to Vue:
+   * Make auth readiness, unauthorized handling, top-level refresh, and active-page lazy loading Vue-owned.
+   * Keep user-facing behavior stable while removing `legacyReady` dependencies.
+2. Move shared resources to Vue:
+   * Create Vue-owned resource/composable helpers for raw config, overview, logs, fans list/status, yuba status, and request coalescing.
+   * Wire toolbar refresh and page refresh flows to those helpers.
+3. Remove bridge/runtime code:
+   * Delete `startLegacyApp()` usage and bridge installers from `main.ts`.
+   * Remove legacy-only modules after no production imports remain.
+4. Update contracts and specs:
+   * Rewrite WebUI maintenance contracts for Vue-only runtime.
+   * Update frontend specs that currently describe bridge preservation as a maintained convention.
+5. Verify:
+   * Run WebUI type-check, lint, contract tests, and Docker/WebUI build checks.
 
 ## Out of Scope
 

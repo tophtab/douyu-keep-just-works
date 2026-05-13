@@ -1,83 +1,30 @@
 import type { CollectGiftConfig } from '../../core/types'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { DEFAULT_COLLECT_GIFT_CRON } from '../../core/task-defaults'
-import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
-import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, isLegacyOrHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
-
-import type { TaskRunStatus } from './task-shared'
-
-interface CollectOverview {
-  collectGiftConfigured?: boolean
-  status?: {
-    collectGift?: TaskRunStatus
-  }
-}
+import { loadFansStatus, loadLogs, loadOverview, overview, rawConfig, refreshOverviewSurface } from './resource-state'
+import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask } from './task-shared'
 
 interface RawCollectConfig {
   collectGift?: CollectGiftConfig
 }
 
-interface CollectPageDetail {
-  overview?: CollectOverview | null
-  rawConfig?: RawCollectConfig | null
-}
-
-interface LegacyCollectDeps {
-  getRawConfig: () => RawCollectConfig
-  isUnauthorizedError: (error: unknown) => boolean
-  loadFansStatus?: (forceRefresh?: boolean) => Promise<unknown>
-  loadLogs?: () => Promise<unknown>
-  loadOverview?: () => Promise<unknown>
-  refreshOverviewSurface: (showToast: boolean) => Promise<unknown>
-}
-
-interface LegacyCollectActions {
-  disableCollectConfig: () => Promise<void>
-  saveCollectConfig: (options?: { revertCheckboxOnError?: boolean }) => Promise<void>
-  triggerCollectTask: () => Promise<void>
-}
-
-const COLLECT_PAGE_EVENT_NAME = WEBUI_BRIDGE_EVENTS.collectPage
-
-const overview = ref<CollectOverview | null>(null)
-const rawConfig = ref<RawCollectConfig | null>(null)
 const collectEnabled = ref(false)
 const collectCron = ref(DEFAULT_COLLECT_GIFT_CRON)
 const { cronPreviewText: collectCronPreviewText, ensureCronPreview, loadCronPreview: loadCollectCronPreview } = useCronPreview(() => collectCron.value)
 
-let legacyDeps: LegacyCollectDeps | null = null
-
-declare global {
-  interface Window {
-    DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS?: {
-      create: (deps: LegacyCollectDeps) => LegacyCollectActions
-    }
-  }
-}
-
 function isUnauthorizedError(error: unknown): boolean {
-  return isLegacyOrHttpUnauthorized(error, legacyDeps?.isUnauthorizedError)
+  return isHttpUnauthorized(error)
 }
 
 function applyRawConfig(config: RawCollectConfig | null): void {
-  rawConfig.value = config
   collectEnabled.value = isTaskActive(config?.collectGift)
   collectCron.value = config?.collectGift?.cron || DEFAULT_COLLECT_GIFT_CRON
   void ensureCronPreview()
 }
 
-function applyCollectPageDetail(detail: CollectPageDetail): void {
-  if ('rawConfig' in detail) {
-    applyRawConfig(detail.rawConfig || null)
-  }
-  if ('overview' in detail) {
-    overview.value = detail.overview || null
-  }
-}
-
 async function refreshCollectSurfaces(): Promise<void> {
-  await legacyDeps?.refreshOverviewSurface(false)
+  await refreshOverviewSurface('collect', false)
 }
 
 async function saveCollectConfig(options?: { revertCheckboxOnError?: boolean }): Promise<void> {
@@ -100,7 +47,7 @@ async function saveCollectConfig(options?: { revertCheckboxOnError?: boolean }):
 }
 
 async function disableCollectConfig(): Promise<void> {
-  const currentConfig = rawConfig.value?.collectGift || legacyDeps?.getRawConfig().collectGift || {
+  const currentConfig = rawConfig.value?.collectGift || {
     active: true,
     cron: DEFAULT_COLLECT_GIFT_CRON,
   }
@@ -126,9 +73,9 @@ async function triggerCollectTask(): Promise<void> {
     taskType: 'collectGift',
     isUnauthorizedError,
     refresh: [
-      () => legacyDeps?.loadOverview?.(),
-      () => legacyDeps?.loadLogs?.(),
-      () => legacyDeps?.loadFansStatus?.(false),
+      () => loadOverview(),
+      () => loadLogs(),
+      () => loadFansStatus(false),
     ],
   })
 }
@@ -152,15 +99,7 @@ export function useCollectTaskPage() {
     void disableCollectConfig()
   }
 
-  useLegacyPageEvents<CollectPageDetail, RawCollectConfig, CollectOverview>({
-    pageEventName: COLLECT_PAGE_EVENT_NAME,
-    onPageDetail: applyCollectPageDetail,
-    onRawConfig: applyRawConfig,
-    onOverview: (nextOverview) => {
-      overview.value = nextOverview
-    },
-    ensureCronPreview,
-  })
+  watch(rawConfig, config => applyRawConfig(config), { immediate: true })
 
   return {
     collectCron,
@@ -171,26 +110,5 @@ export function useCollectTaskPage() {
     loadCollectCronPreview,
     saveCollectConfig,
     triggerCollectTask,
-  }
-}
-
-function createLegacyCollectActions(deps: LegacyCollectDeps): LegacyCollectActions {
-  legacyDeps = deps
-  applyRawConfig(deps.getRawConfig())
-
-  return {
-    disableCollectConfig,
-    saveCollectConfig,
-    triggerCollectTask,
-  }
-}
-
-export function dispatchCollectPageState(detail: CollectPageDetail): void {
-  document.dispatchEvent(new CustomEvent(COLLECT_PAGE_EVENT_NAME, { detail }))
-}
-
-export function installLegacyCollectTaskBridge(): void {
-  window.DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS = {
-    create: createLegacyCollectActions,
   }
 }

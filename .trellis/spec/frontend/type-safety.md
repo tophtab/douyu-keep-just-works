@@ -6,7 +6,7 @@
 
 ## Overview
 
-Frontend code is TypeScript plus Vue SFC templates checked by `vue-tsc`. Shared API and config contracts live in `src/core/types.ts`; frontend-only component and bridge shapes live near their consumers.
+Frontend code is TypeScript plus Vue SFC templates checked by `vue-tsc`. Shared API and config contracts live in `src/core/types.ts`; frontend-only component, app event, and resource shapes live near their consumers.
 
 ---
 

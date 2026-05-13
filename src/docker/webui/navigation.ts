@@ -1,5 +1,4 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 
 export type WebUiPageTab
   = | 'overview'
@@ -23,11 +22,6 @@ interface NavigationOptions {
   replacePath?: boolean
   skipLazyLoad?: boolean
   syncPath?: boolean
-}
-
-interface LegacyNavigationDetail {
-  tab: WebUiPageTab
-  skipLazyLoad: boolean
 }
 
 type WebUiPageRoutes = Partial<Record<WebUiPageTab, string>>
@@ -119,23 +113,6 @@ export function normalizePageRoutes(routes: WebUiPageRoutes): Record<WebUiPageTa
   }, { ...DEFAULT_PAGE_ROUTES })
 }
 
-function dispatchLegacyNavigation(detail: LegacyNavigationDetail): void {
-  document.dispatchEvent(new CustomEvent<LegacyNavigationDetail>(WEBUI_BRIDGE_EVENTS.navigation, {
-    detail,
-  }))
-}
-
-function findTabActionTarget(target: EventTarget | null): HTMLElement | null {
-  let current = target instanceof HTMLElement ? target : null
-  while (current && current !== document.body) {
-    if (current.getAttribute('data-action') === 'tab') {
-      return current
-    }
-    current = current.parentElement
-  }
-  return null
-}
-
 export function usePageNavigation(pageRoutes: WebUiPageRoutes) {
   const routes = normalizePageRoutes(pageRoutes)
   const activeTab = ref<WebUiPageTab>(getTabByPath(window.location.pathname))
@@ -178,11 +155,6 @@ export function usePageNavigation(pageRoutes: WebUiPageRoutes) {
     if (options.syncPath !== false) {
       syncPathWithTab(activeTab.value, Boolean(options.replacePath))
     }
-
-    dispatchLegacyNavigation({
-      tab: activeTab.value,
-      skipLazyLoad: Boolean(options.skipLazyLoad),
-    })
 
     if (options.focus) {
       void nextTick(() => {
@@ -232,24 +204,11 @@ export function usePageNavigation(pageRoutes: WebUiPageRoutes) {
     })
   }
 
-  function handleDocumentTabClick(event: MouseEvent): void {
-    const target = findTabActionTarget(event.target)
-    const tab = target?.getAttribute('data-tab') ?? ''
-    if (!target || !isWebUiPageTab(tab)) {
-      return
-    }
-
-    event.preventDefault()
-    selectTab(tab)
-  }
-
   onMounted(() => {
-    document.addEventListener('click', handleDocumentTabClick)
     window.addEventListener('popstate', syncTabWithCurrentPath)
   })
 
   onBeforeUnmount(() => {
-    document.removeEventListener('click', handleDocumentTabClick)
     window.removeEventListener('popstate', syncTabWithCurrentPath)
   })
 

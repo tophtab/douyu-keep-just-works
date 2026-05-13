@@ -1,11 +1,9 @@
-import type { YubaCheckInConfig, YubaCheckInMode, YubaGroupStatus, YubaStatusResponse } from '../../core/types'
-import { computed, ref } from 'vue'
+import type { YubaCheckInConfig, YubaCheckInMode, YubaGroupStatus } from '../../core/types'
+import { computed, ref, watch } from 'vue'
 import { DEFAULT_YUBA_CHECK_IN_CRON, DEFAULT_YUBA_CHECK_IN_MODE } from '../../core/task-defaults'
-import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
-import { requestJson } from './request'
-import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getErrorMessage, hasCookieSourceConfigured as hasSharedCookieSourceConfigured, isLegacyOrHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
-import { showToast } from './toast'
+import { loadLogs, loadOverview, loadYubaStatus as loadResourceYubaStatus, overview as sharedOverview, rawConfig as sharedRawConfig, refreshOverviewSurface, yubaStatus as sharedYubaStatus, yubaStatusError as sharedYubaStatusError, yubaStatusLoaded as sharedYubaStatusLoaded, yubaStatusLoading as sharedYubaStatusLoading } from './resource-state'
+import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask } from './task-shared'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface YubaOverview {
@@ -19,61 +17,6 @@ interface RawYubaConfig extends CookieSourceConfig {
   yubaCheckIn?: YubaCheckInConfig
 }
 
-interface YubaPageDetail {
-  overview?: YubaOverview | null
-  rawConfig?: RawYubaConfig | null
-  yubaStatus?: YubaGroupStatus[]
-  yubaStatusError?: string
-  yubaStatusLoaded?: boolean
-  yubaStatusLoading?: boolean
-}
-
-interface LegacyResourceRequest {
-  pending: Promise<unknown> | null
-  requestSeq: number
-}
-
-interface LegacyYubaState {
-  overview: unknown
-  rawConfig: unknown
-  yubaStatus: YubaGroupStatus[]
-  yubaStatusError: string
-  yubaStatusLoaded: boolean
-  yubaStatusLoading: boolean
-}
-
-interface LegacyYubaResourceDeps {
-  getRawConfig: () => unknown
-  getResourceRequest: (key: 'yubaStatus') => LegacyResourceRequest
-  hasCookieSourceConfigured: (config?: unknown) => boolean
-  invalidateResourceRequest: (key: 'yubaStatus') => void
-  isUnauthorizedError: (error: unknown) => boolean
-  markResourceLoaded: (key: 'yubaStatus') => void
-  renderYubaPage: () => void
-  state: LegacyYubaState
-  toast: (message: string, ok: boolean) => void
-  trackResourceRequest: <T>(resource: LegacyResourceRequest, requestSeq: number, pending: Promise<T>) => Promise<T>
-}
-
-interface LegacyYubaTaskDeps {
-  getRawConfig: () => RawYubaConfig
-  isUnauthorizedError: (error: unknown) => boolean
-  loadLogs?: () => Promise<unknown>
-  loadOverview?: () => Promise<unknown>
-  refreshOverviewSurface: (showToast: boolean) => Promise<unknown>
-}
-
-interface LegacyYubaTaskActions {
-  disableYubaConfig: () => Promise<void>
-  saveYubaConfig: (options?: { revertCheckboxOnError?: boolean }) => Promise<void>
-}
-
-interface LegacyYubaResourceActions {
-  loadYubaStatus: (showToast?: boolean) => Promise<unknown>
-}
-
-const YUBA_PAGE_EVENT_NAME = WEBUI_BRIDGE_EVENTS.yubaPage
-
 const overview = ref<YubaOverview | null>(null)
 const rawConfig = ref<RawYubaConfig | null>(null)
 const yubaStatus = ref<YubaGroupStatus[]>([])
@@ -85,22 +28,8 @@ const yubaCron = ref(DEFAULT_YUBA_CHECK_IN_CRON)
 const yubaMode = ref<YubaCheckInMode>(DEFAULT_YUBA_CHECK_IN_MODE)
 const { cronPreviewText: yubaCronPreviewText, ensureCronPreview, loadCronPreview: loadYubaCronPreview } = useCronPreview(() => yubaCron.value)
 
-let legacyResourceDeps: LegacyYubaResourceDeps | null = null
-let legacyTaskDeps: LegacyYubaTaskDeps | null = null
-
-declare global {
-  interface Window {
-    DOUYU_KEEP_WEBUI_YUBA_RESOURCE_ACTIONS?: {
-      create: (deps: LegacyYubaResourceDeps) => LegacyYubaResourceActions
-    }
-    DOUYU_KEEP_WEBUI_YUBA_TASK_ACTIONS?: {
-      create: (deps: LegacyYubaTaskDeps) => LegacyYubaTaskActions
-    }
-  }
-}
-
 function isUnauthorizedError(error: unknown): boolean {
-  return isLegacyOrHttpUnauthorized(error, legacyTaskDeps?.isUnauthorizedError, legacyResourceDeps?.isUnauthorizedError)
+  return isHttpUnauthorized(error)
 }
 
 function normalizeMode(mode: unknown): YubaCheckInMode {
@@ -109,14 +38,6 @@ function normalizeMode(mode: unknown): YubaCheckInMode {
 
 function getYubaConfig(config: RawYubaConfig | null): YubaCheckInConfig {
   return config?.yubaCheckIn || { active: false, cron: DEFAULT_YUBA_CHECK_IN_CRON, mode: DEFAULT_YUBA_CHECK_IN_MODE }
-}
-
-function hasCookieSourceConfigured(config: RawYubaConfig | null): boolean {
-  if (legacyResourceDeps) {
-    return legacyResourceDeps.hasCookieSourceConfigured(config)
-  }
-
-  return hasSharedCookieSourceConfigured(config)
 }
 
 function applyRawConfig(config: RawYubaConfig | null): void {
@@ -128,38 +49,17 @@ function applyRawConfig(config: RawYubaConfig | null): void {
   void ensureCronPreview()
 }
 
-function applyYubaStatusState(detail: {
-  yubaStatus?: YubaGroupStatus[]
-  yubaStatusError?: string
-  yubaStatusLoaded?: boolean
-  yubaStatusLoading?: boolean
-}): void {
-  if ('yubaStatus' in detail) {
-    yubaStatus.value = detail.yubaStatus || []
-  }
-  if ('yubaStatusError' in detail) {
-    yubaStatusError.value = detail.yubaStatusError || ''
-  }
-  if ('yubaStatusLoaded' in detail) {
-    yubaStatusLoaded.value = Boolean(detail.yubaStatusLoaded)
-  }
-  if ('yubaStatusLoading' in detail) {
-    yubaStatusLoading.value = Boolean(detail.yubaStatusLoading)
-  }
-}
-
-function applyYubaPageDetail(detail: YubaPageDetail): void {
-  if ('rawConfig' in detail) {
-    applyRawConfig(detail.rawConfig || null)
-  }
-  if ('overview' in detail) {
-    overview.value = detail.overview || null
-  }
-  applyYubaStatusState(detail)
+function applyResourceState(): void {
+  applyRawConfig(sharedRawConfig.value)
+  overview.value = sharedOverview.value
+  yubaStatus.value = sharedYubaStatus.value
+  yubaStatusError.value = sharedYubaStatusError.value
+  yubaStatusLoaded.value = sharedYubaStatusLoaded.value
+  yubaStatusLoading.value = sharedYubaStatusLoading.value
 }
 
 async function refreshYubaSurfaces(): Promise<void> {
-  await legacyTaskDeps?.refreshOverviewSurface(false)
+  await refreshOverviewSurface('yuba', false)
 }
 
 async function saveYubaConfig(options?: { revertCheckboxOnError?: boolean }): Promise<void> {
@@ -183,7 +83,7 @@ async function saveYubaConfig(options?: { revertCheckboxOnError?: boolean }): Pr
 }
 
 async function disableYubaConfig(): Promise<void> {
-  const currentConfig = rawConfig.value?.yubaCheckIn || legacyTaskDeps?.getRawConfig().yubaCheckIn || {
+  const currentConfig = rawConfig.value?.yubaCheckIn || {
     active: false,
     cron: DEFAULT_YUBA_CHECK_IN_CRON,
     mode: DEFAULT_YUBA_CHECK_IN_MODE,
@@ -206,100 +106,14 @@ async function disableYubaConfig(): Promise<void> {
   })
 }
 
-function updateLegacyYubaState(detail: Required<Pick<YubaPageDetail, 'yubaStatus' | 'yubaStatusError' | 'yubaStatusLoaded' | 'yubaStatusLoading'>>): void {
-  if (legacyResourceDeps) {
-    legacyResourceDeps.state.yubaStatus = detail.yubaStatus
-    legacyResourceDeps.state.yubaStatusError = detail.yubaStatusError
-    legacyResourceDeps.state.yubaStatusLoaded = detail.yubaStatusLoaded
-    legacyResourceDeps.state.yubaStatusLoading = detail.yubaStatusLoading
-  }
-  applyYubaStatusState(detail)
-}
-
-function renderLegacyYubaPage(): void {
-  legacyResourceDeps?.renderYubaPage()
-}
-
-async function loadYubaStatus(showSuccessToast = false): Promise<unknown> {
-  if (!legacyResourceDeps) {
-    return Promise.resolve()
-  }
-
-  const deps = legacyResourceDeps
-  const config = deps.getRawConfig() as RawYubaConfig
-  const resource = deps.getResourceRequest('yubaStatus')
-  if (!deps.hasCookieSourceConfigured(config)) {
-    deps.invalidateResourceRequest('yubaStatus')
-    updateLegacyYubaState({
-      yubaStatus: [],
-      yubaStatusError: '',
-      yubaStatusLoaded: false,
-      yubaStatusLoading: false,
-    })
-    renderLegacyYubaPage()
-    if (showSuccessToast) {
-      showToast('请先保存 Cookie 或启用 CookieCloud', false)
-    }
-    return Promise.resolve()
-  }
-
-  if (resource.pending) {
-    return resource.pending
-  }
-
-  const requestSeq = resource.requestSeq + 1
-  resource.requestSeq = requestSeq
-  updateLegacyYubaState({
-    yubaStatus: yubaStatus.value,
-    yubaStatusError: '',
-    yubaStatusLoaded: yubaStatusLoaded.value,
-    yubaStatusLoading: true,
-  })
-  renderLegacyYubaPage()
-
-  const pending = requestJson<YubaStatusResponse>('/api/yuba/status').then((data) => {
-    if (resource.requestSeq !== requestSeq) {
-      return
-    }
-    updateLegacyYubaState({
-      yubaStatus: data?.groups || [],
-      yubaStatusError: '',
-      yubaStatusLoaded: true,
-      yubaStatusLoading: false,
-    })
-    deps.markResourceLoaded('yubaStatus')
-    renderLegacyYubaPage()
-    if (showSuccessToast) {
-      showToast('鱼吧状态已刷新', true)
-    }
-  }).catch((error) => {
-    if (resource.requestSeq !== requestSeq) {
-      return
-    }
-    if (isUnauthorizedError(error)) {
-      return
-    }
-    updateLegacyYubaState({
-      yubaStatus: yubaStatusLoaded.value ? yubaStatus.value : [],
-      yubaStatusError: getErrorMessage(error),
-      yubaStatusLoaded: yubaStatusLoaded.value,
-      yubaStatusLoading: false,
-    })
-    renderLegacyYubaPage()
-    showToast(`加载鱼吧状态失败：${getErrorMessage(error)}`, false)
-  })
-
-  return deps.trackResourceRequest(resource, requestSeq, pending)
-}
-
 async function triggerYubaTask(): Promise<void> {
   await triggerTask({
     taskType: 'yubaCheckIn',
     isUnauthorizedError,
     refresh: [
-      () => legacyTaskDeps?.loadOverview?.(),
-      () => legacyTaskDeps?.loadLogs?.(),
-      () => loadYubaStatus(false),
+      loadOverview,
+      loadLogs,
+      () => loadResourceYubaStatus(false),
     ],
   })
 }
@@ -386,15 +200,7 @@ export function useYubaTaskPage() {
     void disableYubaConfig()
   }
 
-  useLegacyPageEvents<YubaPageDetail, RawYubaConfig, YubaOverview>({
-    pageEventName: YUBA_PAGE_EVENT_NAME,
-    onPageDetail: applyYubaPageDetail,
-    onRawConfig: applyRawConfig,
-    onOverview: (nextOverview) => {
-      overview.value = nextOverview
-    },
-    ensureCronPreview,
-  })
+  watch([sharedRawConfig, sharedOverview, sharedYubaStatus, sharedYubaStatusError, sharedYubaStatusLoaded, sharedYubaStatusLoading], applyResourceState, { immediate: true })
 
   return {
     handleYubaToggle,
@@ -410,43 +216,5 @@ export function useYubaTaskPage() {
     yubaNote,
     yubaTableRows,
     yubaTaskCard,
-  }
-}
-
-function createLegacyYubaResourceActions(deps: LegacyYubaResourceDeps): LegacyYubaResourceActions {
-  legacyResourceDeps = deps
-  applyRawConfig(deps.getRawConfig() as RawYubaConfig)
-  applyYubaStatusState({
-    yubaStatus: deps.state.yubaStatus || [],
-    yubaStatusError: deps.state.yubaStatusError || '',
-    yubaStatusLoaded: deps.state.yubaStatusLoaded,
-    yubaStatusLoading: deps.state.yubaStatusLoading,
-  })
-
-  return {
-    loadYubaStatus,
-  }
-}
-
-function createLegacyYubaTaskActions(deps: LegacyYubaTaskDeps): LegacyYubaTaskActions {
-  legacyTaskDeps = deps
-  applyRawConfig(deps.getRawConfig())
-
-  return {
-    disableYubaConfig,
-    saveYubaConfig,
-  }
-}
-
-export function dispatchYubaPageState(detail: YubaPageDetail): void {
-  document.dispatchEvent(new CustomEvent(YUBA_PAGE_EVENT_NAME, { detail }))
-}
-
-export function installLegacyYubaBridge(): void {
-  window.DOUYU_KEEP_WEBUI_YUBA_RESOURCE_ACTIONS = {
-    create: createLegacyYubaResourceActions,
-  }
-  window.DOUYU_KEEP_WEBUI_YUBA_TASK_ACTIONS = {
-    create: createLegacyYubaTaskActions,
   }
 }

@@ -1,15 +1,9 @@
-import type { ThemeMode } from '../../core/types'
+import type { DockerConfig, ThemeMode } from '../../core/types'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { requestJson } from './request'
+import { rawConfig, setRawConfig } from './resource-state'
 
 type ResolvedThemeMode = 'light' | 'dark'
-
-interface ThemeConfigDetail {
-  themeMode?: unknown
-}
-
-const CONFIG_EVENT_NAME = WEBUI_BRIDGE_EVENTS.config
 const THEME_COLOR_BY_MODE: Record<ResolvedThemeMode, string> = {
   dark: '#000000',
   light: '#f4ede4',
@@ -83,22 +77,20 @@ export function useThemeMode() {
     savingThemeMode.value = nextThemeMode
 
     try {
-      await requestJson('/api/config', {
+      const data = await requestJson<{ data?: { config?: DockerConfig } }>('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ui: { themeMode: nextThemeMode } }),
         errorToast: message => `保存主题失败：${message}`,
       })
+      if (data.data?.config) {
+        setRawConfig(data.data.config)
+      }
     } catch {
       themeMode.value = previousThemeMode
     } finally {
       savingThemeMode.value = null
     }
-  }
-
-  function handleConfigEvent(event: Event): void {
-    const detail = event instanceof CustomEvent ? event.detail as ThemeConfigDetail : {}
-    applyThemeMode(detail?.themeMode)
   }
 
   function handleSystemThemeChange(event?: MediaQueryListEvent): void {
@@ -110,10 +102,11 @@ export function useThemeMode() {
   let mediaQuery: MediaQueryList | null = null
 
   watch(resolvedTheme, applyResolvedTheme, { immediate: true })
+  watch(rawConfig, (nextConfig) => {
+    applyThemeMode(nextConfig?.ui?.themeMode)
+  }, { immediate: true })
 
   onMounted(() => {
-    document.addEventListener(CONFIG_EVENT_NAME, handleConfigEvent)
-
     try {
       mediaQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null
     } catch {
@@ -127,7 +120,6 @@ export function useThemeMode() {
   })
 
   onBeforeUnmount(() => {
-    document.removeEventListener(CONFIG_EVENT_NAME, handleConfigEvent)
     mediaQuery?.removeEventListener('change', handleSystemThemeChange)
   })
 

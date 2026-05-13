@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import AppShell from './components/AppShell.vue'
 import AuthShell from './components/AuthShell.vue'
+import { watch } from 'vue'
 import { useAuthSession } from './auth'
+import { syncCookieCloudToLoginCookies } from './cookie'
 import { usePageNavigation } from './navigation'
 import { useOverviewPage } from './overview'
+import { clearProtectedState, loadActiveTabData, loadProtectedData } from './resource-state'
 import { useThemeMode } from './theme'
 import { useToastRegion } from './toast'
 
@@ -40,7 +43,10 @@ const {
   password,
   submitLogin,
   submittingLogin,
-} = useAuthSession()
+} = useAuthSession({
+  clearProtectedState,
+  loadProtectedData: () => loadProtectedData(activeTab.value, () => syncCookieCloudToLoginCookies(false)),
+})
 
 const {
   savingThemeMode,
@@ -57,7 +63,13 @@ const {
   toastVisible,
 } = useToastRegion()
 
-const overviewPage = useOverviewPage()
+const overviewPage = useOverviewPage(activeTab)
+
+watch([authenticated, activeTab], ([nextAuthenticated, nextTab]) => {
+  if (nextAuthenticated) {
+    void loadActiveTabData(nextTab)
+  }
+})
 </script>
 
 <template>

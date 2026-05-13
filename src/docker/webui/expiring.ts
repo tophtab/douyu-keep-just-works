@@ -1,13 +1,13 @@
 import type { BackpackGiftRow, ExpiringGiftConfig, Fans, GiftStatus } from '../../core/types'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { DEFAULT_EXPIRING_GIFT_CRON, DEFAULT_EXPIRING_GIFT_MODEL, DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS } from '../../core/task-defaults'
 import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationModel } from './allocation-task'
-import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
 import { formatDate } from './datetime'
-import { applyFanTaskPageDetail, createFanListMessages, createFanTaskTriggerRefreshes, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isLegacyOrHttpUnauthorized, isTaskActive, resolveCurrentTaskConfig, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
-import type { CookieSourceConfig, FanTaskPageDetail, LegacyFanTaskDeps, TaskRunStatus } from './task-shared'
+import { fansListError as sharedFansListError, fansListLoaded as sharedFansListLoaded, fansStatus as sharedFansStatus, fansStatusDetailsLoading as sharedFansStatusDetailsLoading, fansStatusLoaded as sharedFansStatusLoaded, fansStatusLoading as sharedFansStatusLoading, getManagedConfig, getManagedFans, giftStatus as sharedGiftStatus, loadFansStatus, loadLogs, loadOverview, managed, managedLoading as sharedManagedLoading, overview as sharedOverview, rawConfig as sharedRawConfig, refreshOverviewSurface } from './resource-state'
+import { createFanListMessages, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isHttpUnauthorized, isTaskActive, resolveCurrentTaskConfig, saveTaskConfig, triggerTask } from './task-shared'
+import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface ExpiringOverview {
   expiringGiftConfigured?: boolean
@@ -19,20 +19,6 @@ interface ExpiringOverview {
 
 interface RawExpiringConfig extends CookieSourceConfig {
   expiringGift?: ExpiringGiftConfig
-}
-
-interface ExpiringPageDetail extends FanTaskPageDetail<Fans, RawExpiringConfig, ExpiringOverview> {
-  fansStatusDetailsLoading?: boolean
-  fansStatusLoaded?: boolean
-  fansStatusLoading?: boolean
-  giftStatus?: GiftStatus | null
-}
-
-type LegacyExpiringDeps = LegacyFanTaskDeps<RawExpiringConfig, Fans>
-
-interface LegacyExpiringActions {
-  disableExpiringGiftConfig: () => Promise<void>
-  saveExpiringGiftConfig: (options?: { revertCheckboxOnError?: boolean }) => Promise<void>
 }
 
 type ExpiringFanRow = AllocationFanRow
@@ -47,8 +33,6 @@ interface ExpiringBackpackRow {
   name: string
   remainingText: string
 }
-
-const EXPIRING_PAGE_EVENT_NAME = WEBUI_BRIDGE_EVENTS.expiringPage
 
 const overview = ref<ExpiringOverview | null>(null)
 const rawConfig = ref<RawExpiringConfig | null>(null)
@@ -68,18 +52,8 @@ const expiringModel = ref<1 | 2>(DEFAULT_EXPIRING_GIFT_MODEL)
 const fanRows = ref<ExpiringFanRow[]>([])
 const { cronPreviewText: expiringCronPreviewText, ensureCronPreview, loadCronPreview: loadExpiringCronPreview } = useCronPreview(() => expiringCron.value)
 
-let legacyDeps: LegacyExpiringDeps | null = null
-
-declare global {
-  interface Window {
-    DOUYU_KEEP_WEBUI_EXPIRING_TASK_ACTIONS?: {
-      create: (deps: LegacyExpiringDeps) => LegacyExpiringActions
-    }
-  }
-}
-
 function isUnauthorizedError(error: unknown): boolean {
-  return isLegacyOrHttpUnauthorized(error, legacyDeps?.isUnauthorizedError)
+  return isHttpUnauthorized(error)
 }
 
 function normalizeModel(model: unknown): 1 | 2 {
@@ -124,26 +98,18 @@ function applyExpiringConfig(config: ExpiringGiftConfig): void {
   void ensureCronPreview()
 }
 
-function applyRawConfig(config: RawExpiringConfig | null): void {
-  rawConfig.value = config
-  applyExpiringConfig(getExpiringConfig())
-}
-
-function applyExpiringPageDetail(detail: ExpiringPageDetail): void {
-  applyFanTaskPageDetail(detail, { rawConfig, managedConfig, overview, fans, fansListError, fansListLoaded, managedLoading })
-  if ('fansStatusLoaded' in detail) {
-    fansStatusLoaded.value = Boolean(detail.fansStatusLoaded)
-  }
-  if ('fansStatusLoading' in detail) {
-    fansStatusLoading.value = Boolean(detail.fansStatusLoading)
-  }
-  if ('fansStatusDetailsLoading' in detail) {
-    fansStatusDetailsLoading.value = Boolean(detail.fansStatusDetailsLoading)
-  }
-  if ('giftStatus' in detail) {
-    giftStatus.value = detail.giftStatus || null
-  }
-
+function applyResourceState(): void {
+  rawConfig.value = sharedRawConfig.value
+  managedConfig.value = getManagedConfig()
+  overview.value = sharedOverview.value
+  fans.value = getManagedFans()
+  fansListError.value = sharedFansListError.value
+  fansListLoaded.value = sharedFansListLoaded.value
+  fansStatusLoaded.value = sharedFansStatusLoaded.value
+  fansStatusLoading.value = sharedFansStatusLoading.value
+  fansStatusDetailsLoading.value = sharedFansStatusDetailsLoading.value
+  managedLoading.value = sharedManagedLoading.value
+  giftStatus.value = sharedGiftStatus.value
   applyExpiringConfig(getExpiringConfig())
 }
 
@@ -158,7 +124,7 @@ function buildExpiringPayload(): ExpiringGiftConfig {
 }
 
 async function refreshExpiringSurfaces(): Promise<void> {
-  await legacyDeps?.refreshOverviewSurface(false)
+  await refreshOverviewSurface('expiring-gift', false)
 }
 
 async function saveExpiringGiftConfig(options?: { revertCheckboxOnError?: boolean }): Promise<void> {
@@ -180,8 +146,6 @@ async function disableExpiringGiftConfig(): Promise<void> {
     configKey: 'expiringGift',
     managedConfig: managedConfig.value,
     rawConfig: rawConfig.value,
-    getManagedConfig: legacyDeps?.getManagedConfig,
-    getRawConfig: legacyDeps?.getRawConfig,
     fallback: {
       active: false,
       cron: DEFAULT_EXPIRING_GIFT_CRON,
@@ -214,14 +178,12 @@ async function triggerExpiringTask(): Promise<void> {
   await triggerTask({
     taskType: 'expiringGift',
     isUnauthorizedError,
-    refresh: createFanTaskTriggerRefreshes(legacyDeps),
-    onSuccess: () => {
-      if (legacyDeps) {
-        fans.value = legacyDeps.getManagedFans()
-        managedConfig.value = legacyDeps.getManagedConfig()
-        applyExpiringConfig(getExpiringConfig())
-      }
-    },
+    refresh: [
+      () => loadOverview(),
+      () => loadLogs(),
+      () => loadFansStatus(false),
+    ],
+    onSuccess: applyResourceState,
   })
 }
 
@@ -337,15 +299,19 @@ export function useExpiringGiftTaskPage() {
     })
   }
 
-  useLegacyPageEvents<ExpiringPageDetail, RawExpiringConfig, ExpiringOverview>({
-    pageEventName: EXPIRING_PAGE_EVENT_NAME,
-    onPageDetail: applyExpiringPageDetail,
-    onRawConfig: applyRawConfig,
-    onOverview: (nextOverview) => {
-      overview.value = nextOverview
-    },
-    ensureCronPreview,
-  })
+  watch([
+    sharedRawConfig,
+    managed,
+    sharedFansStatus,
+    sharedOverview,
+    sharedManagedLoading,
+    sharedFansListError,
+    sharedFansListLoaded,
+    sharedFansStatusLoaded,
+    sharedFansStatusLoading,
+    sharedFansStatusDetailsLoading,
+    sharedGiftStatus,
+  ], applyResourceState, { immediate: true })
 
   return {
     expiringBackpackEmptyText,
@@ -367,28 +333,5 @@ export function useExpiringGiftTaskPage() {
     showExpiringBackpackTable,
     showExpiringTable,
     triggerExpiringTask,
-  }
-}
-
-function createLegacyExpiringActions(deps: LegacyExpiringDeps): LegacyExpiringActions {
-  legacyDeps = deps
-  rawConfig.value = deps.getRawConfig()
-  managedConfig.value = deps.getManagedConfig()
-  fans.value = deps.getManagedFans()
-  applyRawConfig(rawConfig.value)
-
-  return {
-    disableExpiringGiftConfig,
-    saveExpiringGiftConfig,
-  }
-}
-
-export function dispatchExpiringPageState(detail: ExpiringPageDetail): void {
-  document.dispatchEvent(new CustomEvent(EXPIRING_PAGE_EVENT_NAME, { detail }))
-}
-
-export function installLegacyExpiringTaskBridge(): void {
-  window.DOUYU_KEEP_WEBUI_EXPIRING_TASK_ACTIONS = {
-    create: createLegacyExpiringActions,
   }
 }

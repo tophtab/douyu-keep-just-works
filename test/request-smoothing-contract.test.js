@@ -17,13 +17,6 @@ function readServerSources() {
     .join('\n')
 }
 
-function readWebuiResourceActionSources() {
-  return [
-    'src/docker/webui/resources.ts',
-    'src/docker/webui/yuba.ts',
-  ].map(readRepoFile).join('\n')
-}
-
 function getBlockBody(source, declaration) {
   const functionIndex = source.indexOf(declaration)
   assert.notEqual(functionIndex, -1, `Missing ${declaration}`)
@@ -67,23 +60,22 @@ function getAsyncMethodBody(source, methodName) {
 }
 
 test('Docker WebUI coalesces duplicate local Douyu-backed reads without client cooldowns', () => {
-  const webui = readRepoFile('src/docker/webui/legacy-app.ts')
-  const legacyState = readRepoFile('src/docker/webui/legacy-state.ts')
-  const actions = readWebuiResourceActionSources()
+  const resources = readRepoFile('src/docker/webui/resource-state.ts')
 
-  assert.match(getFunctionBody(legacyState, 'createResourceRequest'), /pending:\s*null/)
-  assert.match(getFunctionBody(legacyState, 'createResourceRequest'), /fetchedAt:\s*0/)
-  assert.match(getFunctionBody(legacyState, 'createResourceRequest'), /requestSeq:\s*0/)
+  assert.match(getFunctionBody(resources, 'createResourceRequest'), /pending:\s*null/)
+  assert.match(getFunctionBody(resources, 'createResourceRequest'), /fetchedAt:\s*0/)
+  assert.match(getFunctionBody(resources, 'createResourceRequest'), /requestSeq:\s*0/)
 
   for (const functionName of ['syncFans', 'loadFansList', 'loadFansStatus', 'loadYubaStatus']) {
-    const body = getFunctionBody(actions, functionName)
+    const body = getFunctionBody(resources, functionName)
     assert.match(body, /if\s*\(\s*resource\.pending\s*\)/, `${functionName} must reuse an in-flight request`)
     assert.match(body, /return\s+resource\.pending/, `${functionName} must return the in-flight request`)
     assert.match(body, /trackResourceRequest\(resource,\s*requestSeq,\s*pending\)/, `${functionName} must track request sequence`)
+    assert.match(body, /resource\.requestSeq\s*!==\s*requestSeq/, `${functionName} must ignore stale responses`)
   }
 
-  assert.doesNotMatch(webui + legacyState + actions, /\b(cooldown|nextAllowed|minInterval|lastRequest|lastRequested|rateLimit|throttle|debounce)\b/i)
-  assert.doesNotMatch(webui + legacyState + actions, /Date\.now\(\)\s*-\s*resource\.fetchedAt/)
+  assert.doesNotMatch(resources, /\b(cooldown|nextAllowed|minInterval|lastRequest|lastRequested|rateLimit|throttle|debounce)\b/i)
+  assert.doesNotMatch(resources, /Date\.now\(\)\s*-\s*resource\.fetchedAt/)
 })
 
 test('Docker runtime keeps backend cache TTLs and pending-promise coalescing authoritative', () => {

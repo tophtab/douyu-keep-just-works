@@ -1,7 +1,7 @@
-import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
+import { WEBUI_APP_EVENTS } from './app-events'
 import { showToast } from './toast'
 
-export const UNAUTHORIZED_EVENT_NAME = WEBUI_BRIDGE_EVENTS.unauthorized
+export const UNAUTHORIZED_EVENT_NAME = WEBUI_APP_EVENTS.unauthorized
 
 export interface WebUiRequestError extends Error {
   status?: number
@@ -13,22 +13,6 @@ type ErrorToastFormatter = string | ((message: string, error: WebUiRequestError)
 export interface WebUiRequestInit extends RequestInit {
   errorToast?: ErrorToastFormatter | false
   onUnauthorized?: (() => void) | false
-}
-
-interface LegacyRequestDeps {
-  handleUnauthorized?: () => void
-}
-
-interface LegacyRequestModule {
-  requestJson: <T = unknown>(url: string, options?: RequestInit) => Promise<T>
-}
-
-declare global {
-  interface Window {
-    DOUYU_KEEP_WEBUI_REQUEST?: {
-      create: (deps?: LegacyRequestDeps) => LegacyRequestModule
-    }
-  }
 }
 
 function parseJson(text: string): unknown {
@@ -106,20 +90,5 @@ export async function requestJson<T = unknown>(url: string, options: WebUiReques
     const requestError = toRequestError(error)
     maybeShowErrorToast(requestError, errorToast)
     throw error
-  }
-}
-
-export function installLegacyRequestBridge(): void {
-  window.DOUYU_KEEP_WEBUI_REQUEST = {
-    create(deps: LegacyRequestDeps = {}) {
-      return {
-        requestJson<T = unknown>(url: string, options: RequestInit = {}) {
-          return requestJson<T>(url, {
-            ...options,
-            onUnauthorized: deps.handleUnauthorized,
-          })
-        },
-      }
-    },
   }
 }

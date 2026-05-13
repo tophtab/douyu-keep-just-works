@@ -6,7 +6,7 @@
 
 ## Overview
 
-Frontend work must preserve the Docker WebUI build and the current Vue migration boundary. Use Vite, Vue 3, TypeScript, global CSS under `styles/`, and contract tests for architecture guarantees.
+Frontend work must preserve the Docker WebUI build and the Vue-only runtime boundary. Use Vite, Vue 3, TypeScript, global CSS under `styles/`, and contract tests for architecture guarantees.
 
 ---
 
@@ -14,7 +14,7 @@ Frontend work must preserve the Docker WebUI build and the current Vue migration
 
 - Do not reintroduce pre-Vite static WebUI source copying.
 - Do not add `data-action` imperative handlers for Vue-owned actions.
-- Do not remove a legacy bridge installer without moving its remaining behavior to a real owner and updating contract tests.
+- Do not add `installLegacy*Bridge`, `startLegacyApp`, or `window.DOUYU_KEEP_WEBUI_*` compatibility globals. `DOUYU_KEEP_WEBUI_BOOTSTRAP` in `index.html` is the only allowed WebUI bootstrap global.
 - Do not add a new state-management library for local page state.
 - Do not put secrets, raw cookies, or WebUI passwords into visible text, logs, or test fixtures.
 - Do not make visual changes without checking responsive behavior when the task touches layout.
@@ -23,33 +23,32 @@ Frontend work must preserve the Docker WebUI build and the current Vue migration
 
 ## Required Patterns
 
-### WebUI Legacy Bridge Cleanup
+### Vue-Only Runtime Contract
 
-When removing a transitional `src/docker/webui/*` legacy bridge, move any remaining behavior into the module that owns the real lifecycle before deleting the bridge installer. For example, event binding and auto-refresh belong in `legacy-app.ts` while Vue-owned button handlers stay in page composables/components.
+Vue owns the WebUI lifecycle. Runtime responsibilities that span pages belong in `App.vue`, top-level composables, or `resource-state.ts`, not in a parallel imperative app.
 
-After deleting a bridge:
+When moving or adding runtime behavior:
 
-* Remove its installer from `src/docker/webui/main.ts`.
-* Remove the deleted bridge file.
-* Update `test/project-maintenance-contract.test.js` to assert both the new owner behavior and the absence of the old `window.DOUYU_KEEP_WEBUI_*` bridge.
+* Keep `src/docker/webui/main.ts` limited to CSS imports and `createApp(App).mount('#app')`.
+* Keep protected-data loading, top-level refresh, active-tab lazy loading, and request coalescing in Vue-owned modules.
+* Update `test/project-maintenance-contract.test.js` when moving core WebUI components, resource ownership, or build files.
 * Keep user-facing text and API calls unchanged unless the task explicitly includes behavior changes.
 
 Wrong:
 
 ```typescript
-// Deleting an installer without preserving its remaining event/listener behavior.
 installLegacyEventBridge()
+startLegacyApp()
 ```
 
 Correct:
 
 ```typescript
-bindLegacyEvents({
-  state,
-  handleVueNavigation,
-  refreshOverviewSurface,
-  loadOverview,
-  triggerTask,
+const overviewPage = useOverviewPage(activeTab)
+watch([authenticated, activeTab], ([nextAuthenticated, nextTab]) => {
+  if (nextAuthenticated) {
+    void loadActiveTabData(nextTab)
+  }
 })
 ```
 
@@ -75,7 +74,7 @@ Preserve existing accessible patterns: tabpanels, live toast region, labeled inp
 
 - Run `npm run lint` and `npm run type-check:webui` for frontend code changes.
 - Run `npm run build:webui` or `npm run build:docker` when changing Vite, CSS imports, index.html, or component structure.
-- Update `test/project-maintenance-contract.test.js` when adding, deleting, or moving core WebUI components, bridges, or build files.
+- Update `test/project-maintenance-contract.test.js` when adding, deleting, or moving core WebUI components, resource owners, runtime contracts, or build files.
 - Include screenshots for user-visible layout changes before opening a PR, per `CONTRIBUTING.md`.
 
 ---
@@ -85,6 +84,6 @@ Preserve existing accessible patterns: tabpanels, live toast region, labeled inp
 - Does the change keep Vue-owned UI declarative?
 - Are composables cleaning up listeners?
 - Are server responses narrowed from `unknown` before use?
-- Are legacy bridge responsibilities preserved or intentionally removed with tests?
+- Are cross-page resource responsibilities owned by Vue modules and covered by tests?
 - Does layout still fit at mobile and desktop widths?
 - Does the Docker WebUI still build through Vite?

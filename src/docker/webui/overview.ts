@@ -1,40 +1,10 @@
 import type { FanStatus, GiftStatus } from '../../core/types'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
+import type { Ref } from 'vue'
+import { computed } from 'vue'
 import { formatDate } from './datetime'
-
-interface TaskRunStatus {
-  lastRun?: string | null
-  nextRun?: string | null
-  running?: boolean
-}
-
-interface OverviewResponse {
-  collectGiftConfigured?: boolean
-  cookieSaved?: boolean
-  doubleCardConfigured?: boolean
-  expiringGiftConfigured?: boolean
-  keepaliveConfigured?: boolean
-  ready?: boolean
-  status?: Record<string, TaskRunStatus | undefined>
-  yubaCheckInConfigured?: boolean
-}
-
-interface OverviewPageDetail {
-  fansStatus?: FanStatus[]
-  fansStatusDetailsLoaded?: boolean
-  fansStatusDetailsLoading?: boolean
-  fansStatusLoaded?: boolean
-  fansStatusLoading?: boolean
-  giftStatus?: GiftStatus | null
-  hasCookieSourceConfigured?: boolean
-  managedLoading?: boolean
-  overview?: OverviewResponse | null
-}
-
-interface RefreshStateDetail {
-  loading?: boolean
-}
+import { fansStatus, fansStatusDetailsLoaded, fansStatusDetailsLoading, fansStatusLoaded, fansStatusLoading, giftStatus, hasCookieSourceConfigured, isActiveRefreshLoading, managedLoading, overview, refreshOverviewSurface } from './resource-state'
+import type { WebUiPageTab } from './navigation'
+import type { WebUiOverview } from './resource-state'
 
 interface OverviewStatusCell {
   enabled: boolean
@@ -60,23 +30,8 @@ interface OverviewFansRow {
   today: number | string
 }
 
-const overview = ref<OverviewResponse | null>(null)
-const hasCookieSource = ref(false)
-const managedLoading = ref(false)
-const fansStatus = ref<FanStatus[]>([])
-const fansStatusLoading = ref(false)
-const fansStatusLoaded = ref(false)
-const fansStatusDetailsLoading = ref(false)
-const fansStatusDetailsLoaded = ref(false)
-const giftStatus = ref<GiftStatus | null>(null)
-const refreshLoading = ref(false)
-
 function hasGiftStatusError(status: GiftStatus | null): status is GiftStatus & { error: string } {
   return Boolean(status?.error)
-}
-
-function normalizeFansStatus(value: unknown): FanStatus[] {
-  return Array.isArray(value) ? value as FanStatus[] : []
 }
 
 function formatOverviewDate(value: number): string {
@@ -85,18 +40,6 @@ function formatOverviewDate(value: number): string {
     return String(value)
   }
   return formatDate(date.toISOString())
-}
-
-function applyOverviewDetail(detail: OverviewPageDetail): void {
-  overview.value = detail.overview || null
-  hasCookieSource.value = Boolean(detail.hasCookieSourceConfigured)
-  managedLoading.value = Boolean(detail.managedLoading)
-  fansStatus.value = normalizeFansStatus(detail.fansStatus)
-  fansStatusLoading.value = Boolean(detail.fansStatusLoading)
-  fansStatusLoaded.value = Boolean(detail.fansStatusLoaded)
-  fansStatusDetailsLoading.value = Boolean(detail.fansStatusDetailsLoading)
-  fansStatusDetailsLoaded.value = Boolean(detail.fansStatusDetailsLoaded)
-  giftStatus.value = detail.giftStatus || null
 }
 
 function buildOverviewStatusCell(
@@ -113,7 +56,10 @@ function buildOverviewStatusCell(
   }
 }
 
-export function useOverviewPage() {
+export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
+  const hasCookieSource = computed(() => hasCookieSourceConfigured())
+  const refreshLoading = computed(() => isActiveRefreshLoading(activeTab.value))
+
   const overviewStatusCells = computed(() => {
     if (!overview.value) {
       return [
@@ -257,29 +203,50 @@ export function useOverviewPage() {
   const refreshOverviewTitle = computed(() => refreshLoading.value ? '正在刷新' : '刷新')
 
   function refreshOverview(): void {
-    document.dispatchEvent(new CustomEvent(WEBUI_BRIDGE_EVENTS.refreshOverviewRequest))
+    void refreshOverviewSurface(activeTab.value, true)
   }
 
-  function handleOverviewEvent(event: Event): void {
-    applyOverviewDetail((event as CustomEvent<OverviewPageDetail>).detail || {})
+  function getOverview(): WebUiOverview | null {
+    return overview.value
   }
 
-  function handleRefreshStateEvent(event: Event): void {
-    const detail = (event as CustomEvent<RefreshStateDetail>).detail || {}
-    refreshLoading.value = Boolean(detail.loading)
+  function getFansStatus(): FanStatus[] {
+    return fansStatus.value
   }
 
-  onMounted(() => {
-    document.addEventListener(WEBUI_BRIDGE_EVENTS.overviewPage, handleOverviewEvent)
-    document.addEventListener(WEBUI_BRIDGE_EVENTS.refreshState, handleRefreshStateEvent)
-  })
+  function getGiftStatus(): GiftStatus | null {
+    return giftStatus.value
+  }
 
-  onBeforeUnmount(() => {
-    document.removeEventListener(WEBUI_BRIDGE_EVENTS.overviewPage, handleOverviewEvent)
-    document.removeEventListener(WEBUI_BRIDGE_EVENTS.refreshState, handleRefreshStateEvent)
-  })
+  function getManagedLoading(): boolean {
+    return managedLoading.value
+  }
+
+  function getFansStatusLoading(): boolean {
+    return fansStatusLoading.value
+  }
+
+  function getFansStatusLoaded(): boolean {
+    return fansStatusLoaded.value
+  }
+
+  function getFansStatusDetailsLoading(): boolean {
+    return fansStatusDetailsLoading.value
+  }
+
+  function getFansStatusDetailsLoaded(): boolean {
+    return fansStatusDetailsLoaded.value
+  }
 
   return {
+    getFansStatus,
+    getFansStatusDetailsLoaded,
+    getFansStatusDetailsLoading,
+    getFansStatusLoaded,
+    getFansStatusLoading,
+    getGiftStatus,
+    getManagedLoading,
+    getOverview,
     overviewFansEmptyText,
     overviewFansNote,
     overviewFansRows,

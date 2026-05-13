@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAuthSession } from './auth'
+import { useCollectTaskPage } from './collect'
 import { useCookieLoginPage } from './cookie'
 import { usePageNavigation } from './navigation'
 import { useLogsPage } from './resources'
@@ -80,6 +81,17 @@ const {
   saveCookie,
   yubaCookie,
 } = useCookieLoginPage()
+
+const {
+  collectCron,
+  collectCronPreviewText,
+  collectEnabled,
+  collectTaskCard,
+  handleCollectToggle,
+  loadCollectCronPreview,
+  saveCollectConfig,
+  triggerCollectTask,
+} = useCollectTaskPage()
 </script>
 
 <!-- eslint-disable -->
@@ -323,7 +335,21 @@ const {
 
     <section class="page" :class="{ active: activeTab === 'collect' }" id="page-collect" role="tabpanel" aria-labelledby="tab-collect" tabindex="0" :aria-hidden="activeTab === 'collect' ? 'false' : 'true'" :hidden="activeTab !== 'collect'">
       <div class="task-card" id="collect-task-card" style="margin-bottom:16px">
-        <div class="task-card-title">领取状态</div>
+        <div class="task-card-head">
+          <div>
+            <div class="section-kicker">任务状态</div>
+            <h3 class="task-card-title">领取</h3>
+          </div>
+        </div>
+        <div class="task-card-pills">
+          <span v-for="pill in collectTaskCard.pills" :key="pill.label" class="pill" :class="pill.kind">{{ pill.label }}</span>
+        </div>
+        <div class="summary-grid">
+          <div v-for="cell in collectTaskCard.cells" :key="cell.label" class="summary-cell">
+            <div class="mini-label">{{ cell.label }}</div>
+            <div class="mini-value">{{ cell.value }}</div>
+          </div>
+        </div>
       </div>
 
       <div class="panel">
@@ -334,19 +360,19 @@ const {
           </div>
           <div class="field-block" style="margin:0">
             <label class="switch-control">
-              <input class="switch-input" type="checkbox" id="collect-enable" name="collect-enable" aria-label="启用领取任务">
+              <input id="collect-enable" v-model="collectEnabled" class="switch-input" type="checkbox" name="collect-enable" aria-label="启用领取任务" @change="handleCollectToggle">
               <span class="switch-slider"></span>
             </label>
           </div>
         </div>
         <div class="field-block">
           <label class="field-label" for="collect-cron">Cron 表达式</label>
-          <input id="collect-cron" name="collect-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
-          <div class="helper cron-preview" id="collect-cron-preview" role="status" aria-live="polite">正在计算未来执行时间…</div>
+          <input id="collect-cron" v-model="collectCron" name="collect-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" @input="loadCollectCronPreview">
+          <div class="helper cron-preview" id="collect-cron-preview" role="status" aria-live="polite">{{ collectCronPreviewText }}</div>
         </div>
         <div class="actions">
-          <button class="btn btn-success" type="button" data-action="save-collect">保存并启用</button>
-          <button class="btn btn-secondary" type="button" data-action="trigger" data-trigger="collectGift">立即领取</button>
+          <button class="btn btn-success" type="button" @click="saveCollectConfig()">保存并启用</button>
+          <button class="btn btn-secondary" type="button" @click="triggerCollectTask">立即领取</button>
         </div>
       </div>
     </section>

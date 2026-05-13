@@ -6,53 +6,7 @@
     var isUnauthorizedError = deps.isUnauthorizedError;
     var getRawConfig = deps.getRawConfig;
     var refreshOverviewSurface = deps.refreshOverviewSurface;
-
-    function saveCollectConfig(options) {
-      byId('collect-enable').checked = true;
-      var payload = {
-        collectGift: { active: true, cron: byId('collect-cron').value.trim() }
-      };
-
-      requestJson('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }).then(function () {
-        toast('领取任务已保存并启用', true);
-        refreshOverviewSurface(false);
-      }).catch(function (error) {
-        if (options && options.revertCheckboxOnError) {
-          byId('collect-enable').checked = false;
-        }
-        if (isUnauthorizedError(error)) {
-          return;
-        }
-        toast('保存并启用领取任务失败：' + error.message, false);
-      });
-    }
-
-    function disableCollectConfig() {
-      var currentConfig = getRawConfig().collectGift || { active: true, cron: '0 10 3,5 * * *' };
-      requestJson('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          collectGift: {
-            active: false,
-            cron: currentConfig.cron || '0 10 3,5 * * *'
-          }
-        })
-      }).then(function () {
-        toast('领取任务已停用', true);
-        refreshOverviewSurface(false);
-      }).catch(function (error) {
-        byId('collect-enable').checked = true;
-        if (isUnauthorizedError(error)) {
-          return;
-        }
-        toast('停用领取任务失败：' + error.message, false);
-      });
-    }
+    var COLLECT_ACTIONS = window.DOUYU_KEEP_WEBUI_COLLECT_TASK_ACTIONS.create(deps);
 
     function saveYubaConfig(options) {
       byId('yuba-enable').checked = true;
@@ -107,8 +61,8 @@
     }
 
     return {
-      saveCollectConfig: saveCollectConfig,
-      disableCollectConfig: disableCollectConfig,
+      saveCollectConfig: COLLECT_ACTIONS.saveCollectConfig,
+      disableCollectConfig: COLLECT_ACTIONS.disableCollectConfig,
       saveYubaConfig: saveYubaConfig,
       disableYubaConfig: disableYubaConfig
     };

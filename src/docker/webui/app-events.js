@@ -5,7 +5,6 @@
     var setActiveTab = deps.setActiveTab;
     var handleVueNavigation = deps.handleVueNavigation;
     var refreshOverviewSurface = deps.refreshOverviewSurface;
-    var saveCollectConfig = deps.saveCollectConfig;
     var saveYubaConfig = deps.saveYubaConfig;
     var saveKeepaliveConfig = deps.saveKeepaliveConfig;
     var saveDoubleConfig = deps.saveDoubleConfig;
@@ -13,7 +12,6 @@
     var applyDoubleRatioPreset = deps.applyDoubleRatioPreset;
     var triggerTask = deps.triggerTask;
     var loadCronPreview = deps.loadCronPreview;
-    var disableCollectConfig = deps.disableCollectConfig;
     var disableYubaConfig = deps.disableYubaConfig;
     var disableKeepaliveConfig = deps.disableKeepaliveConfig;
     var disableDoubleConfig = deps.disableDoubleConfig;
@@ -42,10 +40,6 @@
       var action = target.getAttribute('data-action');
       if (action === 'refresh-overview') {
         refreshOverviewSurface(true);
-        return;
-      }
-      if (action === 'save-collect') {
-        saveCollectConfig();
         return;
       }
       if (action === 'save-yuba') {
@@ -89,12 +83,6 @@
       document.addEventListener('click', handleActionClick);
       document.addEventListener('douyu-keep-webui:navigation', handleVueNavigation);
 
-      byId('collect-cron').addEventListener('input', function (event) {
-        void loadCronPreview('collectGift', event.target.value, 'collect-cron-preview');
-      });
-      byId('collect-enable').addEventListener('change', function (event) {
-        handleTaskToggleChange(event, saveCollectConfig, disableCollectConfig);
-      });
       byId('yuba-cron').addEventListener('input', function (event) {
         void loadCronPreview('yubaCheckIn', event.target.value, 'yuba-cron-preview');
       });

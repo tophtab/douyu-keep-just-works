@@ -296,10 +296,11 @@
     getRawConfig: getRawConfig,
     getManagedConfig: getManagedConfig,
     getManagedFans: getManagedFans,
-    refreshOverviewSurface: refreshOverviewSurface
+    refreshOverviewSurface: refreshOverviewSurface,
+    loadOverview: loadOverview,
+    loadLogs: loadLogs,
+    loadFansStatus: loadFansStatus
   });
-  var saveCollectConfig = TASK_ACTIONS.saveCollectConfig;
-  var disableCollectConfig = TASK_ACTIONS.disableCollectConfig;
   var saveYubaConfig = TASK_ACTIONS.saveYubaConfig;
   var disableYubaConfig = TASK_ACTIONS.disableYubaConfig;
   var saveKeepaliveConfig = TASK_ACTIONS.saveKeepaliveConfig;
@@ -316,8 +317,6 @@
     handleVueNavigation: handleVueNavigation,
     refreshOverviewSurface: refreshOverviewSurface,
     loadOverview: loadOverview,
-    saveCollectConfig: saveCollectConfig,
-    disableCollectConfig: disableCollectConfig,
     saveYubaConfig: saveYubaConfig,
     disableYubaConfig: disableYubaConfig,
     saveKeepaliveConfig: saveKeepaliveConfig,

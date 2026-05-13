@@ -27,18 +27,12 @@
 
     function renderCollectPage() {
       var config = getRawConfig();
-      byId('collect-task-card').innerHTML = state.overview
-        ? buildTaskCard(
-          '领取',
-          state.overview.collectGiftConfigured,
-          state.overview.status.collectGift,
-          '执行方式',
-          state.overview.collectGiftConfigured ? '独立任务' : '等待启用'
-        )
-        : buildLoadingTaskCard('领取');
-      byId('collect-enable').checked = isTaskActive(config.collectGift);
-      byId('collect-cron').value = config.collectGift ? config.collectGift.cron : '0 10 3,5 * * *';
-      void ensureCronPreview('collectGift', byId('collect-cron').value, 'collect-cron-preview');
+      document.dispatchEvent(new CustomEvent('douyu-keep-webui:collect-page', {
+        detail: {
+          rawConfig: config,
+          overview: state.overview
+        }
+      }));
     }
 
     function renderYubaPage() {

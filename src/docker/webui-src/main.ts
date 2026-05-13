@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import App from './App.vue'
+import { installLegacyCollectTaskBridge } from './collect'
 import { installLegacyCookieActionBridge } from './cookie'
 import { installLegacyRequestBridge } from './request'
 import { installLegacySystemResourceBridge } from './resources'
@@ -36,5 +37,6 @@ async function bootstrapLegacyBehavior(): Promise<void> {
 
 installLegacyRequestBridge()
 installLegacyCookieActionBridge()
+installLegacyCollectTaskBridge()
 createApp(App).mount('#app')
 void bootstrapLegacyBehavior()

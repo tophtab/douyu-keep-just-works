@@ -1,14 +1,10 @@
 import type { YubaCheckInConfig, YubaCheckInMode, YubaGroupStatus, YubaStatusResponse } from '../../core/types'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { formatDate } from './resources'
+import { computed, ref } from 'vue'
+import { useCronPreview } from './composables/use-cron-preview'
 import { requestJson } from './request'
+import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, getErrorMessage, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
 import { showToast } from './toast'
-
-interface TaskRunStatus {
-  lastRun?: string | null
-  nextRun?: string | null
-  running?: boolean
-}
+import type { TaskRunStatus } from './task-shared'
 
 interface YubaOverview {
   yubaCheckInConfigured?: boolean
@@ -85,13 +81,6 @@ interface LegacyYubaResourceActions {
   loadYubaStatus: (showToast?: boolean) => Promise<unknown>
 }
 
-interface CronPreview {
-  error: string
-  loading: boolean
-  runs: string[]
-  value: string
-}
-
 const DEFAULT_YUBA_CRON = '0 23 0 * * *'
 const DEFAULT_YUBA_MODE: YubaCheckInMode = 'followed'
 const YUBA_PAGE_EVENT_NAME = 'douyu-keep-webui:yuba-page'
@@ -105,14 +94,8 @@ const yubaStatusLoading = ref(false)
 const yubaEnabled = ref(false)
 const yubaCron = ref(DEFAULT_YUBA_CRON)
 const yubaMode = ref<YubaCheckInMode>(DEFAULT_YUBA_MODE)
-const cronPreview = ref<CronPreview>({
-  value: '',
-  runs: [],
-  error: '',
-  loading: false,
-})
+const { cronPreviewText: yubaCronPreviewText, ensureCronPreview, loadCronPreview: loadYubaCronPreview } = useCronPreview(() => yubaCron.value)
 
-let cronPreviewSeq = 0
 let legacyResourceDeps: LegacyYubaResourceDeps | null = null
 let legacyTaskDeps: LegacyYubaTaskDeps | null = null
 
@@ -127,19 +110,11 @@ declare global {
   }
 }
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
-
 function isUnauthorizedError(error: unknown): boolean {
   if (legacyTaskDeps?.isUnauthorizedError(error) || legacyResourceDeps?.isUnauthorizedError(error)) {
     return true
   }
-  return Boolean(error && typeof error === 'object' && 'status' in error && error.status === 401)
-}
-
-function isTaskActive(config: YubaCheckInConfig | undefined): boolean {
-  return Boolean(config && config.active !== false)
+  return isHttpUnauthorized(error)
 }
 
 function normalizeMode(mode: unknown): YubaCheckInMode {
@@ -203,69 +178,28 @@ function applyYubaPageDetail(detail: YubaPageDetail): void {
   applyYubaStatusState(detail)
 }
 
-async function loadYubaCronPreview(): Promise<void> {
-  const value = yubaCron.value.trim()
-  cronPreviewSeq += 1
-  const requestSeq = cronPreviewSeq
-
-  if (!value) {
-    cronPreview.value = { value: '', runs: [], error: '', loading: false }
-    return
-  }
-
-  cronPreview.value = { value, runs: [], error: '', loading: true }
-  try {
-    const data = await requestJson<{ runs?: string[] }>(`/api/cron-preview?value=${encodeURIComponent(value)}`)
-    if (cronPreviewSeq !== requestSeq) {
-      return
-    }
-    cronPreview.value = { value, runs: data.runs || [], error: '', loading: false }
-  } catch (error) {
-    if (cronPreviewSeq !== requestSeq) {
-      return
-    }
-    cronPreview.value = { value, runs: [], error: getErrorMessage(error), loading: false }
-  }
-}
-
-function ensureCronPreview(): Promise<void> {
-  const value = yubaCron.value.trim()
-  const preview = cronPreview.value
-  if (preview.value !== value || (!preview.loading && !preview.error && !preview.runs.length)) {
-    return loadYubaCronPreview()
-  }
-  return Promise.resolve()
-}
-
 async function refreshYubaSurfaces(): Promise<void> {
   await legacyTaskDeps?.refreshOverviewSurface(false)
 }
 
 async function saveYubaConfig(options?: { revertCheckboxOnError?: boolean }): Promise<void> {
-  yubaEnabled.value = true
-  try {
-    await requestJson('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        yubaCheckIn: {
-          active: true,
-          cron: yubaCron.value.trim(),
-          mode: yubaMode.value || DEFAULT_YUBA_MODE,
-        },
-      }),
-    })
-    showToast('鱼吧签到任务已保存并启用', true)
-    await refreshYubaSurfaces()
-  } catch (error) {
-    if (options?.revertCheckboxOnError) {
-      yubaEnabled.value = false
-    }
-    if (isUnauthorizedError(error)) {
-      return
-    }
-    showToast(`保存并启用鱼吧签到任务失败：${getErrorMessage(error)}`, false)
-  }
+  await saveTaskConfig({
+    payload: {
+      yubaCheckIn: {
+        active: true,
+        cron: yubaCron.value.trim(),
+        mode: yubaMode.value || DEFAULT_YUBA_MODE,
+      },
+    },
+    successMessage: '鱼吧签到任务已保存并启用',
+    failurePrefix: '保存并启用鱼吧签到任务失败：',
+    setEnabled: (enabled) => {
+      yubaEnabled.value = enabled
+    },
+    revertCheckboxOnError: options?.revertCheckboxOnError,
+    isUnauthorizedError,
+    refresh: refreshYubaSurfaces,
+  })
 }
 
 async function disableYubaConfig(): Promise<void> {
@@ -274,27 +208,22 @@ async function disableYubaConfig(): Promise<void> {
     cron: DEFAULT_YUBA_CRON,
     mode: DEFAULT_YUBA_MODE,
   }
-  try {
-    await requestJson('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        yubaCheckIn: {
-          active: false,
-          cron: currentConfig.cron || DEFAULT_YUBA_CRON,
-          mode: normalizeMode(currentConfig.mode),
-        },
-      }),
-    })
-    showToast('鱼吧签到任务已停用', true)
-    await refreshYubaSurfaces()
-  } catch (error) {
-    yubaEnabled.value = true
-    if (isUnauthorizedError(error)) {
-      return
-    }
-    showToast(`停用鱼吧签到任务失败：${getErrorMessage(error)}`, false)
-  }
+  await disableTaskConfig({
+    payload: {
+      yubaCheckIn: {
+        active: false,
+        cron: currentConfig.cron || DEFAULT_YUBA_CRON,
+        mode: normalizeMode(currentConfig.mode),
+      },
+    },
+    successMessage: '鱼吧签到任务已停用',
+    failurePrefix: '停用鱼吧签到任务失败：',
+    restoreEnabled: () => {
+      yubaEnabled.value = true
+    },
+    isUnauthorizedError,
+    refresh: refreshYubaSurfaces,
+  })
 }
 
 function updateLegacyYubaState(detail: Required<Pick<YubaPageDetail, 'yubaStatus' | 'yubaStatusError' | 'yubaStatusLoaded' | 'yubaStatusLoading'>>): void {
@@ -384,20 +313,15 @@ async function loadYubaStatus(showSuccessToast = false): Promise<unknown> {
 }
 
 async function triggerYubaTask(): Promise<void> {
-  try {
-    await requestJson('/api/trigger/yubaCheckIn', { method: 'POST' })
-    showToast('执行完成', true)
-    await Promise.all([
-      legacyTaskDeps?.loadOverview?.(),
-      legacyTaskDeps?.loadLogs?.(),
-      loadYubaStatus(false),
-    ].filter(Boolean))
-  } catch (error) {
-    if (isUnauthorizedError(error)) {
-      return
-    }
-    showToast(`执行失败：${getErrorMessage(error)}`, false)
-  }
+  await triggerTask({
+    endpoint: '/api/trigger/yubaCheckIn',
+    isUnauthorizedError,
+    refresh: [
+      () => legacyTaskDeps?.loadOverview?.(),
+      () => legacyTaskDeps?.loadLogs?.(),
+      () => loadYubaStatus(false),
+    ],
+  })
 }
 
 function formatOptionalNumber(value: unknown): string {
@@ -405,48 +329,14 @@ function formatOptionalNumber(value: unknown): string {
 }
 
 export function useYubaTaskPage() {
-  const yubaCronPreviewText = computed(() => {
-    const preview = cronPreview.value
-    if (!preview.value) {
-      return '填写 cron 后显示未来三次执行时间。'
-    }
-    if (preview.loading) {
-      return '正在计算未来执行时间…'
-    }
-    if (preview.error) {
-      return `cron 校验失败：${preview.error}`
-    }
-    if (!preview.runs.length) {
-      return '暂未生成未来执行时间。'
-    }
-    return `未来三次：${preview.runs.map(item => formatDate(item)).join(' / ')}`
-  })
-
   const yubaTaskCard = computed(() => {
     if (!overview.value) {
-      return {
-        pills: [{ label: '等待加载', kind: 'off' }],
-        cells: [
-          { label: '上次执行', value: '-' },
-          { label: '下次执行', value: '-' },
-          { label: '模式', value: '-' },
-        ],
-      }
+      return createPendingTaskCard('模式')
     }
 
     const configured = Boolean(overview.value.yubaCheckInConfigured)
     const status = overview.value.status?.yubaCheckIn || {}
-    return {
-      pills: [
-        { label: configured ? '已启动' : '未启动', kind: configured ? 'ok' : 'off' },
-        { label: configured ? (status.running ? '调度中' : '已停止') : '未启用', kind: configured ? (status.running ? 'warn' : 'off') : 'off' },
-      ],
-      cells: [
-        { label: '上次执行', value: formatDate(status.lastRun || null) },
-        { label: '下次执行', value: formatDate(status.nextRun || null) },
-        { label: '模式', value: yubaMode.value === 'followed' ? '签到全部已关注鱼吧' : String(yubaMode.value || '-') },
-      ],
-    }
+    return createScheduledTaskCard(configured, status, { label: '模式', value: yubaMode.value === 'followed' ? '签到全部已关注鱼吧' : String(yubaMode.value || '-') })
   })
 
   const yubaNote = computed(() => {
@@ -508,24 +398,6 @@ export function useYubaTaskPage() {
 
   const showYubaTable = computed(() => hasCookieSourceConfigured(rawConfig.value) && yubaMode.value === 'followed' && yubaStatusLoaded.value && yubaTableRows.value.length > 0)
 
-  function handleYubaPageEvent(event: Event): void {
-    applyYubaPageDetail((event as CustomEvent<YubaPageDetail>).detail || {})
-  }
-
-  function handleConfigEvent(event: Event): void {
-    const detail = (event as CustomEvent<{ rawConfig?: RawYubaConfig | null }>).detail || {}
-    if ('rawConfig' in detail) {
-      applyRawConfig(detail.rawConfig || null)
-    }
-  }
-
-  function handleOverviewEvent(event: Event): void {
-    const detail = (event as CustomEvent<{ overview?: YubaOverview | null }>).detail || {}
-    if ('overview' in detail) {
-      overview.value = detail.overview || null
-    }
-  }
-
   function handleYubaToggle(): void {
     if (yubaEnabled.value) {
       void saveYubaConfig({ revertCheckboxOnError: true })
@@ -534,17 +406,14 @@ export function useYubaTaskPage() {
     void disableYubaConfig()
   }
 
-  onMounted(() => {
-    document.addEventListener(YUBA_PAGE_EVENT_NAME, handleYubaPageEvent)
-    document.addEventListener('douyu-keep-webui:config', handleConfigEvent)
-    document.addEventListener('douyu-keep-webui:overview', handleOverviewEvent)
-    void ensureCronPreview()
-  })
-
-  onBeforeUnmount(() => {
-    document.removeEventListener(YUBA_PAGE_EVENT_NAME, handleYubaPageEvent)
-    document.removeEventListener('douyu-keep-webui:config', handleConfigEvent)
-    document.removeEventListener('douyu-keep-webui:overview', handleOverviewEvent)
+  useLegacyPageEvents<YubaPageDetail, RawYubaConfig, YubaOverview>({
+    pageEventName: YUBA_PAGE_EVENT_NAME,
+    onPageDetail: applyYubaPageDetail,
+    onRawConfig: applyRawConfig,
+    onOverview: (nextOverview) => {
+      overview.value = nextOverview
+    },
+    ensureCronPreview,
   })
 
   return {

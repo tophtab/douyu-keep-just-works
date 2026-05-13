@@ -1,14 +1,8 @@
 import type { Fans, JobConfig, SendGift } from '../../core/types'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { formatDate } from './resources'
-import { requestJson } from './request'
-import { showToast } from './toast'
-
-interface TaskRunStatus {
-  lastRun?: string | null
-  nextRun?: string | null
-  running?: boolean
-}
+import { computed, ref } from 'vue'
+import { useCronPreview } from './composables/use-cron-preview'
+import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, formatOptionalNumber, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import type { TaskRunStatus } from './task-shared'
 
 interface KeepaliveOverview {
   keepaliveConfigured?: boolean
@@ -59,13 +53,6 @@ interface LegacyKeepaliveActions {
   saveKeepaliveConfig: (options?: { revertCheckboxOnError?: boolean }) => Promise<void>
 }
 
-interface CronPreview {
-  error: string
-  loading: boolean
-  runs: string[]
-  value: string
-}
-
 interface KeepaliveFanRow {
   index: number
   intimacy: string
@@ -92,14 +79,8 @@ const keepaliveEnabled = ref(false)
 const keepaliveCron = ref(DEFAULT_KEEPALIVE_CRON)
 const keepaliveModel = ref<1 | 2>(DEFAULT_KEEPALIVE_MODEL)
 const fanRows = ref<KeepaliveFanRow[]>([])
-const cronPreview = ref<CronPreview>({
-  value: '',
-  runs: [],
-  error: '',
-  loading: false,
-})
+const { cronPreviewText: keepaliveCronPreviewText, ensureCronPreview, loadCronPreview: loadKeepaliveCronPreview } = useCronPreview(() => keepaliveCron.value)
 
-let cronPreviewSeq = 0
 let legacyDeps: LegacyKeepaliveDeps | null = null
 
 declare global {
@@ -110,19 +91,11 @@ declare global {
   }
 }
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
-
 function isUnauthorizedError(error: unknown): boolean {
   if (legacyDeps?.isUnauthorizedError(error)) {
     return true
   }
-  return Boolean(error && typeof error === 'object' && 'status' in error && error.status === 401)
-}
-
-function isTaskActive(config: JobConfig | undefined): boolean {
-  return Boolean(config && config.active !== false)
+  return isHttpUnauthorized(error)
 }
 
 function normalizeModel(model: unknown): 1 | 2 {
@@ -136,20 +109,6 @@ function getKeepaliveConfig(): JobConfig {
     model: DEFAULT_KEEPALIVE_MODEL,
     send: {},
   }
-}
-
-function hasCookieSourceConfigured(config: RawKeepaliveConfig | null): boolean {
-  const cookieCloud = config?.cookieCloud
-  const manualCookies = config?.manualCookies
-  return Boolean(
-    String(manualCookies?.main || config?.cookie || '').trim()
-    || String(manualCookies?.yuba || '').trim()
-    || (cookieCloud?.active && String(cookieCloud.endpoint || '').trim() && String(cookieCloud.uuid || '').trim() && String(cookieCloud.password || '').trim()),
-  )
-}
-
-function formatOptionalNumber(value: unknown): number | string {
-  return value !== undefined && value !== null && value !== '' ? Number(value) : '-'
 }
 
 function buildFanRows(nextFans: Fans[], config: JobConfig): KeepaliveFanRow[] {
@@ -218,40 +177,6 @@ function applyKeepalivePageDetail(detail: KeepalivePageDetail): void {
   void ensureCronPreview()
 }
 
-async function loadKeepaliveCronPreview(): Promise<void> {
-  const value = keepaliveCron.value.trim()
-  cronPreviewSeq += 1
-  const requestSeq = cronPreviewSeq
-
-  if (!value) {
-    cronPreview.value = { value: '', runs: [], error: '', loading: false }
-    return
-  }
-
-  cronPreview.value = { value, runs: [], error: '', loading: true }
-  try {
-    const data = await requestJson<{ runs?: string[] }>(`/api/cron-preview?value=${encodeURIComponent(value)}`)
-    if (cronPreviewSeq !== requestSeq) {
-      return
-    }
-    cronPreview.value = { value, runs: data.runs || [], error: '', loading: false }
-  } catch (error) {
-    if (cronPreviewSeq !== requestSeq) {
-      return
-    }
-    cronPreview.value = { value, runs: [], error: getErrorMessage(error), loading: false }
-  }
-}
-
-function ensureCronPreview(): Promise<void> {
-  const value = keepaliveCron.value.trim()
-  const preview = cronPreview.value
-  if (preview.value !== value || (!preview.loading && !preview.error && !preview.runs.length)) {
-    return loadKeepaliveCronPreview()
-  }
-  return Promise.resolve()
-}
-
 function buildSendPayload(): JobConfig {
   const send: Record<string, SendGift> = {}
   for (const row of fanRows.value) {
@@ -278,26 +203,17 @@ async function refreshKeepaliveSurfaces(): Promise<void> {
 }
 
 async function saveKeepaliveConfig(options?: { revertCheckboxOnError?: boolean }): Promise<void> {
-  keepaliveEnabled.value = true
-  try {
-    await requestJson('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        keepalive: buildSendPayload(),
-      }),
-    })
-    showToast('保活任务已保存并启用', true)
-    await refreshKeepaliveSurfaces()
-  } catch (error) {
-    if (options?.revertCheckboxOnError) {
-      keepaliveEnabled.value = false
-    }
-    if (isUnauthorizedError(error)) {
-      return
-    }
-    showToast(`保存并启用保活任务失败：${getErrorMessage(error)}`, false)
-  }
+  await saveTaskConfig({
+    payload: { keepalive: buildSendPayload() },
+    successMessage: '保活任务已保存并启用',
+    failurePrefix: '保存并启用保活任务失败：',
+    setEnabled: (enabled) => {
+      keepaliveEnabled.value = enabled
+    },
+    revertCheckboxOnError: options?.revertCheckboxOnError,
+    isUnauthorizedError,
+    refresh: refreshKeepaliveSurfaces,
+  })
 }
 
 async function disableKeepaliveConfig(): Promise<void> {
@@ -307,90 +223,46 @@ async function disableKeepaliveConfig(): Promise<void> {
     model: DEFAULT_KEEPALIVE_MODEL,
     send: {},
   }
-  try {
-    await requestJson('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        keepalive: {
-          active: false,
-          cron: currentConfig.cron || DEFAULT_KEEPALIVE_CRON,
-          model: normalizeModel(currentConfig.model),
-          send: currentConfig.send || {},
-        },
-      }),
-    })
-    showToast('保活任务已停用', true)
-    await refreshKeepaliveSurfaces()
-  } catch (error) {
-    keepaliveEnabled.value = true
-    if (isUnauthorizedError(error)) {
-      return
-    }
-    showToast(`停用保活任务失败：${getErrorMessage(error)}`, false)
-  }
+  await disableTaskConfig({
+    payload: {
+      keepalive: {
+        active: false,
+        cron: currentConfig.cron || DEFAULT_KEEPALIVE_CRON,
+        model: normalizeModel(currentConfig.model),
+        send: currentConfig.send || {},
+      },
+    },
+    successMessage: '保活任务已停用',
+    failurePrefix: '停用保活任务失败：',
+    restoreEnabled: () => {
+      keepaliveEnabled.value = true
+    },
+    isUnauthorizedError,
+    refresh: refreshKeepaliveSurfaces,
+  })
 }
 
 async function triggerKeepaliveTask(): Promise<void> {
-  try {
-    await requestJson('/api/trigger/keepalive', { method: 'POST' })
-    showToast('执行完成', true)
-    await Promise.all([
-      legacyDeps?.loadOverview?.(),
-      legacyDeps?.loadLogs?.(),
-      legacyDeps?.loadFansStatus?.(false),
-    ].filter(Boolean))
-  } catch (error) {
-    if (isUnauthorizedError(error)) {
-      return
-    }
-    showToast(`执行失败：${getErrorMessage(error)}`, false)
-  }
+  await triggerTask({
+    endpoint: '/api/trigger/keepalive',
+    isUnauthorizedError,
+    refresh: [
+      () => legacyDeps?.loadOverview?.(),
+      () => legacyDeps?.loadLogs?.(),
+      () => legacyDeps?.loadFansStatus?.(false),
+    ],
+  })
 }
 
 export function useKeepaliveTaskPage() {
-  const keepaliveCronPreviewText = computed(() => {
-    const preview = cronPreview.value
-    if (!preview.value) {
-      return '填写 cron 后显示未来三次执行时间。'
-    }
-    if (preview.loading) {
-      return '正在计算未来执行时间…'
-    }
-    if (preview.error) {
-      return `cron 校验失败：${preview.error}`
-    }
-    if (!preview.runs.length) {
-      return '暂未生成未来执行时间。'
-    }
-    return `未来三次：${preview.runs.map(item => formatDate(item)).join(' / ')}`
-  })
-
   const keepaliveTaskCard = computed(() => {
     if (!overview.value) {
-      return {
-        pills: [{ label: '等待加载', kind: 'off' }],
-        cells: [
-          { label: '上次执行', value: '-' },
-          { label: '下次执行', value: '-' },
-          { label: '房间数', value: '-' },
-        ],
-      }
+      return createPendingTaskCard('房间数')
     }
 
     const configured = Boolean(overview.value.keepaliveConfigured)
     const status = overview.value.status?.keepalive || {}
-    return {
-      pills: [
-        { label: configured ? '已启动' : '未启动', kind: configured ? 'ok' : 'off' },
-        { label: configured ? (status.running ? '调度中' : '已停止') : '未启用', kind: configured ? (status.running ? 'warn' : 'off') : 'off' },
-      ],
-      cells: [
-        { label: '上次执行', value: formatDate(status.lastRun || null) },
-        { label: '下次执行', value: formatDate(status.nextRun || null) },
-        { label: '房间数', value: configured ? String(overview.value.keepaliveRooms ?? 0) : '0' },
-      ],
-    }
+    return createScheduledTaskCard(configured, status, { label: '房间数', value: configured ? String(overview.value.keepaliveRooms ?? 0) : '0' })
   })
 
   const keepaliveNote = computed(() => {
@@ -428,24 +300,6 @@ export function useKeepaliveTaskPage() {
   const showKeepaliveTable = computed(() => hasCookieSourceConfigured(rawConfig.value) && fanRows.value.length > 0)
   const keepaliveValueLabel = computed(() => keepaliveModel.value === 2 ? '数量' : '权重值')
 
-  function handleKeepalivePageEvent(event: Event): void {
-    applyKeepalivePageDetail((event as CustomEvent<KeepalivePageDetail>).detail || {})
-  }
-
-  function handleConfigEvent(event: Event): void {
-    const detail = (event as CustomEvent<{ rawConfig?: RawKeepaliveConfig | null }>).detail || {}
-    if ('rawConfig' in detail) {
-      applyRawConfig(detail.rawConfig || null)
-    }
-  }
-
-  function handleOverviewEvent(event: Event): void {
-    const detail = (event as CustomEvent<{ overview?: KeepaliveOverview | null }>).detail || {}
-    if ('overview' in detail) {
-      overview.value = detail.overview || null
-    }
-  }
-
   function handleKeepaliveToggle(): void {
     if (keepaliveEnabled.value) {
       void saveKeepaliveConfig({ revertCheckboxOnError: true })
@@ -461,17 +315,14 @@ export function useKeepaliveTaskPage() {
     })
   }
 
-  onMounted(() => {
-    document.addEventListener(KEEPALIVE_PAGE_EVENT_NAME, handleKeepalivePageEvent)
-    document.addEventListener('douyu-keep-webui:config', handleConfigEvent)
-    document.addEventListener('douyu-keep-webui:overview', handleOverviewEvent)
-    void ensureCronPreview()
-  })
-
-  onBeforeUnmount(() => {
-    document.removeEventListener(KEEPALIVE_PAGE_EVENT_NAME, handleKeepalivePageEvent)
-    document.removeEventListener('douyu-keep-webui:config', handleConfigEvent)
-    document.removeEventListener('douyu-keep-webui:overview', handleOverviewEvent)
+  useLegacyPageEvents<KeepalivePageDetail, RawKeepaliveConfig, KeepaliveOverview>({
+    pageEventName: KEEPALIVE_PAGE_EVENT_NAME,
+    onPageDetail: applyKeepalivePageDetail,
+    onRawConfig: applyRawConfig,
+    onOverview: (nextOverview) => {
+      overview.value = nextOverview
+    },
+    ensureCronPreview,
   })
 
   return {

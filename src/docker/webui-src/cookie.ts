@@ -1,7 +1,9 @@
 import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, ManualCookieConfig } from '../../core/types'
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import { formatDate } from './resources'
+import { computed, reactive, ref } from 'vue'
+import { useCronPreview } from './composables/use-cron-preview'
+import { formatDate } from './datetime'
 import { requestJson } from './request'
+import { getErrorMessage, isHttpUnauthorized, useLegacyPageEvents } from './task-shared'
 import { showToast } from './toast'
 
 interface LoginOverview {
@@ -44,13 +46,6 @@ interface SaveCookieCloudOptions {
   revertActiveTo?: boolean
 }
 
-interface CronPreview {
-  error: string
-  loading: boolean
-  runs: string[]
-  value: string
-}
-
 const DEFAULT_COOKIE_CLOUD_CRON = '0 5 0 * * *'
 const LOGIN_PAGE_EVENT_NAME = 'douyu-keep-webui:login-page'
 
@@ -67,14 +62,8 @@ const cookieCloud = reactive({
   cron: DEFAULT_COOKIE_CLOUD_CRON,
   password: '',
 })
-const cronPreview = reactive<CronPreview>({
-  value: '',
-  runs: [],
-  error: '',
-  loading: false,
-})
+const { cronPreviewText, ensureCronPreview, loadCronPreview } = useCronPreview(() => cookieCloud.cron)
 
-let cronPreviewSeq = 0
 let legacyDeps: LegacyCookieDeps | null = null
 
 declare global {
@@ -85,12 +74,8 @@ declare global {
   }
 }
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
-
 function isUnauthorizedError(error: unknown): boolean {
-  return Boolean(error && typeof error === 'object' && 'status' in error && error.status === 401)
+  return isHttpUnauthorized(error)
 }
 
 function getManualCookiesConfig(config: DockerConfig | null): ManualCookieConfig {
@@ -188,46 +173,6 @@ function buildCookieCheckText(result: CookieDiagnostics | null): string {
     : `鱼吧 dy-token 缺少 ${(result.missingYubaDyTokenKeys || []).join(', ')}`
   const updateText = result.updateTime ? `，更新时间: ${formatDate(result.updateTime)}` : ''
   return `来源: ${sourceLabel}，Cookie 数: ${result.cookieCount || 0}${updateText}。${mainText}；${yubaDyTokenText}；${yubaText}。`
-}
-
-function setCronPreview(nextPreview: CronPreview): void {
-  cronPreview.value = nextPreview.value
-  cronPreview.runs = nextPreview.runs
-  cronPreview.error = nextPreview.error
-  cronPreview.loading = nextPreview.loading
-}
-
-async function loadCronPreview(): Promise<void> {
-  const value = cookieCloud.cron.trim()
-  cronPreviewSeq += 1
-  const requestSeq = cronPreviewSeq
-
-  if (!value) {
-    setCronPreview({ value: '', runs: [], error: '', loading: false })
-    return
-  }
-
-  setCronPreview({ value, runs: [], error: '', loading: true })
-  try {
-    const data = await requestJson<{ runs?: string[] }>(`/api/cron-preview?value=${encodeURIComponent(value)}`)
-    if (cronPreviewSeq !== requestSeq) {
-      return
-    }
-    setCronPreview({ value, runs: data.runs || [], error: '', loading: false })
-  } catch (error) {
-    if (cronPreviewSeq !== requestSeq) {
-      return
-    }
-    setCronPreview({ value, runs: [], error: getErrorMessage(error), loading: false })
-  }
-}
-
-function ensureCronPreview(): Promise<void> {
-  const value = cookieCloud.cron.trim()
-  if (cronPreview.value !== value || (!cronPreview.loading && !cronPreview.error && !cronPreview.runs.length)) {
-    return loadCronPreview()
-  }
-  return Promise.resolve()
 }
 
 async function refreshOverviewAfterCookieChange(showSuccessToast: boolean): Promise<void> {
@@ -405,21 +350,6 @@ function disableCookieCloud(): Promise<void> {
 
 export function useCookieLoginPage() {
   const cookieCheckText = computed(() => buildCookieCheckText(cookieCheck.value))
-  const cronPreviewText = computed(() => {
-    if (!cronPreview.value) {
-      return '填写 cron 后显示未来三次执行时间。'
-    }
-    if (cronPreview.loading) {
-      return '正在计算未来执行时间…'
-    }
-    if (cronPreview.error) {
-      return `cron 校验失败：${cronPreview.error}`
-    }
-    if (!cronPreview.runs.length) {
-      return '暂未生成未来执行时间。'
-    }
-    return `未来三次：${cronPreview.runs.map(item => formatDate(item)).join(' / ')}`
-  })
   const loginStatus = computed(() => {
     const config = rawConfig.value
     const sourceReady = hasCookieSourceConfigured(config)
@@ -447,24 +377,6 @@ export function useCookieLoginPage() {
     }
   })
 
-  function handleLoginPageEvent(event: Event): void {
-    applyLoginPageDetail((event as CustomEvent<LoginPageDetail>).detail || {})
-  }
-
-  function handleConfigEvent(event: Event): void {
-    const detail = (event as CustomEvent<{ rawConfig?: DockerConfig | null }>).detail || {}
-    if ('rawConfig' in detail) {
-      applyRawConfig(detail.rawConfig || null)
-    }
-  }
-
-  function handleOverviewEvent(event: Event): void {
-    const detail = (event as CustomEvent<{ overview?: LoginOverview | null }>).detail || {}
-    if ('overview' in detail) {
-      overview.value = detail.overview || null
-    }
-  }
-
   function handleCookieCloudToggle(): void {
     if (cookieCloud.active) {
       void saveCookieCloudToggle({ revertCheckboxOnError: true })
@@ -473,17 +385,12 @@ export function useCookieLoginPage() {
     void disableCookieCloud()
   }
 
-  onMounted(() => {
-    document.addEventListener(LOGIN_PAGE_EVENT_NAME, handleLoginPageEvent)
-    document.addEventListener('douyu-keep-webui:config', handleConfigEvent)
-    document.addEventListener('douyu-keep-webui:overview', handleOverviewEvent)
-    void ensureCronPreview()
-  })
-
-  onBeforeUnmount(() => {
-    document.removeEventListener(LOGIN_PAGE_EVENT_NAME, handleLoginPageEvent)
-    document.removeEventListener('douyu-keep-webui:config', handleConfigEvent)
-    document.removeEventListener('douyu-keep-webui:overview', handleOverviewEvent)
+  useLegacyPageEvents<LoginPageDetail, DockerConfig, LoginOverview>({
+    pageEventName: LOGIN_PAGE_EVENT_NAME,
+    onPageDetail: applyLoginPageDetail,
+    onRawConfig: applyRawConfig,
+    onOverview: nextOverview => overview.value = nextOverview,
+    ensureCronPreview,
   })
 
   return {

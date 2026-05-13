@@ -1,14 +1,9 @@
 import type { DoubleCardConfig, DoubleCardGiftScope, Fans, FanStatus, SendGift } from '../../core/types'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { formatDate } from './resources'
-import { requestJson } from './request'
+import { computed, ref } from 'vue'
+import { useCronPreview } from './composables/use-cron-preview'
+import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, formatOptionalNumber, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
 import { showToast } from './toast'
-
-interface TaskRunStatus {
-  lastRun?: string | null
-  nextRun?: string | null
-  running?: boolean
-}
+import type { TaskRunStatus } from './task-shared'
 
 interface DoubleOverview {
   doubleCardConfigured?: boolean
@@ -61,13 +56,6 @@ interface LegacyDoubleActions {
   saveDoubleConfig: (options?: { revertCheckboxOnError?: boolean }) => Promise<void>
 }
 
-interface CronPreview {
-  error: string
-  loading: boolean
-  runs: string[]
-  value: string
-}
-
 interface DoubleFanRow {
   doubleActive?: boolean
   enabled: boolean
@@ -98,14 +86,8 @@ const doubleCron = ref(DEFAULT_DOUBLE_CRON)
 const doubleModel = ref<1 | 2>(DEFAULT_DOUBLE_MODEL)
 const doubleGiftScope = ref<DoubleCardGiftScope>(DEFAULT_DOUBLE_GIFT_SCOPE)
 const fanRows = ref<DoubleFanRow[]>([])
-const cronPreview = ref<CronPreview>({
-  value: '',
-  runs: [],
-  error: '',
-  loading: false,
-})
+const { cronPreviewText: doubleCronPreviewText, ensureCronPreview, loadCronPreview: loadDoubleCronPreview } = useCronPreview(() => doubleCron.value)
 
-let cronPreviewSeq = 0
 let legacyDeps: LegacyDoubleDeps | null = null
 
 declare global {
@@ -116,19 +98,11 @@ declare global {
   }
 }
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
-
 function isUnauthorizedError(error: unknown): boolean {
   if (legacyDeps?.isUnauthorizedError(error)) {
     return true
   }
-  return Boolean(error && typeof error === 'object' && 'status' in error && error.status === 401)
-}
-
-function isTaskActive(config: DoubleCardConfig | undefined): boolean {
-  return Boolean(config && config.active !== false)
+  return isHttpUnauthorized(error)
 }
 
 function normalizeModel(model: unknown): 1 | 2 {
@@ -148,20 +122,6 @@ function getDoubleConfig(): DoubleCardConfig {
     send: {},
     enabled: {},
   }
-}
-
-function hasCookieSourceConfigured(config: RawDoubleConfig | null): boolean {
-  const cookieCloud = config?.cookieCloud
-  const manualCookies = config?.manualCookies
-  return Boolean(
-    String(manualCookies?.main || config?.cookie || '').trim()
-    || String(manualCookies?.yuba || '').trim()
-    || (cookieCloud?.active && String(cookieCloud.endpoint || '').trim() && String(cookieCloud.uuid || '').trim() && String(cookieCloud.password || '').trim()),
-  )
-}
-
-function formatOptionalNumber(value: unknown): number | string {
-  return value !== undefined && value !== null && value !== '' ? Number(value) : '-'
 }
 
 function buildFanRows(nextFans: DoubleFan[], config: DoubleCardConfig): DoubleFanRow[] {
@@ -231,40 +191,6 @@ function applyDoublePageDetail(detail: DoublePageDetail): void {
   applyDoubleConfig(getDoubleConfig())
 }
 
-async function loadDoubleCronPreview(): Promise<void> {
-  const value = doubleCron.value.trim()
-  cronPreviewSeq += 1
-  const requestSeq = cronPreviewSeq
-
-  if (!value) {
-    cronPreview.value = { value: '', runs: [], error: '', loading: false }
-    return
-  }
-
-  cronPreview.value = { value, runs: [], error: '', loading: true }
-  try {
-    const data = await requestJson<{ runs?: string[] }>(`/api/cron-preview?value=${encodeURIComponent(value)}`)
-    if (cronPreviewSeq !== requestSeq) {
-      return
-    }
-    cronPreview.value = { value, runs: data.runs || [], error: '', loading: false }
-  } catch (error) {
-    if (cronPreviewSeq !== requestSeq) {
-      return
-    }
-    cronPreview.value = { value, runs: [], error: getErrorMessage(error), loading: false }
-  }
-}
-
-function ensureCronPreview(): Promise<void> {
-  const value = doubleCron.value.trim()
-  const preview = cronPreview.value
-  if (preview.value !== value || (!preview.loading && !preview.error && !preview.runs.length)) {
-    return loadDoubleCronPreview()
-  }
-  return Promise.resolve()
-}
-
 function buildDoublePayload(): DoubleCardConfig {
   const send: Record<string, SendGift> = {}
   const enabled: Record<string, boolean> = {}
@@ -312,25 +238,17 @@ async function saveDoubleConfig(options?: { revertCheckboxOnError?: boolean }): 
     }
   }
 
-  try {
-    await requestJson('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        doubleCard: nextConfig,
-      }),
-    })
-    showToast('双倍任务已保存并启用', true)
-    await refreshDoubleSurfaces()
-  } catch (error) {
-    if (options?.revertCheckboxOnError) {
-      doubleEnabled.value = false
-    }
-    if (isUnauthorizedError(error)) {
-      return
-    }
-    showToast(`保存并启用双倍任务失败：${getErrorMessage(error)}`, false)
-  }
+  await saveTaskConfig({
+    payload: { doubleCard: nextConfig },
+    successMessage: '双倍任务已保存并启用',
+    failurePrefix: '保存并启用双倍任务失败：',
+    setEnabled: (enabled) => {
+      doubleEnabled.value = enabled
+    },
+    revertCheckboxOnError: options?.revertCheckboxOnError,
+    isUnauthorizedError,
+    refresh: refreshDoubleSurfaces,
+  })
 }
 
 async function disableDoubleConfig(): Promise<void> {
@@ -342,97 +260,55 @@ async function disableDoubleConfig(): Promise<void> {
     send: {},
     enabled: {},
   }
-  try {
-    await requestJson('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        doubleCard: {
-          active: false,
-          cron: currentConfig.cron || DEFAULT_DOUBLE_CRON,
-          model: normalizeModel(currentConfig.model),
-          giftScope: normalizeGiftScope(currentConfig.giftScope),
-          send: currentConfig.send || {},
-          enabled: currentConfig.enabled || {},
-        },
-      }),
-    })
-    showToast('双倍任务已停用', true)
-    await refreshDoubleSurfaces()
-  } catch (error) {
-    doubleEnabled.value = true
-    if (isUnauthorizedError(error)) {
-      return
-    }
-    showToast(`停用双倍任务失败：${getErrorMessage(error)}`, false)
-  }
+  await disableTaskConfig({
+    payload: {
+      doubleCard: {
+        active: false,
+        cron: currentConfig.cron || DEFAULT_DOUBLE_CRON,
+        model: normalizeModel(currentConfig.model),
+        giftScope: normalizeGiftScope(currentConfig.giftScope),
+        send: currentConfig.send || {},
+        enabled: currentConfig.enabled || {},
+      },
+    },
+    successMessage: '双倍任务已停用',
+    failurePrefix: '停用双倍任务失败：',
+    restoreEnabled: () => {
+      doubleEnabled.value = true
+    },
+    isUnauthorizedError,
+    refresh: refreshDoubleSurfaces,
+  })
 }
 
 async function triggerDoubleTask(): Promise<void> {
-  try {
-    await requestJson('/api/trigger/doubleCard', { method: 'POST' })
-    showToast('执行完成', true)
-    await Promise.all([
-      legacyDeps?.loadOverview?.(),
-      legacyDeps?.loadLogs?.(),
-      legacyDeps?.loadFansStatus?.(false),
-    ].filter(Boolean))
-    if (legacyDeps) {
-      fans.value = legacyDeps.getManagedFans()
-      managedConfig.value = legacyDeps.getManagedConfig()
-      applyDoubleConfig(getDoubleConfig())
-    }
-  } catch (error) {
-    if (isUnauthorizedError(error)) {
-      return
-    }
-    showToast(`执行失败：${getErrorMessage(error)}`, false)
-  }
+  await triggerTask({
+    endpoint: '/api/trigger/doubleCard',
+    isUnauthorizedError,
+    refresh: [
+      () => legacyDeps?.loadOverview?.(),
+      () => legacyDeps?.loadLogs?.(),
+      () => legacyDeps?.loadFansStatus?.(false),
+    ],
+    onSuccess: () => {
+      if (legacyDeps) {
+        fans.value = legacyDeps.getManagedFans()
+        managedConfig.value = legacyDeps.getManagedConfig()
+        applyDoubleConfig(getDoubleConfig())
+      }
+    },
+  })
 }
 
 export function useDoubleTaskPage() {
-  const doubleCronPreviewText = computed(() => {
-    const preview = cronPreview.value
-    if (!preview.value) {
-      return '填写 cron 后显示未来三次执行时间。'
-    }
-    if (preview.loading) {
-      return '正在计算未来执行时间…'
-    }
-    if (preview.error) {
-      return `cron 校验失败：${preview.error}`
-    }
-    if (!preview.runs.length) {
-      return '暂未生成未来执行时间。'
-    }
-    return `未来三次：${preview.runs.map(item => formatDate(item)).join(' / ')}`
-  })
-
   const doubleTaskCard = computed(() => {
     if (!overview.value) {
-      return {
-        pills: [{ label: '等待加载', kind: 'off' }],
-        cells: [
-          { label: '上次执行', value: '-' },
-          { label: '下次执行', value: '-' },
-          { label: '房间数', value: '-' },
-        ],
-      }
+      return createPendingTaskCard('房间数')
     }
 
     const configured = Boolean(overview.value.doubleCardConfigured)
     const status = overview.value.status?.doubleCard || {}
-    return {
-      pills: [
-        { label: configured ? '已启动' : '未启动', kind: configured ? 'ok' : 'off' },
-        { label: configured ? (status.running ? '调度中' : '已停止') : '未启用', kind: configured ? (status.running ? 'warn' : 'off') : 'off' },
-      ],
-      cells: [
-        { label: '上次执行', value: formatDate(status.lastRun || null) },
-        { label: '下次执行', value: formatDate(status.nextRun || null) },
-        { label: '房间数', value: configured ? String(overview.value.doubleCardRooms ?? 0) : '0' },
-      ],
-    }
+    return createScheduledTaskCard(configured, status, { label: '房间数', value: configured ? String(overview.value.doubleCardRooms ?? 0) : '0' })
   })
 
   const enabledCount = computed(() => fanRows.value.filter(row => row.enabled).length)
@@ -521,24 +397,6 @@ export function useDoubleTaskPage() {
     return `当前权重：${ratioText}\n折算占比：${percentText}`
   })
 
-  function handleDoublePageEvent(event: Event): void {
-    applyDoublePageDetail((event as CustomEvent<DoublePageDetail>).detail || {})
-  }
-
-  function handleConfigEvent(event: Event): void {
-    const detail = (event as CustomEvent<{ rawConfig?: RawDoubleConfig | null }>).detail || {}
-    if ('rawConfig' in detail) {
-      applyRawConfig(detail.rawConfig || null)
-    }
-  }
-
-  function handleOverviewEvent(event: Event): void {
-    const detail = (event as CustomEvent<{ overview?: DoubleOverview | null }>).detail || {}
-    if ('overview' in detail) {
-      overview.value = detail.overview || null
-    }
-  }
-
   function handleDoubleToggle(): void {
     if (doubleEnabled.value) {
       void saveDoubleConfig({ revertCheckboxOnError: true })
@@ -575,17 +433,14 @@ export function useDoubleTaskPage() {
     showToast(preset === 'level' ? '已按粉丝牌等级填入权重值' : '已将参与房间全部设为 1', true)
   }
 
-  onMounted(() => {
-    document.addEventListener(DOUBLE_PAGE_EVENT_NAME, handleDoublePageEvent)
-    document.addEventListener('douyu-keep-webui:config', handleConfigEvent)
-    document.addEventListener('douyu-keep-webui:overview', handleOverviewEvent)
-    void ensureCronPreview()
-  })
-
-  onBeforeUnmount(() => {
-    document.removeEventListener(DOUBLE_PAGE_EVENT_NAME, handleDoublePageEvent)
-    document.removeEventListener('douyu-keep-webui:config', handleConfigEvent)
-    document.removeEventListener('douyu-keep-webui:overview', handleOverviewEvent)
+  useLegacyPageEvents<DoublePageDetail, RawDoubleConfig, DoubleOverview>({
+    pageEventName: DOUBLE_PAGE_EVENT_NAME,
+    onPageDetail: applyDoublePageDetail,
+    onRawConfig: applyRawConfig,
+    onOverview: (nextOverview) => {
+      overview.value = nextOverview
+    },
+    ensureCronPreview,
   })
 
   return {

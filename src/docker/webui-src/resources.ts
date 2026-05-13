@@ -2,8 +2,11 @@ import type { Fans, FanStatus, FansStatusResponse, GiftStatus, YubaGroupStatus }
 import type { WebUiRequestError } from './request'
 import type { Ref } from 'vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { formatDate } from './datetime'
 import { requestJson } from './request'
 import { showToast } from './toast'
+
+export { formatDate } from './datetime'
 
 interface RawConfigResponse {
   exists?: unknown
@@ -190,41 +193,6 @@ function showResourceError(deps: LegacySystemResourceDeps, message: string): voi
   }
 
   showToast(message, false)
-}
-
-function padDatePart(value: number): string {
-  return String(value).padStart(2, '0')
-}
-
-function formatShanghaiMinuteFallback(date: Date): string {
-  const shanghaiDate = new Date(date.getTime() + 8 * 60 * 60 * 1000)
-  return `${shanghaiDate.getUTCFullYear()}-${padDatePart(shanghaiDate.getUTCMonth() + 1)}-${padDatePart(shanghaiDate.getUTCDate())} ${padDatePart(shanghaiDate.getUTCHours())}:${padDatePart(shanghaiDate.getUTCMinutes())}`
-}
-
-export function formatDate(value: string | null): string {
-  if (!value) {
-    return '无'
-  }
-
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return String(value)
-  }
-
-  try {
-    return new Intl.DateTimeFormat('zh-CN', {
-      timeZone: 'Asia/Shanghai',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      hourCycle: 'h23',
-    }).format(date)
-  } catch {
-    return formatShanghaiMinuteFallback(date)
-  }
 }
 
 function normalizeLogs(data: unknown): LogEntry[] {

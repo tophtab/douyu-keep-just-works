@@ -1,5 +1,5 @@
 import type { WebUiPageTab } from './navigation'
-import { formatDate } from './resources'
+import { formatDate } from './datetime'
 import { showToast } from './toast'
 import { isWebUiPageTab, normalizePagePath, normalizePageRoutes, WEBUI_PAGE_TABS } from './navigation'
 

@@ -1,6 +1,6 @@
 import type { CookieDiagnostics, FanStatus, Fans, FansStatusResponse, GiftStatus } from '../../core/types'
 import type { WebUiPageTab } from './navigation'
-import { formatDate } from './resources'
+import { formatDate } from './datetime'
 
 type LegacyResourceKey = 'fansSync' | 'fansList' | 'fansStatus' | 'yubaStatus'
 

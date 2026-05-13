@@ -28,9 +28,14 @@ src/docker/
 │   │   ├── AuthShell.vue
 │   │   ├── *Page.vue
 │   │   └── reusable task/table components
+│   ├── composables/
+│   │   └── reusable Vue state helpers used by multiple pages
 │   ├── legacy-app.ts
 │   ├── index.html
 │   ├── main.ts
+│   ├── task-shared.ts
+│   ├── logs.ts
+│   ├── datetime.ts
 │   └── styles/
 │       ├── base.css
 │       ├── shell.css
@@ -47,6 +52,8 @@ src/docker/
 - Put the Vite HTML shell in `src/docker/webui-src/index.html`.
 - Put Vue shell/component code in `src/docker/webui-src/*.vue`.
 - Put extracted cohesive shell/page components under `src/docker/webui-src/components/`.
+- Put reusable Vue-owned state helpers under `src/docker/webui-src/composables/` only when the same non-trivial behavior is used by multiple pages.
+- Put cross-page task helpers that are not Vue lifecycle/state factories in small `src/docker/webui-src/*-shared.ts` modules.
 - Put shared Docker WebUI styles under `src/docker/webui-src/styles/`, imported by `main.ts` in base, shell, components, tables, responsive order.
 - Keep Docker runtime serving concerns in `src/docker/webui.ts` and `src/docker/server-webui-routes.ts`.
 
@@ -60,6 +67,9 @@ src/docker/
 - `components/*Page.vue` owns page markup and calls its existing page composable unless a parent must share state across shell regions.
 - `components/TaskStatusCard.vue`, `CronField.vue`, `EnableSwitch.vue`, and `ActionBar.vue` own repeated task page controls while page composables still own request and persistence logic.
 - `components/*Table.vue` owns repeated fans, Yuba, allocation, and backpack table markup; pages pass reactive row models and handle mutation events.
+- `composables/use-cron-preview.ts` owns shared cron preview request sequencing and display text for task pages and CookieCloud.
+- `task-shared.ts` owns shared task-page request helpers, legacy page event wiring, cookie-source checks, and task-card state helpers; page modules still own domain-specific payload construction.
+- `logs.ts` owns Docker WebUI log loading/clearing and the logs page composable; `resources.ts` may keep compatibility exports/bridge wiring while the legacy transition exists.
 
 ## Style Ownership
 

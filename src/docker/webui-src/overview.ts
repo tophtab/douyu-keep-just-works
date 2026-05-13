@@ -1,6 +1,6 @@
 import type { FanStatus, GiftStatus } from '../../core/types'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { formatDate } from './resources'
+import { formatDate } from './datetime'
 
 interface TaskRunStatus {
   lastRun?: string | null

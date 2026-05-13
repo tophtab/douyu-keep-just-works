@@ -12,6 +12,7 @@ The closest equivalents are:
 - Pinia stores in `src/renderer/stores/`
 - renderer helper modules in `src/renderer/run/`
 - simple local `ref` / `reactive` usage inside view components
+- Docker WebUI composables under `src/docker/webui-src/composables/` when repeated Vue-owned behavior appears across several Docker pages
 
 When this repository talks about reusable stateful logic, prefer those patterns instead of inventing a separate composables layer unless there is clear repeated behavior.
 
@@ -22,6 +23,8 @@ When this repository talks about reusable stateful logic, prefer those patterns 
 - Use a Pinia store when multiple routes need the same reactive state.
 - Use `run/` helpers for async workflows and side-effect-heavy procedures.
 - Keep one-off validation or screen-only state inside the view component.
+- In Docker WebUI, extract a composable only for non-trivial behavior repeated across multiple pages, such as cron preview request sequencing with stale-response protection.
+- In Docker WebUI, put non-lifecycle helpers such as save/disable/trigger request wrappers and legacy event wiring in small shared TypeScript modules instead of page-local copies.
 
 Examples:
 
@@ -43,6 +46,7 @@ Examples:
 - `src/renderer/stores/fans.ts` fetches the Douyu fans list and toggles `loading`.
 - `src/renderer/stores/user.ts` fetches both the current gift count and profile info.
 - `src/renderer/views/config/index.vue` fetches cron preview data through `window.electron.ipcRenderer.invoke('cron', ...)`.
+- `src/docker/webui-src/composables/use-cron-preview.ts` fetches Docker cron preview data through `/api/cron-preview` and centralizes loading/error/display text for task pages.
 
 ---
 
@@ -51,6 +55,7 @@ Examples:
 - Pinia store factories use `useXxx` naming: `useLogin`, `useFans`, `useLog`, `useCronStatus`.
 - Store ids are short lowercase strings such as `'user'`, `'fans'`, and `'log'`.
 - Async store methods use verb-based names like `getUser()` and `getFansList()`.
+- Docker WebUI composable filenames use lowercase kebab-style names such as `use-cron-preview.ts`, while exported factories keep `useXxx` names.
 
 ---
 

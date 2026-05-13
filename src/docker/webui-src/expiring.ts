@@ -1,14 +1,9 @@
 import type { BackpackGiftRow, ExpiringGiftConfig, Fans, GiftStatus, SendGift } from '../../core/types'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { formatDate } from './resources'
-import { requestJson } from './request'
-import { showToast } from './toast'
-
-interface TaskRunStatus {
-  lastRun?: string | null
-  nextRun?: string | null
-  running?: boolean
-}
+import { computed, ref } from 'vue'
+import { useCronPreview } from './composables/use-cron-preview'
+import { formatDate } from './datetime'
+import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, formatOptionalNumber, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import type { TaskRunStatus } from './task-shared'
 
 interface ExpiringOverview {
   expiringGiftConfigured?: boolean
@@ -63,13 +58,6 @@ interface LegacyExpiringActions {
   saveExpiringGiftConfig: (options?: { revertCheckboxOnError?: boolean }) => Promise<void>
 }
 
-interface CronPreview {
-  error: string
-  loading: boolean
-  runs: string[]
-  value: string
-}
-
 interface ExpiringFanRow {
   index: number
   intimacy: string
@@ -113,14 +101,8 @@ const expiringCron = ref(DEFAULT_EXPIRING_CRON)
 const expiringThresholdHours = ref(DEFAULT_EXPIRING_THRESHOLD_HOURS)
 const expiringModel = ref<1 | 2>(DEFAULT_EXPIRING_MODEL)
 const fanRows = ref<ExpiringFanRow[]>([])
-const cronPreview = ref<CronPreview>({
-  value: '',
-  runs: [],
-  error: '',
-  loading: false,
-})
+const { cronPreviewText: expiringCronPreviewText, ensureCronPreview, loadCronPreview: loadExpiringCronPreview } = useCronPreview(() => expiringCron.value)
 
-let cronPreviewSeq = 0
 let legacyDeps: LegacyExpiringDeps | null = null
 
 declare global {
@@ -131,19 +113,11 @@ declare global {
   }
 }
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
-
 function isUnauthorizedError(error: unknown): boolean {
   if (legacyDeps?.isUnauthorizedError(error)) {
     return true
   }
-  return Boolean(error && typeof error === 'object' && 'status' in error && error.status === 401)
-}
-
-function isTaskActive(config: ExpiringGiftConfig | undefined): boolean {
-  return Boolean(config && config.active !== false)
+  return isHttpUnauthorized(error)
 }
 
 function normalizeModel(model: unknown): 1 | 2 {
@@ -163,20 +137,6 @@ function getExpiringConfig(): ExpiringGiftConfig {
     model: DEFAULT_EXPIRING_MODEL,
     send: {},
   }
-}
-
-function hasCookieSourceConfigured(config: RawExpiringConfig | null): boolean {
-  const cookieCloud = config?.cookieCloud
-  const manualCookies = config?.manualCookies
-  return Boolean(
-    String(manualCookies?.main || config?.cookie || '').trim()
-    || String(manualCookies?.yuba || '').trim()
-    || (cookieCloud?.active && String(cookieCloud.endpoint || '').trim() && String(cookieCloud.uuid || '').trim() && String(cookieCloud.password || '').trim()),
-  )
-}
-
-function formatOptionalNumber(value: unknown): number | string {
-  return value !== undefined && value !== null && value !== '' ? Number(value) : '-'
 }
 
 function buildFanRows(nextFans: Fans[], config: ExpiringGiftConfig): ExpiringFanRow[] {
@@ -256,40 +216,6 @@ function applyExpiringPageDetail(detail: ExpiringPageDetail): void {
   applyExpiringConfig(getExpiringConfig())
 }
 
-async function loadExpiringCronPreview(): Promise<void> {
-  const value = expiringCron.value.trim()
-  cronPreviewSeq += 1
-  const requestSeq = cronPreviewSeq
-
-  if (!value) {
-    cronPreview.value = { value: '', runs: [], error: '', loading: false }
-    return
-  }
-
-  cronPreview.value = { value, runs: [], error: '', loading: true }
-  try {
-    const data = await requestJson<{ runs?: string[] }>(`/api/cron-preview?value=${encodeURIComponent(value)}`)
-    if (cronPreviewSeq !== requestSeq) {
-      return
-    }
-    cronPreview.value = { value, runs: data.runs || [], error: '', loading: false }
-  } catch (error) {
-    if (cronPreviewSeq !== requestSeq) {
-      return
-    }
-    cronPreview.value = { value, runs: [], error: getErrorMessage(error), loading: false }
-  }
-}
-
-function ensureCronPreview(): Promise<void> {
-  const value = expiringCron.value.trim()
-  const preview = cronPreview.value
-  if (preview.value !== value || (!preview.loading && !preview.error && !preview.runs.length)) {
-    return loadExpiringCronPreview()
-  }
-  return Promise.resolve()
-}
-
 function buildExpiringPayload(): ExpiringGiftConfig {
   const send: Record<string, SendGift> = {}
   for (const row of fanRows.value) {
@@ -317,26 +243,17 @@ async function refreshExpiringSurfaces(): Promise<void> {
 }
 
 async function saveExpiringGiftConfig(options?: { revertCheckboxOnError?: boolean }): Promise<void> {
-  expiringEnabled.value = true
-  try {
-    await requestJson('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        expiringGift: buildExpiringPayload(),
-      }),
-    })
-    showToast('临期任务已保存并启用', true)
-    await refreshExpiringSurfaces()
-  } catch (error) {
-    if (options?.revertCheckboxOnError) {
-      expiringEnabled.value = false
-    }
-    if (isUnauthorizedError(error)) {
-      return
-    }
-    showToast(`保存并启用临期任务失败：${getErrorMessage(error)}`, false)
-  }
+  await saveTaskConfig({
+    payload: { expiringGift: buildExpiringPayload() },
+    successMessage: '临期任务已保存并启用',
+    failurePrefix: '保存并启用临期任务失败：',
+    setEnabled: (enabled) => {
+      expiringEnabled.value = enabled
+    },
+    revertCheckboxOnError: options?.revertCheckboxOnError,
+    isUnauthorizedError,
+    refresh: refreshExpiringSurfaces,
+  })
 }
 
 async function disableExpiringGiftConfig(): Promise<void> {
@@ -347,51 +264,43 @@ async function disableExpiringGiftConfig(): Promise<void> {
     model: DEFAULT_EXPIRING_MODEL,
     send: {},
   }
-  try {
-    await requestJson('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        expiringGift: {
-          active: false,
-          cron: currentConfig.cron || DEFAULT_EXPIRING_CRON,
-          thresholdHours: normalizeThresholdHours(currentConfig.thresholdHours),
-          model: normalizeModel(currentConfig.model),
-          send: currentConfig.send || {},
-        },
-      }),
-    })
-    showToast('临期任务已停用', true)
-    await refreshExpiringSurfaces()
-  } catch (error) {
-    expiringEnabled.value = true
-    if (isUnauthorizedError(error)) {
-      return
-    }
-    showToast(`停用临期任务失败：${getErrorMessage(error)}`, false)
-  }
+  await disableTaskConfig({
+    payload: {
+      expiringGift: {
+        active: false,
+        cron: currentConfig.cron || DEFAULT_EXPIRING_CRON,
+        thresholdHours: normalizeThresholdHours(currentConfig.thresholdHours),
+        model: normalizeModel(currentConfig.model),
+        send: currentConfig.send || {},
+      },
+    },
+    successMessage: '临期任务已停用',
+    failurePrefix: '停用临期任务失败：',
+    restoreEnabled: () => {
+      expiringEnabled.value = true
+    },
+    isUnauthorizedError,
+    refresh: refreshExpiringSurfaces,
+  })
 }
 
 async function triggerExpiringTask(): Promise<void> {
-  try {
-    await requestJson('/api/trigger/expiringGift', { method: 'POST' })
-    showToast('执行完成', true)
-    await Promise.all([
-      legacyDeps?.loadOverview?.(),
-      legacyDeps?.loadLogs?.(),
-      legacyDeps?.loadFansStatus?.(false),
-    ].filter(Boolean))
-    if (legacyDeps) {
-      fans.value = legacyDeps.getManagedFans()
-      managedConfig.value = legacyDeps.getManagedConfig()
-      applyExpiringConfig(getExpiringConfig())
-    }
-  } catch (error) {
-    if (isUnauthorizedError(error)) {
-      return
-    }
-    showToast(`执行失败：${getErrorMessage(error)}`, false)
-  }
+  await triggerTask({
+    endpoint: '/api/trigger/expiringGift',
+    isUnauthorizedError,
+    refresh: [
+      () => legacyDeps?.loadOverview?.(),
+      () => legacyDeps?.loadLogs?.(),
+      () => legacyDeps?.loadFansStatus?.(false),
+    ],
+    onSuccess: () => {
+      if (legacyDeps) {
+        fans.value = legacyDeps.getManagedFans()
+        managedConfig.value = legacyDeps.getManagedConfig()
+        applyExpiringConfig(getExpiringConfig())
+      }
+    },
+  })
 }
 
 function formatTimestamp(value: number | undefined): string {
@@ -424,48 +333,14 @@ function describeBackpackRow(row: BackpackGiftRow, thresholdHours: number): { au
 }
 
 export function useExpiringGiftTaskPage() {
-  const expiringCronPreviewText = computed(() => {
-    const preview = cronPreview.value
-    if (!preview.value) {
-      return '填写 cron 后显示未来三次执行时间。'
-    }
-    if (preview.loading) {
-      return '正在计算未来执行时间…'
-    }
-    if (preview.error) {
-      return `cron 校验失败：${preview.error}`
-    }
-    if (!preview.runs.length) {
-      return '暂未生成未来执行时间。'
-    }
-    return `未来三次：${preview.runs.map(item => formatDate(item)).join(' / ')}`
-  })
-
   const expiringTaskCard = computed(() => {
     if (!overview.value) {
-      return {
-        pills: [{ label: '等待加载', kind: 'off' }],
-        cells: [
-          { label: '上次执行', value: '-' },
-          { label: '下次执行', value: '-' },
-          { label: '阈值', value: '-' },
-        ],
-      }
+      return createPendingTaskCard('阈值')
     }
 
     const configured = Boolean(overview.value.expiringGiftConfigured)
     const status = overview.value.status?.expiringGift || {}
-    return {
-      pills: [
-        { label: configured ? '已启动' : '未启动', kind: configured ? 'ok' : 'off' },
-        { label: configured ? (status.running ? '调度中' : '已停止') : '未启用', kind: configured ? (status.running ? 'warn' : 'off') : 'off' },
-      ],
-      cells: [
-        { label: '上次执行', value: formatDate(status.lastRun || null) },
-        { label: '下次执行', value: formatDate(status.nextRun || null) },
-        { label: '阈值', value: `${normalizeThresholdHours(getExpiringConfig().thresholdHours)} 小时` },
-      ],
-    }
+    return createScheduledTaskCard(configured, status, { label: '阈值', value: `${normalizeThresholdHours(getExpiringConfig().thresholdHours)} 小时` })
   })
 
   const expiringNote = computed(() => {
@@ -540,24 +415,6 @@ export function useExpiringGiftTaskPage() {
   const showExpiringBackpackTable = computed(() => Boolean(giftStatus.value && !giftStatus.value.error && expiringBackpackRows.value.length))
   const expiringValueLabel = computed(() => expiringModel.value === 2 ? '数量' : '权重值')
 
-  function handleExpiringPageEvent(event: Event): void {
-    applyExpiringPageDetail((event as CustomEvent<ExpiringPageDetail>).detail || {})
-  }
-
-  function handleConfigEvent(event: Event): void {
-    const detail = (event as CustomEvent<{ rawConfig?: RawExpiringConfig | null }>).detail || {}
-    if ('rawConfig' in detail) {
-      applyRawConfig(detail.rawConfig || null)
-    }
-  }
-
-  function handleOverviewEvent(event: Event): void {
-    const detail = (event as CustomEvent<{ overview?: ExpiringOverview | null }>).detail || {}
-    if ('overview' in detail) {
-      overview.value = detail.overview || null
-    }
-  }
-
   function handleExpiringToggle(): void {
     if (expiringEnabled.value) {
       void saveExpiringGiftConfig({ revertCheckboxOnError: true })
@@ -573,17 +430,14 @@ export function useExpiringGiftTaskPage() {
     })
   }
 
-  onMounted(() => {
-    document.addEventListener(EXPIRING_PAGE_EVENT_NAME, handleExpiringPageEvent)
-    document.addEventListener('douyu-keep-webui:config', handleConfigEvent)
-    document.addEventListener('douyu-keep-webui:overview', handleOverviewEvent)
-    void ensureCronPreview()
-  })
-
-  onBeforeUnmount(() => {
-    document.removeEventListener(EXPIRING_PAGE_EVENT_NAME, handleExpiringPageEvent)
-    document.removeEventListener('douyu-keep-webui:config', handleConfigEvent)
-    document.removeEventListener('douyu-keep-webui:overview', handleOverviewEvent)
+  useLegacyPageEvents<ExpiringPageDetail, RawExpiringConfig, ExpiringOverview>({
+    pageEventName: EXPIRING_PAGE_EVENT_NAME,
+    onPageDetail: applyExpiringPageDetail,
+    onRawConfig: applyRawConfig,
+    onOverview: (nextOverview) => {
+      overview.value = nextOverview
+    },
+    ensureCronPreview,
   })
 
   return {

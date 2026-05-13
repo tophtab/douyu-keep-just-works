@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 65
+- **Total Sessions**: 66
 - **Last Active**: 2026-05-13
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~370 | Active |
+| `journal-2.md` | ~403 | Active |
 | `journal-1.md` | ~1988 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 66 | 2026-05-13 | Rename Docker WebUI source directory | `84df16c` | `master` |
 | 65 | 2026-05-13 | Finish Docker WebUI Vue migration | - | `master` |
 | 64 | 2026-05-13 | Complete code simplification review | - | `master` |
 | 63 | 2026-05-13 | Remove project-specific mandatory spec validation | `810848f` | `master` |

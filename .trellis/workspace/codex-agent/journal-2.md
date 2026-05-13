@@ -368,3 +368,36 @@ Resumed the completed Docker WebUI Vue migration task, verified the legacy src/d
 ### Next Steps
 
 - None - task complete
+
+
+## Session 66: Rename Docker WebUI source directory
+
+**Date**: 2026-05-13
+**Task**: Rename Docker WebUI source directory
+**Branch**: `master`
+
+### Summary
+
+Renamed Docker WebUI Vue/Vite source from src/docker/webui-src to src/docker/webui, updated Vite/TypeScript/lint config, contract tests, contributor docs, and Trellis specs, verified legacy app-*.js modules remain deleted, and confirmed lint, type-check, contract tests, and npm test pass.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `84df16c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

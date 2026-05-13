@@ -1,7 +1,7 @@
 import { CronJob } from 'cron'
-import type { DockerConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig, YubaCheckInConfig } from '../core/types'
+import type { DockerConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig } from '../core/types'
 import type { JobStatus } from './server'
-import { createTaskRecord, formatTaskList, getTaskConfig, getTaskLabel, TASK_TYPES } from './task-metadata'
+import { createTaskRecord, formatTaskList, getTaskConfig, getTaskLabel, getTaskScheduleSummary, isTaskActive, TASK_TYPES } from './task-metadata'
 import type { TaskType } from './task-metadata'
 import { DOCKER_TIMEZONE } from './runtime-constants'
 import type { StatusCacheScope } from './runtime-cache'
@@ -22,10 +22,6 @@ import type { RuntimeTaskRunnerDeps } from './runtime-task-runners'
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
-}
-
-function isTaskActive(config: { active?: boolean } | null | undefined): boolean {
-  return Boolean(config && config.active !== false)
 }
 
 function jsonEquals(a: unknown, b: unknown): boolean {
@@ -289,7 +285,7 @@ export class DockerTaskScheduler {
       async () => {
         await runKeepaliveTask(config, this.createTaskRunnerDeps())
       },
-      `房间数: ${Object.keys(config.send).length}`,
+      getTaskScheduleSummary('keepalive', config),
     )
   }
 
@@ -304,7 +300,7 @@ export class DockerTaskScheduler {
       async () => {
         await runDoubleCardTask(config, this.createTaskRunnerDeps())
       },
-      `房间数: ${Object.keys(config.send).length}`,
+      getTaskScheduleSummary('doubleCard', config),
     )
   }
 
@@ -319,11 +315,11 @@ export class DockerTaskScheduler {
       async () => {
         await runExpiringGiftTask(config, this.createTaskRunnerDeps())
       },
-      `阈值: ${config.thresholdHours || 24}小时, 房间数: ${Object.keys(config.send).length}`,
+      getTaskScheduleSummary('expiringGift', config),
     )
   }
 
-  private startYubaCheckInTask(config: YubaCheckInConfig | undefined): void {
+  private startYubaCheckInTask(config: DockerConfig['yubaCheckIn']): void {
     if (!config || config.active === false) {
       return
     }
@@ -334,7 +330,7 @@ export class DockerTaskScheduler {
       async () => {
         await runYubaCheckInTask(config, this.createTaskRunnerDeps())
       },
-      `模式: ${config.mode || 'followed'}`,
+      getTaskScheduleSummary('yubaCheckIn', config),
     )
   }
 }

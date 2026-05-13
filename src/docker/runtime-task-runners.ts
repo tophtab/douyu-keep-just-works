@@ -2,6 +2,7 @@ import { executeCollectGiftJob, executeDoubleCardJob, executeExpiringGiftJob, ex
 import type { DockerConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig, YubaCheckInConfig } from '../core/types'
 import type { StatusCacheScope } from './runtime-cache'
 import { MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
+import { getTaskNotConfiguredMessage } from './task-metadata'
 import type { TaskType } from './task-metadata'
 
 type TaskLoggerMap = Record<TaskType, (message: string) => void>
@@ -27,36 +28,49 @@ const manualTriggerOptions = {
   busyMessage: '任务正在执行中，请稍后再试',
 }
 
-export async function triggerCollectGiftTask(config: DockerConfig | null, deps: RuntimeTaskRunnerDeps): Promise<void> {
-  if (!config?.collectGift) {
-    throw new Error('领取任务未配置')
+async function triggerConfiguredTask<TConfig>(options: {
+  config: TConfig | null | undefined
+  deps: RuntimeTaskRunnerDeps
+  runTask: (config: TConfig) => Promise<void>
+  taskType: TaskType
+}): Promise<void> {
+  if (!options.config) {
+    throw new Error(getTaskNotConfiguredMessage(options.taskType))
   }
-  await deps.runTaskWithLock('collectGift', async () => {
-    deps.taskLoggers.collectGift('手动触发执行...')
-    await runCollectGiftTask(deps)
+
+  await options.deps.runTaskWithLock(options.taskType, async () => {
+    options.deps.taskLoggers[options.taskType]('手动触发执行...')
+    await options.runTask(options.config as TConfig)
   }, manualTriggerOptions)
+}
+
+export async function triggerCollectGiftTask(config: DockerConfig | null, deps: RuntimeTaskRunnerDeps): Promise<void> {
+  await triggerConfiguredTask({
+    config: config?.collectGift,
+    deps,
+    taskType: 'collectGift',
+    runTask: async () => {
+      await runCollectGiftTask(deps)
+    },
+  })
 }
 
 export async function triggerKeepaliveTask(config: DockerConfig | null, deps: RuntimeTaskRunnerDeps): Promise<void> {
-  if (!config?.keepalive) {
-    throw new Error('保活任务未配置')
-  }
-  const keepaliveConfig = config.keepalive
-  await deps.runTaskWithLock('keepalive', async () => {
-    deps.taskLoggers.keepalive('手动触发执行...')
-    await runKeepaliveTask(keepaliveConfig, deps)
-  }, manualTriggerOptions)
+  await triggerConfiguredTask({
+    config: config?.keepalive,
+    deps,
+    taskType: 'keepalive',
+    runTask: async taskConfig => await runKeepaliveTask(taskConfig, deps),
+  })
 }
 
 export async function triggerDoubleCardTask(config: DockerConfig | null, deps: RuntimeTaskRunnerDeps): Promise<void> {
-  if (!config?.doubleCard) {
-    throw new Error('双倍卡任务未配置')
-  }
-  const doubleCardConfig = config.doubleCard
-  await deps.runTaskWithLock('doubleCard', async () => {
-    deps.taskLoggers.doubleCard('手动触发执行...')
-    await runDoubleCardTask(doubleCardConfig, deps)
-  }, manualTriggerOptions)
+  await triggerConfiguredTask({
+    config: config?.doubleCard,
+    deps,
+    taskType: 'doubleCard',
+    runTask: async taskConfig => await runDoubleCardTask(taskConfig, deps),
+  })
 }
 
 export async function triggerExpiringGiftTask(
@@ -64,25 +78,21 @@ export async function triggerExpiringGiftTask(
   hasSendRooms: (config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined) => boolean,
   deps: RuntimeTaskRunnerDeps,
 ): Promise<void> {
-  if (!config?.expiringGift || !hasSendRooms(config.expiringGift)) {
-    throw new Error('临期任务未配置')
-  }
-  const expiringGiftConfig = config.expiringGift
-  await deps.runTaskWithLock('expiringGift', async () => {
-    deps.taskLoggers.expiringGift('手动触发执行...')
-    await runExpiringGiftTask(expiringGiftConfig, deps)
-  }, manualTriggerOptions)
+  await triggerConfiguredTask({
+    config: hasSendRooms(config?.expiringGift) ? config?.expiringGift : null,
+    deps,
+    taskType: 'expiringGift',
+    runTask: async taskConfig => await runExpiringGiftTask(taskConfig, deps),
+  })
 }
 
 export async function triggerYubaCheckInTask(config: DockerConfig | null, deps: RuntimeTaskRunnerDeps): Promise<void> {
-  if (!config?.yubaCheckIn) {
-    throw new Error('鱼吧签到任务未配置')
-  }
-  const yubaCheckInConfig = config.yubaCheckIn
-  await deps.runTaskWithLock('yubaCheckIn', async () => {
-    deps.taskLoggers.yubaCheckIn('手动触发执行...')
-    await runYubaCheckInTask(yubaCheckInConfig, deps)
-  }, manualTriggerOptions)
+  await triggerConfiguredTask({
+    config: config?.yubaCheckIn,
+    deps,
+    taskType: 'yubaCheckIn',
+    runTask: async taskConfig => await runYubaCheckInTask(taskConfig, deps),
+  })
 }
 
 export async function runCollectGiftTask(deps: RuntimeTaskRunnerDeps): Promise<void> {

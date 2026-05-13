@@ -4,7 +4,6 @@ import { installLegacyActionBridge } from './actions'
 import { installLegacyCollectTaskBridge } from './collect'
 import { installLegacyCookieActionBridge } from './cookie'
 import { installLegacyDoubleTaskBridge } from './double'
-import { installLegacyEventBridge } from './events'
 import { installLegacyExpiringTaskBridge } from './expiring'
 import { installLegacyKeepaliveTaskBridge } from './keepalive'
 import { startLegacyApp } from './legacy-app'
@@ -40,7 +39,6 @@ installLegacyResourceActionsBridge()
 installLegacySimpleTaskActionsBridge()
 installLegacySendTaskActionsBridge()
 installLegacyTaskActionsBridge()
-installLegacyEventBridge()
 installLegacyTaskPageBridge()
 installLegacyPageBridge()
 installLegacyActionBridge()

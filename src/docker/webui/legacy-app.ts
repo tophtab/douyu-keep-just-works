@@ -12,6 +12,13 @@ interface LegacyNavigationDetail {
   tab?: string
 }
 
+interface LegacyEventState {
+  activeTab: string
+  auth: {
+    authenticated: boolean
+  }
+}
+
 function requireBridge<T>(bridge: T | undefined, name: string): T {
   if (!bridge) {
     throw new Error(`${name} bridge is not installed`)
@@ -26,6 +33,51 @@ function normalizeTab(tab: string | undefined): WebUiPageTab {
 function dispatchLegacyReady(bridge: LegacyBridge): void {
   window.DOUYU_KEEP_WEBUI_LEGACY = bridge
   document.dispatchEvent(new CustomEvent(WEBUI_BRIDGE_EVENTS.legacyReady))
+}
+
+function findActionTarget(target: EventTarget | null): Element | null {
+  let current = target instanceof Element ? target : target instanceof Node ? target.parentElement : null
+
+  while (current && current !== document.body) {
+    if (current.getAttribute('data-action')) {
+      return current
+    }
+    current = current.parentElement
+  }
+
+  return null
+}
+
+function bindLegacyEvents(options: {
+  handleVueNavigation: (event: Event) => void
+  loadOverview: () => Promise<unknown>
+  refreshOverviewSurface: (showToast?: boolean) => Promise<unknown>
+  setActiveTab: (tab: WebUiPageTab, options?: { skipLazyLoad?: boolean, syncPath?: boolean }) => void
+  state: LegacyEventState
+  triggerTask: (type: string | null) => void
+}): void {
+  document.addEventListener('click', (event: MouseEvent) => {
+    const target = findActionTarget(event.target)
+    if (target?.getAttribute('data-action') === 'trigger') {
+      options.triggerTask(target.getAttribute('data-trigger'))
+    }
+  })
+
+  document.addEventListener(WEBUI_BRIDGE_EVENTS.navigation, options.handleVueNavigation)
+  document.addEventListener(WEBUI_BRIDGE_EVENTS.refreshOverviewRequest, () => {
+    void options.refreshOverviewSurface(true)
+  })
+
+  window.setInterval(() => {
+    if (!options.state.auth.authenticated) {
+      return
+    }
+    if (options.state.activeTab === 'overview') {
+      void options.loadOverview()
+    }
+  }, 5000)
+
+  options.setActiveTab(normalizeTab(options.state.activeTab), { syncPath: false, skipLazyLoad: true })
 }
 
 export function startLegacyApp(): void {
@@ -265,7 +317,7 @@ export function startLegacyApp(): void {
     loadFansStatus: actions.loadFansStatus,
   })
 
-  requireBridge(window.DOUYU_KEEP_WEBUI_EVENTS, 'events').create({
+  bindLegacyEvents({
     state,
     setActiveTab: (tab, options) => {
       setActiveTab(normalizeTab(tab), options)
@@ -274,7 +326,7 @@ export function startLegacyApp(): void {
     refreshOverviewSurface: actions.refreshOverviewSurface,
     loadOverview: actions.loadOverview,
     triggerTask: actions.triggerTask,
-  }).start()
+  })
 
   dispatchLegacyReady({
     clearProtectedState,

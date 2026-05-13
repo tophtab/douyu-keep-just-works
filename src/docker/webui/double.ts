@@ -5,7 +5,7 @@ import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, buildEnabledRoomMap, formatRatioPercent, normalizeAllocationModel } from './allocation-task'
 import { WEBUI_BRIDGE_EVENTS } from './bridge-contract'
 import { useCronPreview } from './composables/use-cron-preview'
-import { applyFanTaskPageDetail, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isLegacyOrHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
+import { applyFanTaskPageDetail, createFanListEmptyText, createFanListNote, createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isLegacyOrHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask, useLegacyPageEvents } from './task-shared'
 import { showToast } from './toast'
 import type { CookieSourceConfig, FanTaskPageDetail, TaskRunStatus } from './task-shared'
 
@@ -230,35 +230,31 @@ export function useDoubleTaskPage() {
   const enabledCount = computed(() => fanRows.value.filter(row => row.enabled).length)
 
   const doubleNote = computed(() => {
-    if (!hasCookieSourceConfigured(rawConfig.value)) {
-      return '请先保存 Cookie 或启用 CookieCloud。没有登录凭证时无法同步粉丝牌，也不会生成双倍房间列表。'
-    }
-    if (managedLoading.value && !fanRows.value.length) {
-      return '正在同步粉丝牌与双倍配置…'
-    }
-    if (!fanRows.value.length) {
-      if (fansListError.value) {
-        return '粉丝牌列表加载失败。'
-      }
-      return fansListLoaded.value ? '当前没有可用粉丝牌。' : '粉丝牌列表尚未加载。'
-    }
-    return `${managedLoading.value ? '正在后台同步，当前显示上次结果。' : ''}当前已勾选 ${enabledCount.value} / ${fanRows.value.length} 个房间参与双倍。`
+    return createFanListNote({
+      rawConfig: rawConfig.value,
+      managedLoading: managedLoading.value,
+      rowCount: fanRows.value.length,
+      fansListError: fansListError.value,
+      fansListLoaded: fansListLoaded.value,
+      missingCredentialText: '请先保存 Cookie 或启用 CookieCloud。没有登录凭证时无法同步粉丝牌，也不会生成双倍房间列表。',
+      emptyMissingCredentialText: '保存 Cookie 或启用 CookieCloud 后再同步粉丝牌，这里才会出现房间列表。',
+      loadingText: '正在同步粉丝牌与双倍配置…',
+      readyText: `${managedLoading.value ? '正在后台同步，当前显示上次结果。' : ''}当前已勾选 ${enabledCount.value} / ${fanRows.value.length} 个房间参与双倍。`,
+    })
   })
 
   const doubleEmptyText = computed(() => {
-    if (!hasCookieSourceConfigured(rawConfig.value)) {
-      return '保存 Cookie 或启用 CookieCloud 后再同步粉丝牌，这里才会出现房间列表。'
-    }
-    if (managedLoading.value && !fanRows.value.length) {
-      return '请稍候…'
-    }
-    if (!fanRows.value.length && fansListError.value) {
-      return `加载粉丝牌列表失败：${fansListError.value}。请点击顶部“刷新”重试。`
-    }
-    if (!fanRows.value.length && fansListLoaded.value) {
-      return '已同步，但当前账号没有可用粉丝牌数据。'
-    }
-    return '正在准备加载粉丝牌列表，也可以点击刷新手动加载。'
+    return createFanListEmptyText({
+      rawConfig: rawConfig.value,
+      managedLoading: managedLoading.value,
+      rowCount: fanRows.value.length,
+      fansListError: fansListError.value,
+      fansListLoaded: fansListLoaded.value,
+      missingCredentialText: '请先保存 Cookie 或启用 CookieCloud。没有登录凭证时无法同步粉丝牌，也不会生成双倍房间列表。',
+      emptyMissingCredentialText: '保存 Cookie 或启用 CookieCloud 后再同步粉丝牌，这里才会出现房间列表。',
+      loadingText: '正在同步粉丝牌与双倍配置…',
+      readyText: `${managedLoading.value ? '正在后台同步，当前显示上次结果。' : ''}当前已勾选 ${enabledCount.value} / ${fanRows.value.length} 个房间参与双倍。`,
+    })
   })
 
   const showDoubleTable = computed(() => hasCookieSourceConfigured(rawConfig.value) && fanRows.value.length > 0)

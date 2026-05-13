@@ -175,3 +175,36 @@ Refactored backend task metadata/runners and WebUI task page actions, updated co
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: Optimize program structure
+
+**Date**: 2026-05-13
+**Task**: Optimize program structure
+**Branch**: `master`
+
+### Summary
+
+Split WebUI resource ownership into focused modules, extracted core gift task helpers, updated contracts/specs, and verified lint/type-check/tests.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `eabcec6` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

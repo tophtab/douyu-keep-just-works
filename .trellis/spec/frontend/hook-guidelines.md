@@ -49,7 +49,7 @@ await requestJson('/api/config', {
 })
 ```
 
-Resource loaders in `resources.ts` track pending requests and request sequence numbers for expensive server resources. Reuse those patterns when preventing duplicate in-flight reads or stale responses.
+Resource loaders in `resource-fans.ts` and `resource-yuba.ts` track pending requests and request sequence numbers for expensive server resources through `resource-request.ts`. Reuse those patterns when preventing duplicate in-flight reads or stale responses, and keep `resource-state.ts` as the public facade for cross-page refresh orchestration.
 
 ## Task Page Actions
 

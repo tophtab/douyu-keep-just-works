@@ -60,22 +60,31 @@ function getAsyncMethodBody(source, methodName) {
 }
 
 test('Docker WebUI coalesces duplicate local Douyu-backed reads without client cooldowns', () => {
-  const resources = readRepoFile('src/docker/webui/resource-state.ts')
+  const resourceRequest = readRepoFile('src/docker/webui/resource-request.ts')
+  const resourceFans = readRepoFile('src/docker/webui/resource-fans.ts')
+  const resourceYuba = readRepoFile('src/docker/webui/resource-yuba.ts')
 
-  assert.match(getFunctionBody(resources, 'createResourceRequest'), /pending:\s*null/)
-  assert.match(getFunctionBody(resources, 'createResourceRequest'), /fetchedAt:\s*0/)
-  assert.match(getFunctionBody(resources, 'createResourceRequest'), /requestSeq:\s*0/)
+  assert.match(getFunctionBody(resourceRequest, 'createResourceRequest'), /pending:\s*null/)
+  assert.match(getFunctionBody(resourceRequest, 'createResourceRequest'), /fetchedAt:\s*0/)
+  assert.match(getFunctionBody(resourceRequest, 'createResourceRequest'), /requestSeq:\s*0/)
 
-  for (const functionName of ['syncFans', 'loadFansList', 'loadFansStatus', 'loadYubaStatus']) {
-    const body = getFunctionBody(resources, functionName)
+  for (const functionName of ['syncFans', 'loadFansList', 'loadFansStatus']) {
+    const body = getFunctionBody(resourceFans, functionName)
     assert.match(body, /if\s*\(\s*resource\.pending\s*\)/, `${functionName} must reuse an in-flight request`)
     assert.match(body, /return\s+resource\.pending/, `${functionName} must return the in-flight request`)
     assert.match(body, /trackResourceRequest\(resource,\s*requestSeq,\s*pending\)/, `${functionName} must track request sequence`)
     assert.match(body, /resource\.requestSeq\s*!==\s*requestSeq/, `${functionName} must ignore stale responses`)
   }
 
-  assert.doesNotMatch(resources, /\b(cooldown|nextAllowed|minInterval|lastRequest|lastRequested|rateLimit|throttle|debounce)\b/i)
-  assert.doesNotMatch(resources, /Date\.now\(\)\s*-\s*resource\.fetchedAt/)
+  const yubaBody = getFunctionBody(resourceYuba, 'loadYubaStatus')
+  assert.match(yubaBody, /if\s*\(\s*yubaStatusRequest\.pending\s*\)/, 'loadYubaStatus must reuse an in-flight request')
+  assert.match(yubaBody, /return\s+yubaStatusRequest\.pending/, 'loadYubaStatus must return the in-flight request')
+  assert.match(yubaBody, /trackResourceRequest\(yubaStatusRequest,\s*requestSeq,\s*pending\)/, 'loadYubaStatus must track request sequence')
+  assert.match(yubaBody, /yubaStatusRequest\.requestSeq\s*!==\s*requestSeq/, 'loadYubaStatus must ignore stale responses')
+
+  const webuiResources = [resourceRequest, resourceFans, resourceYuba].join('\n')
+  assert.doesNotMatch(webuiResources, /\b(cooldown|nextAllowed|minInterval|lastRequest|lastRequested|rateLimit|throttle|debounce)\b/i)
+  assert.doesNotMatch(webuiResources, /Date\.now\(\)\s*-\s*resource\.fetchedAt/)
 })
 
 test('Docker runtime keeps backend cache TTLs and pending-promise coalescing authoritative', () => {

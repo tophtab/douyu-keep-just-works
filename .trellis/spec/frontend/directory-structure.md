@@ -28,7 +28,7 @@ Current examples:
 - `components/AppShell.vue` composes navigation, toolbar, and tab panels.
 - `components/LoginConfigPage.vue`, `CollectPage.vue`, `YubaPage.vue`, `KeepalivePage.vue`, `DoublePage.vue`, `ExpiringPage.vue`, and `LogsPage.vue` are page components.
 - `composables/use-cron-preview.ts` is a reusable composable.
-- `request.ts`, `resources.ts`, `resource-state.ts`, `logs-resource.ts`, `task-shared.ts`, `theme.ts`, and `toast.ts` hold shared frontend logic.
+- `request.ts`, `resource-state.ts`, `resource-config.ts`, `resource-fans.ts`, `resource-yuba.ts`, `resource-request.ts`, `logs-resource.ts`, `task-shared.ts`, `theme.ts`, and `toast.ts` hold shared frontend logic.
 
 ---
 
@@ -45,7 +45,7 @@ export function useThemeMode() {
 }
 ```
 
-Do not add compatibility bridge installers or old imperative app runtimes. Cross-page resource ownership belongs in Vue composables or shared TypeScript modules such as `resource-state.ts`, with architecture coverage in the maintenance contract test.
+Do not add compatibility bridge installers or old imperative app runtimes. Cross-page resource ownership belongs in Vue composables or shared TypeScript modules. Keep `resource-state.ts` as the public facade for refresh orchestration and compatibility exports, while focused resource modules own raw config, fans/gift, yuba, and request tracking. Cover ownership changes in the maintenance contract test.
 
 ---
 
@@ -65,4 +65,4 @@ Good patterns to copy:
 - `App.vue` wires top-level composables and passes state into shells.
 - `AppShell.vue` keeps tab panels accessible with `role="tabpanel"`, `aria-labelledby`, and `hidden`.
 - `task-shared.ts` centralizes task UI helpers used by several task pages.
-- `resource-state.ts` centralizes Vue-owned server-resource loading, protected-state clearing, refresh orchestration, and request coalescing.
+- `resource-state.ts` composes Vue-owned server-resource loading and protected-state clearing; focused `resource-*` modules own concrete resources and request coalescing.

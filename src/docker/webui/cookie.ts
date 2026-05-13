@@ -5,7 +5,7 @@ import { useCronPreview } from './composables/use-cron-preview'
 import { formatDate } from './datetime'
 import { requestJson } from './request'
 import { clearCookieBackedData, getManagedFans, overview, rawConfig, refreshOverviewSurface, setRawConfig } from './resource-state'
-import { getErrorMessage, isHttpUnauthorized } from './task-shared'
+import { getErrorMessage, hasCookieSourceConfigured, isHttpUnauthorized } from './task-shared'
 import { showToast } from './toast'
 
 interface SaveCookieCloudOptions {
@@ -27,10 +27,6 @@ const cookieCloud = reactive({
 })
 const { cronPreviewText, ensureCronPreview, loadCronPreview } = useCronPreview(() => cookieCloud.cron)
 
-function isUnauthorizedError(error: unknown): boolean {
-  return isHttpUnauthorized(error)
-}
-
 function getManualCookiesConfig(config: DockerConfig | null): ManualCookieConfig {
   return config?.manualCookies || {
     main: String(config?.cookie || ''),
@@ -47,21 +43,6 @@ function getCookieCloudConfig(config: DockerConfig | null): CookieCloudConfig {
     cron: DEFAULT_COOKIE_CLOUD_SYNC_CRON,
     cryptoType: 'legacy',
   }
-}
-
-function hasCookieSourceConfigured(config: DockerConfig | null): boolean {
-  const manualCookies = getManualCookiesConfig(config)
-  const configCookieCloud = getCookieCloudConfig(config)
-  return Boolean(
-    manualCookies.main.trim()
-    || manualCookies.yuba.trim()
-    || (
-      configCookieCloud.active
-      && configCookieCloud.endpoint.trim()
-      && configCookieCloud.uuid.trim()
-      && configCookieCloud.password.trim()
-    ),
-  )
 }
 
 function getCookieSourceLabel(config: DockerConfig | null): string {
@@ -135,7 +116,7 @@ async function saveCookie(): Promise<void> {
     showToast('手填 Cookie 已保存', true)
     await refreshOverviewAfterCookieChange(false)
   } catch (error) {
-    if (isUnauthorizedError(error)) {
+    if (isHttpUnauthorized(error)) {
       return
     }
     showToast(`保存手填 Cookie 失败：${getErrorMessage(error)}`, false)
@@ -163,7 +144,7 @@ export async function syncCookieCloudToLoginCookies(showSuccessToast?: boolean, 
     }
     return data
   } catch (error) {
-    if (isUnauthorizedError(error)) {
+    if (isHttpUnauthorized(error)) {
       return undefined
     }
     if (showSuccessToast) {
@@ -189,7 +170,7 @@ async function checkCookieSource(showSuccessToast = true): Promise<CookieDiagnos
     }
     return data
   } catch (error) {
-    if (isUnauthorizedError(error)) {
+    if (isHttpUnauthorized(error)) {
       return undefined
     }
     cookieCheck.value = null
@@ -240,7 +221,7 @@ async function saveCookieCloud(options: SaveCookieCloudOptions = {}): Promise<vo
     if (options.revertActiveTo !== undefined) {
       cookieCloud.active = options.revertActiveTo
     }
-    if (isUnauthorizedError(error)) {
+    if (isHttpUnauthorized(error)) {
       return
     }
     showToast(`${shouldEnable ? '保存并启用 CookieCloud 失败：' : '保存 CookieCloud 失败：'}${getErrorMessage(error)}`, false)

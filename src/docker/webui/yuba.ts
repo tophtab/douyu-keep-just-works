@@ -28,10 +28,6 @@ const yubaCron = ref(DEFAULT_YUBA_CHECK_IN_CRON)
 const yubaMode = ref<YubaCheckInMode>(DEFAULT_YUBA_CHECK_IN_MODE)
 const { cronPreviewText: yubaCronPreviewText, ensureCronPreview, loadCronPreview: loadYubaCronPreview } = useCronPreview(() => yubaCron.value)
 
-function isUnauthorizedError(error: unknown): boolean {
-  return isHttpUnauthorized(error)
-}
-
 function normalizeMode(mode: unknown): YubaCheckInMode {
   return mode === DEFAULT_YUBA_CHECK_IN_MODE ? mode : DEFAULT_YUBA_CHECK_IN_MODE
 }
@@ -77,7 +73,7 @@ async function saveYubaConfig(options?: { revertCheckboxOnError?: boolean }): Pr
       yubaEnabled.value = enabled
     },
     revertCheckboxOnError: options?.revertCheckboxOnError,
-    isUnauthorizedError,
+    isUnauthorizedError: isHttpUnauthorized,
     refresh: refreshYubaSurfaces,
   })
 }
@@ -101,7 +97,7 @@ async function disableYubaConfig(): Promise<void> {
     restoreEnabled: () => {
       yubaEnabled.value = true
     },
-    isUnauthorizedError,
+    isUnauthorizedError: isHttpUnauthorized,
     refresh: refreshYubaSurfaces,
   })
 }
@@ -109,7 +105,7 @@ async function disableYubaConfig(): Promise<void> {
 async function triggerYubaTask(): Promise<void> {
   await triggerTask({
     taskType: 'yubaCheckIn',
-    isUnauthorizedError,
+    isUnauthorizedError: isHttpUnauthorized,
     refresh: [
       loadOverview,
       loadLogs,

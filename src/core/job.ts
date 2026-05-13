@@ -1,6 +1,7 @@
 import { GLOW_STICK_GIFT_ID, getBackpackStatus, getDid, getFansList, getGiftNumber, parseDyAndSidFromCookie, sendGift, sleep } from './api'
 import { collectGiftViaDanmu } from './collect-gift'
 import { checkDoubleCard } from './double-card'
+import { applyGiftIdToSendJobs, buildEnabledSendConfig, buildGiftSendGroups, countPositiveGiftTargets, hasActiveDoubleCardRoom } from './gift-task'
 import { computeGiftCountOfNumber, computeGiftCountOfProportion, computeGiftCountWithDoubleCard } from './gift'
 import type { BackpackGiftRow, BackpackStatus, DoubleCardConfig, ExpiringGiftConfig, ExpiringGiftSelection, JobConfig, Logger, YubaCheckInConfig, sendArgs, sendConfig } from './types'
 import { executeFollowedYubaCheckInWithDyToken, formatYubaModeLabel } from './yuba'
@@ -218,14 +219,7 @@ export async function executeKeepaliveJob(config: JobConfig, cookie: string, log
 export async function executeDoubleCardJob(config: DoubleCardConfig, cookie: string, log: Logger): Promise<void> {
   log('开始执行双倍任务')
   const { model, send, enabled } = config
-  const activeSend = Object.values(send).reduce((prev, item) => {
-    const roomKey = String(item.roomId)
-    if (enabled && !enabled[roomKey]) {
-      return prev
-    }
-    prev[roomKey] = item
-    return prev
-  }, {} as sendConfig)
+  const activeSend = buildEnabledSendConfig({ enabled, send })
 
   if (Object.keys(activeSend).length === 0) {
     log('未勾选任何双倍卡房间，跳过本次任务')
@@ -252,13 +246,7 @@ export async function executeDoubleCardJob(config: DoubleCardConfig, cookie: str
       return
     }
 
-    for (const [giftIdText, giftCount] of Object.entries(selection.giftCounts)) {
-      giftGroups.push({
-        giftId: Number(giftIdText),
-        giftName: selection.giftNames[giftIdText] || '未知礼物',
-        giftCount,
-      })
-    }
+    giftGroups.push(...buildGiftSendGroups(selection))
   } else {
     const number = await loadGiftNumber(cookie, log, '正在获取当前荧光棒数量...', roomIds)
     if (number === null) {
@@ -292,7 +280,7 @@ export async function executeDoubleCardJob(config: DoubleCardConfig, cookie: str
     }
   }
 
-  if (!Object.values(doubleCardRooms).some(Boolean)) {
+  if (!hasActiveDoubleCardRoom(doubleCardRooms)) {
     log('双倍状态检测完成，未检测到可执行的双倍房间，本次不执行赠送')
     return
   }
@@ -314,11 +302,9 @@ export async function executeDoubleCardJob(config: DoubleCardConfig, cookie: str
       continue
     }
 
-    for (const item of Object.values(jobs)) {
-      item.giftId = group.giftId
-    }
+    applyGiftIdToSendJobs(jobs, group.giftId)
 
-    const targetCount = Object.values(jobs).filter(item => (item.count || 0) > 0).length
+    const targetCount = countPositiveGiftTargets(jobs)
     log(`准备使用双倍卡向 ${targetCount} 个房间赠送 ${group.giftCount} 个${giftLabel}`)
     await sendGifts(jobs, cookie, log, giftLabel, `${giftLabel}双倍赠送`)
   }
@@ -376,29 +362,24 @@ export async function executeExpiringGiftJob(config: ExpiringGiftConfig, cookie:
   await sleep(2000)
 
   const { model, send } = config
-  const giftEntries = Object.entries(selection.giftCounts)
-  for (const [giftIdText, giftCount] of giftEntries) {
-    const giftId = Number(giftIdText)
-    const giftName = selection.giftNames[giftIdText] || '未知礼物'
-    const giftLabel = `${giftName}(ID ${giftId})`
+  for (const group of buildGiftSendGroups(selection)) {
+    const giftLabel = `${group.giftName}(ID ${group.giftId})`
     let jobs: sendConfig = {}
     try {
       if (model === 1) {
-        jobs = computeGiftCountOfProportion(giftCount, send)
+        jobs = computeGiftCountOfProportion(group.giftCount, send)
       } else {
-        jobs = computeGiftCountOfNumber(giftCount, send)
+        jobs = computeGiftCountOfNumber(group.giftCount, send)
       }
     } catch (error: unknown) {
       log(`计算${giftLabel}临期赠送数量失败: ${errorMessage(error)}`)
       continue
     }
 
-    for (const item of Object.values(jobs)) {
-      item.giftId = giftId
-    }
+    applyGiftIdToSendJobs(jobs, group.giftId)
 
-    const targetCount = Object.values(jobs).filter(item => (item.count || 0) > 0).length
-    log(`已达到临期阈值，准备向 ${targetCount} 个房间释放 ${giftCount} 个临期${giftLabel}`)
+    const targetCount = countPositiveGiftTargets(jobs)
+    log(`已达到临期阈值，准备向 ${targetCount} 个房间释放 ${group.giftCount} 个临期${giftLabel}`)
     await sendGifts(jobs, cookie, log, giftLabel, `${giftLabel}临期赠送`)
   }
 }

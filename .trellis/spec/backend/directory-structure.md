@@ -25,6 +25,7 @@ Current examples:
 
 - `src/core/api.ts` owns low-level Douyu HTTP helpers, cookie parsing, and response normalization.
 - `src/core/job.ts` coordinates task execution using shared APIs.
+- `src/core/gift-task.ts` owns pure gift-task helpers used by task execution, such as enabled-room filtering and gift send-job preparation.
 - `src/docker/runtime.ts` wires config loading, CookieCloud sync, scheduler reconciliation, and Express app startup.
 - `src/docker/server.ts` creates the Express app and registers route modules.
 - `src/docker/runtime-scheduler.ts` owns cron job lifecycle and task locking.

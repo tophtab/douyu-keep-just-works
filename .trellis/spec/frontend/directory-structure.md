@@ -34,7 +34,6 @@ src/docker/
 │   ├── index.html
 │   ├── main.ts
 │   ├── task-shared.ts
-│   ├── logs.ts
 │   ├── datetime.ts
 │   └── styles/
 │       ├── base.css
@@ -69,7 +68,7 @@ src/docker/
 - `components/*Table.vue` owns repeated fans, Yuba, allocation, and backpack table markup; pages pass reactive row models and handle mutation events.
 - `composables/use-cron-preview.ts` owns shared cron preview request sequencing and display text for task pages and CookieCloud.
 - `task-shared.ts` owns shared task-page request helpers, legacy page event wiring, cookie-source checks, and task-card state helpers; page modules still own domain-specific payload construction.
-- `logs.ts` owns Docker WebUI log loading/clearing and the logs page composable; `resources.ts` may keep compatibility exports/bridge wiring while the legacy transition exists.
+- `resources.ts` owns Docker WebUI resource bridges and the current logs page composable while the legacy transition exists.
 
 ## Style Ownership
 

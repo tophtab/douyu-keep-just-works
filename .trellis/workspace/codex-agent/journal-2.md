@@ -174,3 +174,36 @@ Split Docker WebUI App.vue into shell, page, task control, and table Vue compone
 ### Next Steps
 
 - None - task complete
+
+
+## Session 60: Frontend WebUI logic deduplication
+
+**Date**: 2026-05-13
+**Task**: Frontend WebUI logic deduplication
+**Branch**: `master`
+
+### Summary
+
+Deduplicated Docker WebUI task page logic by extracting shared cron preview, task action, event bridge, log, and datetime helpers; updated contracts and frontend specs; verified type-check, lint, npm test.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9b426fa` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

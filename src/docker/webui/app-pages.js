@@ -11,7 +11,6 @@
     var hasCookieSourceConfigured = deps.hasCookieSourceConfigured;
     var getManagedFans = deps.getManagedFans;
     var renderRefreshButton = deps.renderRefreshButton;
-    var loadLogs = deps.loadLogs;
     var buildOverviewGiftSummary = deps.buildOverviewGiftSummary;
     var buildSummaryStatusCell = deps.buildSummaryStatusCell;
     var buildFansStatusTable = deps.buildFansStatusTable;
@@ -146,27 +145,6 @@
       byId('overview-fans-table-wrap').innerHTML = buildFansStatusTable(state.fansStatus);
     }
 
-    function renderLogBox(targetId, logs) {
-      var target = byId(targetId);
-      if (!logs || !logs.length) {
-        target.innerHTML = '<div class="empty">暂无日志</div>';
-        return;
-      }
-      var html = [];
-      var i;
-      for (i = 0; i < logs.length; i += 1) {
-        html.push(
-          '<div class="log-line">'
-          + '<span class="log-stamp">[' + escapeHtml(formatDate(logs[i].timestamp)) + ']</span>'
-          + '<span class="log-tag">' + escapeHtml(logs[i].category) + '</span>'
-          + '<span class="log-message">' + escapeHtml(logs[i].message) + '</span>'
-          + '</div>'
-        );
-      }
-      target.innerHTML = html.join('');
-      target.scrollTop = target.scrollHeight;
-    }
-
     function renderLoginPage() {
       var config = getRawConfig();
       var fansCount = state.fansStatusLoaded ? state.fansStatus.length : getManagedFans().length;
@@ -185,9 +163,6 @@
     }
 
     function renderLogsPage() {
-      var refreshedAt = state.logsRefreshedAt ? formatDate(state.logsRefreshedAt) : '尚未刷新';
-      byId('logs-summary').textContent = '当前 ' + (state.logs ? state.logs.length : 0) + ' 条日志，仅保留最近 500 条。最近刷新：' + refreshedAt;
-      renderLogBox('full-log-box', state.logs || []);
     }
 
     function renderAll() {
@@ -227,7 +202,6 @@
       loadCronPreview: loadCronPreview,
       ensureCronPreview: ensureCronPreview,
       renderOverview: renderOverview,
-      renderLogBox: renderLogBox,
       renderLoginPage: renderLoginPage,
       renderCollectPage: renderCollectPage,
       renderYubaPage: renderYubaPage,

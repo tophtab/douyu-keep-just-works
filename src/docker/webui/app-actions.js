@@ -135,21 +135,6 @@
       });
     }
 
-    function clearLogs() {
-      requestJson('/api/logs', {
-        method: 'DELETE'
-      }).then(function () {
-        toast('日志已清空', true);
-        loadLogs();
-        loadOverview();
-      }).catch(function (error) {
-        if (isUnauthorizedError(error)) {
-          return;
-        }
-        toast('清空日志失败：' + error.message, false);
-      });
-    }
-
     return {
       syncCookieCloudToLoginCookies: syncCookieCloudToLoginCookies,
       loadProtectedData: loadProtectedData,
@@ -167,8 +152,7 @@
       saveCookieCloudToggle: saveCookieCloudToggle,
       saveAndEnableCookieCloud: saveAndEnableCookieCloud,
       disableCookieCloud: disableCookieCloud,
-      triggerTask: triggerTask,
-      clearLogs: clearLogs
+      triggerTask: triggerTask
     };
   }
 

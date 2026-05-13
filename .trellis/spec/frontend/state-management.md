@@ -381,12 +381,22 @@ await requestJson('/api/auth/login', {
 ### 1. Scope / Trigger
 
 - Trigger: Moving Docker WebUI read-only system resource loading out of `src/docker/webui/*.js` while legacy page renderers still consume the loaded state.
-- Scope: `/api/config/raw`, `/api/overview`, `/api/logs`, loading/error state for these read-only resources, the `douyu-keep-webui:config` theme notification, and the compatibility bridge used by `app-resource-actions.js`.
+- Scope: `/api/config/raw`, `/api/overview`, `/api/logs`, loading/error state for these read-only resources, the Vue-owned logs page, the `douyu-keep-webui:config` theme notification, and the compatibility bridge used by `app-resource-actions.js`.
 
 ### 2. Signatures
 
 ```typescript
 export function installLegacySystemResourceBridge(): void
+export function useLogsPage(activeTab: Readonly<Ref<string>>, authenticated: Readonly<Ref<boolean>>): {
+  clearLogs: () => Promise<void>
+  clearingLogs: Ref<boolean>
+  formattedLogs: ComputedRef<LogEntry[]>
+  logsAutoRefresh: Ref<boolean>
+  logsLoading: Ref<boolean>
+  logsSummary: ComputedRef<string>
+  logBoxRef: Ref<HTMLElement | null>
+  refreshLogs: () => Promise<void>
+}
 ```
 
 ```typescript
@@ -405,7 +415,11 @@ window.DOUYU_KEEP_WEBUI_SYSTEM_RESOURCE_ACTIONS.create({
 - `main.ts` must install `installLegacySystemResourceBridge()` after `app-data.js` is imported and before `app-resource-actions.js` is imported.
 - `loadRawConfig()` writes `state.rawConfig`, falls back to a cloned `DEFAULT_RAW_CONFIG` when `/api/config/raw` returns `{ exists: false }`, dispatches `douyu-keep-webui:config`, then calls `renderAll()`.
 - `loadOverview()` writes `state.overview` and calls `renderOverview()`.
-- `loadLogs()` writes `state.logs`, updates `state.logsRefreshedAt` with the current ISO timestamp, and calls `renderLogsPage()`.
+- `loadLogs()` writes the shared Vue logs ref, syncs `state.logs` / `state.logsRefreshedAt` for transitional consumers, and lets Vue render the visible logs page.
+- `useLogsPage()` owns the visible logs page DOM state: `#logs-summary`, `#full-log-box`, loading button text, clear button text, auto-refresh checkbox, empty state, and scroll-to-bottom behavior.
+- Legacy page renderers must not mutate `#logs-summary` or `#full-log-box` after the logs page is Vue-owned.
+- `data-action="refresh-logs"` and `data-action="clear-logs"` must be removed from `App.vue`; Vue click handlers own those buttons.
+- Clearing logs uses `DELETE /api/logs`, shows the existing `日志已清空` success toast, reloads logs, and refreshes overview so recent-log summaries stay current.
 - Unauthorized errors must flow through the shared request helper's `douyu-keep-webui:unauthorized` event and must not show duplicate resource toasts.
 - Non-401 failures keep the existing Chinese toast prefixes: `加载配置失败：`, `加载概览失败：`, and `加载日志失败：`.
 - Legacy modules may call the bridge while they still render forms/task pages, but they must not reintroduce `app-system-resource-actions.js`.
@@ -418,19 +432,26 @@ window.DOUYU_KEEP_WEBUI_SYSTEM_RESOURCE_ACTIONS.create({
 | `/api/config/raw` returns persisted config | Store it unchanged, dispatch theme mode from `config.ui.themeMode || system`, render all pages |
 | `/api/overview` succeeds | Store overview payload and refresh overview-owned legacy render surfaces |
 | `/api/logs` succeeds | Store logs array, update refreshed-at timestamp, refresh logs page |
+| User opens the logs tab | Vue loads logs if authenticated |
+| Auto-refresh is enabled while logs tab is active | Vue refreshes logs on the existing 5s cadence |
+| User clears logs | `DELETE /api/logs`, success toast, logs reload, overview refresh |
 | Any system resource returns `401` | Dispatch/keep the global unauthorized transition without a duplicate toast |
 | Any system resource fails with non-401 | Preserve the existing user-facing toast prefix for that resource |
 
 ### 5. Good/Base/Bad Cases
 
 - Good: Vue/TS resource code owns fetch/error/loading mechanics while legacy page renderers only consume state and render DOM.
+- Good: The logs page renders log lines with Vue interpolation instead of legacy `innerHTML`, preserving escaping by default.
 - Base: `app-resource-actions.js` still composes system, fans, and Yuba resource actions through `window.DOUYU_KEEP_WEBUI_SYSTEM_RESOURCE_ACTIONS.create(...)`.
 - Bad: `main.ts` imports `src/docker/webui/app-system-resource-actions.js` after the bridge is installed, overwriting the Vue/TS owner.
 - Bad: A resource failure is converted to an empty config, empty overview, or empty log list without surfacing an error.
+- Bad: Legacy `app-pages.js` writes `byId('logs-summary').textContent` or `full-log-box.innerHTML` after Vue owns the logs page.
 
 ### 6. Tests Required
 
 - Contract tests should assert that `resources.ts` exports `installLegacySystemResourceBridge()`, owns `/api/config/raw`, `/api/overview`, `/api/logs`, and dispatches `douyu-keep-webui:config`.
+- Contract tests should assert that `App.vue` uses `useLogsPage()`, binds log refresh/clear buttons through Vue events, and removes `data-action="refresh-logs"` / `data-action="clear-logs"`.
+- Contract tests should assert that legacy `app-pages.js` no longer writes `#logs-summary` or `#full-log-box`, and `app-events.js` no longer handles logs refresh/clear actions or `#logs-auto-refresh`.
 - Contract tests should assert that `main.ts` installs the bridge and no longer imports `app-system-resource-actions.js`.
 - Contract tests should assert that `src/docker/webui/app-system-resource-actions.js` does not exist.
 - Run `npm run lint`, `npm run type-check`, `npm run test:contracts`, `npm run build:webui`, and `npm test` after this migration.

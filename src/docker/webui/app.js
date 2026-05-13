@@ -155,9 +155,6 @@
     }
     ensureFansListForActiveTab();
     ensureYubaStatusForActiveTab();
-    if (nextTab === 'logs') {
-      loadLogs();
-    }
   }
 
   function handleVueNavigation(event) {
@@ -217,7 +214,6 @@
     ensureFansListForActiveTab: ensureFansListForActiveTab,
     ensureYubaStatusForActiveTab: ensureYubaStatusForActiveTab,
     loadFansStatus: loadFansStatus,
-    loadLogs: loadLogs,
     buildOverviewGiftSummary: buildOverviewGiftSummary,
     buildSummaryStatusCell: buildSummaryStatusCell,
     buildFansStatusTable: buildFansStatusTable,
@@ -234,7 +230,6 @@
   var loadCronPreview = PAGE_RENDERERS.loadCronPreview;
   var ensureCronPreview = PAGE_RENDERERS.ensureCronPreview;
   var renderOverview = PAGE_RENDERERS.renderOverview;
-  var renderLogBox = PAGE_RENDERERS.renderLogBox;
   var renderLoginPage = PAGE_RENDERERS.renderLoginPage;
   var renderCollectPage = PAGE_RENDERERS.renderCollectPage;
   var renderYubaPage = PAGE_RENDERERS.renderYubaPage;
@@ -298,7 +293,6 @@
   var saveAndEnableCookieCloud = ACTIONS.saveAndEnableCookieCloud;
   var disableCookieCloud = ACTIONS.disableCookieCloud;
   var triggerTask = ACTIONS.triggerTask;
-  var clearLogs = ACTIONS.clearLogs;
 
   var TASK_ACTIONS = window.DOUYU_KEEP_WEBUI_TASK_ACTIONS.create({
     byId: byId,
@@ -328,8 +322,6 @@
     handleVueNavigation: handleVueNavigation,
     refreshOverviewSurface: refreshOverviewSurface,
     loadOverview: loadOverview,
-    loadLogs: loadLogs,
-    clearLogs: clearLogs,
     saveCookie: saveCookie,
     saveAndEnableCookieCloud: saveAndEnableCookieCloud,
     checkCookieSource: checkCookieSource,

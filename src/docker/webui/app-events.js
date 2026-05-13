@@ -5,8 +5,6 @@
     var setActiveTab = deps.setActiveTab;
     var handleVueNavigation = deps.handleVueNavigation;
     var refreshOverviewSurface = deps.refreshOverviewSurface;
-    var loadLogs = deps.loadLogs;
-    var clearLogs = deps.clearLogs;
     var saveCookie = deps.saveCookie;
     var saveAndEnableCookieCloud = deps.saveAndEnableCookieCloud;
     var checkCookieSource = deps.checkCookieSource;
@@ -49,14 +47,6 @@
       var action = target.getAttribute('data-action');
       if (action === 'refresh-overview') {
         refreshOverviewSurface(true);
-        return;
-      }
-      if (action === 'refresh-logs') {
-        loadLogs();
-        return;
-      }
-      if (action === 'clear-logs') {
-        clearLogs();
         return;
       }
       if (action === 'save-cookie') {
@@ -175,9 +165,6 @@
         }
         if (state.activeTab === 'overview') {
           loadOverview();
-        }
-        if (state.activeTab === 'logs' && byId('logs-auto-refresh').checked) {
-          loadLogs();
         }
       }, 5000);
     }

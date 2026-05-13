@@ -94,6 +94,14 @@ The first implementation commit should migrate the login page, app shell visibil
 
 ## Verification Results
 
+- Vue-owned logs page slice:
+  - `App.vue` now renders the logs summary, auto-refresh toggle, log rows, and empty state from Vue state.
+  - `resources.ts` owns log refresh, clear-log action, auto-refresh timing, log timestamp formatting, and legacy log-state syncing.
+  - Removed legacy ownership for `#logs-summary`, `#full-log-box`, `data-action="refresh-logs"`, and `data-action="clear-logs"`.
+  - `npm run lint` passed.
+  - `npm run type-check:webui` passed.
+  - `npm run test:contracts` passed.
+  - `npm run build:webui` passed.
 - Read-only system resource slice:
   - Moved `/api/config/raw`, `/api/overview`, and `/api/logs` loading into `src/docker/webui-src/resources.ts`.
   - Removed the transitional `src/docker/webui/app-system-resource-actions.js` owner from the Vite boot path.

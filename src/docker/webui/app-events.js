@@ -5,15 +5,11 @@
     var setActiveTab = deps.setActiveTab;
     var handleVueNavigation = deps.handleVueNavigation;
     var refreshOverviewSurface = deps.refreshOverviewSurface;
-    var saveDoubleConfig = deps.saveDoubleConfig;
     var saveExpiringGiftConfig = deps.saveExpiringGiftConfig;
-    var applyDoubleRatioPreset = deps.applyDoubleRatioPreset;
     var triggerTask = deps.triggerTask;
     var loadCronPreview = deps.loadCronPreview;
-    var disableDoubleConfig = deps.disableDoubleConfig;
     var disableExpiringGiftConfig = deps.disableExpiringGiftConfig;
     var buildBackpackRowsTable = deps.buildBackpackRowsTable;
-    var updateDoubleModeUi = deps.updateDoubleModeUi;
     var loadOverview = deps.loadOverview;
 
     function findActionTarget(node) {
@@ -38,20 +34,8 @@
         refreshOverviewSurface(true);
         return;
       }
-      if (action === 'save-double') {
-        saveDoubleConfig();
-        return;
-      }
       if (action === 'save-expiring') {
         saveExpiringGiftConfig();
-        return;
-      }
-      if (action === 'double-fill-equal') {
-        applyDoubleRatioPreset('equal');
-        return;
-      }
-      if (action === 'double-fill-level') {
-        applyDoubleRatioPreset('level');
         return;
       }
       if (action === 'trigger') {
@@ -71,12 +55,6 @@
       document.addEventListener('click', handleActionClick);
       document.addEventListener('douyu-keep-webui:navigation', handleVueNavigation);
 
-      byId('double-cron').addEventListener('input', function (event) {
-        void loadCronPreview('doubleCard', event.target.value, 'double-cron-preview');
-      });
-      byId('double-enable').addEventListener('change', function (event) {
-        handleTaskToggleChange(event, saveDoubleConfig, disableDoubleConfig);
-      });
       byId('expiring-cron').addEventListener('input', function (event) {
         void loadCronPreview('expiringGift', event.target.value, 'expiring-cron-preview');
       });
@@ -85,17 +63,6 @@
       });
       byId('expiring-enable').addEventListener('change', function (event) {
         handleTaskToggleChange(event, saveExpiringGiftConfig, disableExpiringGiftConfig);
-      });
-      byId('double-model').addEventListener('change', updateDoubleModeUi);
-      document.addEventListener('input', function (event) {
-        if (event.target && event.target.classList && event.target.classList.contains('double-value')) {
-          updateDoubleModeUi();
-        }
-      });
-      document.addEventListener('change', function (event) {
-        if (event.target && event.target.classList && event.target.classList.contains('double-enabled')) {
-          updateDoubleModeUi();
-        }
       });
     }
 

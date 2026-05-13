@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import { installLegacyCollectTaskBridge } from './collect'
 import { installLegacyCookieActionBridge } from './cookie'
+import { installLegacyDoubleTaskBridge } from './double'
 import { installLegacyKeepaliveTaskBridge } from './keepalive'
 import { installLegacyRequestBridge } from './request'
 import { installLegacySystemResourceBridge } from './resources'
@@ -23,7 +24,6 @@ async function bootstrapLegacyBehavior(): Promise<void> {
   await import('../webui/app-table-render.js')
   await import('../webui/app-render.js')
   await import('../webui/app-page-cron.js')
-  await import('../webui/app-double-task-page.js')
   await import('../webui/app-task-pages.js')
   await import('../webui/app-pages.js')
   await import('../webui/app-fans-resource-actions.js')
@@ -40,6 +40,7 @@ installLegacyRequestBridge()
 installLegacyCookieActionBridge()
 installLegacyCollectTaskBridge()
 installLegacyKeepaliveTaskBridge()
+installLegacyDoubleTaskBridge()
 installLegacyYubaBridge()
 createApp(App).mount('#app')
 void bootstrapLegacyBehavior()

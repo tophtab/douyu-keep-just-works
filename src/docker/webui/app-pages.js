@@ -46,13 +46,10 @@
       formatRatioPercent: deps.formatRatioPercent
     });
     var renderCollectPage = TASK_PAGE_RENDERERS.renderCollectPage;
-    var renderYubaPage = TASK_PAGE_RENDERERS.renderYubaPage;
-    var renderKeepalivePage = TASK_PAGE_RENDERERS.renderKeepalivePage;
-    var setDoubleModeEmptyState = TASK_PAGE_RENDERERS.setDoubleModeEmptyState;
-    var renderDoublePage = TASK_PAGE_RENDERERS.renderDoublePage;
-    var renderExpiringGiftPage = TASK_PAGE_RENDERERS.renderExpiringGiftPage;
-    var updateDoubleModeUi = TASK_PAGE_RENDERERS.updateDoubleModeUi;
-    var applyDoubleRatioPreset = TASK_PAGE_RENDERERS.applyDoubleRatioPreset;
+  var renderYubaPage = TASK_PAGE_RENDERERS.renderYubaPage;
+  var renderKeepalivePage = TASK_PAGE_RENDERERS.renderKeepalivePage;
+  var renderDoublePage = TASK_PAGE_RENDERERS.renderDoublePage;
+  var renderExpiringGiftPage = TASK_PAGE_RENDERERS.renderExpiringGiftPage;
 
     function renderCookieCheck() {
       document.dispatchEvent(new CustomEvent('douyu-keep-webui:login-page', {
@@ -198,11 +195,8 @@
       renderCollectPage: renderCollectPage,
       renderYubaPage: renderYubaPage,
       renderKeepalivePage: renderKeepalivePage,
-      setDoubleModeEmptyState: setDoubleModeEmptyState,
       renderDoublePage: renderDoublePage,
       renderExpiringGiftPage: renderExpiringGiftPage,
-      updateDoubleModeUi: updateDoubleModeUi,
-      applyDoubleRatioPreset: applyDoubleRatioPreset,
       renderLogsPage: renderLogsPage,
       renderAll: renderAll,
       renderActiveTabPage: renderActiveTabPage

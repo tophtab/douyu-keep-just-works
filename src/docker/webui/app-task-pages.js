@@ -18,12 +18,6 @@
     var buildBackpackRowsTable = deps.buildBackpackRowsTable;
     var buildSendTable = deps.buildSendTable;
 
-    var DOUBLE_PAGE = window.DOUYU_KEEP_WEBUI_DOUBLE_TASK_PAGE.create(deps);
-    var setDoubleModeEmptyState = DOUBLE_PAGE.setDoubleModeEmptyState;
-    var renderDoublePage = DOUBLE_PAGE.renderDoublePage;
-    var updateDoubleModeUi = DOUBLE_PAGE.updateDoubleModeUi;
-    var applyDoubleRatioPreset = DOUBLE_PAGE.applyDoubleRatioPreset;
-
     function renderCollectPage() {
       var config = getRawConfig();
       document.dispatchEvent(new CustomEvent('douyu-keep-webui:collect-page', {
@@ -53,6 +47,23 @@
       renderRefreshButton();
       var rawConfig = getRawConfig();
       document.dispatchEvent(new CustomEvent('douyu-keep-webui:keepalive-page', {
+        detail: {
+          rawConfig: rawConfig,
+          managedConfig: getManagedConfig(),
+          overview: state.overview,
+          fans: getManagedFans(),
+          managedLoading: state.managedLoading,
+          fansListError: state.fansListError,
+          fansListLoaded: hasLoadedFansList()
+        }
+      }));
+      ensureFansListForActiveTab();
+    }
+
+    function renderDoublePage() {
+      renderRefreshButton();
+      var rawConfig = getRawConfig();
+      document.dispatchEvent(new CustomEvent('douyu-keep-webui:double-page', {
         detail: {
           rawConfig: rawConfig,
           managedConfig: getManagedConfig(),
@@ -119,11 +130,8 @@
       renderCollectPage: renderCollectPage,
       renderYubaPage: renderYubaPage,
       renderKeepalivePage: renderKeepalivePage,
-      setDoubleModeEmptyState: setDoubleModeEmptyState,
       renderDoublePage: renderDoublePage,
       renderExpiringGiftPage: renderExpiringGiftPage,
-      updateDoubleModeUi: updateDoubleModeUi,
-      applyDoubleRatioPreset: applyDoubleRatioPreset
     };
   }
 

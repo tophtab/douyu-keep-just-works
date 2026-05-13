@@ -9,42 +9,7 @@
     var getManagedFans = deps.getManagedFans;
     var refreshOverviewSurface = deps.refreshOverviewSurface;
     var KEEPALIVE_ACTIONS = window.DOUYU_KEEP_WEBUI_KEEPALIVE_TASK_ACTIONS.create(deps);
-
-    function buildDoublePayload() {
-      var fans = getManagedFans();
-      var send = {};
-      var model = Number(byId('double-model').value);
-      var i;
-      for (i = 0; i < fans.length; i += 1) {
-        var roomId = fans[i].roomId;
-        var input = document.querySelector('.double-value[data-room-id="' + roomId + '"]');
-        var value = input ? Number(input.value) : 0;
-        send[String(roomId)] = {
-          roomId: roomId,
-          giftId: 268,
-          number: model === 2 ? value : 0,
-          weight: model === 1 ? value : 0,
-          count: 0
-        };
-      }
-
-      var result = {
-        active: true,
-        cron: byId('double-cron').value.trim(),
-        model: model,
-        send: send
-      };
-
-      var enabledMap = {};
-      var checkboxes = document.querySelectorAll('.double-enabled');
-      for (i = 0; i < checkboxes.length; i += 1) {
-        enabledMap[String(checkboxes[i].getAttribute('data-room-id'))] = Boolean(checkboxes[i].checked);
-      }
-      result.enabled = enabledMap;
-      result.giftScope = byId('double-gift-scope').value === 'limitedTime' ? 'limitedTime' : 'glowStick';
-
-      return result;
-    }
+    var DOUBLE_ACTIONS = window.DOUYU_KEEP_WEBUI_DOUBLE_TASK_ACTIONS.create(deps);
 
     function buildExpiringGiftPayload() {
       var fans = getManagedFans();
@@ -82,68 +47,11 @@
     }
 
     function saveDoubleConfig(options) {
-      byId('double-enable').checked = true;
-      var nextConfig = buildDoublePayload();
-      if (nextConfig.model === 1) {
-        var enabledKeys = Object.keys(nextConfig.enabled || {}).filter(function (key) {
-          return nextConfig.enabled[key];
-        });
-        var totalWeight = enabledKeys.reduce(function (sum, key) {
-          return sum + (nextConfig.send[key] ? Number(nextConfig.send[key].weight || 0) : 0);
-        }, 0);
-        if (enabledKeys.length > 0 && totalWeight <= 0) {
-          toast('按权重模式至少需要一个已勾选房间填写大于 0 的权重值', false);
-          return;
-        }
-      }
-
-      var payload = {
-        doubleCard: nextConfig
-      };
-
-      requestJson('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }).then(function () {
-        toast('双倍任务已保存并启用', true);
-        refreshOverviewSurface(false);
-      }).catch(function (error) {
-        if (options && options.revertCheckboxOnError) {
-          byId('double-enable').checked = false;
-        }
-        if (isUnauthorizedError(error)) {
-          return;
-        }
-        toast('保存并启用双倍任务失败：' + error.message, false);
-      });
+      return DOUBLE_ACTIONS.saveDoubleConfig(options);
     }
 
     function disableDoubleConfig() {
-      var currentConfig = getManagedConfig().doubleCard || getRawConfig().doubleCard || { active: true, cron: '0 20 17,20,22,23 * * *', model: 1, giftScope: 'glowStick', send: {}, enabled: {} };
-      requestJson('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          doubleCard: {
-            active: false,
-            cron: currentConfig.cron || '0 20 17,20,22,23 * * *',
-            model: Number(currentConfig.model || 1),
-            giftScope: currentConfig.giftScope === 'limitedTime' ? 'limitedTime' : 'glowStick',
-            send: currentConfig.send || {},
-            enabled: currentConfig.enabled || {}
-          }
-        })
-      }).then(function () {
-        toast('双倍任务已停用', true);
-        refreshOverviewSurface(false);
-      }).catch(function (error) {
-        byId('double-enable').checked = true;
-        if (isUnauthorizedError(error)) {
-          return;
-        }
-        toast('停用双倍任务失败：' + error.message, false);
-      });
+      return DOUBLE_ACTIONS.disableDoubleConfig();
     }
 
     function saveExpiringGiftConfig(options) {

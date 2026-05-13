@@ -234,11 +234,8 @@
   var renderCollectPage = PAGE_RENDERERS.renderCollectPage;
   var renderYubaPage = PAGE_RENDERERS.renderYubaPage;
   var renderKeepalivePage = PAGE_RENDERERS.renderKeepalivePage;
-  var setDoubleModeEmptyState = PAGE_RENDERERS.setDoubleModeEmptyState;
   var renderDoublePage = PAGE_RENDERERS.renderDoublePage;
   var renderExpiringGiftPage = PAGE_RENDERERS.renderExpiringGiftPage;
-  var updateDoubleModeUi = PAGE_RENDERERS.updateDoubleModeUi;
-  var applyDoubleRatioPreset = PAGE_RENDERERS.applyDoubleRatioPreset;
   var renderLogsPage = PAGE_RENDERERS.renderLogsPage;
   var renderAll = PAGE_RENDERERS.renderAll;
   var renderActiveTabPage = PAGE_RENDERERS.renderActiveTabPage;
@@ -325,11 +322,9 @@
     disableDoubleConfig: disableDoubleConfig,
     saveExpiringGiftConfig: saveExpiringGiftConfig,
     disableExpiringGiftConfig: disableExpiringGiftConfig,
-    applyDoubleRatioPreset: applyDoubleRatioPreset,
     triggerTask: triggerTask,
     loadCronPreview: loadCronPreview,
     buildBackpackRowsTable: buildBackpackRowsTable,
-    updateDoubleModeUi: updateDoubleModeUi,
     loadProtectedData: loadProtectedData
   }).start();
 

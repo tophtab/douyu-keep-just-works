@@ -2,6 +2,7 @@
 import { useAuthSession } from './auth'
 import { useCollectTaskPage } from './collect'
 import { useCookieLoginPage } from './cookie'
+import { useDoubleTaskPage } from './double'
 import { useKeepaliveTaskPage } from './keepalive'
 import { usePageNavigation } from './navigation'
 import { useLogsPage } from './resources'
@@ -128,6 +129,28 @@ const {
   showKeepaliveTable,
   triggerKeepaliveTask,
 } = useKeepaliveTaskPage()
+
+const {
+  applyDoubleRatioPreset,
+  doubleCron,
+  doubleCronPreviewText,
+  doubleEmptyText,
+  doubleEnabled,
+  doubleFanRows,
+  doubleGiftScope,
+  doubleModeHelp,
+  doubleModel,
+  doubleNote,
+  doubleRatioPreview,
+  doubleTaskCard,
+  doubleValueLabel,
+  handleDoubleToggle,
+  loadDoubleCronPreview,
+  saveDoubleConfig,
+  showDoubleRatioTools,
+  showDoubleTable,
+  triggerDoubleTask,
+} = useDoubleTaskPage()
 </script>
 
 <!-- eslint-disable -->
@@ -609,9 +632,23 @@ const {
 
     <section class="page" :class="{ active: activeTab === 'double-card' }" id="page-double-card" role="tabpanel" aria-labelledby="tab-double-card" tabindex="0" :aria-hidden="activeTab === 'double-card' ? 'false' : 'true'" :hidden="activeTab !== 'double-card'">
       <div class="task-card" id="double-task-card">
-        <div class="task-card-title">双倍状态</div>
+        <div class="task-card-head">
+          <div>
+            <div class="section-kicker">任务状态</div>
+            <h3 class="task-card-title">双倍</h3>
+          </div>
+        </div>
+        <div class="task-card-pills">
+          <span v-for="pill in doubleTaskCard.pills" :key="pill.label" class="pill" :class="pill.kind">{{ pill.label }}</span>
+        </div>
+        <div class="summary-grid">
+          <div v-for="cell in doubleTaskCard.cells" :key="cell.label" class="summary-cell">
+            <div class="mini-label">{{ cell.label }}</div>
+            <div class="mini-value">{{ cell.value }}</div>
+          </div>
+        </div>
       </div>
-      <div class="status-box" id="double-note" role="status" aria-live="polite" style="margin-top:16px">等待加载…</div>
+      <div class="status-box" id="double-note" role="status" aria-live="polite" style="margin-top:16px">{{ doubleNote }}</div>
 
       <div class="panel" style="margin-top:16px">
         <div class="field-block">
@@ -621,7 +658,7 @@ const {
               <div class="switch-note">关闭后不执行双倍检测与赠送，但保留当前分配设置。</div>
             </div>
             <label class="switch-control">
-              <input class="switch-input" type="checkbox" id="double-enable" name="double-enable" aria-label="启用双倍任务">
+              <input id="double-enable" v-model="doubleEnabled" class="switch-input" type="checkbox" name="double-enable" aria-label="启用双倍任务" @change="handleDoubleToggle">
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -629,42 +666,89 @@ const {
         <div class="grid cols-3">
           <div class="field-block">
             <label class="field-label" for="double-cron">Cron 表达式</label>
-            <input id="double-cron" name="double-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
-            <div class="helper cron-preview" id="double-cron-preview" role="status" aria-live="polite">正在计算未来执行时间…</div>
+            <input id="double-cron" v-model="doubleCron" name="double-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" @input="loadDoubleCronPreview">
+            <div class="helper cron-preview" id="double-cron-preview" role="status" aria-live="polite">{{ doubleCronPreviewText }}</div>
           </div>
           <div class="field-block">
             <label class="field-label" for="double-gift-scope">礼物范围</label>
-            <select id="double-gift-scope" name="double-gift-scope">
+            <select id="double-gift-scope" v-model="doubleGiftScope" name="double-gift-scope">
               <option value="glowStick">全部荧光棒</option>
               <option value="limitedTime">限时礼物</option>
             </select>
           </div>
           <div class="field-block">
             <label class="field-label" for="double-model">分配模式</label>
-            <select id="double-model" name="double-model">
+            <select id="double-model" v-model.number="doubleModel" name="double-model">
               <option value="1">按权重</option>
               <option value="2">按固定数量</option>
             </select>
           </div>
         </div>
         <div class="actions" style="margin-top:16px">
-          <button class="btn btn-success" type="button" data-action="save-double">保存并启用</button>
-          <button class="btn btn-secondary" type="button" data-action="trigger" data-trigger="doubleCard">立即检测</button>
+          <button class="btn btn-success" type="button" @click="saveDoubleConfig()">保存并启用</button>
+          <button class="btn btn-secondary" type="button" @click="triggerDoubleTask">立即检测</button>
         </div>
         <div class="status-box" style="margin-top:16px">
           <div class="split-inline">
             <div class="split-inline-copy">
               <div class="section-kicker">分配说明</div>
-              <p class="subtle" id="double-mode-help" style="margin-top:8px">按权重模式会根据当前勾选房间的权重值动态重新分配。</p>
-              <div class="helper" id="double-ratio-preview" role="status" aria-live="polite" style="margin-top:10px">等待计算当前权重预览…</div>
+              <p class="subtle" id="double-mode-help" style="margin-top:8px">{{ doubleModeHelp }}</p>
+              <div class="helper" id="double-ratio-preview" role="status" aria-live="polite" style="margin-top:10px; white-space:pre-line">{{ doubleRatioPreview }}</div>
             </div>
-            <div class="split-inline-actions" id="double-ratio-tools">
-              <button class="btn btn-secondary" type="button" data-action="double-fill-equal">参与房间全部设为 1</button>
-              <button class="btn btn-secondary" type="button" data-action="double-fill-level">按粉丝牌等级填入</button>
+            <div v-show="showDoubleRatioTools" class="split-inline-actions" id="double-ratio-tools">
+              <button class="btn btn-secondary" type="button" @click="applyDoubleRatioPreset('equal')">参与房间全部设为 1</button>
+              <button class="btn btn-secondary" type="button" @click="applyDoubleRatioPreset('level')">按粉丝牌等级填入</button>
             </div>
           </div>
         </div>
-        <div id="double-table-wrap" style="margin-top:16px"></div>
+        <div id="double-table-wrap" style="margin-top:16px">
+          <div v-if="!showDoubleTable" class="empty">{{ doubleEmptyText }}</div>
+          <div v-else class="table-shell">
+            <table class="table table-fixed double-table">
+              <colgroup>
+                <col style="width:68px">
+                <col style="width:56px">
+                <col style="width:156px">
+                <col style="width:104px">
+                <col style="width:94px">
+                <col style="width:94px">
+                <col style="width:94px">
+                <col style="width:94px">
+                <col style="width:112px">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="control-head" scope="col">参与</th>
+                  <th class="index-head" scope="col">序号</th>
+                  <th scope="col">主播名称</th>
+                  <th class="num-head" scope="col">房间号</th>
+                  <th class="num-head" scope="col">等级</th>
+                  <th class="num-head" scope="col">排名</th>
+                  <th class="num-head" scope="col">今日亲密度</th>
+                  <th class="num-head" scope="col">亲密度</th>
+                  <th class="control-head" scope="col">{{ doubleValueLabel }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in doubleFanRows" :key="row.roomId">
+                  <td class="control-cell" data-label="参与">
+                    <input v-model="row.enabled" class="double-enabled" type="checkbox" :name="`double-enabled-${row.roomId}`" :data-room-id="row.roomId" :aria-label="`参与双倍任务：${row.name}，房间 ${row.roomId}`">
+                  </td>
+                  <td class="index-cell" data-label="序号">{{ row.index }}</td>
+                  <td class="text-cell" data-label="主播名称" :title="row.name">{{ row.name }}</td>
+                  <td class="num-cell" data-label="房间号">{{ row.roomId }}</td>
+                  <td class="num-cell" data-label="等级">{{ row.level }}</td>
+                  <td class="num-cell" data-label="排名">{{ row.rank }}</td>
+                  <td class="num-cell" data-label="今日亲密度">{{ row.today }}</td>
+                  <td class="num-cell" data-label="亲密度">{{ row.intimacy }}</td>
+                  <td class="control-cell" :data-label="doubleValueLabel">
+                    <input v-model.number="row.value" class="double-value" type="number" :name="`double-value-${row.roomId}`" :data-room-id="row.roomId" :data-level="row.level" min="0" step="1" inputmode="numeric" :aria-label="`双倍${doubleValueLabel}：${row.name}，房间 ${row.roomId}`">
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 

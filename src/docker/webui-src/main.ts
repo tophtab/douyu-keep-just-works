@@ -3,6 +3,7 @@ import App from './App.vue'
 import { installLegacyCollectTaskBridge } from './collect'
 import { installLegacyCookieActionBridge } from './cookie'
 import { installLegacyDoubleTaskBridge } from './double'
+import { installLegacyExpiringTaskBridge } from './expiring'
 import { installLegacyKeepaliveTaskBridge } from './keepalive'
 import { installLegacyRequestBridge } from './request'
 import { installLegacySystemResourceBridge } from './resources'
@@ -41,6 +42,7 @@ installLegacyCookieActionBridge()
 installLegacyCollectTaskBridge()
 installLegacyKeepaliveTaskBridge()
 installLegacyDoubleTaskBridge()
+installLegacyExpiringTaskBridge()
 installLegacyYubaBridge()
 createApp(App).mount('#app')
 void bootstrapLegacyBehavior()

@@ -3,6 +3,7 @@ import { useAuthSession } from './auth'
 import { useCollectTaskPage } from './collect'
 import { useCookieLoginPage } from './cookie'
 import { useDoubleTaskPage } from './double'
+import { useExpiringGiftTaskPage } from './expiring'
 import { useKeepaliveTaskPage } from './keepalive'
 import { usePageNavigation } from './navigation'
 import { useLogsPage } from './resources'
@@ -151,6 +152,28 @@ const {
   showDoubleTable,
   triggerDoubleTask,
 } = useDoubleTaskPage()
+
+const {
+  expiringBackpackEmptyText,
+  expiringBackpackRows,
+  expiringCron,
+  expiringCronPreviewText,
+  expiringEnabled,
+  expiringFanRows,
+  expiringModel,
+  expiringNote,
+  expiringTableEmptyText,
+  expiringTaskCard,
+  expiringThresholdHours,
+  expiringValueLabel,
+  handleExpiringModelChange,
+  handleExpiringToggle,
+  loadExpiringCronPreview,
+  saveExpiringGiftConfig,
+  showExpiringBackpackTable,
+  showExpiringTable,
+  triggerExpiringTask,
+} = useExpiringGiftTaskPage()
 </script>
 
 <!-- eslint-disable -->
@@ -754,9 +777,23 @@ const {
 
     <section class="page" :class="{ active: activeTab === 'expiring-gift' }" id="page-expiring-gift" role="tabpanel" aria-labelledby="tab-expiring-gift" tabindex="0" :aria-hidden="activeTab === 'expiring-gift' ? 'false' : 'true'" :hidden="activeTab !== 'expiring-gift'">
       <div class="task-card" id="expiring-task-card">
-        <div class="task-card-title">临期状态</div>
+        <div class="task-card-head">
+          <div>
+            <div class="section-kicker">任务状态</div>
+            <h3 class="task-card-title">临期</h3>
+          </div>
+        </div>
+        <div class="task-card-pills">
+          <span v-for="pill in expiringTaskCard.pills" :key="pill.label" class="pill" :class="pill.kind">{{ pill.label }}</span>
+        </div>
+        <div class="summary-grid">
+          <div v-for="cell in expiringTaskCard.cells" :key="cell.label" class="summary-cell">
+            <div class="mini-label">{{ cell.label }}</div>
+            <div class="mini-value">{{ cell.value }}</div>
+          </div>
+        </div>
       </div>
-      <div class="status-box" id="expiring-note" role="status" aria-live="polite" style="margin-top:16px">等待加载…</div>
+      <div class="status-box" id="expiring-note" role="status" aria-live="polite" style="margin-top:16px">{{ expiringNote }}</div>
 
       <div class="panel" style="margin-top:16px">
         <div class="field-block">
@@ -766,7 +803,7 @@ const {
               <div class="switch-note">达到临期阈值后，按房间配置释放有明确过期时间的临期背包礼物。</div>
             </div>
             <label class="switch-control">
-              <input class="switch-input" type="checkbox" id="expiring-enable" name="expiring-enable" aria-label="启用临期任务">
+              <input id="expiring-enable" v-model="expiringEnabled" class="switch-input" type="checkbox" name="expiring-enable" aria-label="启用临期任务" @change="handleExpiringToggle">
               <span class="switch-slider"></span>
             </label>
           </div>
@@ -774,27 +811,113 @@ const {
         <div class="grid cols-3">
           <div class="field-block">
             <label class="field-label" for="expiring-cron">Cron 表达式</label>
-            <input id="expiring-cron" name="expiring-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
-            <div class="helper cron-preview" id="expiring-cron-preview" role="status" aria-live="polite">正在计算未来执行时间…</div>
+            <input id="expiring-cron" v-model="expiringCron" name="expiring-cron" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" @input="loadExpiringCronPreview">
+            <div class="helper cron-preview" id="expiring-cron-preview" role="status" aria-live="polite">{{ expiringCronPreviewText }}</div>
           </div>
           <div class="field-block">
             <label class="field-label" for="expiring-threshold-hours">临期阈值（小时）</label>
-            <input id="expiring-threshold-hours" name="expiring-threshold-hours" type="number" min="1" step="1" inputmode="numeric">
+            <input id="expiring-threshold-hours" v-model.number="expiringThresholdHours" name="expiring-threshold-hours" type="number" min="1" step="1" inputmode="numeric">
           </div>
           <div class="field-block">
             <label class="field-label" for="expiring-model">分配模式</label>
-            <select id="expiring-model" name="expiring-model">
+            <select id="expiring-model" v-model.number="expiringModel" name="expiring-model" @change="handleExpiringModelChange">
               <option value="1">按权重</option>
               <option value="2">按固定数量</option>
             </select>
           </div>
         </div>
         <div class="actions" style="margin-top:16px">
-          <button class="btn btn-success" type="button" data-action="save-expiring">保存并启用</button>
-          <button class="btn btn-secondary" type="button" data-action="trigger" data-trigger="expiringGift">立即执行</button>
+          <button class="btn btn-success" type="button" @click="saveExpiringGiftConfig()">保存并启用</button>
+          <button class="btn btn-secondary" type="button" @click="triggerExpiringTask">立即执行</button>
         </div>
-        <div id="expiring-backpack-wrap" style="margin-top:16px"></div>
-        <div id="expiring-table-wrap" style="margin-top:16px"></div>
+        <div id="expiring-backpack-wrap" style="margin-top:16px">
+          <div v-if="!showExpiringBackpackTable" class="empty">{{ expiringBackpackEmptyText }}</div>
+          <div v-else class="table-shell">
+            <table class="table table-fixed backpack-table">
+              <colgroup>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="index-head" scope="col">序号</th>
+                  <th scope="col">礼物</th>
+                  <th class="num-head" scope="col">ID</th>
+                  <th class="num-head" scope="col">数量</th>
+                  <th class="date-head" scope="col">过期时间</th>
+                  <th class="num-head" scope="col">剩余</th>
+                  <th class="control-head" scope="col">临期</th>
+                  <th class="control-head" scope="col">自动释放</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in expiringBackpackRows" :key="`${row.giftId}-${row.index}`">
+                  <td class="index-cell" data-label="序号">{{ row.index }}</td>
+                  <td class="text-cell" data-label="礼物" :title="row.name">{{ row.name }}</td>
+                  <td class="num-cell" data-label="ID">{{ row.giftId }}</td>
+                  <td class="num-cell" data-label="数量">{{ row.count }}</td>
+                  <td class="date-cell" data-label="过期时间">{{ row.expireText }}</td>
+                  <td class="num-cell" data-label="剩余">{{ row.remainingText }}</td>
+                  <td class="status-cell control-cell" data-label="临期">
+                    <span class="pill" :class="row.inThreshold ? 'warn' : 'off'">{{ row.inThreshold ? '是' : '否' }}</span>
+                  </td>
+                  <td class="status-cell control-cell" data-label="自动释放">
+                    <span class="pill" :class="row.autoRelease ? 'ok' : 'off'">{{ row.autoRelease ? '释放' : '跳过' }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div id="expiring-table-wrap" style="margin-top:16px">
+          <div v-if="!showExpiringTable" class="empty">{{ expiringTableEmptyText }}</div>
+          <div v-else class="table-shell">
+            <table class="table table-fixed expiring-table">
+              <colgroup>
+                <col style="width:56px">
+                <col style="width:156px">
+                <col style="width:104px">
+                <col style="width:94px">
+                <col style="width:94px">
+                <col style="width:94px">
+                <col style="width:94px">
+                <col style="width:112px">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="index-head" scope="col">序号</th>
+                  <th scope="col">主播名称</th>
+                  <th class="num-head" scope="col">房间号</th>
+                  <th class="num-head" scope="col">等级</th>
+                  <th class="num-head" scope="col">排名</th>
+                  <th class="num-head" scope="col">今日亲密度</th>
+                  <th class="num-head" scope="col">亲密度</th>
+                  <th class="control-head" scope="col">{{ expiringValueLabel }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in expiringFanRows" :key="row.roomId">
+                  <td class="index-cell" data-label="序号">{{ row.index }}</td>
+                  <td class="text-cell" data-label="主播名称" :title="row.name">{{ row.name }}</td>
+                  <td class="num-cell" data-label="房间号">{{ row.roomId }}</td>
+                  <td class="num-cell" data-label="等级">{{ row.level }}</td>
+                  <td class="num-cell" data-label="排名">{{ row.rank }}</td>
+                  <td class="num-cell" data-label="今日亲密度">{{ row.today }}</td>
+                  <td class="num-cell" data-label="亲密度">{{ row.intimacy }}</td>
+                  <td class="control-cell" :data-label="expiringValueLabel">
+                    <input v-model.number="row.value" class="expiring-value" type="number" :name="`expiring-value-${row.roomId}`" :data-room-id="row.roomId" :data-level="row.level" min="0" step="1" inputmode="numeric" :aria-label="`临期${expiringValueLabel}：${row.name}，房间 ${row.roomId}`">
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 

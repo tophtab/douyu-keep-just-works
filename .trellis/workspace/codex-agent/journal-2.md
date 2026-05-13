@@ -240,3 +240,36 @@ Deleted the unused logs.ts split attempt, restored the contract tests and fronte
 ### Next Steps
 
 - None - task complete
+
+
+## Session 62: Simplify Docker WebUI allocation task code
+
+**Date**: 2026-05-13
+**Task**: Simplify Docker WebUI allocation task code
+**Branch**: `master`
+
+### Summary
+
+Extracted shared allocation-task helpers for keepalive, double-card, and expiring-gift pages; reused shared cookie source config checks; verified lint, type-check, and full npm test.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9df888a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

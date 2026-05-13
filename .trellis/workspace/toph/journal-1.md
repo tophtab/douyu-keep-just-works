@@ -71,3 +71,36 @@ Completed behavior-preserving cleanup across WebUI allocation task helpers, reso
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: Remove WebUI legacy bridge runtime
+
+**Date**: 2026-05-13
+**Task**: Remove WebUI legacy bridge runtime
+**Branch**: `master`
+
+### Summary
+
+Migrated the Docker WebUI to a Vue-only runtime, removed legacy bridge and compatibility modules, added Vue-owned resource/event modules, updated contracts/specs, and verified lint, type-check, contracts, build, and tests.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `808cccb` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -48,7 +48,8 @@ manual cookies / CookieCloud
 
 Boundary owners:
 
-- cookie normalization + defaults: `src/core/medal-sync.ts`
+- default values: `src/core/task-defaults.ts`
+- cookie normalization + reconciliation: `src/core/medal-sync.ts`
 - CookieCloud fetch / decrypt / diagnostics: `src/core/cookie-cloud.ts`
 - yuba HTTP fetch / sign logic: `src/core/yuba.ts` facade over `src/core/yuba-status.ts` and `src/core/yuba-check-in.ts`
 - config persistence + selective scheduler reload: `src/docker/index.ts`

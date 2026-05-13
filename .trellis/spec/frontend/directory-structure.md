@@ -31,6 +31,7 @@ src/docker/
 │   ├── composables/
 │   │   └── reusable Vue state helpers used by multiple pages
 │   ├── legacy-app.ts
+│   ├── bridge-contract.ts
 │   ├── index.html
 │   ├── main.ts
 │   ├── task-shared.ts
@@ -67,8 +68,9 @@ src/docker/
 - `components/TaskStatusCard.vue`, `CronField.vue`, `EnableSwitch.vue`, and `ActionBar.vue` own repeated task page controls while page composables still own request and persistence logic.
 - `components/*Table.vue` owns repeated fans, Yuba, allocation, and backpack table markup; pages pass reactive row models and handle mutation events.
 - `composables/use-cron-preview.ts` owns shared cron preview request sequencing and display text for task pages and CookieCloud.
-- `task-shared.ts` owns shared task-page request helpers, legacy page event wiring, cookie-source checks, and task-card state helpers.
-- `allocation-task.ts` owns shared allocation-task model normalization, fan row view-model construction, send-map payload construction, enabled-room map construction, and ratio formatting for keepalive, double-card, and expiring-gift pages; page modules still own domain-specific defaults, validation, API endpoints, and user-facing copy.
+- `bridge-contract.ts` owns transitional Docker WebUI CustomEvent names while legacy bridge modules still communicate through document events.
+- `task-shared.ts` owns shared task-page request helpers, task trigger endpoint construction, legacy page event wiring, shared fan-task page detail application, cookie-source checks, unauthorized detection helpers, and task-card state helpers.
+- `allocation-task.ts` owns shared allocation-task model normalization, fan row view-model construction, send-map payload construction, enabled-room map construction, and ratio formatting for keepalive, double-card, and expiring-gift pages; shared defaults come from `src/core/task-defaults.ts`, while page modules still own validation and user-facing copy.
 - `resources.ts` owns Docker WebUI resource bridges and the current logs page composable while the legacy transition exists.
 
 ## Style Ownership

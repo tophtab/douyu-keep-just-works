@@ -25,6 +25,7 @@ src/
 │   ├── double-card.ts
 │   ├── gift.ts
 │   ├── job.ts
+│   ├── task-defaults.ts
 │   ├── yuba-check-in.ts
 │   ├── yuba.ts
 │   ├── yuba-common.ts
@@ -91,11 +92,13 @@ Examples:
 - `src/docker/runtime.ts` owns startup, cron creation, and `AppContext` assembly.
 - `src/docker/config-store.ts` owns config file IO and config-update assembly.
 - `src/docker/config-validation.ts` owns Docker config validation used by HTTP save routes.
-- `src/docker/task-metadata.ts` owns task type labels and task-config lookup shared by runtime scheduling.
+- `src/core/task-defaults.ts` owns shared Docker task defaults consumed by backend normalization/runtime code and Docker WebUI fallback state.
+- `src/docker/task-metadata.ts` owns task type labels, log categories, task-record construction, task-config lookup, and route-level task type validation shared by runtime scheduling and task trigger routes.
 - `src/docker/runtime-task-runners.ts` owns Docker scheduled/manual task execution functions and status-cache invalidation scopes.
 - `src/docker/server.ts` is a thin Express assembler: JSON middleware, WebUI fallback, auth boundary, and route-module registration.
 - `src/docker/server-auth.ts` owns Docker WebUI session cookies, in-memory session lifecycle, auth routes, and the protected API boundary.
 - `src/docker/server-*-routes.ts` files own cohesive Docker HTTP route groups and delegate work through `AppContext`.
+- `src/docker/server-route-utils.ts` owns small shared Express JSON response helpers for route groups with the same try/catch and error-status classification shape.
 - `src/docker/server-types.ts` owns the shared `AppContext` and `JobStatus` types re-exported by `server.ts` for existing imports.
 - `src/docker/webui-src/index.html` owns the Vite HTML shell and runtime token placeholders.
 - `src/docker/webui-src/App.vue` owns root Docker WebUI composition during the Vue migration: bootstrap data, auth session, navigation/theme/toast roots, and overview refresh state shared by the toolbar and overview page.
@@ -451,7 +454,7 @@ export function selectExpiringGiftCandidates(status: BackpackStatus, options: {
 
 ```typescript
 if (status.expireTime && status.expireTime - Date.now() <= thresholdMs) {
-  jobs = await computeGiftCountOfPercentage(status.count, send)
+  jobs = computeGiftCountOfProportion(status.count, send)
 }
 ```
 
@@ -461,7 +464,7 @@ if (status.expireTime && status.expireTime - Date.now() <= thresholdMs) {
 const selection = selectExpiringGiftCandidates(backpackStatus, {
   thresholdHours,
 })
-jobs = await computeGiftCountOfPercentage(selection.budgetCount, send)
+jobs = computeGiftCountOfProportion(selection.budgetCount, send)
 ```
 
 ## Scenario: Docker-Only Edge/Latest Publishing

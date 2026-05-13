@@ -1,52 +1,27 @@
 (function () {
   function createPageRenderers(deps) {
-    var byId = deps.byId;
-    var escapeHtml = deps.escapeHtml;
-    var formatDate = deps.formatDate;
     var state = deps.state;
     var getRawConfig = deps.getRawConfig;
     var hasCookieSourceConfigured = deps.hasCookieSourceConfigured;
     var getManagedFans = deps.getManagedFans;
     var renderRefreshButton = deps.renderRefreshButton;
 
-    var CRON_RENDERERS = window.DOUYU_KEEP_WEBUI_PAGE_CRON.create({
-      byId: byId,
-      formatDate: formatDate,
-      state: state,
-      createEmptyCronPreview: deps.createEmptyCronPreview,
-      requestJson: deps.requestJson
-    });
-    var renderCronPreview = CRON_RENDERERS.renderCronPreview;
-    var loadCronPreview = CRON_RENDERERS.loadCronPreview;
-    var ensureCronPreview = CRON_RENDERERS.ensureCronPreview;
-
     var TASK_PAGE_RENDERERS = window.DOUYU_KEEP_WEBUI_TASK_PAGES.create({
-      byId: byId,
-      escapeHtml: escapeHtml,
-      toast: deps.toast,
       state: state,
       getRawConfig: getRawConfig,
       hasCookieSourceConfigured: hasCookieSourceConfigured,
       getManagedConfig: deps.getManagedConfig,
       getManagedFans: getManagedFans,
-      isTaskActive: deps.isTaskActive,
       renderRefreshButton: renderRefreshButton,
       hasLoadedFansList: deps.hasLoadedFansList,
       ensureFansListForActiveTab: deps.ensureFansListForActiveTab,
-      ensureYubaStatusForActiveTab: deps.ensureYubaStatusForActiveTab,
-      ensureCronPreview: ensureCronPreview,
-      buildTaskCard: deps.buildTaskCard,
-      buildLoadingTaskCard: deps.buildLoadingTaskCard,
-      buildYubaStatusTable: deps.buildYubaStatusTable,
-      buildBackpackRowsTable: deps.buildBackpackRowsTable,
-      buildSendTable: deps.buildSendTable,
-      formatRatioPercent: deps.formatRatioPercent
+      ensureYubaStatusForActiveTab: deps.ensureYubaStatusForActiveTab
     });
     var renderCollectPage = TASK_PAGE_RENDERERS.renderCollectPage;
-  var renderYubaPage = TASK_PAGE_RENDERERS.renderYubaPage;
-  var renderKeepalivePage = TASK_PAGE_RENDERERS.renderKeepalivePage;
-  var renderDoublePage = TASK_PAGE_RENDERERS.renderDoublePage;
-  var renderExpiringGiftPage = TASK_PAGE_RENDERERS.renderExpiringGiftPage;
+    var renderYubaPage = TASK_PAGE_RENDERERS.renderYubaPage;
+    var renderKeepalivePage = TASK_PAGE_RENDERERS.renderKeepalivePage;
+    var renderDoublePage = TASK_PAGE_RENDERERS.renderDoublePage;
+    var renderExpiringGiftPage = TASK_PAGE_RENDERERS.renderExpiringGiftPage;
 
     function renderCookieCheck() {
       document.dispatchEvent(new CustomEvent('douyu-keep-webui:login-page', {
@@ -124,9 +99,6 @@
 
     return {
       renderCookieCheck: renderCookieCheck,
-      renderCronPreview: renderCronPreview,
-      loadCronPreview: loadCronPreview,
-      ensureCronPreview: ensureCronPreview,
       renderOverview: renderOverview,
       renderLoginPage: renderLoginPage,
       renderCollectPage: renderCollectPage,

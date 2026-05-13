@@ -7,23 +7,16 @@
   var getTabByPath = APP_ROUTING.getTabByPath;
   var syncPathWithTab = APP_ROUTING.syncPathWithTab;
   var byId = APP_DOM.byId;
-  var escapeHtml = APP_DOM.escapeHtml;
-  var formatDate = APP_DOM.formatDate;
   var toast = APP_DOM.toast;
 
   var STATE_HELPERS = window.DOUYU_KEEP_WEBUI_STATE.create({
     defaultRawConfig: DEFAULT_RAW_CONFIG,
-    initialTab: getTabByPath(window.location.pathname),
-    formatDate: formatDate
+    initialTab: getTabByPath(window.location.pathname)
   });
   var state = STATE_HELPERS.state;
-  var createEmptyCronPreview = STATE_HELPERS.createEmptyCronPreview;
   var getRawConfig = STATE_HELPERS.getRawConfig;
   var getCookieCloudConfig = STATE_HELPERS.getCookieCloudConfig;
-  var getManualCookiesConfig = STATE_HELPERS.getManualCookiesConfig;
   var hasCookieSourceConfigured = STATE_HELPERS.hasCookieSourceConfigured;
-  var getCookieSourceLabel = STATE_HELPERS.getCookieSourceLabel;
-  var buildCookieCheckText = STATE_HELPERS.buildCookieCheckText;
   var isUnauthorizedError = STATE_HELPERS.isUnauthorizedError;
   var getResourceRequest = STATE_HELPERS.getResourceRequest;
   var hasLoadedFansList = STATE_HELPERS.hasLoadedFansList;
@@ -167,66 +160,18 @@
     });
   }
 
-  var RENDER_HELPERS = window.DOUYU_KEEP_WEBUI_RENDER.create({
-    byId: byId,
-    escapeHtml: escapeHtml,
-    formatDate: formatDate,
-    state: state,
-    getRawConfig: getRawConfig,
-    getManagedConfig: getManagedConfig,
-    hasCookieSourceConfigured: hasCookieSourceConfigured,
-    getCookieSourceLabel: getCookieSourceLabel
-  });
-  var buildStatusPill = RENDER_HELPERS.buildStatusPill;
-  var buildSummaryCell = RENDER_HELPERS.buildSummaryCell;
-  var buildOverviewGiftSummary = RENDER_HELPERS.buildOverviewGiftSummary;
-  var getExpiringThresholdHours = RENDER_HELPERS.getExpiringThresholdHours;
-  var buildBackpackRowsTable = RENDER_HELPERS.buildBackpackRowsTable;
-  var buildSummaryStatusCell = RENDER_HELPERS.buildSummaryStatusCell;
-  var buildLoadingTaskCard = RENDER_HELPERS.buildLoadingTaskCard;
-  var buildTaskCard = RENDER_HELPERS.buildTaskCard;
-  var buildLoginStatusCard = RENDER_HELPERS.buildLoginStatusCard;
-  var buildFansStatusTable = RENDER_HELPERS.buildFansStatusTable;
-  var buildYubaStatusTable = RENDER_HELPERS.buildYubaStatusTable;
-  var buildSendTable = RENDER_HELPERS.buildSendTable;
-  var formatRatioPercent = RENDER_HELPERS.formatRatioPercent;
-
   var PAGE_RENDERERS = window.DOUYU_KEEP_WEBUI_PAGES.create({
-    byId: byId,
-    escapeHtml: escapeHtml,
-    formatDate: formatDate,
-    toast: toast,
     state: state,
-    createEmptyCronPreview: createEmptyCronPreview,
-    buildCookieCheckText: buildCookieCheckText,
-    requestJson: requestJson,
     getRawConfig: getRawConfig,
-    getCookieCloudConfig: getCookieCloudConfig,
-    getManualCookiesConfig: getManualCookiesConfig,
     hasCookieSourceConfigured: hasCookieSourceConfigured,
     getManagedConfig: getManagedConfig,
     getManagedFans: getManagedFans,
-    isTaskActive: isTaskActive,
     renderRefreshButton: renderRefreshButton,
     hasLoadedFansList: hasLoadedFansList,
     ensureFansListForActiveTab: ensureFansListForActiveTab,
-    ensureYubaStatusForActiveTab: ensureYubaStatusForActiveTab,
-    loadFansStatus: loadFansStatus,
-    buildOverviewGiftSummary: buildOverviewGiftSummary,
-    buildSummaryStatusCell: buildSummaryStatusCell,
-    buildFansStatusTable: buildFansStatusTable,
-    buildLoginStatusCard: buildLoginStatusCard,
-    buildTaskCard: buildTaskCard,
-    buildLoadingTaskCard: buildLoadingTaskCard,
-    buildYubaStatusTable: buildYubaStatusTable,
-    buildBackpackRowsTable: buildBackpackRowsTable,
-    buildSendTable: buildSendTable,
-    formatRatioPercent: formatRatioPercent
+    ensureYubaStatusForActiveTab: ensureYubaStatusForActiveTab
   });
   var renderCookieCheck = PAGE_RENDERERS.renderCookieCheck;
-  var renderCronPreview = PAGE_RENDERERS.renderCronPreview;
-  var loadCronPreview = PAGE_RENDERERS.loadCronPreview;
-  var ensureCronPreview = PAGE_RENDERERS.ensureCronPreview;
   var renderOverview = PAGE_RENDERERS.renderOverview;
   var renderLoginPage = PAGE_RENDERERS.renderLoginPage;
   var renderCollectPage = PAGE_RENDERERS.renderCollectPage;
@@ -321,8 +266,6 @@
     saveExpiringGiftConfig: saveExpiringGiftConfig,
     disableExpiringGiftConfig: disableExpiringGiftConfig,
     triggerTask: triggerTask,
-    loadCronPreview: loadCronPreview,
-    buildBackpackRowsTable: buildBackpackRowsTable,
     loadProtectedData: loadProtectedData
   }).start();
 

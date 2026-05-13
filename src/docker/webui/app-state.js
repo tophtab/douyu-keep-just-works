@@ -2,16 +2,6 @@
   function createStateModule(deps) {
     var defaultRawConfig = deps.defaultRawConfig;
     var initialTab = deps.initialTab;
-    var formatDate = deps.formatDate;
-
-    function createEmptyCronPreview() {
-      return {
-        value: '',
-        runs: [],
-        error: '',
-        loading: false
-      };
-    }
 
     function createResourceRequest() {
       return {
@@ -52,22 +42,6 @@
         fansList: createResourceRequest(),
         fansStatus: createResourceRequest(),
         yubaStatus: createResourceRequest()
-      },
-      cronPreview: {
-        cookieCloud: createEmptyCronPreview(),
-        collectGift: createEmptyCronPreview(),
-        yubaCheckIn: createEmptyCronPreview(),
-        keepalive: createEmptyCronPreview(),
-        doubleCard: createEmptyCronPreview(),
-        expiringGift: createEmptyCronPreview()
-      },
-      cronPreviewSeq: {
-        cookieCloud: 0,
-        collectGift: 0,
-        yubaCheckIn: 0,
-        keepalive: 0,
-        doubleCard: 0,
-        expiringGift: 0
       }
     };
 
@@ -218,7 +192,6 @@
 
     return {
       state: state,
-      createEmptyCronPreview: createEmptyCronPreview,
       getRawConfig: getRawConfig,
       getCookieCloudConfig: getCookieCloudConfig,
       getManualCookiesConfig: getManualCookiesConfig,

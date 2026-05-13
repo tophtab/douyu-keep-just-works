@@ -42,7 +42,6 @@ src/
 │   ├── webui.ts
 │   ├── webui/
 │       ├── app-actions.js
-│       ├── app-auth-actions.js
 │       ├── app-data.js
 │       ├── app-dom.js
 │       ├── app-double-task-page.js
@@ -53,7 +52,6 @@ src/
 │       ├── app-pages.js
 │       ├── app-protected-state.js
 │       ├── app-render.js
-│       ├── app-request.js
 │       ├── app-resource-actions.js
 │       ├── app-routing.js
 │       ├── app-send-task-actions.js
@@ -71,9 +69,14 @@ src/
 │       └── app.js
 │   └── webui-src/
 │       ├── App.vue
+│       ├── auth.ts
 │       ├── index.html
 │       ├── legacy-modules.d.ts
-│       └── main.ts
+│       ├── main.ts
+│       ├── navigation.ts
+│       ├── request.ts
+│       ├── theme.ts
+│       └── toast.ts
 ```
 
 ---
@@ -100,14 +103,18 @@ Examples:
 - `src/docker/webui-src/index.html` owns the Vite HTML shell and runtime token placeholders.
 - `src/docker/webui-src/App.vue` owns the current Docker WebUI document shell markup during the conservative Vue migration.
 - `src/docker/webui-src/main.ts` owns Vue bootstrapping, CSS imports, and transitional legacy module import order.
+- `src/docker/webui-src/auth.ts` owns Vue-side WebUI session checks, login, logout, unauthorized handling, and the legacy auth-state bridge.
+- `src/docker/webui-src/navigation.ts` owns Vue-side page route state, History API syncing, tab keyboard navigation, and the legacy navigation event bridge.
+- `src/docker/webui-src/request.ts` owns Vue-side JSON request handling, unauthorized forwarding, optional toast feedback, and the legacy `DOUYU_KEEP_WEBUI_REQUEST` bridge.
+- `src/docker/webui-src/theme.ts` owns Vue-side theme mode state, persistence, system preference observation, and browser theme side effects.
+- `src/docker/webui-src/toast.ts` owns Vue-side toast/live-region state and the legacy toast event bridge.
 - `src/docker/webui/styles.css` owns Docker WebUI base variables, auth shell, navigation, and page shell styles.
 - `src/docker/webui/styles-components.css` owns Docker WebUI cards, panels, forms, buttons, and task component styles.
 - `src/docker/webui/styles-tables.css` owns Docker WebUI table, empty-state, log, toast, and screen-reader utility styles.
 - `src/docker/webui/styles-responsive.css` owns Docker WebUI motion and responsive overrides.
-- `src/docker/webui/app-actions.js` owns Docker WebUI action assembly, cookie-action wiring, trigger actions, and theme save.
-- `src/docker/webui/app-auth-actions.js` owns Docker WebUI auth status, login, submit, and logout actions.
+- `src/docker/webui/app-actions.js` owns Docker WebUI action assembly, cookie-action wiring, and trigger actions.
 - `src/docker/webui/app-data.js` owns Docker WebUI client-side metadata and default config constants.
-- `src/docker/webui/app-dom.js` owns Docker WebUI DOM, theme, date formatting, and toast helpers.
+- `src/docker/webui/app-dom.js` owns transitional DOM lookup, HTML escaping, date formatting, and toast event helper functions.
 - `src/docker/webui/app-double-task-page.js` owns Docker WebUI double-card page rendering and double ratio controls.
 - `src/docker/webui/app-events.js` owns Docker WebUI bootstrap, event listeners, auto-refresh, and startup auth flow.
 - `src/docker/webui/app-fans-resource-actions.js` owns Docker WebUI fans reconcile/list/status resource loading actions.
@@ -116,7 +123,6 @@ Examples:
 - `src/docker/webui/app-pages.js` owns Docker WebUI page rendering assembly plus overview, login, logs, and theme page rendering.
 - `src/docker/webui/app-protected-state.js` owns Docker WebUI auth-protected and cookie-backed state reset helpers.
 - `src/docker/webui/app-render.js` owns Docker WebUI shared HTML fragments, task cards, and render helper assembly.
-- `src/docker/webui/app-request.js` owns Docker WebUI JSON request handling and unauthorized response forwarding.
 - `src/docker/webui/app-resource-actions.js` owns Docker WebUI resource action assembly and active-surface refresh orchestration.
 - `src/docker/webui/app-routing.js` owns Docker WebUI client-side route/path helpers.
 - `src/docker/webui/app-send-task-actions.js` owns Docker WebUI room-send task save/disable actions for keepalive, double-card, and expiring gifts.

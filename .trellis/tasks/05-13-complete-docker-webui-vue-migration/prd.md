@@ -27,7 +27,7 @@ Complete the Docker WebUI migration from the transitional legacy browser modules
 - [x] Initial session check, successful login, expired login, unauthorized API response handling, and logout preserve existing user-visible behavior.
 - [x] `document.body.dataset.auth` keeps the existing authenticated/anonymous contract while auth is migrated.
 - [x] Legacy modules that still need auth state can consume a narrow compatibility bridge until they are migrated.
-- [ ] Vue/TS request helpers provide the shared path for JSON requests, 401/session expiration handling, and toast feedback before page migrations depend on them.
+- [x] Vue/TS request helpers provide the shared path for JSON requests, 401/session expiration handling, and toast feedback before page migrations depend on them.
 - [ ] Read-only data surfaces establish a reusable Vue loading/error pattern before form-heavy or action-heavy pages move.
 - [ ] Each migration slice removes or disables the corresponding legacy owner and leaves unrelated legacy behavior untouched.
 - [ ] `src/docker/webui-src/main.ts` no longer imports legacy modules when the final migration slice is complete.
@@ -94,6 +94,11 @@ The first implementation commit should migrate the login page, app shell visibil
 
 ## Verification Results
 
+- Request helper slice:
+  - `npm run lint` passed.
+  - `npm run type-check` passed.
+  - `npm run test:contracts` passed.
+  - `npm run build:webui` passed.
 - `npm run lint` passed.
 - `npm run type-check` passed.
 - `npm run test:contracts` passed.

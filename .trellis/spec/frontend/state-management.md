@@ -265,7 +265,7 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:toast', {
 
 - Contract tests should assert that `App.vue` uses `useToastRegion()` and binds `#toast-live` to Vue state.
 - Contract tests should assert that `toast.ts` exports `useToastRegion()` and the `douyu-keep-webui:toast` bridge.
-- Contract tests should assert that `theme.ts` uses `showToast()` and no longer queries `#toast`.
+- Contract tests should assert that `theme.ts` requests shared error-toast feedback through `requestJson()` and no longer queries `#toast`.
 - Contract tests should assert that legacy `app-dom.js` dispatches the toast event and no longer touches `#toast`, `#toast-live`, or `window.__toastTimer`.
 - Run `npm run lint`, `npm run type-check`, `npm run test:contracts`, and `npm run build:webui` after this migration.
 
@@ -285,4 +285,93 @@ node.style.display = 'block';
 ```vue
 <div id="toast-live" role="status" aria-live="polite">{{ toastLiveMessage }}</div>
 <div id="toast" :aria-hidden="toastVisible ? 'false' : 'true'">{{ toastMessage }}</div>
+```
+
+## Scenario: Vue-Owned Transitional Request Helper
+
+### 1. Scope / Trigger
+
+- Trigger: Moving shared Docker WebUI JSON request behavior from `src/docker/webui/app-request.js` into Vue/TypeScript while legacy modules still call `window.DOUYU_KEEP_WEBUI_REQUEST.create(...)`.
+- Scope: `fetch` JSON parsing, backend error extraction, `401` handling, optional toast feedback, and the legacy request bridge installed before transitional modules boot.
+
+### 2. Signatures
+
+```typescript
+export interface WebUiRequestError extends Error {
+  status?: number
+  data?: unknown
+}
+
+export interface WebUiRequestInit extends RequestInit {
+  errorToast?: string | ((message: string, error: WebUiRequestError) => string) | false
+  onUnauthorized?: (() => void) | false
+}
+
+export async function requestJson<T = unknown>(
+  url: string,
+  options?: WebUiRequestInit,
+): Promise<T>
+
+export function installLegacyRequestBridge(): void
+```
+
+```javascript
+window.DOUYU_KEEP_WEBUI_REQUEST.create({
+  handleUnauthorized: function () { /* legacy auth bridge */ }
+}).requestJson('/api/config/raw');
+```
+
+### 3. Contracts
+
+- `requestJson()` reads `response.text()`, parses JSON when present, and returns `{}` for an empty successful response body.
+- Non-OK responses throw a `WebUiRequestError` whose `message` comes from `data.error` when the backend returned one, otherwise `请求失败`; `status` is the HTTP status and `data` is the parsed response body.
+- `401` responses dispatch `douyu-keep-webui:unauthorized` by default, unless `onUnauthorized: false` is passed or a custom `onUnauthorized` callback is provided.
+- Auth-owned endpoints (`/api/auth/status`, `/api/auth/login`, `/api/auth/logout`) pass `onUnauthorized: false` so failed login/status/logout requests do not race the global session-expired handler.
+- `errorToast` is opt-in; protected legacy callers keep their existing catch/toast behavior, while Vue-owned callers may request shared toast formatting.
+- `installLegacyRequestBridge()` must run before importing legacy modules that call `window.DOUYU_KEEP_WEBUI_REQUEST.create(...)`.
+
+### 4. Validation & Error Matrix
+
+| Case | Expected behavior |
+|------|-------------------|
+| `200` with JSON body | Return parsed JSON as `T` |
+| `204` or empty body | Return `{}` |
+| Non-OK with `{ "error": "..." }` | Throw `WebUiRequestError` with backend message |
+| Non-OK without `error` | Throw `WebUiRequestError` with `请求失败` |
+| `401` from protected API | Dispatch `douyu-keep-webui:unauthorized` or call custom `onUnauthorized` |
+| `401` from auth-owned API with `onUnauthorized: false` | Throw to the auth flow without dispatching the global event |
+| `errorToast` set on non-401 failure | Show Vue-owned toast with the formatted error message |
+
+### 5. Good/Base/Bad Cases
+
+- Good: Vue-owned modules import `requestJson()` directly, set `errorToast` only when the shared helper should own failure feedback, and use `onUnauthorized: false` for auth endpoint control flow.
+- Base: Legacy modules keep receiving a `requestJson` function from `window.DOUYU_KEEP_WEBUI_REQUEST.create(...)`, and their existing `isUnauthorizedError(error)` checks keep working through `error.status`.
+- Bad: A legacy `app-request.js` import overwrites the Vue bridge after boot, or a login failure dispatches the global unauthorized event and replaces the login error with the session-expired copy.
+
+### 6. Tests Required
+
+- Contract tests should assert that `main.ts` installs `installLegacyRequestBridge()` and no longer imports `app-request.js`.
+- Contract tests should assert that `request.ts` exports `requestJson()`, dispatches `douyu-keep-webui:unauthorized`, supports toast feedback, and installs `window.DOUYU_KEEP_WEBUI_REQUEST`.
+- Contract tests should assert that auth-owned requests pass `onUnauthorized: false`.
+- Run `npm run lint`, `npm run type-check`, `npm run test:contracts`, and `npm run build:webui` after request helper changes.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+await requestJson('/api/auth/login', {
+  method: 'POST',
+  body: JSON.stringify({ password }),
+})
+```
+
+#### Correct
+
+```typescript
+await requestJson('/api/auth/login', {
+  method: 'POST',
+  body: JSON.stringify({ password }),
+  onUnauthorized: false,
+})
 ```

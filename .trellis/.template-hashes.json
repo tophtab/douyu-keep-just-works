@@ -43,14 +43,14 @@
     ".trellis/scripts/common/config.py": "25c5a53ad20d6909be5209222e4208a84528805316a4d78350529459a364edb1",
     ".trellis/scripts/common/types.py": "9962081cc2608fb9d1deb32c6880e336f62cdca6b338e7ae813304701e155ee9",
     ".trellis/scripts/common/task_context.py": "1c16a7fa82d363010d0d0ebdc038296ae1552bf6e90214787d707f49567bc159",
-    ".trellis/scripts/common/task_store.py": "ca1e7619503606d89f9093dfe5c6140587ce237e92f0aefe5efea5aebb50d255",
-    ".trellis/scripts/common/session_context.py": "df26c02069e24a93afa9b90360e03b51242d238f697757722ab4ab7519d51d99",
+    ".trellis/scripts/common/task_store.py": "ce2960393b3582df4fe01c3a1a2c1c425c7a5fd5e2503d1d8b99bec3f3c47d98",
+    ".trellis/scripts/common/session_context.py": "c91cf213025e5e4ad2f56bb6f570ef43d35430fc8a863be311d3e5f8f32ef652",
     ".trellis/scripts/task.py": "40abdd46f5c2b6837610429a38eef50f1fc783fb1852dc4f52a891205e42ab04",
     ".trellis/config.yaml": "5c9207418cecc390e9d86d589b4183b831f76697d92fb42fefd5221cd8772e51",
     ".trellis/.gitignore": "3bc42434cbe61c937a1c26ea3c880b496bfad4e7d683750169e27ade509aa798",
     ".trellis/workflow.md": "f7f888cf61afe4b4903c90046c701a6c115ed80d39c50da8fd2ac437922175b6",
     ".codex/hooks/session-start.py": "dc90aac812aac4f0243709be337369b91e2561465f0943c04d982a1b60b58ba1",
-    ".codex/hooks.json": "68f84915798762ac6159ee2af107d54dcf72ac63483b4216079dd829da3760b2",
+    ".codex/hooks.json": "0c80314cba548a01a9b4a7141fbcb4ab9228ace8397df98ee3a365d0491a77d0",
     ".codex/config.toml": "bb5a62ce51a4357b825e2a77c9a0d3332b108bb469d3b06b275604ccbccd4320",
     ".trellis/scripts/common/tasks.py": "4436a8b0b53c270a35989e26d9dbd92669408c6562d88c02083a404562da85fe",
     "AGENTS.md": "6cacfe99748b435d0660c2463c697bc323d53798aecf3492283ca8eac1b29682",
@@ -72,7 +72,8 @@
     ".trellis/scripts/common/trellis_config.py": "0839dcf90ebbd77712c276930a89335b3313927051650c91d220fb51ca2a6a3c",
     ".agents/skills/trellis-start/SKILL.md": "a88faaac9fe1b9fa7441473a72ff88ead0022504eeb38492ecef85db75a559e7",
     ".claude/skills/trellis-brainstorm/SKILL.md": "ca6c0586f5150e22be0bf4c0341b49dd2c6da363e62839aaa33996c79bad2b7d",
-    ".trellis/scripts/common/safe_commit.py": "84812d4eac7eba8f851fb10cacb5d4838bf33d1d23b7263bd295332bc0cdbe68",
-    ".trellis/scripts/add_session.py": "6e406a0a9f32d4a50b1b5ca8115cbd06c359011f0e166c41dc5fab34698a4006"
+    ".trellis/scripts/common/safe_commit.py": "8789bff4b30a9065469210f2efab3f59f03dddd77bef4e4b6a5bb641f93539f4",
+    ".trellis/scripts/add_session.py": "6e406a0a9f32d4a50b1b5ca8115cbd06c359011f0e166c41dc5fab34698a4006",
+    ".claude/settings.json": "d13cd05659281a287d7f50c7e25eb6a89c2a6597773511bd6885538acced2855"
   }
 }

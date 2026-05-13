@@ -50,23 +50,12 @@
   }
 
   function toast(message, ok) {
-    var node = byId('toast');
-    var liveNode = byId('toast-live');
-    if (liveNode) {
-      liveNode.textContent = '';
-      window.setTimeout(function () {
-        liveNode.textContent = message;
-      }, 0);
-    }
-    node.textContent = message;
-    node.style.display = 'block';
-    node.style.background = ok ? '#15803d' : '#dc2626';
-    node.setAttribute('aria-hidden', 'false');
-    clearTimeout(window.__toastTimer);
-    window.__toastTimer = setTimeout(function () {
-      node.style.display = 'none';
-      node.setAttribute('aria-hidden', 'true');
-    }, 3200);
+    document.dispatchEvent(new CustomEvent('douyu-keep-webui:toast', {
+      detail: {
+        message: String(message),
+        ok: Boolean(ok)
+      }
+    }));
   }
 
   window.DOUYU_KEEP_WEBUI_DOM = {

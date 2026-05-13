@@ -1,5 +1,6 @@
 import type { ThemeMode } from '../../core/types'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { showToast } from './toast'
 
 type ResolvedThemeMode = 'light' | 'dark'
 
@@ -9,12 +10,6 @@ interface ThemeConfigDetail {
 
 interface WebUiRequestError extends Error {
   status?: number
-}
-
-declare global {
-  interface Window {
-    __toastTimer?: ReturnType<typeof setTimeout>
-  }
 }
 
 const CONFIG_EVENT_NAME = 'douyu-keep-webui:config'
@@ -80,34 +75,6 @@ function setThemeMeta(resolvedTheme: ResolvedThemeMode): void {
 
   themeColor?.setAttribute('content', THEME_COLOR_BY_MODE[resolvedTheme])
   colorScheme?.setAttribute('content', resolvedTheme)
-}
-
-function showToast(message: string, ok: boolean): void {
-  const node = document.getElementById('toast')
-  const liveNode = document.getElementById('toast-live')
-  if (!node) {
-    return
-  }
-
-  if (liveNode) {
-    liveNode.textContent = ''
-    window.setTimeout(() => {
-      liveNode.textContent = message
-    }, 0)
-  }
-
-  node.textContent = message
-  node.style.display = 'block'
-  node.style.background = ok ? '#15803d' : '#dc2626'
-  node.setAttribute('aria-hidden', 'false')
-
-  if (window.__toastTimer) {
-    clearTimeout(window.__toastTimer)
-  }
-  window.__toastTimer = window.setTimeout(() => {
-    node.style.display = 'none'
-    node.setAttribute('aria-hidden', 'true')
-  }, 3200)
 }
 
 export function useThemeMode() {

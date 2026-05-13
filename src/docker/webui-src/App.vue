@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { usePageNavigation } from './navigation'
 import { useThemeMode } from './theme'
+import { useToastRegion } from './toast'
 
 interface WebUiBootstrap {
   appName: string
@@ -35,6 +36,13 @@ const {
   themeModes,
   themeNote,
 } = useThemeMode()
+
+const {
+  toastLiveMessage,
+  toastMessage,
+  toastOk,
+  toastVisible,
+} = useToastRegion()
 </script>
 
 <!-- eslint-disable -->
@@ -498,7 +506,15 @@ const {
   </main>
 </div>
 
-<div class="sr-only" id="toast-live" role="status" aria-live="polite" aria-atomic="true"></div>
-<div class="toast" id="toast" aria-hidden="true"></div>
+<div class="sr-only" id="toast-live" role="status" aria-live="polite" aria-atomic="true">{{ toastLiveMessage }}</div>
+<div
+  class="toast"
+  id="toast"
+  :aria-hidden="toastVisible ? 'false' : 'true'"
+  :style="{
+    background: toastOk ? '#15803d' : '#dc2626',
+    display: toastVisible ? 'block' : 'none',
+  }"
+>{{ toastMessage }}</div>
 
 </template>

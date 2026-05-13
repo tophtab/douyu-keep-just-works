@@ -206,3 +206,83 @@ byId('theme-note').textContent = '当前固定为 深色 模式';
   ...
 </button>
 ```
+
+## Scenario: Vue-Owned Transitional Toast Region
+
+### 1. Scope / Trigger
+
+- Trigger: Moving Docker WebUI toast and screen-reader live-region feedback from `src/docker/webui/*.js` into Vue while legacy modules still call a shared `toast(message, ok)` helper.
+- Scope: visible toast message, success/error color, `aria-hidden`, the `#toast-live` polite status region, repeated-message announcements, and the legacy compatibility event bridge.
+
+### 2. Signatures
+
+```typescript
+import type { Ref } from 'vue'
+
+export const TOAST_EVENT_NAME = 'douyu-keep-webui:toast'
+
+export function showToast(message: string, ok: boolean): void
+
+export function useToastRegion(): {
+  toastLiveMessage: Ref<string>
+  toastMessage: Ref<string>
+  toastOk: Ref<boolean>
+  toastVisible: Ref<boolean>
+}
+```
+
+```javascript
+document.dispatchEvent(new CustomEvent('douyu-keep-webui:toast', {
+  detail: { message: String(message), ok: Boolean(ok) }
+}));
+```
+
+### 3. Contracts
+
+- Vue owns the toast DOM state: `#toast` text, display, background, `aria-hidden`, and `#toast-live` text.
+- Legacy modules may keep calling `DOUYU_KEEP_WEBUI_DOM.toast(message, ok)`, but that helper must dispatch `douyu-keep-webui:toast` instead of mutating `#toast` or `#toast-live`.
+- Vue must clear the live-region text before setting the new message asynchronously so repeated identical messages are announced.
+- Toast visibility must still auto-hide after the existing 3200ms duration.
+- Theme and future Vue-owned slices should call `showToast(message, ok)` instead of duplicating toast DOM mutation.
+
+### 4. Validation & Error Matrix
+
+| Case | Expected behavior |
+|------|-------------------|
+| Legacy helper receives a success message | Dispatches the toast event; Vue shows green visible toast and updates the live region |
+| Legacy helper receives an error message | Dispatches the toast event; Vue shows red visible toast and updates the live region |
+| Same message fires twice | Live region is cleared, then reset asynchronously so assistive tech can announce it again |
+| A second toast fires before the first hides | Existing timers are cleared and the latest message owns the visible toast |
+| Empty/null message reaches Vue | Vue ignores it instead of rendering noisy empty feedback |
+
+### 5. Good/Base/Bad Cases
+
+- Good: Vue listens for `douyu-keep-webui:toast`, stores the message in refs, renders `#toast-live` and `#toast` from state, and clears timers on unmount.
+- Base: Legacy actions keep their existing `toast('...', true/false)` calls and the helper bridges them to the Vue event.
+- Bad: `app-dom.js` calls `byId('toast')`, edits `#toast-live`, stores `window.__toastTimer`, or a Vue composable duplicates those DOM mutations.
+
+### 6. Tests Required
+
+- Contract tests should assert that `App.vue` uses `useToastRegion()` and binds `#toast-live` to Vue state.
+- Contract tests should assert that `toast.ts` exports `useToastRegion()` and the `douyu-keep-webui:toast` bridge.
+- Contract tests should assert that `theme.ts` uses `showToast()` and no longer queries `#toast`.
+- Contract tests should assert that legacy `app-dom.js` dispatches the toast event and no longer touches `#toast`, `#toast-live`, or `window.__toastTimer`.
+- Run `npm run lint`, `npm run type-check`, `npm run test:contracts`, and `npm run build:webui` after this migration.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```javascript
+var node = byId('toast');
+var liveNode = byId('toast-live');
+liveNode.textContent = message;
+node.style.display = 'block';
+```
+
+#### Correct
+
+```vue
+<div id="toast-live" role="status" aria-live="polite">{{ toastLiveMessage }}</div>
+<div id="toast" :aria-hidden="toastVisible ? 'false' : 'true'">{{ toastMessage }}</div>
+```

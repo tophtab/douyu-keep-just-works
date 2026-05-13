@@ -107,3 +107,36 @@ Cleaned up the Docker WebUI Vue migration by replacing and then removing the obs
 ### Next Steps
 
 - None - task complete
+
+
+## Session 58: Clean obsolete Vue migration spec
+
+**Date**: 2026-05-13
+**Task**: Clean obsolete Vue migration spec
+**Branch**: `master`
+
+### Summary
+
+Removed outdated Docker WebUI Vue migration guidance that encouraged gradual App.vue extraction and neutralized conservative migration wording; archived the cleanup task.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `87e4fcc` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

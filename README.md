@@ -75,5 +75,5 @@ docker compose logs -f
 - [qianfeiqianlan/yuba-check-in](https://github.com/qianfeiqianlan/yuba-check-in)
 - [qianjiachun/douyuEx](https://github.com/qianjiachun/douyuEx)
 - [每日荧光棒领取的非浏览器模拟方案](https://nicelee.top/blog/2021/09/28/python-douyu-danmu/)
-- 感谢 [LINUX DO 社区](https://linux.do/)
-- 感谢 给 AI 立规矩的开源框架：[trellis](https://github.com/mindfold-ai/Trellis)
+- [LINUX DO 社区](https://linux.do/)
+- 给 AI 立规矩的开源框架：[trellis](https://github.com/mindfold-ai/Trellis)

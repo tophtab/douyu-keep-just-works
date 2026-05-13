@@ -8,6 +8,7 @@ import { installLegacyKeepaliveTaskBridge } from './keepalive'
 import { installLegacyCoreBridge } from './legacy-core'
 import { installLegacyRequestBridge } from './request'
 import { installLegacyFansResourceBridge, installLegacySystemResourceBridge } from './resources'
+import { installLegacyManagedDataBridge, installLegacyProtectedStateBridge, installLegacyStateBridge } from './legacy-state'
 import { installLegacyYubaBridge } from './yuba'
 
 import '../webui/styles.css'
@@ -17,9 +18,6 @@ import '../webui/styles-responsive.css'
 
 async function bootstrapLegacyBehavior(): Promise<void> {
   installLegacySystemResourceBridge()
-  await import('../webui/app-state.js')
-  await import('../webui/app-managed-data.js')
-  await import('../webui/app-protected-state.js')
   await import('../webui/app-task-pages.js')
   await import('../webui/app-pages.js')
   await import('../webui/app-resource-actions.js')
@@ -32,6 +30,9 @@ async function bootstrapLegacyBehavior(): Promise<void> {
 }
 
 installLegacyCoreBridge()
+installLegacyStateBridge()
+installLegacyManagedDataBridge()
+installLegacyProtectedStateBridge()
 installLegacyRequestBridge()
 installLegacyCookieActionBridge()
 installLegacyCollectTaskBridge()

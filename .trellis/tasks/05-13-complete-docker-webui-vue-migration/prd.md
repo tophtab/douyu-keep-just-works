@@ -92,6 +92,15 @@ The first implementation commit should migrate the login page, app shell visibil
 
 ## Verification Results
 
+- Legacy state bridge slice:
+  - Added `src/docker/webui-src/legacy-state.ts` as the TypeScript owner for transitional shared state, managed fan/config derivation, fan-status merge helpers, request coalescing metadata, and protected-state clearing.
+  - Removed `src/docker/webui/app-state.js`, `src/docker/webui/app-managed-data.js`, and `src/docker/webui/app-protected-state.js` from the Vite boot path and deleted the former legacy owner files.
+  - Updated contract tests and specs so future migration work treats `legacy-state.ts` as the compatibility bridge for `DOUYU_KEEP_WEBUI_STATE`, `DOUYU_KEEP_WEBUI_MANAGED_DATA`, and `DOUYU_KEEP_WEBUI_PROTECTED_STATE`.
+  - `npm run lint` passed.
+  - `npm run type-check:webui` passed.
+  - `npm run test:contracts` passed.
+  - `npm run build:webui` passed.
+  - `npm test` passed, including `npm run build:docker`.
 - Legacy render-helper cleanup slice:
   - Removed `src/docker/webui/app-render.js`, `src/docker/webui/app-table-render.js`, and `src/docker/webui/app-page-cron.js` after their card/table/cron-preview consumers moved into Vue modules.
   - Removed those helper imports from `src/docker/webui-src/main.ts` and deleted the `window.DOUYU_KEEP_WEBUI_RENDER`, `window.DOUYU_KEEP_WEBUI_TABLE_RENDER`, and `window.DOUYU_KEEP_WEBUI_PAGE_CRON` plumbing from `app.js`, `app-pages.js`, and `app-state.js`.

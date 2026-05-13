@@ -9,7 +9,7 @@
 Docker WebUI state is currently split between:
 
 - Vue-local state in `src/docker/webui-src/`
-- Transitional legacy browser state under `src/docker/webui/app-state.js`
+- Transitional shared state bridge helpers under `src/docker/webui-src/legacy-state.ts`
 - Persisted configuration through Docker HTTP APIs
 
 There is no dedicated server-state library such as Vue Query, and Pinia is not part of the current Docker WebUI stack.
@@ -39,8 +39,77 @@ Until then, prefer component state plus small helper modules.
 ## Common Mistakes
 
 - Do not introduce Pinia before there is shared Vue-owned state.
-- Do not duplicate the legacy `app-state.js` model into Vue without a migration plan.
+- Do not reintroduce `src/docker/webui/app-state.js`; transitional shared state now lives behind the `legacy-state.ts` compatibility bridge until remaining legacy modules are removed.
 - Do not silently convert failed API requests into valid empty UI state.
+
+## Scenario: Vue-Owned Transitional Legacy State Bridge
+
+### 1. Scope / Trigger
+
+- Trigger: Moving Docker WebUI shared state helpers out of `src/docker/webui/*.js` while action/resource/page assembly still consumes `DOUYU_KEEP_WEBUI_*` bridge objects.
+- Scope: Raw config fallback, cookie-source helpers, request coalescing metadata, managed fan derivation, fans-status merge helpers, active refresh loading, protected-state clearing, and the compatibility bridges consumed by `app.js`.
+
+### 2. Signatures
+
+```typescript
+export function installLegacyStateBridge(): void
+export function installLegacyManagedDataBridge(): void
+export function installLegacyProtectedStateBridge(): void
+```
+
+```typescript
+window.DOUYU_KEEP_WEBUI_STATE.create({
+  defaultRawConfig,
+  initialTab,
+})
+```
+
+### 3. Contracts
+
+- `main.ts` must install the three `legacy-state.ts` bridges before importing `src/docker/webui/app.js`.
+- `src/docker/webui/app.js` may continue to call `window.DOUYU_KEEP_WEBUI_STATE`, `window.DOUYU_KEEP_WEBUI_MANAGED_DATA`, and `window.DOUYU_KEEP_WEBUI_PROTECTED_STATE` during the transition.
+- `legacy-state.ts` owns `resourceRequests.{fansSync,fansList,fansStatus,yubaStatus}` with `pending`, `fetchedAt`, and `requestSeq`; Vue-owned resource loaders must keep using `trackResourceRequest()` for request coalescing.
+- Clearing protected or cookie-backed state must invalidate fans/Yuba request metadata and reset managed, fan status, gift status, Yuba status, loading flags, and error text.
+- The former JS owner files `app-state.js`, `app-managed-data.js`, and `app-protected-state.js` must stay out of the Vite boot path.
+
+### 4. Validation & Error Matrix
+
+| Case | Expected behavior |
+|------|-------------------|
+| Duplicate fans/Yuba resource load starts while `resource.pending` exists | Return the in-flight promise |
+| A tracked request resolves or rejects after a newer request increments `requestSeq` | Leave the newer `pending` untouched |
+| User logs out or receives unauthorized response | Clear protected state and publish refresh-button state without stale fan/Yuba data |
+| No raw config has loaded | `getRawConfig()` returns a deep clone of the default config |
+| CookieCloud diagnostics include `updateTime` | Format it through the shared Shanghai-local `formatDate()` helper |
+
+### 5. Good/Base/Bad Cases
+
+- Good: `legacy-state.ts` installs compatibility bridges and `app.js` consumes them while other legacy modules are still being removed.
+- Base: Migrated Vue resource modules still receive state helpers through legacy deps until `app.js` itself migrates.
+- Bad: Recreate `src/docker/webui/app-state.js` or split request-coalescing metadata across multiple independent stores.
+
+### 6. Tests Required
+
+- Contract tests should assert `main.ts` installs the state bridges and no longer imports `app-state.js`, `app-managed-data.js`, or `app-protected-state.js`.
+- Contract tests should assert those three former JS files do not exist.
+- Request-smoothing tests should inspect `legacy-state.ts` for `pending`, `fetchedAt`, `requestSeq`, and no client cooldown logic.
+- Run `npm run lint`, `npm run type-check:webui`, `npm run test:contracts`, and `npm run build:webui` after changing this bridge.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+await import('../webui/app-state.js')
+```
+
+#### Correct
+
+```typescript
+installLegacyStateBridge()
+installLegacyManagedDataBridge()
+installLegacyProtectedStateBridge()
+```
 
 ## Scenario: Vue-Owned Transitional Navigation
 

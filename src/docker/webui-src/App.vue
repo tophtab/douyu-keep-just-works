@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { usePageNavigation } from './navigation'
+
 interface WebUiBootstrap {
   appName: string
   appVersionLabel: string
@@ -16,6 +18,14 @@ const bootstrap: WebUiBootstrap = window.DOUYU_KEEP_WEBUI_BOOTSTRAP ?? {
   appVersionLabel: 'V0.0.0',
   pageRoutes: { overview: '/' },
 }
+
+const {
+  activePageMeta,
+  activeTab,
+  handleTabKeydown,
+  selectTab,
+  tabs,
+} = usePageNavigation(bootstrap.pageRoutes)
 </script>
 
 <!-- eslint-disable -->
@@ -61,14 +71,21 @@ const bootstrap: WebUiBootstrap = window.DOUYU_KEEP_WEBUI_BOOTSTRAP ?? {
     <p class="brand-copy">更聚焦的 Docker 管理台。先看概况，再分别管理登录、领取、保活、双倍、临期和鱼吧签到任务。</p>
 
     <div class="tab-list" role="tablist" aria-label="管理台页面" aria-orientation="vertical">
-      <button class="tab-btn active" type="button" role="tab" id="tab-overview" data-action="tab" data-tab="overview" aria-selected="true" aria-controls="page-overview">概况</button>
-      <button class="tab-btn" type="button" role="tab" id="tab-login" data-action="tab" data-tab="login" aria-selected="false" aria-controls="page-login" tabindex="-1">登录</button>
-      <button class="tab-btn" type="button" role="tab" id="tab-collect" data-action="tab" data-tab="collect" aria-selected="false" aria-controls="page-collect" tabindex="-1">领取任务</button>
-      <button class="tab-btn" type="button" role="tab" id="tab-keepalive" data-action="tab" data-tab="keepalive" aria-selected="false" aria-controls="page-keepalive" tabindex="-1">保活任务</button>
-      <button class="tab-btn" type="button" role="tab" id="tab-double-card" data-action="tab" data-tab="double-card" aria-selected="false" aria-controls="page-double-card" tabindex="-1">双倍任务</button>
-      <button class="tab-btn" type="button" role="tab" id="tab-expiring-gift" data-action="tab" data-tab="expiring-gift" aria-selected="false" aria-controls="page-expiring-gift" tabindex="-1">临期任务</button>
-      <button class="tab-btn" type="button" role="tab" id="tab-yuba" data-action="tab" data-tab="yuba" aria-selected="false" aria-controls="page-yuba" tabindex="-1">鱼吧签到</button>
-      <button class="tab-btn" type="button" role="tab" id="tab-logs" data-action="tab" data-tab="logs" aria-selected="false" aria-controls="page-logs" tabindex="-1">运行日志</button>
+      <button
+        v-for="tab in tabs"
+        :id="`tab-${tab.key}`"
+        :key="tab.key"
+        class="tab-btn"
+        :class="{ active: activeTab === tab.key }"
+        type="button"
+        role="tab"
+        :data-tab="tab.key"
+        :aria-selected="activeTab === tab.key ? 'true' : 'false'"
+        :aria-controls="`page-${tab.key}`"
+        :tabindex="activeTab === tab.key ? 0 : -1"
+        @click="selectTab(tab.key)"
+        @keydown="handleTabKeydown"
+      >{{ tab.label }}</button>
     </div>
 
     <div class="theme-box">
@@ -107,8 +124,8 @@ const bootstrap: WebUiBootstrap = window.DOUYU_KEEP_WEBUI_BOOTSTRAP ?? {
   <main class="main">
     <div class="header">
       <div>
-        <h2 class="page-title" id="page-title">概况</h2>
-        <p class="page-subtitle" id="page-subtitle">先看基础状态，再确认当前粉丝牌列表。</p>
+        <h2 class="page-title" id="page-title">{{ activePageMeta.title }}</h2>
+        <p class="page-subtitle" id="page-subtitle">{{ activePageMeta.subtitle }}</p>
       </div>
       <div class="toolbar">
         <button class="btn btn-secondary toolbar-icon-btn" type="button" data-action="refresh-overview" aria-label="刷新" title="刷新">
@@ -125,7 +142,7 @@ const bootstrap: WebUiBootstrap = window.DOUYU_KEEP_WEBUI_BOOTSTRAP ?? {
       </div>
     </div>
 
-    <section class="page active" id="page-overview" role="tabpanel" aria-labelledby="tab-overview" tabindex="0" aria-hidden="false">
+    <section class="page" :class="{ active: activeTab === 'overview' }" id="page-overview" role="tabpanel" aria-labelledby="tab-overview" tabindex="0" :aria-hidden="activeTab === 'overview' ? 'false' : 'true'" :hidden="activeTab !== 'overview'">
       <div class="overview-stack">
         <div class="panel">
           <div class="section-kicker">基础状态</div>
@@ -163,7 +180,7 @@ const bootstrap: WebUiBootstrap = window.DOUYU_KEEP_WEBUI_BOOTSTRAP ?? {
       </div>
     </section>
 
-    <section class="page" id="page-login" role="tabpanel" aria-labelledby="tab-login" tabindex="0" aria-hidden="true" hidden>
+    <section class="page" :class="{ active: activeTab === 'login' }" id="page-login" role="tabpanel" aria-labelledby="tab-login" tabindex="0" :aria-hidden="activeTab === 'login' ? 'false' : 'true'" :hidden="activeTab !== 'login'">
       <div class="task-card" id="cookie-login-card" style="margin-bottom:16px">
         <div class="task-card-title">登录状态</div>
       </div>
@@ -226,7 +243,7 @@ const bootstrap: WebUiBootstrap = window.DOUYU_KEEP_WEBUI_BOOTSTRAP ?? {
       </div>
     </section>
 
-    <section class="page" id="page-collect" role="tabpanel" aria-labelledby="tab-collect" tabindex="0" aria-hidden="true" hidden>
+    <section class="page" :class="{ active: activeTab === 'collect' }" id="page-collect" role="tabpanel" aria-labelledby="tab-collect" tabindex="0" :aria-hidden="activeTab === 'collect' ? 'false' : 'true'" :hidden="activeTab !== 'collect'">
       <div class="task-card" id="collect-task-card" style="margin-bottom:16px">
         <div class="task-card-title">领取状态</div>
       </div>
@@ -256,7 +273,7 @@ const bootstrap: WebUiBootstrap = window.DOUYU_KEEP_WEBUI_BOOTSTRAP ?? {
       </div>
     </section>
 
-    <section class="page" id="page-yuba" role="tabpanel" aria-labelledby="tab-yuba" tabindex="0" aria-hidden="true" hidden>
+    <section class="page" :class="{ active: activeTab === 'yuba' }" id="page-yuba" role="tabpanel" aria-labelledby="tab-yuba" tabindex="0" :aria-hidden="activeTab === 'yuba' ? 'false' : 'true'" :hidden="activeTab !== 'yuba'">
       <div class="task-card" id="yuba-task-card">
         <div class="task-card-title">鱼吧签到状态</div>
       </div>
@@ -296,7 +313,7 @@ const bootstrap: WebUiBootstrap = window.DOUYU_KEEP_WEBUI_BOOTSTRAP ?? {
       </div>
     </section>
 
-    <section class="page" id="page-keepalive" role="tabpanel" aria-labelledby="tab-keepalive" tabindex="0" aria-hidden="true" hidden>
+    <section class="page" :class="{ active: activeTab === 'keepalive' }" id="page-keepalive" role="tabpanel" aria-labelledby="tab-keepalive" tabindex="0" :aria-hidden="activeTab === 'keepalive' ? 'false' : 'true'" :hidden="activeTab !== 'keepalive'">
       <div class="task-card" id="keepalive-task-card">
         <div class="task-card-title">保活状态</div>
       </div>
@@ -337,7 +354,7 @@ const bootstrap: WebUiBootstrap = window.DOUYU_KEEP_WEBUI_BOOTSTRAP ?? {
       </div>
     </section>
 
-    <section class="page" id="page-double-card" role="tabpanel" aria-labelledby="tab-double-card" tabindex="0" aria-hidden="true" hidden>
+    <section class="page" :class="{ active: activeTab === 'double-card' }" id="page-double-card" role="tabpanel" aria-labelledby="tab-double-card" tabindex="0" :aria-hidden="activeTab === 'double-card' ? 'false' : 'true'" :hidden="activeTab !== 'double-card'">
       <div class="task-card" id="double-task-card">
         <div class="task-card-title">双倍状态</div>
       </div>
@@ -398,7 +415,7 @@ const bootstrap: WebUiBootstrap = window.DOUYU_KEEP_WEBUI_BOOTSTRAP ?? {
       </div>
     </section>
 
-    <section class="page" id="page-expiring-gift" role="tabpanel" aria-labelledby="tab-expiring-gift" tabindex="0" aria-hidden="true" hidden>
+    <section class="page" :class="{ active: activeTab === 'expiring-gift' }" id="page-expiring-gift" role="tabpanel" aria-labelledby="tab-expiring-gift" tabindex="0" :aria-hidden="activeTab === 'expiring-gift' ? 'false' : 'true'" :hidden="activeTab !== 'expiring-gift'">
       <div class="task-card" id="expiring-task-card">
         <div class="task-card-title">临期状态</div>
       </div>
@@ -444,7 +461,7 @@ const bootstrap: WebUiBootstrap = window.DOUYU_KEEP_WEBUI_BOOTSTRAP ?? {
       </div>
     </section>
 
-    <section class="page" id="page-logs" role="tabpanel" aria-labelledby="tab-logs" tabindex="0" aria-hidden="true" hidden>
+    <section class="page" :class="{ active: activeTab === 'logs' }" id="page-logs" role="tabpanel" aria-labelledby="tab-logs" tabindex="0" :aria-hidden="activeTab === 'logs' ? 'false' : 'true'" :hidden="activeTab !== 'logs'">
       <div class="panel">
         <h3 class="section-title">运行日志</h3>
         <p class="subtle" id="logs-summary" role="status" aria-live="polite" style="margin-top:10px">仅保留最近 500 条日志，正在加载…</p>

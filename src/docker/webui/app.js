@@ -167,27 +167,6 @@
 
     state.activeTab = nextTab;
     renderRefreshButton();
-    var buttons = document.querySelectorAll('.tab-btn');
-    var i;
-    for (i = 0; i < buttons.length; i += 1) {
-      var button = buttons[i];
-      var selected = button.getAttribute('data-tab') === nextTab;
-      button.classList.toggle('active', selected);
-      button.setAttribute('aria-selected', selected ? 'true' : 'false');
-      button.setAttribute('tabindex', selected ? '0' : '-1');
-    }
-
-    var pages = document.querySelectorAll('.page');
-    for (i = 0; i < pages.length; i += 1) {
-      var page = pages[i];
-      var active = page.id === 'page-' + nextTab;
-      page.classList.toggle('active', active);
-      page.setAttribute('aria-hidden', active ? 'false' : 'true');
-      page.hidden = !active;
-    }
-
-    byId('page-title').textContent = PAGE_META[nextTab].title;
-    byId('page-subtitle').textContent = PAGE_META[nextTab].subtitle;
 
     if (shouldSyncPath) {
       syncPathWithTab(nextTab, replacePath);
@@ -212,61 +191,16 @@
     }
   }
 
-  function focusTabByOffset(currentTab, offset) {
-    var buttons = Array.prototype.slice.call(document.querySelectorAll('.tab-btn[role="tab"]'));
-    var currentIndex = buttons.indexOf(currentTab);
-    if (currentIndex < 0 || !buttons.length) {
-      return;
-    }
-    var nextIndex = (currentIndex + offset + buttons.length) % buttons.length;
-    var nextButton = buttons[nextIndex];
-    setActiveTab(nextButton.getAttribute('data-tab'));
-    nextButton.focus();
-  }
-
-  function focusTabByIndex(index) {
-    var buttons = Array.prototype.slice.call(document.querySelectorAll('.tab-btn[role="tab"]'));
-    var nextButton = buttons[index];
-    if (!nextButton) {
-      return;
-    }
-    setActiveTab(nextButton.getAttribute('data-tab'));
-    nextButton.focus();
-  }
-
-  function handleTabKeydown(event) {
-    if (!event.target || !event.target.matches || !event.target.matches('.tab-btn[role="tab"]')) {
-      return;
-    }
-    if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
-      event.preventDefault();
-      focusTabByOffset(event.target, 1);
-      return;
-    }
-    if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
-      event.preventDefault();
-      focusTabByOffset(event.target, -1);
-      return;
-    }
-    if (event.key === 'Home') {
-      event.preventDefault();
-      focusTabByIndex(0);
-      return;
-    }
-    if (event.key === 'End') {
-      event.preventDefault();
-      var buttons = document.querySelectorAll('.tab-btn[role="tab"]');
-      focusTabByIndex(buttons.length - 1);
-    }
-  }
-
-  function syncTabWithCurrentPath() {
-    var nextTab = getTabByPath(window.location.pathname);
+  function handleVueNavigation(event) {
+    var detail = event && event.detail ? event.detail : {};
     if (!state.auth.authenticated) {
-      state.activeTab = nextTab;
+      state.activeTab = PAGE_META[detail.tab] ? detail.tab : 'overview';
       return;
     }
-    setActiveTab(nextTab, { syncPath: false });
+    setActiveTab(detail.tab, {
+      syncPath: false,
+      skipLazyLoad: Boolean(detail.skipLazyLoad)
+    });
   }
 
   var RENDER_HELPERS = window.DOUYU_KEEP_WEBUI_RENDER.create({
@@ -438,7 +372,7 @@
     state: state,
     consumeWebPasswordFromUrl: consumeWebPasswordFromUrl,
     setActiveTab: setActiveTab,
-    handleTabKeydown: handleTabKeydown,
+    handleVueNavigation: handleVueNavigation,
     renderAuth: renderAuth,
     renderTheme: renderTheme,
     refreshOverviewSurface: refreshOverviewSurface,
@@ -468,7 +402,6 @@
     loadCronPreview: loadCronPreview,
     buildBackpackRowsTable: buildBackpackRowsTable,
     updateDoubleModeUi: updateDoubleModeUi,
-    syncTabWithCurrentPath: syncTabWithCurrentPath,
     loginWithPassword: loginWithPassword,
     loadAuthStatus: loadAuthStatus,
     loadProtectedData: loadProtectedData

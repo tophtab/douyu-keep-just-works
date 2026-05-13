@@ -5,7 +5,7 @@
     var consumeWebPasswordFromUrl = deps.consumeWebPasswordFromUrl;
     var renderAuth = deps.renderAuth;
     var setActiveTab = deps.setActiveTab;
-    var handleTabKeydown = deps.handleTabKeydown;
+    var handleVueNavigation = deps.handleVueNavigation;
     var refreshOverviewSurface = deps.refreshOverviewSurface;
     var logout = deps.logout;
     var saveTheme = deps.saveTheme;
@@ -32,7 +32,6 @@
     var disableExpiringGiftConfig = deps.disableExpiringGiftConfig;
     var buildBackpackRowsTable = deps.buildBackpackRowsTable;
     var updateDoubleModeUi = deps.updateDoubleModeUi;
-    var syncTabWithCurrentPath = deps.syncTabWithCurrentPath;
     var renderTheme = deps.renderTheme;
     var loadOverview = deps.loadOverview;
     var loginWithPassword = deps.loginWithPassword;
@@ -57,10 +56,6 @@
       }
 
       var action = target.getAttribute('data-action');
-      if (action === 'tab') {
-        setActiveTab(target.getAttribute('data-tab'));
-        return;
-      }
       if (action === 'refresh-overview') {
         refreshOverviewSurface(true);
         return;
@@ -136,7 +131,7 @@
 
     function bindStaticEvents() {
       document.addEventListener('click', handleActionClick);
-      document.addEventListener('keydown', handleTabKeydown);
+      document.addEventListener('douyu-keep-webui:navigation', handleVueNavigation);
 
       byId('login-form').addEventListener('submit', function (event) {
         event.preventDefault();
@@ -192,7 +187,6 @@
           updateDoubleModeUi();
         }
       });
-      window.addEventListener('popstate', syncTabWithCurrentPath);
     }
 
     function bindThemeMediaEvents() {

@@ -9,10 +9,6 @@
     var getCookieCloudConfig = deps.getCookieCloudConfig;
     var hasCookieSourceConfigured = deps.hasCookieSourceConfigured;
     var clearCookieBackedData = deps.clearCookieBackedData;
-    var nextAuthRequestSeq = deps.nextAuthRequestSeq;
-    var isLatestAuthRequest = deps.isLatestAuthRequest;
-    var handleUnauthorized = deps.handleUnauthorized;
-    var renderAuth = deps.renderAuth;
     var renderAll = deps.renderAll;
     var renderLoginPage = deps.renderLoginPage;
     var renderCookieCheck = deps.renderCookieCheck;
@@ -83,23 +79,6 @@
         setActiveTab(state.activeTab, { replacePath: true });
       });
     }
-
-    var AUTH_ACTIONS = window.DOUYU_KEEP_WEBUI_AUTH_ACTIONS.create({
-      byId: byId,
-      state: state,
-      toast: toast,
-      requestJson: requestJson,
-      nextAuthRequestSeq: nextAuthRequestSeq,
-      isLatestAuthRequest: isLatestAuthRequest,
-      clearProtectedState: deps.clearProtectedState,
-      handleUnauthorized: handleUnauthorized,
-      renderAuth: renderAuth,
-      loadProtectedData: loadProtectedData
-    });
-    var loadAuthStatus = AUTH_ACTIONS.loadAuthStatus;
-    var loginWithPassword = AUTH_ACTIONS.loginWithPassword;
-    var submitLogin = AUTH_ACTIONS.submitLogin;
-    var logout = AUTH_ACTIONS.logout;
 
     var COOKIE_ACTIONS = window.DOUYU_KEEP_WEBUI_COOKIE_ACTIONS.create({
       byId: byId,
@@ -174,10 +153,6 @@
     return {
       syncCookieCloudToLoginCookies: syncCookieCloudToLoginCookies,
       loadProtectedData: loadProtectedData,
-      loadAuthStatus: loadAuthStatus,
-      loginWithPassword: loginWithPassword,
-      submitLogin: submitLogin,
-      logout: logout,
       loadRawConfig: loadRawConfig,
       loadOverview: loadOverview,
       loadLogs: loadLogs,

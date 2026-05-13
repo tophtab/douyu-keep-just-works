@@ -471,26 +471,30 @@ File:
 
 - `src/docker/webui-src/index.html`
 - `src/docker/webui-src/App.vue`
+- `src/docker/webui-src/auth.ts`
 - `src/docker/webui-src/main.ts`
 - transitional modules in `src/docker/webui/*.js`
 
 Required behavior:
 
 1. Initial page load shows login shell first.
-2. Frontend must call `GET /api/auth/status` before loading protected config/log/task data unless the initial URL contains a `web-password` shortcut login.
-3. Login form submits password to `POST /api/auth/login`.
-4. Initial URLs with `web-password=<password>` must submit that value to `POST /api/auth/login`, remove `web-password` from the address bar with `history.replaceState`, and then continue through the same successful-login app bootstrap as the form flow.
-5. On `401`, client must clear protected page state and return to login shell.
-6. Logout button must call `POST /api/auth/logout`.
-7. After successful login, client loads:
+2. Vue owns the auth shell/session state in `useAuthSession()`: login shell visibility, app shell visibility, login error text, submit disabled state, logout, and `document.body[data-auth]`.
+3. Frontend must call `GET /api/auth/status` before loading protected config/log/task data unless the initial URL contains a `web-password` shortcut login.
+4. Login form submits password to `POST /api/auth/login`.
+5. Initial URLs with `web-password=<password>` must submit that value to `POST /api/auth/login`, remove `web-password` from the address bar with `history.replaceState`, and then continue through the same successful-login app bootstrap as the form flow.
+6. On `401`, client must clear protected page state and return to login shell.
+7. Logout button must call `POST /api/auth/logout`.
+8. During the transitional migration, Vue may load protected legacy data through `window.DOUYU_KEEP_WEBUI_LEGACY.loadProtectedData()` after `douyu-keep-webui:legacy-ready`; legacy modules must not mutate the auth shell DOM.
+9. Vue must dispatch `douyu-keep-webui:auth-state` when auth changes so remaining legacy auto-refresh/resource guards can mirror the authenticated flag.
+10. After successful login, client loads:
    - `/api/config/raw`
    - `/api/overview`
    - `/api/logs`
    - fan sync/status when cookie source exists
    - yuba status when the user enters the fish-bar page and cookie source exists
-8. Auth state updates must ignore stale async responses. A slower initial `GET /api/auth/status` response must not overwrite a newer successful login/logout result.
-9. Route/path helpers bundled into the Vite output must emit valid browser JavaScript in the final served document. Regex literals in transitional browser modules must be written for the browser script itself; for example use `/\/+$/`, not `/\\/+$/`.
-10. The page router must support these authenticated paths without breaking the login shell bootstrap:
+11. Auth state updates must ignore stale async responses. A slower initial `GET /api/auth/status` response must not overwrite a newer successful login/logout result.
+12. Route/path helpers bundled into the Vite output must emit valid browser JavaScript in the final served document. Regex literals in transitional browser modules must be written for the browser script itself; for example use `/\/+$/`, not `/\\/+$/`.
+13. The page router must support these authenticated paths without breaking the login shell bootstrap:
    - `/`
    - `/Configurations/LoginConfig`
    - `/Configurations/CollectGiftConfig`

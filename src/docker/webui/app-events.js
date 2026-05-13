@@ -2,12 +2,9 @@
   function createEventBindings(deps) {
     var byId = deps.byId;
     var state = deps.state;
-    var consumeWebPasswordFromUrl = deps.consumeWebPasswordFromUrl;
-    var renderAuth = deps.renderAuth;
     var setActiveTab = deps.setActiveTab;
     var handleVueNavigation = deps.handleVueNavigation;
     var refreshOverviewSurface = deps.refreshOverviewSurface;
-    var logout = deps.logout;
     var loadLogs = deps.loadLogs;
     var clearLogs = deps.clearLogs;
     var saveCookie = deps.saveCookie;
@@ -20,7 +17,6 @@
     var saveExpiringGiftConfig = deps.saveExpiringGiftConfig;
     var applyDoubleRatioPreset = deps.applyDoubleRatioPreset;
     var triggerTask = deps.triggerTask;
-    var submitLogin = deps.submitLogin;
     var loadCronPreview = deps.loadCronPreview;
     var saveCookieCloudToggle = deps.saveCookieCloudToggle;
     var disableCookieCloud = deps.disableCookieCloud;
@@ -32,9 +28,6 @@
     var buildBackpackRowsTable = deps.buildBackpackRowsTable;
     var updateDoubleModeUi = deps.updateDoubleModeUi;
     var loadOverview = deps.loadOverview;
-    var loginWithPassword = deps.loginWithPassword;
-    var loadAuthStatus = deps.loadAuthStatus;
-    var loadProtectedData = deps.loadProtectedData;
 
     function findActionTarget(node) {
       var current = node;
@@ -56,10 +49,6 @@
       var action = target.getAttribute('data-action');
       if (action === 'refresh-overview') {
         refreshOverviewSurface(true);
-        return;
-      }
-      if (action === 'logout') {
-        logout();
         return;
       }
       if (action === 'refresh-logs') {
@@ -127,10 +116,6 @@
       document.addEventListener('click', handleActionClick);
       document.addEventListener('douyu-keep-webui:navigation', handleVueNavigation);
 
-      byId('login-form').addEventListener('submit', function (event) {
-        event.preventDefault();
-        submitLogin();
-      });
       byId('collect-cron').addEventListener('input', function (event) {
         void loadCronPreview('collectGift', event.target.value, 'collect-cron-preview');
       });
@@ -201,19 +186,7 @@
       bindStaticEvents();
       startAutoRefresh();
 
-      renderAuth();
       setActiveTab(state.activeTab, { syncPath: false, skipLazyLoad: true });
-      var webPasswordLogin = consumeWebPasswordFromUrl();
-      if (webPasswordLogin.present) {
-        loginWithPassword(webPasswordLogin.password, { clearPasswordInput: false });
-        return;
-      }
-      loadAuthStatus().then(function (authenticated) {
-        if (!authenticated) {
-          return;
-        }
-        return loadProtectedData();
-      });
     }
 
     return {

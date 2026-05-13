@@ -6,7 +6,6 @@
   var DEFAULT_RAW_CONFIG = APP_DATA.DEFAULT_RAW_CONFIG;
   var getTabByPath = APP_ROUTING.getTabByPath;
   var syncPathWithTab = APP_ROUTING.syncPathWithTab;
-  var consumeWebPasswordFromUrl = APP_ROUTING.consumeWebPasswordFromUrl;
   var byId = APP_DOM.byId;
   var escapeHtml = APP_DOM.escapeHtml;
   var formatDate = APP_DOM.formatDate;
@@ -19,8 +18,6 @@
   });
   var state = STATE_HELPERS.state;
   var createEmptyCronPreview = STATE_HELPERS.createEmptyCronPreview;
-  var nextAuthRequestSeq = STATE_HELPERS.nextAuthRequestSeq;
-  var isLatestAuthRequest = STATE_HELPERS.isLatestAuthRequest;
   var getRawConfig = STATE_HELPERS.getRawConfig;
   var getCookieCloudConfig = STATE_HELPERS.getCookieCloudConfig;
   var getManualCookiesConfig = STATE_HELPERS.getManualCookiesConfig;
@@ -88,47 +85,22 @@
     refreshButton.setAttribute('title', loading ? '正在刷新' : '刷新');
   }
 
-  function renderAuth() {
-    var bodyMode = state.auth.authenticated ? 'app' : 'login';
-    document.body.setAttribute('data-auth', bodyMode);
-
-    var authShell = byId('auth-shell');
-    var appShell = byId('app-shell');
-    if (authShell) {
-      authShell.style.display = state.auth.authenticated ? 'none' : '';
-    }
-    if (appShell) {
-      appShell.style.display = state.auth.authenticated ? '' : 'none';
-    }
-
-    var errorNode = byId('login-error');
-    if (errorNode) {
-      errorNode.textContent = state.auth.error || '';
-      errorNode.style.display = state.auth.error ? 'block' : 'none';
-    }
-
-    var submitNode = byId('login-submit');
-    if (submitNode) {
-      submitNode.disabled = state.auth.submitting;
-      submitNode.textContent = state.auth.submitting ? '登录中…' : '登录';
-    }
-
-    var passwordNode = byId('web-password-input');
-    if (passwordNode) {
-      passwordNode.disabled = state.auth.submitting;
+  function handleVueAuthState(event) {
+    var detail = event && event.detail ? event.detail : {};
+    state.auth.checked = true;
+    state.auth.authenticated = Boolean(detail.authenticated);
+    state.auth.submitting = false;
+    if (state.auth.authenticated) {
+      state.auth.error = '';
     }
   }
+  document.addEventListener('douyu-keep-webui:auth-state', handleVueAuthState);
+  state.auth.checked = true;
+  state.auth.authenticated = document.body.getAttribute('data-auth') === 'app';
 
   function handleUnauthorized() {
-    nextAuthRequestSeq();
-    state.auth.checked = true;
-    state.auth.authenticated = false;
-    state.auth.submitting = false;
-    state.auth.error = '登录已失效，请重新输入密码。';
-    clearProtectedState();
-    renderAuth();
+    document.dispatchEvent(new CustomEvent('douyu-keep-webui:unauthorized'));
   }
-  document.addEventListener('douyu-keep-webui:unauthorized', handleUnauthorized);
 
   var PROTECTED_STATE = window.DOUYU_KEEP_WEBUI_PROTECTED_STATE.create({
     state: state,
@@ -298,10 +270,6 @@
     clearProtectedState: clearProtectedState,
     applyFansStatusBase: applyFansStatusBase,
     applyFansStatusDetails: applyFansStatusDetails,
-    nextAuthRequestSeq: nextAuthRequestSeq,
-    isLatestAuthRequest: isLatestAuthRequest,
-    handleUnauthorized: handleUnauthorized,
-    renderAuth: renderAuth,
     renderAll: renderAll,
     renderLoginPage: renderLoginPage,
     renderCookieCheck: renderCookieCheck,
@@ -315,10 +283,6 @@
   });
   var syncCookieCloudToLoginCookies = ACTIONS.syncCookieCloudToLoginCookies;
   var loadProtectedData = ACTIONS.loadProtectedData;
-  var loadAuthStatus = ACTIONS.loadAuthStatus;
-  var loginWithPassword = ACTIONS.loginWithPassword;
-  var submitLogin = ACTIONS.submitLogin;
-  var logout = ACTIONS.logout;
   var loadRawConfig = ACTIONS.loadRawConfig;
   var loadOverview = ACTIONS.loadOverview;
   var loadLogs = ACTIONS.loadLogs;
@@ -360,12 +324,9 @@
   window.DOUYU_KEEP_WEBUI_EVENTS.create({
     byId: byId,
     state: state,
-    consumeWebPasswordFromUrl: consumeWebPasswordFromUrl,
     setActiveTab: setActiveTab,
     handleVueNavigation: handleVueNavigation,
-    renderAuth: renderAuth,
     refreshOverviewSurface: refreshOverviewSurface,
-    logout: logout,
     loadOverview: loadOverview,
     loadLogs: loadLogs,
     clearLogs: clearLogs,
@@ -386,12 +347,15 @@
     disableExpiringGiftConfig: disableExpiringGiftConfig,
     applyDoubleRatioPreset: applyDoubleRatioPreset,
     triggerTask: triggerTask,
-    submitLogin: submitLogin,
     loadCronPreview: loadCronPreview,
     buildBackpackRowsTable: buildBackpackRowsTable,
     updateDoubleModeUi: updateDoubleModeUi,
-    loginWithPassword: loginWithPassword,
-    loadAuthStatus: loadAuthStatus,
     loadProtectedData: loadProtectedData
   }).start();
+
+  window.DOUYU_KEEP_WEBUI_LEGACY = {
+    clearProtectedState: clearProtectedState,
+    loadProtectedData: loadProtectedData
+  };
+  document.dispatchEvent(new CustomEvent('douyu-keep-webui:legacy-ready'));
 })();

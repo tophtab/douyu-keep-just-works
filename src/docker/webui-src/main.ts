@@ -25,7 +25,6 @@ async function bootstrapLegacyBehavior(): Promise<void> {
   await import('../webui/app-fans-resource-actions.js')
   await import('../webui/app-yuba-resource-actions.js')
   await import('../webui/app-resource-actions.js')
-  await import('../webui/app-auth-actions.js')
   await import('../webui/app-actions.js')
   await import('../webui/app-simple-task-actions.js')
   await import('../webui/app-send-task-actions.js')

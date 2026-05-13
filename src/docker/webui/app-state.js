@@ -24,7 +24,6 @@
     var state = {
       activeTab: initialTab,
       auth: {
-        requestSeq: 0,
         checked: false,
         authenticated: false,
         submitting: false,
@@ -71,15 +70,6 @@
         expiringGift: 0
       }
     };
-
-    function nextAuthRequestSeq() {
-      state.auth.requestSeq += 1;
-      return state.auth.requestSeq;
-    }
-
-    function isLatestAuthRequest(requestSeq) {
-      return state.auth.requestSeq === requestSeq;
-    }
 
     function getRawConfig() {
       if (state.rawConfig) {
@@ -229,8 +219,6 @@
     return {
       state: state,
       createEmptyCronPreview: createEmptyCronPreview,
-      nextAuthRequestSeq: nextAuthRequestSeq,
-      isLatestAuthRequest: isLatestAuthRequest,
       getRawConfig: getRawConfig,
       getCookieCloudConfig: getCookieCloudConfig,
       getManualCookiesConfig: getManualCookiesConfig,

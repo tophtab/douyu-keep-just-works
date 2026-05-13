@@ -640,7 +640,7 @@ document.dispatchEvent(new CustomEvent('douyu-keep-webui:collect-page', {
 
 - Good: Vue owns collect inputs/buttons while `app-simple-task-actions.js` delegates collect actions to the bridge for transitional callers.
 - Good: `app-task-pages.js` sends `douyu-keep-webui:collect-page` state details, leaving DOM updates to Vue bindings.
-- Base: Yuba remains in `app-simple-task-actions.js` until its own task-page slice migrates.
+- Base: Other send-room task pages remain in legacy task renderers until their own slices migrate.
 - Bad: `app-events.js` handles `data-action="save-collect"` after Vue owns the collect save button.
 - Bad: `app-task-pages.js` writes `.value`, `.checked`, or `.innerHTML` on collect nodes after Vue owns them.
 - Bad: Collect trigger remains only as `data-action="trigger"` / `data-trigger="collectGift"` after Vue owns the collect page.
@@ -668,5 +668,129 @@ byId('collect-cron').value = config.collectGift.cron
 ```javascript
 document.dispatchEvent(new CustomEvent('douyu-keep-webui:collect-page', {
   detail: { rawConfig: config, overview: state.overview },
+}))
+```
+
+## Scenario: Vue-Owned Transitional Yuba Task Page
+
+### 1. Scope / Trigger
+
+- Trigger: Moving the Docker WebUI Yuba check-in task page and Yuba status resource loader from legacy DOM mutation into Vue while keepalive, double-card, and expiring-gift still use legacy task renderers.
+- Scope: Yuba task status card, enable switch, cron input, mode select, cron preview, save/disable actions, manual trigger action, `/api/yuba/status` loading, status table rendering, and the Yuba resource/task bridges used by transitional action assembly.
+
+### 2. Signatures
+
+```typescript
+export function useYubaTaskPage(): {
+  handleYubaToggle: () => void
+  loadYubaCronPreview: () => Promise<void>
+  saveYubaConfig: (options?: { revertCheckboxOnError?: boolean }) => Promise<void>
+  showYubaTable: ComputedRef<boolean>
+  triggerYubaTask: () => Promise<void>
+  yubaCron: Ref<string>
+  yubaCronPreviewText: ComputedRef<string>
+  yubaEmptyText: ComputedRef<string>
+  yubaEnabled: Ref<boolean>
+  yubaMode: Ref<'followed'>
+  yubaNote: ComputedRef<string>
+  yubaTableRows: ComputedRef<Array<{
+    error: string
+    expText: string
+    groupId: string
+    groupLevel: string
+    groupName: string
+    index: number
+    rank: string
+    signed: boolean
+  }>>
+  yubaTaskCard: ComputedRef<{
+    pills: Array<{ label: string, kind: string }>
+    cells: Array<{ label: string, value: string }>
+  }>
+}
+```
+
+```typescript
+export function installLegacyYubaBridge(): void
+```
+
+```javascript
+document.dispatchEvent(new CustomEvent('douyu-keep-webui:yuba-page', {
+  detail: {
+    rawConfig,
+    overview,
+    yubaStatus,
+    yubaStatusError,
+    yubaStatusLoaded,
+    yubaStatusLoading,
+  },
+}))
+```
+
+### 3. Contracts
+
+- `src/docker/webui-src/yuba.ts` owns visible Yuba page DOM state and actions through Vue refs, computed table rows, and `requestJson()`.
+- `main.ts` must install `installLegacyYubaBridge()` before `app-resource-actions.js`, `app-simple-task-actions.js`, and `app-task-actions.js` are imported.
+- `App.vue` must bind the Yuba enable switch, cron input, mode select, cron preview, save button, trigger button, note, status card, and table through Vue state/events.
+- Legacy `app-task-pages.js` must dispatch `douyu-keep-webui:yuba-page` details and call `ensureYubaStatusForActiveTab()` instead of mutating `#yuba-task-card`, `#yuba-enable`, `#yuba-cron`, `#yuba-note`, or `#yuba-table-wrap`.
+- Legacy `app-events.js` must not handle `data-action="save-yuba"`, `#yuba-cron`, or `#yuba-enable` after Vue owns the Yuba page.
+- `app-simple-task-actions.js` must delegate Yuba save/disable through `window.DOUYU_KEEP_WEBUI_YUBA_TASK_ACTIONS.create(...)`.
+- `app-resource-actions.js` must consume `window.DOUYU_KEEP_WEBUI_YUBA_RESOURCE_ACTIONS.create(...)`; do not reintroduce `src/docker/webui/app-yuba-resource-actions.js`.
+- Save/disable requests preserve the existing API contract: `POST /api/config` with `yubaCheckIn: { active, cron, mode: 'followed' }`.
+- Manual trigger preserves the existing user-facing behavior: `POST /api/trigger/yubaCheckIn`, `执行完成` success toast, then refresh overview/logs/Yuba status through transitional refresh functions.
+- Yuba status loading preserves the existing coalescing contract: reuse `resource.pending`, increment `requestSeq`, update legacy `state.yubaStatus*`, call `markResourceLoaded('yubaStatus')`, and return `trackResourceRequest(resource, requestSeq, pending)`.
+- Unauthorized errors must flow through the shared request helper and avoid duplicate local toasts.
+- Non-401 failures must keep existing Chinese toast prefixes for save, disable, trigger, and status-load failures.
+
+### 4. Validation & Error Matrix
+
+| Case | Expected behavior |
+|------|-------------------|
+| Raw config loads | Vue populates Yuba enabled state, cron field, and mode select |
+| Overview loads | Vue updates the Yuba task status card |
+| User saves Yuba task | `POST /api/config` with `active: true`, success toast, overview refresh |
+| User disables Yuba task | `POST /api/config` with `active: false`, success toast, overview refresh |
+| User edits Yuba cron | Vue refreshes the preview through `/api/cron-preview` and ignores stale responses |
+| User triggers Yuba manually | `POST /api/trigger/yubaCheckIn`, success toast, overview/log/Yuba-status refresh |
+| No Cookie source is configured | Yuba status state is cleared, the page shows the existing Cookie requirement copy, and optional refresh toast says to save Cookie or enable CookieCloud |
+| `/api/yuba/status` is already pending | Return the in-flight promise without starting another client request |
+| `/api/yuba/status` succeeds | Store `groups`, mark the resource loaded, update the Vue table, and optionally toast success |
+| `/api/yuba/status` fails before any loaded data exists | Show the existing failure note/empty state and a failure toast |
+| Any action returns `401` | Global unauthorized handling runs without a duplicate Yuba page toast |
+| Any action fails with non-401 | Preserve the existing action-specific error toast |
+
+### 5. Good/Base/Bad Cases
+
+- Good: Vue owns Yuba inputs, buttons, note, and table while legacy resource orchestration still calls a bridge named `DOUYU_KEEP_WEBUI_YUBA_RESOURCE_ACTIONS`.
+- Good: `app-task-pages.js` sends `douyu-keep-webui:yuba-page` state details and leaves visible DOM updates to Vue bindings.
+- Base: Keep `app-table-render.js` Yuba helpers until all remaining legacy table consumers are retired; Vue can render the Yuba table directly with the same classes.
+- Bad: `app-events.js` handles `data-action="save-yuba"` after Vue owns the Yuba save button.
+- Bad: `app-task-pages.js` writes `.value`, `.checked`, `.textContent`, or `.innerHTML` on Yuba nodes after Vue owns them.
+- Bad: Moving Yuba status loading to Vue but dropping `resource.pending` coalescing or `trackResourceRequest()` breaks the request-smoothing contract.
+
+### 6. Tests Required
+
+- Contract tests should assert that `App.vue` uses `useYubaTaskPage()` and binds Yuba switch, cron input, mode select, save button, trigger button, note, and table through Vue.
+- Contract tests should assert that `yuba.ts` exports `installLegacyYubaBridge()`, installs `window.DOUYU_KEEP_WEBUI_YUBA_RESOURCE_ACTIONS` and `window.DOUYU_KEEP_WEBUI_YUBA_TASK_ACTIONS`, and calls `/api/config`, `/api/trigger/yubaCheckIn`, `/api/yuba/status`, and `/api/cron-preview`.
+- Contract tests should assert that `main.ts` installs the Yuba bridge and no longer imports `app-yuba-resource-actions.js`.
+- Contract tests should assert that legacy `app-task-pages.js` dispatches `douyu-keep-webui:yuba-page` and no longer mutates Yuba DOM fields.
+- Contract tests should assert that legacy `app-events.js` no longer handles Yuba save/toggle/cron listeners.
+- Contract tests should assert that `app-simple-task-actions.js` delegates Yuba actions through `DOUYU_KEEP_WEBUI_YUBA_TASK_ACTIONS`.
+- Request-smoothing tests should include `src/docker/webui-src/yuba.ts` when checking that `loadYubaStatus()` reuses pending requests and calls `trackResourceRequest()`.
+- Run `npm run lint`, `npm run type-check:webui`, `npm run test:contracts`, `npm run build:webui`, and `npm test` after this migration.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```javascript
+byId('yuba-table-wrap').innerHTML = buildYubaStatusTable(state.yubaStatus)
+```
+
+#### Correct
+
+```javascript
+document.dispatchEvent(new CustomEvent('douyu-keep-webui:yuba-page', {
+  detail: { rawConfig: getRawConfig(), overview: state.overview, yubaStatus: state.yubaStatus },
 }))
 ```

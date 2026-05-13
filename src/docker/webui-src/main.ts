@@ -17,10 +17,10 @@ import { installLegacySendTaskActionsBridge, installLegacySimpleTaskActionsBridg
 import { installLegacyTaskPageBridge } from './task-pages'
 import { installLegacyYubaBridge } from './yuba'
 
-import '../webui/styles.css'
-import '../webui/styles-components.css'
-import '../webui/styles-tables.css'
-import '../webui/styles-responsive.css'
+import './styles/base.css'
+import './styles/components.css'
+import './styles/tables.css'
+import './styles/responsive.css'
 
 installLegacyCoreBridge()
 installLegacyStateBridge()

@@ -25,13 +25,14 @@ src/docker/
 │   ├── App.vue
 │   ├── legacy-app.ts
 │   ├── index.html
-│   └── main.ts
+│   ├── main.ts
+│   └── styles/
+│       ├── base.css
+│       ├── components.css
+│       ├── responsive.css
+│       └── tables.css
 └── webui/
-    ├── index.html
-    ├── styles.css
-    ├── styles-components.css
-    ├── styles-responsive.css
-    └── styles-tables.css
+    └── index.html
 ```
 
 ---
@@ -41,8 +42,8 @@ src/docker/
 - Put Vue app entry code in `src/docker/webui-src/main.ts`.
 - Put the Vite HTML shell in `src/docker/webui-src/index.html`.
 - Put Vue shell/component code in `src/docker/webui-src/*.vue`.
+- Put shared Docker WebUI styles under `src/docker/webui-src/styles/`, imported by `main.ts` in base, components, tables, responsive order.
 - Keep `src/docker/webui/index.html` as a source-tree placeholder only; it must not contain migrated UI markup or boot scripts.
-- Keep shared visual styles in `src/docker/webui/styles*.css` while the conservative migration preserves the current UI.
 - Keep Docker runtime serving concerns in `src/docker/webui.ts` and `src/docker/server-webui-routes.ts`.
 
 ## Naming Conventions

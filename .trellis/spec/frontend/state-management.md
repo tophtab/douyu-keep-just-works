@@ -375,3 +375,77 @@ await requestJson('/api/auth/login', {
   onUnauthorized: false,
 })
 ```
+
+## Scenario: Vue-Owned Transitional System Resources
+
+### 1. Scope / Trigger
+
+- Trigger: Moving Docker WebUI read-only system resource loading out of `src/docker/webui/*.js` while legacy page renderers still consume the loaded state.
+- Scope: `/api/config/raw`, `/api/overview`, `/api/logs`, loading/error state for these read-only resources, the `douyu-keep-webui:config` theme notification, and the compatibility bridge used by `app-resource-actions.js`.
+
+### 2. Signatures
+
+```typescript
+export function installLegacySystemResourceBridge(): void
+```
+
+```typescript
+window.DOUYU_KEEP_WEBUI_SYSTEM_RESOURCE_ACTIONS.create({
+  state,
+  defaultRawConfig,
+  renderAll,
+  renderOverview,
+  renderLogsPage,
+}).loadOverview()
+```
+
+### 3. Contracts
+
+- `src/docker/webui-src/resources.ts` owns read-only system resource requests through the shared `requestJson()` helper.
+- `main.ts` must install `installLegacySystemResourceBridge()` after `app-data.js` is imported and before `app-resource-actions.js` is imported.
+- `loadRawConfig()` writes `state.rawConfig`, falls back to a cloned `DEFAULT_RAW_CONFIG` when `/api/config/raw` returns `{ exists: false }`, dispatches `douyu-keep-webui:config`, then calls `renderAll()`.
+- `loadOverview()` writes `state.overview` and calls `renderOverview()`.
+- `loadLogs()` writes `state.logs`, updates `state.logsRefreshedAt` with the current ISO timestamp, and calls `renderLogsPage()`.
+- Unauthorized errors must flow through the shared request helper's `douyu-keep-webui:unauthorized` event and must not show duplicate resource toasts.
+- Non-401 failures keep the existing Chinese toast prefixes: `加载配置失败：`, `加载概览失败：`, and `加载日志失败：`.
+- Legacy modules may call the bridge while they still render forms/task pages, but they must not reintroduce `app-system-resource-actions.js`.
+
+### 4. Validation & Error Matrix
+
+| Case | Expected behavior |
+|------|-------------------|
+| `/api/config/raw` returns `{ exists: false }` | Clone default raw config, dispatch theme config event, render all pages |
+| `/api/config/raw` returns persisted config | Store it unchanged, dispatch theme mode from `config.ui.themeMode || system`, render all pages |
+| `/api/overview` succeeds | Store overview payload and refresh overview-owned legacy render surfaces |
+| `/api/logs` succeeds | Store logs array, update refreshed-at timestamp, refresh logs page |
+| Any system resource returns `401` | Dispatch/keep the global unauthorized transition without a duplicate toast |
+| Any system resource fails with non-401 | Preserve the existing user-facing toast prefix for that resource |
+
+### 5. Good/Base/Bad Cases
+
+- Good: Vue/TS resource code owns fetch/error/loading mechanics while legacy page renderers only consume state and render DOM.
+- Base: `app-resource-actions.js` still composes system, fans, and Yuba resource actions through `window.DOUYU_KEEP_WEBUI_SYSTEM_RESOURCE_ACTIONS.create(...)`.
+- Bad: `main.ts` imports `src/docker/webui/app-system-resource-actions.js` after the bridge is installed, overwriting the Vue/TS owner.
+- Bad: A resource failure is converted to an empty config, empty overview, or empty log list without surfacing an error.
+
+### 6. Tests Required
+
+- Contract tests should assert that `resources.ts` exports `installLegacySystemResourceBridge()`, owns `/api/config/raw`, `/api/overview`, `/api/logs`, and dispatches `douyu-keep-webui:config`.
+- Contract tests should assert that `main.ts` installs the bridge and no longer imports `app-system-resource-actions.js`.
+- Contract tests should assert that `src/docker/webui/app-system-resource-actions.js` does not exist.
+- Run `npm run lint`, `npm run type-check`, `npm run test:contracts`, `npm run build:webui`, and `npm test` after this migration.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```javascript
+await import('../webui/app-system-resource-actions.js')
+```
+
+#### Correct
+
+```typescript
+await import('../webui/app-data.js')
+installLegacySystemResourceBridge()
+```

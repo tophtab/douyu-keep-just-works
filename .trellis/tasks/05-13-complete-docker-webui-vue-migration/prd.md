@@ -28,7 +28,7 @@ Complete the Docker WebUI migration from the transitional legacy browser modules
 - [x] `document.body.dataset.auth` keeps the existing authenticated/anonymous contract while auth is migrated.
 - [x] Legacy modules that still need auth state can consume a narrow compatibility bridge until they are migrated.
 - [x] Vue/TS request helpers provide the shared path for JSON requests, 401/session expiration handling, and toast feedback before page migrations depend on them.
-- [ ] Read-only data surfaces establish a reusable Vue loading/error pattern before form-heavy or action-heavy pages move.
+- [x] Read-only data surfaces establish a reusable Vue loading/error pattern before form-heavy or action-heavy pages move.
 - [ ] Each migration slice removes or disables the corresponding legacy owner and leaves unrelated legacy behavior untouched.
 - [ ] `src/docker/webui-src/main.ts` no longer imports legacy modules when the final migration slice is complete.
 - [ ] `npm run lint`, `npm run type-check`, relevant focused tests, and `npm test` pass at suitable rollback points.
@@ -94,6 +94,14 @@ The first implementation commit should migrate the login page, app shell visibil
 
 ## Verification Results
 
+- Read-only system resource slice:
+  - Moved `/api/config/raw`, `/api/overview`, and `/api/logs` loading into `src/docker/webui-src/resources.ts`.
+  - Removed the transitional `src/docker/webui/app-system-resource-actions.js` owner from the Vite boot path.
+  - `npm run lint` passed.
+  - `npm run type-check` passed.
+  - `npm run test:contracts` passed.
+  - `npm run build:webui` passed.
+  - `npm test` passed, including `npm run build:docker`.
 - Request helper slice:
   - `npm run lint` passed.
   - `npm run type-check` passed.

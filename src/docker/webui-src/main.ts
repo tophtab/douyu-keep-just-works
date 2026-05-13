@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import { installLegacyRequestBridge } from './request'
+import { installLegacySystemResourceBridge } from './resources'
 
 import '../webui/styles.css'
 import '../webui/styles-components.css'
@@ -9,6 +10,7 @@ import '../webui/styles-responsive.css'
 
 async function bootstrapLegacyBehavior(): Promise<void> {
   await import('../webui/app-data.js')
+  installLegacySystemResourceBridge()
   await import('../webui/app-routing.js')
   await import('../webui/app-dom.js')
   await import('../webui/app-state.js')
@@ -21,7 +23,6 @@ async function bootstrapLegacyBehavior(): Promise<void> {
   await import('../webui/app-task-pages.js')
   await import('../webui/app-pages.js')
   await import('../webui/app-cookie-actions.js')
-  await import('../webui/app-system-resource-actions.js')
   await import('../webui/app-fans-resource-actions.js')
   await import('../webui/app-yuba-resource-actions.js')
   await import('../webui/app-resource-actions.js')

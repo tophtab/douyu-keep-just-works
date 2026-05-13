@@ -28,13 +28,15 @@ Files:
 - `.github/workflows/docker.yml`
 - `package.json`
 - `tsconfig.docker.json`
+- `tsconfig.webui.json`
+- `vite.config.ts`
 
 Required behavior:
 
 1. Docker image build must compile Docker runtime code from `src/core/**/*.ts` and `src/docker/**/*.ts` inside the image.
 2. `docker compose up -d --build` must not depend on prebuilt local `build/docker` artifacts.
 3. Builder stage must run:
-   - `npm ci --ignore-scripts`
+   - `npm ci --omit=optional --ignore-scripts`
    - `npm run build:docker`
 4. Runtime stage must:
    - install production deps only
@@ -48,8 +50,8 @@ Current command/file contract:
 
 ```dockerfile
 ENV PUPPETEER_SKIP_DOWNLOAD=true
-COPY package.json package-lock.json tsconfig.docker.json ./
-RUN npm ci --ignore-scripts
+COPY package.json package-lock.json tsconfig.docker.json tsconfig.webui.json vite.config.ts ./
+RUN npm ci --omit=optional --ignore-scripts
 COPY src ./src
 RUN npm run build:docker
 COPY --from=builder /app/build/docker ./dist/
@@ -461,7 +463,10 @@ Non-goals:
 
 File:
 
-- `src/docker/webui/index.html`
+- `src/docker/webui-src/index.html`
+- `src/docker/webui-src/App.vue`
+- `src/docker/webui-src/main.ts`
+- transitional modules in `src/docker/webui/*.js`
 
 Required behavior:
 
@@ -478,7 +483,7 @@ Required behavior:
    - fan sync/status when cookie source exists
    - yuba status when the user enters the fish-bar page and cookie source exists
 8. Auth state updates must ignore stale async responses. A slower initial `GET /api/auth/status` response must not overwrite a newer successful login/logout result.
-9. Route/path helpers embedded in the static HTML file must emit valid browser JavaScript in the final served document. Regex literals must be written for the browser script itself; for example use `/\/+$/`, not `/\\/+$/`, in `src/docker/webui/index.html`.
+9. Route/path helpers bundled into the Vite output must emit valid browser JavaScript in the final served document. Regex literals in transitional browser modules must be written for the browser script itself; for example use `/\/+$/`, not `/\\/+$/`.
 10. The page router must support these authenticated paths without breaking the login shell bootstrap:
    - `/`
    - `/Configurations/LoginConfig`
@@ -501,6 +506,7 @@ UI state rules:
 - login page secondary CookieCloud action is “同步并校验”; when CookieCloud is enabled, it must call `/api/cookie-source/persist` before `/api/cookie-source/check` so the visible diagnostics describe the locally persisted snapshot
 - CookieCloud sync writes the latest Douyu-domain cookies back into the login Cookie textareas instead of creating a second “effective cookie” form
 - path-routed pages such as `/Configurations/LoginConfig` and `/Logs` must still boot the same login/app shell script without browser syntax errors
+- `DOUYU_KEEP_WEBUI_BOOTSTRAP` must provide `appName`, `appVersionLabel`, and `pageRoutes` before `main.ts` starts the Vue app and transitional legacy modules
 
 ---
 

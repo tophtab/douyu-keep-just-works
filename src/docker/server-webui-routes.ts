@@ -1,5 +1,5 @@
-import type express from 'express'
-import { DOCKER_WEBUI_PAGE_ROUTES, getHtml } from './webui'
+import express from 'express'
+import { DOCKER_WEBUI_PAGE_ROUTES, getHtml, WEBUI_ASSET_ROOT } from './webui'
 
 const DOCKER_WEBUI_PAGE_PATHS = new Set<string>(Object.values(DOCKER_WEBUI_PAGE_ROUTES))
 
@@ -15,6 +15,11 @@ export function isDockerWebUiPagePath(path: string): boolean {
 }
 
 export function registerWebUiRoutes(app: express.Express): void {
+  app.use(express.static(WEBUI_ASSET_ROOT, {
+    fallthrough: true,
+    index: false,
+  }))
+
   app.use((req, res, next) => {
     if (req.method !== 'GET' || !isDockerWebUiPagePath(req.path)) {
       next()

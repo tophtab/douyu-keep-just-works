@@ -6,9 +6,9 @@
 
 ## Overview
 
-This project no longer has a standalone Vue/Electron renderer. The supported UI is the Docker WebUI static document shell in `src/docker/webui/index.html`, with ordered source CSS and JavaScript files in `src/docker/webui/`, served through the lightweight renderer in `src/docker/webui.ts`.
+The supported UI is the Docker WebUI Vue/Vite application under `src/docker/webui-src/`, served by the Docker Express runtime after `npm run build:docker`.
 
-The legacy Vue renderer guidelines below are retained only as historical references. For current UI changes, treat `src/docker/webui/index.html` and `src/docker/webui.ts` as Docker runtime code and read the backend guidelines first.
+The current migration keeps the existing browser behavior modules under `src/docker/webui/*.js` as a transitional legacy layer bundled by Vite. New UI structure should move toward Vue single-file components under `src/docker/webui-src/` while preserving Docker deployment semantics.
 
 ---
 
@@ -16,12 +16,12 @@ The legacy Vue renderer guidelines below are retained only as historical referen
 
 | Guide | Description | Status |
 |-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Legacy Vue renderer module organization | Legacy |
-| [Component Guidelines](./component-guidelines.md) | Legacy Vue SFC patterns | Legacy |
-| [Hook Guidelines](./hook-guidelines.md) | Legacy Vue reusable-logic patterns | Legacy |
-| [State Management](./state-management.md) | Legacy Vue state patterns | Legacy |
-| [Quality Guidelines](./quality-guidelines.md) | Legacy Vue quality guidance | Legacy |
-| [Type Safety](./type-safety.md) | Legacy Vue type patterns | Legacy |
+| [Directory Structure](./directory-structure.md) | Vue/Vite Docker WebUI module organization | Current |
+| [Component Guidelines](./component-guidelines.md) | Vue SFC patterns | Current |
+| [Hook Guidelines](./hook-guidelines.md) | Vue reusable-logic patterns | Current |
+| [State Management](./state-management.md) | Vue state patterns | Current |
+| [Quality Guidelines](./quality-guidelines.md) | Vue quality guidance | Current |
+| [Type Safety](./type-safety.md) | Vue type patterns | Current |
 
 ---
 
@@ -29,16 +29,17 @@ The legacy Vue renderer guidelines below are retained only as historical referen
 
 Before changing current UI code:
 
-1. Read `../backend/directory-structure.md` for Docker-only runtime boundaries
-2. Read `../backend/error-handling.md` for route error responses
-3. Read `../backend/logging-guidelines.md` if diagnostics or logs change
-4. Read `../backend/quality-guidelines.md` before final review
+1. Read `../backend/directory-structure.md` for Docker-only runtime boundaries and build contracts
+2. Read this frontend index plus the relevant Vue guide for the files you are changing
+3. Read `../backend/error-handling.md` if route responses or frontend API error handling change
+4. Read `../backend/logging-guidelines.md` if diagnostics or logs change
+5. Read `../backend/quality-guidelines.md` before final review
 
-Do not reintroduce `src/renderer/`, Vue, Vite, Pinia, Vuetify, or Electron renderer IPC unless desktop support is explicitly restored.
+Do not reintroduce `src/renderer/`, Electron renderer IPC, Pinia, Vuetify, or a heavy UI framework unless support is explicitly restored for that scope.
 
 ## Current Docker WebUI Accessibility Checklist
 
-When changing files under `src/docker/webui/`, keep the plain HTML controls accessible:
+When changing files under `src/docker/webui-src/` or transitional files under `src/docker/webui/`, keep the controls accessible:
 
 - Interactive controls need visible `:focus-visible` states, including custom switches and icon-only buttons.
 - Async feedback needs a live region (`role="status"` / `aria-live="polite"`), especially toast and validation/status text.
@@ -52,13 +53,14 @@ When changing files under `src/docker/webui/`, keep the plain HTML controls acce
 
 ## Current Docker WebUI Source Split
 
-- Keep `index.html` as the HTML shell and place styles/scripts under `src/docker/webui/`.
-- `src/docker/webui.ts` injects ordered CSS and ordered JavaScript files into the served HTML response; do not add static asset routes unless the deployment contract explicitly changes.
-- When adding a WebUI CSS file, add it to the ordered style list in `src/docker/webui.ts`. Later files may depend on earlier base variables and layout rules.
-- When adding a WebUI script file, add it to the ordered script list in `src/docker/webui.ts`. Files that define globals for later scripts, such as `app-data.js`, `app-routing.js`, `app-dom.js`, `app-state.js`, `app-managed-data.js`, `app-table-render.js`, `app-render.js`, `app-pages.js`, `app-*-resource-actions.js`, `app-actions.js`, `app-*-task-actions.js`, and `app-events.js`, must appear before the consumers.
-- Keep `app.js` as the main client-side behavior file. Small data/config-only files may sit beside it when they reduce noise in the main script.
-- Keep `styles.css` as the base stylesheet. Component, table, and responsive CSS may sit in adjacent `styles-*.css` files when that keeps each source file readable.
-- If a contract test needs to inspect client-side functions, read `src/docker/webui/app.js` instead of `index.html`. If a test verifies the injection contract, include every style/script file in the ordered lists.
+- Keep Vue/Vite source under `src/docker/webui-src/`.
+- Keep transitional legacy browser modules under `src/docker/webui/` until each behavior area is migrated into Vue components/composables.
+- `src/docker/webui-src/main.ts` owns the legacy module import order while the transition layer exists.
+- `src/docker/webui-src/index.html` owns the Vite HTML shell and the `DOUYU_KEEP_WEBUI_BOOTSTRAP` runtime token placeholders.
+- `src/docker/webui-src/App.vue` currently preserves the existing Docker WebUI shell markup; future work may split it into smaller Vue components.
+- `src/docker/webui.ts` reads the Vite-built `webui/index.html`, injects app version and route tokens, and does not inline ordered scripts/styles.
+- `src/docker/server-webui-routes.ts` serves Vite output from `WEBUI_ASSET_ROOT` with `express.static()` before returning the HTML shell for Docker WebUI page routes.
+- If a contract test needs to inspect transitional client-side functions, read `src/docker/webui/*.js`. If a test verifies the build contract, check `vite.config.ts`, `src/docker/webui-src/main.ts`, and `src/docker/server-webui-routes.ts`.
 
 ---
 

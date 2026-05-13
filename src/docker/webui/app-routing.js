@@ -1,5 +1,6 @@
 (function () {
-  var TAB_ROUTE_MAP = __DOCKER_WEBUI_PAGE_ROUTES_JSON__;
+  var BOOTSTRAP = window.DOUYU_KEEP_WEBUI_BOOTSTRAP || {};
+  var TAB_ROUTE_MAP = BOOTSTRAP.pageRoutes || { overview: '/' };
 
   function normalizePagePath(path) {
     if (!path || path === '/') {

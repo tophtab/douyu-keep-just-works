@@ -17,6 +17,7 @@
     "src/docker/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "src/docker/webui-src"
   ]
 }

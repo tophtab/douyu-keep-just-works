@@ -11,12 +11,15 @@
   "license": "MIT",
   "repository": "https://github.com/tophtab/douyu-keep-just-works.git",
   "scripts": {
-    "lint": "eslint \"src/**/*.{js,ts}\" \"test/**/*.js\" eslint.config.mjs",
-    "type-check": "tsc -p tsconfig.docker.json --noEmit",
+    "lint": "eslint \"src/**/*.{js,ts,vue}\" \"test/**/*.js\" eslint.config.mjs",
+    "type-check": "npm run type-check:docker && npm run type-check:webui",
+    "type-check:docker": "tsc -p tsconfig.docker.json --noEmit",
+    "type-check:webui": "vue-tsc -p tsconfig.webui.json --noEmit",
     "test:contracts": "node --test test/*.test.js",
     "test": "npm run test:contracts && npm run build:docker",
     "build": "npm run build:docker",
-    "build:docker": "rm -rf build/docker && tsc -p tsconfig.docker.json && cp -R src/docker/webui build/docker/docker/webui",
+    "build:webui": "npm run type-check:webui && vite build",
+    "build:docker": "rm -rf build/docker && npm run build:webui && tsc -p tsconfig.docker.json",
     "start": "node build/docker/docker/index.js"
   },
   "engines": {
@@ -34,8 +37,12 @@
     "@types/express": "^5.0.6",
     "@types/node": "^24.0.0",
     "@types/ws": "^8.18.1",
+    "@vitejs/plugin-vue": "^6.0.6",
     "eslint": "^10.3.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vite": "^8.0.12",
+    "vue": "^3.5.34",
+    "vue-tsc": "^3.2.8"
   },
   "overrides": {
     "@typescript-eslint/typescript-estree": {

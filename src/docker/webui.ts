@@ -15,45 +15,10 @@ export const DOCKER_WEBUI_PAGE_ROUTES = {
 const APP_NAME = 'douyu-keep'
 const APP_VERSION = readPackageVersion()
 const APP_VERSION_LABEL = `V${APP_VERSION}`
-const WEBUI_TEMPLATE_PATH = path.join(__dirname, 'webui', 'index.html')
-const WEBUI_STYLE_PATHS = [
-  path.join(__dirname, 'webui', 'styles.css'),
-  path.join(__dirname, 'webui', 'styles-components.css'),
-  path.join(__dirname, 'webui', 'styles-tables.css'),
-  path.join(__dirname, 'webui', 'styles-responsive.css'),
-]
-const WEBUI_SCRIPT_PATHS = [
-  path.join(__dirname, 'webui', 'app-data.js'),
-  path.join(__dirname, 'webui', 'app-routing.js'),
-  path.join(__dirname, 'webui', 'app-dom.js'),
-  path.join(__dirname, 'webui', 'app-state.js'),
-  path.join(__dirname, 'webui', 'app-managed-data.js'),
-  path.join(__dirname, 'webui', 'app-protected-state.js'),
-  path.join(__dirname, 'webui', 'app-request.js'),
-  path.join(__dirname, 'webui', 'app-table-render.js'),
-  path.join(__dirname, 'webui', 'app-render.js'),
-  path.join(__dirname, 'webui', 'app-page-cron.js'),
-  path.join(__dirname, 'webui', 'app-double-task-page.js'),
-  path.join(__dirname, 'webui', 'app-task-pages.js'),
-  path.join(__dirname, 'webui', 'app-pages.js'),
-  path.join(__dirname, 'webui', 'app-cookie-actions.js'),
-  // Resource leaf modules must be loaded before app-resource-actions assembles them.
-  path.join(__dirname, 'webui', 'app-system-resource-actions.js'),
-  path.join(__dirname, 'webui', 'app-fans-resource-actions.js'),
-  path.join(__dirname, 'webui', 'app-yuba-resource-actions.js'),
-  path.join(__dirname, 'webui', 'app-resource-actions.js'),
-  path.join(__dirname, 'webui', 'app-auth-actions.js'),
-  path.join(__dirname, 'webui', 'app-actions.js'),
-  path.join(__dirname, 'webui', 'app-simple-task-actions.js'),
-  path.join(__dirname, 'webui', 'app-send-task-actions.js'),
-  path.join(__dirname, 'webui', 'app-task-actions.js'),
-  path.join(__dirname, 'webui', 'app-events.js'),
-  path.join(__dirname, 'webui', 'app.js'),
-]
+export const WEBUI_ASSET_ROOT = path.join(__dirname, 'webui')
+const WEBUI_TEMPLATE_PATH = path.join(WEBUI_ASSET_ROOT, 'index.html')
 
 let cachedTemplate: string | null = null
-let cachedStyles: string | null = null
-let cachedScripts: string | null = null
 
 function readPackageVersion(): string {
   try {
@@ -90,24 +55,8 @@ function readTemplate(): string {
   return cachedTemplate
 }
 
-function readStyles(): string {
-  if (!cachedStyles) {
-    cachedStyles = WEBUI_STYLE_PATHS.map(readTextFile).join('\n')
-  }
-  return cachedStyles
-}
-
-function readScript(): string {
-  if (!cachedScripts) {
-    cachedScripts = WEBUI_SCRIPT_PATHS.map(readTextFile).join('\n;\n')
-  }
-  return cachedScripts
-}
-
 export function getHtml(): string {
   let html = readTemplate()
-  html = replaceToken(html, '__WEBUI_STYLES__', readStyles())
-  html = replaceToken(html, '__WEBUI_SCRIPT__', readScript())
   html = replaceToken(html, '__APP_NAME__', escapeHtml(APP_NAME))
   html = replaceToken(html, '__APP_VERSION_LABEL__', escapeHtml(APP_VERSION_LABEL))
   html = replaceToken(html, '__DOCKER_WEBUI_PAGE_ROUTES_JSON__', JSON.stringify(DOCKER_WEBUI_PAGE_ROUTES))

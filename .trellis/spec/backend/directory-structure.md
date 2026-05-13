@@ -40,7 +40,7 @@ src/
 │   ├── server.ts
 │   ├── task-metadata.ts
 │   ├── webui.ts
-│   └── webui/
+│   ├── webui/
 │       ├── app-actions.js
 │       ├── app-auth-actions.js
 │       ├── app-data.js
@@ -69,6 +69,11 @@ src/
 │       ├── styles-responsive.css
 │       ├── styles-tables.css
 │       └── app.js
+│   └── webui-src/
+│       ├── App.vue
+│       ├── index.html
+│       ├── legacy-modules.d.ts
+│       └── main.ts
 ```
 
 ---
@@ -92,7 +97,9 @@ Examples:
 - `src/docker/server-auth.ts` owns Docker WebUI session cookies, in-memory session lifecycle, auth routes, and the protected API boundary.
 - `src/docker/server-*-routes.ts` files own cohesive Docker HTTP route groups and delegate work through `AppContext`.
 - `src/docker/server-types.ts` owns the shared `AppContext` and `JobStatus` types re-exported by `server.ts` for existing imports.
-- `src/docker/webui/index.html` owns the Docker WebUI document shell.
+- `src/docker/webui-src/index.html` owns the Vite HTML shell and runtime token placeholders.
+- `src/docker/webui-src/App.vue` owns the current Docker WebUI document shell markup during the conservative Vue migration.
+- `src/docker/webui-src/main.ts` owns Vue bootstrapping, CSS imports, and transitional legacy module import order.
 - `src/docker/webui/styles.css` owns Docker WebUI base variables, auth shell, navigation, and page shell styles.
 - `src/docker/webui/styles-components.css` owns Docker WebUI cards, panels, forms, buttons, and task component styles.
 - `src/docker/webui/styles-tables.css` owns Docker WebUI table, empty-state, log, toast, and screen-reader utility styles.
@@ -120,7 +127,7 @@ Examples:
 - `src/docker/webui/app-task-pages.js` owns Docker WebUI task page rendering and double-card page-local controls.
 - `src/docker/webui/app.js` owns the Docker WebUI client-side behavior script.
 - `src/docker/webui/app-yuba-resource-actions.js` owns Docker WebUI Yuba status resource loading actions.
-- `src/docker/webui.ts` owns template loading plus runtime injection for app version, page routes, ordered styles, and ordered client scripts.
+- `src/docker/webui.ts` owns Vite-built template loading plus runtime injection for app version and page routes.
 - `src/core/job.ts` runs the gift workflow without knowing which HTTP route or scheduler triggered it.
 - `src/core/yuba.ts` is the public Yuba facade that re-exports status and check-in workflows.
 - `src/core/yuba-check-in.ts` owns Yuba sign-in, fast sign, supplementary sign, and followed-group check-in execution.
@@ -141,7 +148,7 @@ Examples:
 ## Examples
 
 - Shared business logic: `src/core/job.ts`, `src/core/api.ts`, `src/core/gift.ts`
-- Docker runtime wiring: `src/docker/index.ts`, `src/docker/runtime.ts`, `src/docker/server.ts`, `src/docker/logger.ts`, `src/docker/webui.ts`, `src/docker/webui/index.html`
+- Docker runtime wiring: `src/docker/index.ts`, `src/docker/runtime.ts`, `src/docker/server.ts`, `src/docker/logger.ts`, `src/docker/webui.ts`, `src/docker/webui-src/index.html`
 
 ---
 
@@ -151,6 +158,7 @@ Examples:
 - Do not reintroduce `src/main/`, `src/renderer/`, Electron packaging config, or desktop-only dependencies unless desktop support is explicitly restored.
 - Do not duplicate Douyu API parsing logic in Docker route handlers when it can live in `src/core/api.ts`.
 - Do not make route handlers contain large business workflows; keep those in reusable functions.
+- Do not move Vite dev server into the Docker runtime; production must serve static Vite output through Express.
 - Do not use Express wildcard path strings such as `app.get('*')` for WebUI fallback routing. Express 5 uses stricter path parsing; use an unmounted middleware that checks `req.method` and `req.path` instead.
 
 ---
@@ -168,8 +176,9 @@ Examples:
 {
   "scripts": {
     "build": "npm run build:docker",
-    "build:docker": "rm -rf build/docker && tsc -p tsconfig.docker.json",
-    "type-check": "tsc -p tsconfig.docker.json --noEmit"
+    "build:webui": "npm run type-check:webui && vite build",
+    "build:docker": "rm -rf build/docker && npm run build:webui && tsc -p tsconfig.docker.json",
+    "type-check": "npm run type-check:docker && npm run type-check:webui"
   }
 }
 ```
@@ -177,10 +186,12 @@ Examples:
 ### 3. Contracts
 
 - `tsconfig.docker.json` includes only `src/core/**/*.ts` and `src/docker/**/*.ts`.
+- `tsconfig.docker.json` excludes `src/docker/webui-src`; Vue SFC checks run through `vue-tsc -p tsconfig.webui.json --noEmit`.
 - Docker image build copies `src/` and runs `npm run build:docker`.
-- `npm run build:docker` copies the whole `src/docker/webui` directory so the split `index.html`, `styles.css`, and `app.js` files are available beside the compiled Docker runtime.
+- `npm run build:docker` runs Vite first, writing static assets to `build/docker/docker/webui`, then compiles Docker TypeScript into the same build root.
 - Runtime entrypoint remains `node dist/docker/index.js` inside the container.
 - Local compiled entrypoint is `node build/docker/docker/index.js` before the Dockerfile copy step.
+- Runtime Docker install must omit dev dependencies, so Vue/Vite tooling stays builder-only and does not inflate production `node_modules`.
 
 ### 4. Validation & Error Matrix
 
@@ -189,19 +200,22 @@ Examples:
 | New Docker route/service code | Compiles through `npm run build:docker` |
 | New shared core code | Compiles through `npm run build:docker` and remains free of Express/runtime wiring |
 | New Electron/Vue desktop code | Reject unless desktop support has been explicitly restored |
+| New Docker WebUI Vue code | Build with `npm run build:webui` and keep Vite output under `build/docker/docker/webui` |
 | New dependency | Verify it is imported by `src/core` or `src/docker`, not by deleted desktop paths |
 
 ### 5. Good/Base/Bad Cases
 
 - Good: Add Express route handling in `src/docker/server.ts` and shared API parsing in `src/core/api.ts`.
 - Base: Add a config field in `src/core/types.ts`, normalize it in `src/core/medal-sync.ts`, and expose it through Docker routes.
-- Bad: Add `electron`, `vite`, `vue`, `src/main`, or `src/renderer` for behavior only used by Docker WebUI.
+- Bad: Add `electron`, `src/main`, or `src/renderer` for behavior only used by Docker WebUI.
+- Bad: Add Vue/Vite to production `dependencies` when they are only needed for builder-time WebUI assets.
 
 ### 6. Tests Required
 
 - Run `npm run build:docker`.
 - Run `npm run type-check` when TypeScript contracts changed.
 - Run `npm run lint` for touched TypeScript and config files.
+- For Docker WebUI source changes, run `npm run build:webui` or `npm test`.
 
 ### 7. Wrong vs Correct
 

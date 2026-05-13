@@ -6,64 +6,38 @@
 
 ## Overview
 
-State is split across three layers:
+Docker WebUI state is currently split between:
 
-- Local screen state with `ref()` / `reactive()`
-- Global app state with Pinia
-- Persisted configuration through Electron IPC or Docker HTTP APIs
+- Vue-local state in `src/docker/webui-src/`
+- Transitional legacy browser state under `src/docker/webui/app-state.js`
+- Persisted configuration through Docker HTTP APIs
 
-There is no dedicated server-state library such as Vue Query. Remote state is fetched on demand and stored in Pinia or component state.
-
----
+There is no dedicated server-state library such as Vue Query, and Pinia is not part of the current Docker WebUI stack.
 
 ## State Categories
 
-- Local state:
-  - dialogs, snackbars, validation messages, cron previews
-  - examples: `dialog`, `warn`, `cronNext` in `src/renderer/views/jobs/index.vue` and `src/renderer/views/config/index.vue`
-- Global state:
-  - current user, fan list, running log text, cron-running status
-  - examples: `src/renderer/stores/user.ts`, `src/renderer/stores/fans.ts`, `src/renderer/stores/log.ts`, `src/renderer/stores/cronjob.ts`
-- Persisted state:
-  - desktop config stored through `window.electron.ipcRenderer.invoke('db', ...)`
-  - examples: `src/renderer/App.vue`, `src/renderer/views/config/index.vue`
+- Local UI state: form fields, loading flags, dialogs, validation messages, cron previews.
+- Shared page state during the transition: existing `DOUYU_KEEP_WEBUI_*` modules under `src/docker/webui/`.
+- Persisted state: Docker config read/written through `/api/config`, `/api/cookie-source/*`, and related Express routes.
 
----
+## When To Add Global State
 
-## When To Use Global State
+Add a global store only when:
 
-Promote state to Pinia when:
+- multiple Vue components need the same mutable state,
+- route/page changes should preserve background progress,
+- or duplicated fetch/update logic appears in several components.
 
-- more than one route needs it
-- background job progress must survive route changes
-- refresh logic should be reusable
-
-Current examples:
-
-- `useLog()` keeps the running job message visible to the jobs page.
-- `useLogin()` centralizes account info and gift count.
-- `useFans()` shares the parsed fan badge list between config and jobs screens.
-
----
+Until then, prefer component state plus small helper modules.
 
 ## Server And Persistence State
 
-- Fetch remote Douyu data directly with `axios`.
-- Fetch platform data or persisted config through IPC.
-- Do not assume remote data is cached globally unless a store already owns it.
-- Normalize persisted config after reading, especially when available fans have changed.
-
-Examples:
-
-- `src/renderer/stores/fans.ts` fetches and sorts the fan list.
-- `src/renderer/run/utils.ts` reads config from the desktop store.
-- `src/renderer/views/config/index.vue` rebuilds `send` based on the current fans list.
-
----
+- Fetch Docker runtime data through the existing Express JSON APIs.
+- Do not call Douyu directly from Vue components when the Docker backend already owns that boundary.
+- Preserve backend cache/coalescing semantics; the browser should not add cooldowns that suppress needed local API refreshes.
 
 ## Common Mistakes
 
-- Do not store one-off dialog visibility in a global store.
-- Do not duplicate the same fetched data in several stores.
-- Do not mutate persisted config without validating cron, number, and percentage rules first.
-- Do not forget to refresh global stores after login changes or manual job runs.
+- Do not introduce Pinia before there is shared Vue-owned state.
+- Do not duplicate the legacy `app-state.js` model into Vue without a migration plan.
+- Do not silently convert failed API requests into valid empty UI state.

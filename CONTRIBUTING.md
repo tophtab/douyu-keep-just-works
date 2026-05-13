@@ -28,13 +28,17 @@ npm test
 ```
 
 `npm test` currently runs the lightweight contract tests and then the Docker
-TypeScript build. There is no full automated runtime test suite yet.
+build, including the Vite-built Docker WebUI assets. There is no full automated
+runtime test suite yet.
 
 ## Docker-First Development
 
 - Shared Douyu logic belongs in `src/core/`.
 - Docker WebUI, Express routes, scheduler wiring, config file IO, and logs
   belong in `src/docker/`.
+- Docker WebUI source lives in `src/docker/webui-src/` and is built by Vite
+  into `build/docker/docker/webui/`; the existing `src/docker/webui/*.js`
+  modules are the transitional browser behavior layer bundled by Vite.
 - The Docker image must continue to build with `npm run build:docker`.
 - Do not add Electron, Yarn desktop release, or renderer packaging work unless
   desktop support is explicitly restored.

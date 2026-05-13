@@ -6,72 +6,40 @@
 
 ## Overview
 
-This frontend uses Vue SFCs with `<script setup lang="ts">`.
-Most pages are view-centric and directly compose Vuetify components plus UnoCSS utility classes.
+Docker WebUI components use Vue single-file components with `<script setup lang="ts">`.
 
-The project does not currently maintain a large shared component library. Reuse happens more through stores and helpers than through extracted presentational components.
-
----
+The first Vue migration intentionally keeps most existing markup in `App.vue` and bundles the transitional `src/docker/webui/*.js` behavior modules. Future work should gradually extract cohesive components from `App.vue` instead of redesigning every page at once.
 
 ## Component Structure
 
 Preferred file shape:
 
 1. `<script setup lang="ts">`
-2. imports from Vue, Pinia, router, and local helpers
-3. refs/reactive state
-4. async handlers and initialization
-5. `<template>`
-6. optional scoped styles
-
-Examples:
-
-- `src/renderer/views/jobs/index.vue`
-- `src/renderer/views/config/index.vue`
-- `src/renderer/layout/index.vue`
-
----
+2. imports from Vue and local helpers
+3. typed props/state/helpers
+4. `<template>`
+5. optional scoped styles
 
 ## Props And Composition
 
-- Many current components are route-level views and have no props.
-- When a value is shared across screens, prefer a Pinia store or a helper module over prop drilling.
-- Use `storeToRefs()` when destructuring reactive store state.
-
-Examples:
-
-- `src/renderer/views/jobs/index.vue` reads store state via `storeToRefs(log)`, `storeToRefs(cronjob)`, and `storeToRefs(login)`.
-- `src/renderer/views/config/index.vue` reads `fansList` from the Pinia store rather than receiving it as props.
-
----
+- Keep one-off state local to the component or composable that owns it.
+- Extract shared behavior into local helpers/composables only after repetition appears.
+- Do not add Pinia solely to avoid passing a small amount of state.
 
 ## Styling Patterns
 
-- Use Vuetify components for forms, tables, dialogs, alerts, and buttons.
-- Use UnoCSS utility classes for layout, spacing, and simple visual tweaks.
-- Add scoped SCSS only when utility classes are not enough.
-
-Examples:
-
-- `src/renderer/views/jobs/index.vue` mixes Vuetify (`v-btn`, `v-table`, `v-dialog`) with utility classes such as `flex`, `justify-between`, and `opacity-60`.
-- `src/renderer/layout/index.vue` is almost entirely utility-class based.
-- `src/renderer/views/jobs/index.vue` uses a small scoped SCSS block for `.scrollbar-container`.
-
----
+- Reuse the existing Docker WebUI CSS variables and classes unless a component genuinely needs local styling.
+- Keep user-facing Chinese copy stable during framework-only migrations.
+- Avoid adding a heavy UI library for basic buttons, forms, tables, or cards.
 
 ## Accessibility
 
-- Keep text labels on form inputs and buttons; Vuetify already provides most semantics.
-- Add `alt` text when rendering images, as in `src/renderer/views/jobs/index.vue`.
-- Keep navigation visible and straightforward; the current shell uses text labels and icons.
-
-This codebase does not yet show deeper a11y practices such as keyboard-specific tests, so preserve existing clarity and avoid regressions.
-
----
+- Preserve visible labels for form controls.
+- Keep live regions for async validation/status text.
+- Preserve tab semantics and keyboard navigation when moving markup into components.
 
 ## Common Mistakes
 
-- Do not replace simple store usage with unnecessary prop chains.
-- Do not move all layout into custom CSS when utility classes already express it clearly.
-- Do not mix unrelated orchestration code into layout components.
-- Do not extract one-off components too early; most current pages are intentionally local and direct.
+- Do not treat a Vue migration as a visual redesign unless the task explicitly asks for redesign.
+- Do not split tiny one-off fragments into deep component trees.
+- Do not let transitional legacy modules and Vue components race to own the same DOM region.

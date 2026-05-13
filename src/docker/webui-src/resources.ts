@@ -1,3 +1,4 @@
+import type { Fans, FanStatus, FansStatusResponse, GiftStatus } from '../../core/types'
 import type { WebUiRequestError } from './request'
 import type { Ref } from 'vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -47,6 +48,54 @@ interface LegacySystemResourceActions {
   clearLogs: () => Promise<void>
 }
 
+interface LegacyResourceRequest {
+  pending: Promise<unknown> | null
+  requestSeq: number
+}
+
+interface LegacyFansManagedResponse {
+  config?: unknown
+  fans?: Fans[]
+}
+
+interface LegacyFansResourceState {
+  fansListError: string
+  fansStatus: FanStatus[]
+  fansStatusDetailsLoaded: boolean
+  fansStatusDetailsLoading: boolean
+  fansStatusLoaded: boolean
+  fansStatusLoading: boolean
+  giftStatus: GiftStatus | null
+  managed: LegacyFansManagedResponse | null
+  managedLoading: boolean
+  rawConfig: unknown
+}
+
+interface LegacyFansResourceDeps {
+  applyFansStatusBase: (data: FansStatusResponse) => void
+  applyFansStatusDetails: (data: FansStatusResponse) => void
+  getRawConfig: () => unknown
+  getResourceRequest: (key: 'fansSync' | 'fansList' | 'fansStatus') => LegacyResourceRequest
+  hasCookieSourceConfigured: (config?: unknown) => boolean
+  invalidateResourceRequest: (key: 'fansSync' | 'fansList' | 'fansStatus') => void
+  invalidateResourceRequests: (keys: Array<'fansSync' | 'fansList' | 'fansStatus'>) => void
+  isUnauthorizedError: (error: unknown) => boolean
+  markResourceLoaded: (key: 'fansList' | 'fansStatus') => void
+  renderAll: () => void
+  renderExpiringGiftPage: () => void
+  renderOverview: () => void
+  setManagedFans: (fans: Fans[]) => void
+  state: LegacyFansResourceState
+  toast: (message: string, ok: boolean) => void
+  trackResourceRequest: <T>(resource: LegacyResourceRequest, requestSeq: number, pending: Promise<T>) => Promise<T>
+}
+
+interface LegacyFansResourceActions {
+  loadFansList: (showToast?: boolean) => Promise<unknown>
+  loadFansStatus: (showToast?: boolean) => Promise<unknown>
+  syncFans: (showToast?: boolean) => Promise<unknown>
+}
+
 interface ReadOnlyResource<T> {
   data: T | null
   error: string
@@ -67,6 +116,9 @@ declare global {
   interface Window {
     DOUYU_KEEP_WEBUI_SYSTEM_RESOURCE_ACTIONS?: {
       create: (deps: LegacySystemResourceDeps) => LegacySystemResourceActions
+    }
+    DOUYU_KEEP_WEBUI_FANS_RESOURCE_ACTIONS?: {
+      create: (deps: LegacyFansResourceDeps) => LegacyFansResourceActions
     }
   }
 }
@@ -363,5 +415,216 @@ function createLegacySystemResourceActions(deps: LegacySystemResourceDeps): Lega
 export function installLegacySystemResourceBridge(): void {
   window.DOUYU_KEEP_WEBUI_SYSTEM_RESOURCE_ACTIONS = {
     create: createLegacySystemResourceActions,
+  }
+}
+
+function createLegacyFansResourceActions(deps: LegacyFansResourceDeps): LegacyFansResourceActions {
+  const state = deps.state
+
+  function syncFans(showToast?: boolean): Promise<unknown> {
+    const rawConfig = deps.getRawConfig()
+    const resource = deps.getResourceRequest('fansSync')
+    if (!deps.hasCookieSourceConfigured(rawConfig)) {
+      deps.invalidateResourceRequests(['fansSync', 'fansList', 'fansStatus'])
+      state.managedLoading = false
+      state.fansStatusLoading = false
+      state.fansStatusDetailsLoading = false
+      deps.toast('请先保存 Cookie 或启用 CookieCloud', false)
+      deps.renderAll()
+      return Promise.resolve()
+    }
+
+    if (resource.pending) {
+      return resource.pending
+    }
+
+    const requestSeq = resource.requestSeq + 1
+    resource.requestSeq = requestSeq
+    state.managedLoading = true
+    state.fansListError = ''
+    deps.renderAll()
+
+    const pending = requestJson<LegacyFansManagedResponse>('/api/fans/reconcile', {
+      method: 'POST',
+    }).then((data) => {
+      if (resource.requestSeq !== requestSeq) {
+        return
+      }
+      state.managed = data
+      state.rawConfig = data.config
+      state.managedLoading = false
+      deps.markResourceLoaded('fansList')
+      deps.invalidateResourceRequest('fansStatus')
+      deps.renderAll()
+      if (showToast) {
+        deps.toast('粉丝牌与任务配置已同步', true)
+      }
+    }).catch((error: unknown) => {
+      if (resource.requestSeq !== requestSeq) {
+        return
+      }
+      if (deps.isUnauthorizedError(error)) {
+        return
+      }
+      state.managedLoading = false
+      state.fansListError = getErrorMessage(error)
+      deps.renderAll()
+      deps.toast(`同步粉丝牌失败：${getErrorMessage(error)}`, false)
+    })
+
+    return deps.trackResourceRequest(resource, requestSeq, pending)
+  }
+
+  function loadFansList(showToast?: boolean): Promise<unknown> {
+    const rawConfig = deps.getRawConfig()
+    const resource = deps.getResourceRequest('fansList')
+    if (!deps.hasCookieSourceConfigured(rawConfig)) {
+      deps.invalidateResourceRequest('fansList')
+      state.managed = null
+      state.managedLoading = false
+      deps.renderAll()
+      if (showToast) {
+        deps.toast('请先保存 Cookie 或启用 CookieCloud', false)
+      }
+      return Promise.resolve()
+    }
+
+    if (resource.pending) {
+      return resource.pending
+    }
+
+    const requestSeq = resource.requestSeq + 1
+    resource.requestSeq = requestSeq
+    state.managedLoading = true
+    state.fansListError = ''
+    deps.renderAll()
+
+    const pending = requestJson<Fans[]>('/api/fans').then((data) => {
+      if (resource.requestSeq !== requestSeq) {
+        return
+      }
+      deps.setManagedFans(data)
+      state.managedLoading = false
+      deps.markResourceLoaded('fansList')
+      deps.renderAll()
+      if (showToast) {
+        deps.toast('粉丝牌列表已加载', true)
+      }
+    }).catch((error: unknown) => {
+      if (resource.requestSeq !== requestSeq) {
+        return
+      }
+      if (deps.isUnauthorizedError(error)) {
+        return
+      }
+      state.managedLoading = false
+      state.fansListError = getErrorMessage(error)
+      deps.renderAll()
+      deps.toast(`加载粉丝牌列表失败：${getErrorMessage(error)}`, false)
+    })
+
+    return deps.trackResourceRequest(resource, requestSeq, pending)
+  }
+
+  function loadFansStatus(showToast?: boolean): Promise<unknown> {
+    const rawConfig = deps.getRawConfig()
+    const resource = deps.getResourceRequest('fansStatus')
+    if (!deps.hasCookieSourceConfigured(rawConfig)) {
+      deps.invalidateResourceRequest('fansStatus')
+      state.fansStatus = []
+      state.giftStatus = null
+      state.fansStatusLoading = false
+      state.fansStatusLoaded = false
+      state.fansStatusDetailsLoaded = false
+      state.fansStatusDetailsLoading = false
+      deps.renderOverview()
+      deps.renderExpiringGiftPage()
+      if (showToast) {
+        deps.toast('请先保存 Cookie 或启用 CookieCloud', false)
+      }
+      return Promise.resolve()
+    }
+
+    if (resource.pending) {
+      return resource.pending
+    }
+
+    const requestSeq = resource.requestSeq + 1
+    resource.requestSeq = requestSeq
+    state.fansStatusLoading = true
+    state.fansStatusDetailsLoading = true
+    deps.renderOverview()
+    deps.renderExpiringGiftPage()
+
+    const pending = requestJson<FansStatusResponse>('/api/fans/status/base').then((data) => {
+      if (resource.requestSeq !== requestSeq) {
+        return null
+      }
+      deps.applyFansStatusBase(data)
+      deps.renderOverview()
+      deps.renderExpiringGiftPage()
+      if (data && data.complete) {
+        state.fansStatusLoading = false
+        state.fansStatusDetailsLoading = false
+        deps.markResourceLoaded('fansStatus')
+        if (state.fansStatus.length) {
+          deps.markResourceLoaded('fansList')
+        }
+        deps.renderOverview()
+        deps.renderExpiringGiftPage()
+        if (showToast) {
+          deps.toast('粉丝牌状态已刷新', true)
+        }
+        return null
+      }
+      return requestJson<FansStatusResponse>('/api/fans/status/details')
+    }).then((data) => {
+      if (!data || resource.requestSeq !== requestSeq) {
+        return
+      }
+      deps.applyFansStatusDetails(data)
+      state.fansStatusLoading = false
+      state.fansStatusDetailsLoading = false
+      deps.markResourceLoaded('fansStatus')
+      if (state.fansStatus.length) {
+        deps.markResourceLoaded('fansList')
+      }
+      deps.renderOverview()
+      deps.renderExpiringGiftPage()
+      if (showToast) {
+        deps.toast('粉丝牌状态已刷新', true)
+      }
+    }).catch((error: unknown) => {
+      if (resource.requestSeq !== requestSeq) {
+        return
+      }
+      state.fansStatusLoading = false
+      state.fansStatusDetailsLoading = false
+      if (!state.fansStatusLoaded) {
+        state.fansStatus = []
+        state.giftStatus = null
+        state.fansStatusDetailsLoaded = false
+      }
+      deps.renderOverview()
+      deps.renderExpiringGiftPage()
+      if (deps.isUnauthorizedError(error)) {
+        return
+      }
+      deps.toast(`加载粉丝牌状态失败：${getErrorMessage(error)}`, false)
+    })
+
+    return deps.trackResourceRequest(resource, requestSeq, pending)
+  }
+
+  return {
+    loadFansList,
+    loadFansStatus,
+    syncFans,
+  }
+}
+
+export function installLegacyFansResourceBridge(): void {
+  window.DOUYU_KEEP_WEBUI_FANS_RESOURCE_ACTIONS = {
+    create: createLegacyFansResourceActions,
   }
 }

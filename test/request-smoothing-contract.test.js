@@ -20,7 +20,7 @@ function readServerSources() {
 function readWebuiResourceActionSources() {
   return [
     'src/docker/webui/app-resource-actions.js',
-    'src/docker/webui/app-fans-resource-actions.js',
+    'src/docker/webui-src/resources.ts',
     'src/docker/webui-src/yuba.ts',
   ].map(readRepoFile).join('\n')
 }

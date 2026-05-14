@@ -129,6 +129,12 @@ function readBackpackNumber(value: unknown, fallback = 0): number {
   return parsed === undefined ? fallback : parsed
 }
 
+function readFansIntimacyCurrent(value: string): number {
+  const current = value.split('/')[0]?.replace(/,/g, '').trim()
+  const parsed = Number(current)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
 function readBackpackBoolean(value: unknown): boolean {
   if (typeof value === 'boolean') {
     return value
@@ -212,6 +218,7 @@ export async function getBackpackStatus(cookie: string, candidateRoomIds: number
       const rows = data.data.list
         .filter((item: unknown): item is Record<string, unknown> => isRecord(item))
         .map(normalizeBackpackRow)
+        .sort((a, b) => b.count - a.count)
       const summary = summarizeGlowSticks(rows)
 
       return {
@@ -310,7 +317,7 @@ export async function getFansList(cookie: string): Promise<Fans[]> {
       today: Number(tds[3].replace(/<([\s\S]*?)>/g, '').trim()),
     }
   }) ?? []
-  return fans.sort((a, b) => b.level - a.level)
+  return fans.sort((a, b) => readFansIntimacyCurrent(b.intimacy) - readFansIntimacyCurrent(a.intimacy))
 }
 
 export function parseDyAndSidFromCookie(cookie: string): sendArgs {

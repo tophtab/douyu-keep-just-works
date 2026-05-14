@@ -7,6 +7,11 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ## Unreleased
 
+### Changed
+
+- WebUI fan-badge related lists now sort by current intimacy progress
+  descending, and backpack detail rows sort by quantity descending.
+
 ## 2.5.0 - 2026-05-13
 
 ### Added

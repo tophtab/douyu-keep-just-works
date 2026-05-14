@@ -274,3 +274,36 @@ Aligned WebUI table column widths, adjusted double and backpack table columns, s
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: Align Yuba table widths
+
+**Date**: 2026-05-14
+**Task**: Align Yuba table widths
+**Branch**: `master`
+
+### Summary
+
+Aligned the Yuba status table to the 50px index plus six 100px data/status column pattern, verified frontend type-check, lint, and WebUI build, and provided a mock preview for inspection.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9eaa518` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

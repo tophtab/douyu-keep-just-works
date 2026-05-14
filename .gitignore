@@ -12,6 +12,7 @@ build
 .claude/
 .opencode/
 .codex
+.playwright-cli/
 .agents/skills/**/*.backup
 
 # Local runtime config

@@ -11,17 +11,20 @@ interface AllocationRow {
   value: number
 }
 
-defineProps<{
+withDefaults(defineProps<{
   enabledClass?: string
   enabledNamePrefix?: string
   inputClass: string
   inputNamePrefix: string
   rows: AllocationRow[]
   showEnabled?: boolean
+  showIndex?: boolean
   tableClass: string
   taskLabel: string
   valueLabel: string
-}>()
+}>(), {
+  showIndex: true,
+})
 
 const emit = defineEmits<{
   enabledChange: [row: AllocationRow, value: boolean]
@@ -32,22 +35,22 @@ const emit = defineEmits<{
 <template>
   <table class="table table-fixed" :class="tableClass">
     <colgroup>
-      <col v-if="showEnabled" style="width:68px">
-      <col style="width:56px">
-      <col style="width:156px">
-      <col style="width:104px">
-      <col style="width:94px">
-      <col style="width:94px">
-      <col style="width:94px">
-      <col style="width:94px">
-      <col style="width:112px">
+      <col v-if="showEnabled" style="width:50px">
+      <col v-if="showIndex" style="width:50px">
+      <col style="width:100px">
+      <col style="width:100px">
+      <col style="width:100px">
+      <col style="width:100px">
+      <col style="width:100px">
+      <col style="width:100px">
+      <col style="width:100px">
     </colgroup>
     <thead>
       <tr>
         <th v-if="showEnabled" class="control-head" scope="col">
           参与
         </th>
-        <th class="index-head" scope="col">
+        <th v-if="showIndex" class="index-head" scope="col">
           序号
         </th>
         <th scope="col">
@@ -86,7 +89,7 @@ const emit = defineEmits<{
             @change="emit('enabledChange', row, ($event.target as HTMLInputElement).checked)"
           >
         </td>
-        <td class="index-cell" data-label="序号">
+        <td v-if="showIndex" class="index-cell" data-label="序号">
           {{ row.index }}
         </td>
         <td class="text-cell" data-label="主播名称" :title="row.name">

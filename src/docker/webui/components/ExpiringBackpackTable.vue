@@ -1,11 +1,11 @@
 <script setup lang="ts">
 interface ExpiringBackpackRow {
-  autoRelease: boolean
   count: number
   expireText: string
   giftId: number | string
   inThreshold: boolean
   index: number
+  intimacy: number
   name: string
   remainingText: string
 }
@@ -18,14 +18,14 @@ defineProps<{
 <template>
   <table class="table table-fixed backpack-table">
     <colgroup>
-      <col>
-      <col>
-      <col>
-      <col>
-      <col>
-      <col>
-      <col>
-      <col>
+      <col style="width:50px">
+      <col style="width:100px">
+      <col style="width:100px">
+      <col style="width:100px">
+      <col style="width:100px">
+      <col style="width:100px">
+      <col style="width:100px">
+      <col style="width:100px">
     </colgroup>
     <thead>
       <tr>
@@ -41,6 +41,9 @@ defineProps<{
         <th class="num-head" scope="col">
           数量
         </th>
+        <th class="num-head" scope="col">
+          亲密度
+        </th>
         <th class="date-head" scope="col">
           过期时间
         </th>
@@ -49,9 +52,6 @@ defineProps<{
         </th>
         <th class="control-head" scope="col">
           临期
-        </th>
-        <th class="control-head" scope="col">
-          自动释放
         </th>
       </tr>
     </thead>
@@ -69,6 +69,9 @@ defineProps<{
         <td class="num-cell" data-label="数量">
           {{ row.count }}
         </td>
+        <td class="num-cell" data-label="亲密度">
+          {{ row.intimacy }}
+        </td>
         <td class="date-cell" data-label="过期时间">
           {{ row.expireText }}
         </td>
@@ -77,9 +80,6 @@ defineProps<{
         </td>
         <td class="status-cell control-cell" data-label="临期">
           <span class="pill" :class="row.inThreshold ? 'warn' : 'off'">{{ row.inThreshold ? '是' : '否' }}</span>
-        </td>
-        <td class="status-cell control-cell" data-label="自动释放">
-          <span class="pill" :class="row.autoRelease ? 'ok' : 'off'">{{ row.autoRelease ? '释放' : '跳过' }}</span>
         </td>
       </tr>
     </tbody>

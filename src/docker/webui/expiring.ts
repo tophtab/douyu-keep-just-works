@@ -4,7 +4,6 @@ import { DEFAULT_EXPIRING_GIFT_CRON, DEFAULT_EXPIRING_GIFT_MODEL, DEFAULT_EXPIRI
 import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationModel } from './allocation-task'
 import { useCronPreview } from './composables/use-cron-preview'
-import { formatDate } from './datetime'
 import { rawConfig as sharedRawConfig } from './resource-config'
 import { fansListError as sharedFansListError, fansListLoaded as sharedFansListLoaded, fansStatus as sharedFansStatus, fansStatusDetailsLoading as sharedFansStatusDetailsLoading, fansStatusLoaded as sharedFansStatusLoaded, fansStatusLoading as sharedFansStatusLoading, getManagedConfig, getManagedFans, giftStatus as sharedGiftStatus, managed, managedLoading as sharedManagedLoading } from './resource-fans'
 import { overview as sharedOverview } from './resource-state'
@@ -27,12 +26,12 @@ interface RawExpiringConfig extends CookieSourceConfig {
 type ExpiringFanRow = AllocationFanRow
 
 interface ExpiringBackpackRow {
-  autoRelease: boolean
   count: number
   expireText: string
   giftId: number
   inThreshold: boolean
   index: number
+  intimacy: number
   name: string
   remainingText: string
 }
@@ -177,7 +176,27 @@ function formatTimestamp(value: number | undefined): string {
   if (!value) {
     return '-'
   }
-  return formatDate(new Date(value).toISOString())
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return '-'
+  }
+  try {
+    const parts = new Intl.DateTimeFormat('zh-CN', {
+      timeZone: 'Asia/Shanghai',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      hourCycle: 'h23',
+    }).formatToParts(date)
+    const getPart = (type: Intl.DateTimeFormatPartTypes) => parts.find(part => part.type === type)?.value || '00'
+    return `${getPart('month')}/${getPart('day')} ${getPart('hour')}:${getPart('minute')}`
+  } catch {
+    const shanghaiTime = new Date(date.getTime() + 8 * 60 * 60 * 1000)
+    const pad = (part: number): string => String(part).padStart(2, '0')
+    return `${pad(shanghaiTime.getUTCMonth() + 1)}/${pad(shanghaiTime.getUTCDate())} ${pad(shanghaiTime.getUTCHours())}:${pad(shanghaiTime.getUTCMinutes())}`
+  }
 }
 
 function formatRemainingTime(expireTime: number | undefined): string {
@@ -257,12 +276,12 @@ export function useExpiringGiftTaskPage() {
     return rows.map((row, index) => {
       const rowState = describeBackpackRow(row, normalizeThresholdHours(expiringThresholdHours.value))
       return {
-        autoRelease: rowState.autoRelease,
         count: Number(row.count || 0),
         expireText: formatTimestamp(row.expireTime),
         giftId: row.giftId,
         inThreshold: rowState.inThreshold,
         index: index + 1,
+        intimacy: Number(row.intimacy || 0),
         name: row.name || '未知礼物',
         remainingText: formatRemainingTime(row.expireTime),
       }

@@ -20,14 +20,14 @@ defineProps<{
 <template>
   <table class="table table-fixed fans-status-table">
     <colgroup>
-      <col>
-      <col>
-      <col>
-      <col>
-      <col>
-      <col>
-      <col>
-      <col v-if="showDoubleStatus">
+      <col style="width:50px">
+      <col style="width:100px">
+      <col style="width:100px">
+      <col style="width:100px">
+      <col style="width:100px">
+      <col style="width:100px">
+      <col style="width:100px">
+      <col v-if="showDoubleStatus" style="width:100px">
     </colgroup>
     <thead>
       <tr>

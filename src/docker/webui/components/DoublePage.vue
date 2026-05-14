@@ -147,6 +147,7 @@ function updateRowValue(row: DoubleAllocationRow, value: number): void {
           enabled-name-prefix="double-enabled"
           task-label="双倍"
           show-enabled
+          :show-index="false"
           :rows="doubleFanRows"
           :value-label="doubleValueLabel"
           @enabled-change="updateRowEnabled"

@@ -241,3 +241,36 @@ Removed resource-state compatibility re-exports, deleted the resources barrel, u
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: Align WebUI table columns
+
+**Date**: 2026-05-14
+**Task**: Align WebUI table columns
+**Branch**: `master`
+
+### Summary
+
+Aligned WebUI table column widths, adjusted double and backpack table columns, shortened expiring backpack timestamps, and rebuilt/verified the Docker WebUI.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b652207` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

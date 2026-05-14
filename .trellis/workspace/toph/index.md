@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
-- **Last Active**: 2026-05-13
+- **Total Sessions**: 8
+- **Last Active**: 2026-05-14
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~243 | Active |
+| `journal-1.md` | ~276 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 8 | 2026-05-14 | Align WebUI table columns | `b652207` | `master` |
 | 7 | 2026-05-13 | Remove WebUI resource facade | `fd135b9` | `master` |
 | 6 | 2026-05-13 | Optimize program structure | `eabcec6` | `master` |
 | 5 | 2026-05-13 | Consolidate Docker task plumbing | `605313f` | `master` |

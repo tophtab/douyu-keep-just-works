@@ -307,3 +307,36 @@ Aligned the Yuba status table to the 50px index plus six 100px data/status colum
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: Ignore Playwright CLI artifacts
+
+**Date**: 2026-05-14
+**Task**: Ignore Playwright CLI artifacts
+**Branch**: `master`
+
+### Summary
+
+Added .playwright-cli/ to .gitignore so local Playwright CLI logs and page snapshots stay out of git.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1f898c1` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

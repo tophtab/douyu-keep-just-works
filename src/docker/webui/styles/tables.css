@@ -24,13 +24,11 @@
   min-width:650px;
 }
 .fans-status-table col:nth-child(1),
-.backpack-table col:nth-child(1),
-.yuba-status-table col:nth-child(1){
+.backpack-table col:nth-child(1){
   width:50px;
 }
 .fans-status-table col:nth-child(n + 2),
-.backpack-table col:nth-child(n + 2),
-.yuba-status-table col:nth-child(n + 2){
+.backpack-table col:nth-child(n + 2){
   width:100px;
 }
 .fans-status-table th:last-child,

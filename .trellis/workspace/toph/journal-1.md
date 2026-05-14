@@ -340,3 +340,36 @@ Added .playwright-cli/ to .gitignore so local Playwright CLI logs and page snaps
 ### Next Steps
 
 - None - task complete
+
+
+## Session 11: Update list sorting rules
+
+**Date**: 2026-05-14
+**Task**: Update list sorting rules
+**Branch**: `master`
+
+### Summary
+
+Changed fan-badge related lists to sort by current intimacy progress descending, changed backpack detail rows to sort by quantity descending, and added contract coverage for both ordering rules.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a2dd839` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

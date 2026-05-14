@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Core data normalization changes need backend quality and test guidance."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "WebUI lists consume shared resource state; preserve resource ownership patterns."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Sorting reads normalized API fields without weakening TypeScript contracts."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Sorting behavior flows from core data through runtime cache into WebUI tables."}

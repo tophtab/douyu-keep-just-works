@@ -7,6 +7,8 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ## Unreleased
 
+## 3.0.0 - 2026-05-15
+
 ### Changed
 
 - WebUI fan-badge related lists now sort by current intimacy progress

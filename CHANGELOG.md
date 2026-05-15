@@ -9,10 +9,46 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ## 3.0.0 - 2026-05-15
 
+### Added
+
+- Docker WebUI now builds as a Vue, Vite, and TypeScript application served as
+  static Docker assets.
+- Vue WebUI pages were added for authentication, navigation, overview,
+  collect, Yuba, keepalive, double-card, expiring gifts, login configuration,
+  logs, fans, and shared task status views.
+- Typed WebUI modules now cover request handling, resource state, task page
+  actions, allocation helpers, cron previews, theme mode, toast messages, and
+  date/time formatting.
+- Contract tests now cover fan/backpack sorting, gift task helpers, Docker
+  WebUI build/runtime expectations, request smoothing, and project maintenance
+  release gates.
+
 ### Changed
 
+- Docker WebUI migrated away from the legacy imperative browser runtime to a
+  Vue-only bootstrap path.
+- WebUI task pages, resource loading, page actions, navigation, auth shell, and
+  styles were split into focused Vue components and TypeScript modules.
+- Legacy WebUI bridge globals, render helpers, table renderers, page routers,
+  and action assembly scripts were removed.
+- Docker runtime task plumbing now uses shared task metadata, shared defaults,
+  and smaller task runner modules.
+- Gift task helpers, allocation task helpers, and resource request/state logic
+  were consolidated for reuse across task types.
+- WebUI table layouts now use more consistent column widths and alignment,
+  including Yuba status/detail tables.
 - WebUI fan-badge related lists now sort by current intimacy progress
   descending, and backpack detail rows sort by quantity descending.
+- Local maintenance metadata was updated for Trellis platform templates,
+  project specs, ignored generated artifacts, and release documentation.
+
+### Fixed
+
+- Docker builds keep Vite optional native bindings available in the builder
+  environment.
+- WebUI resource facade and compatibility bridge leftovers were removed so the
+  Vue runtime is the maintained WebUI path.
+- Unused WebUI logs module and stale source shell files were removed.
 
 ## 2.5.0 - 2026-05-13
 

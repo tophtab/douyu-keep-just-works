@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 12
+- **Total Sessions**: 13
 - **Last Active**: 2026-05-15
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~408 | Active |
+| `journal-1.md` | ~443 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 13 | 2026-05-15 | Release 3.0.0 | `a5c128b`, `c1e543c`, `cf0f81a` | `master` |
 | 12 | 2026-05-15 | Update dockerignore entries | `683ba48` | `master` |
 | 11 | 2026-05-14 | Update list sorting rules | `a2dd839` | `master` |
 | 10 | 2026-05-14 | Ignore Playwright CLI artifacts | `1f898c1` | `master` |

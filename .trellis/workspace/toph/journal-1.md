@@ -406,3 +406,38 @@ Added Docker build context ignore entries for local tool metadata, IDE settings,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: Release 3.0.0
+
+**Date**: 2026-05-15
+**Task**: Release 3.0.0
+**Branch**: `master`
+
+### Summary
+
+Published 3.0.0, expanded the release changelog to cover the full v2.5.0-to-v3.0.0 scope, moved v3.0.0 to the corrected changelog commit, and verified the Docker release workflow passed.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a5c128b` | (see git log) |
+| `c1e543c` | (see git log) |
+| `cf0f81a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

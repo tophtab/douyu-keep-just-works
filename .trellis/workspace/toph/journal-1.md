@@ -373,3 +373,36 @@ Changed fan-badge related lists to sort by current intimacy progress descending,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: Update dockerignore entries
+
+**Date**: 2026-05-15
+**Task**: Update dockerignore entries
+**Branch**: `master`
+
+### Summary
+
+Added Docker build context ignore entries for local tool metadata, IDE settings, caches, logs, env files, coverage, and test runtime artifacts. Verified with docker build --check, lint, type-check, and npm test.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `683ba48` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

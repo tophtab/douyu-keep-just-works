@@ -778,11 +778,15 @@ When the user sends the first message, follow <task-status> and the workflow gui
 If a task is READY, execute its Next required action without asking whether to continue.
 </ready>""")
 
+    context_text = output.getvalue()
     result = {
+        # Claude Code / Qoder / CodeBuddy / Droid / Gemini / Copilot format
         "hookSpecificOutput": {
             "hookEventName": "SessionStart",
-            "additionalContext": output.getvalue(),
-        }
+            "additionalContext": context_text,
+        },
+        # Cursor sessionStart format (top-level snake_case per Cursor docs)
+        "additional_context": context_text,
     }
 
     # Output JSON - stdout is already configured for UTF-8

@@ -441,3 +441,37 @@ Published 3.0.0, expanded the release changelog to cover the full v2.5.0-to-v3.0
 ### Next Steps
 
 - None - task complete
+
+
+## Session 14: Restrict license and update Trellis
+
+**Date**: 2026-05-16
+**Task**: Restrict license and update Trellis
+**Branch**: `master`
+
+### Summary
+
+Changed the project license metadata from MIT to noncommercial/unlicensed wording, then committed the Trellis 0.5.16 Cursor hook template updates.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `32180df` | (see git log) |
+| `04fa18c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

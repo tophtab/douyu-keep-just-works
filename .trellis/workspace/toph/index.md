@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 13
-- **Last Active**: 2026-05-15
+- **Total Sessions**: 14
+- **Last Active**: 2026-05-16
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~443 | Active |
+| `journal-1.md` | ~477 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 14 | 2026-05-16 | Restrict license and update Trellis | `32180df`, `04fa18c` | `master` |
 | 13 | 2026-05-15 | Release 3.0.0 | `a5c128b`, `c1e543c`, `cf0f81a` | `master` |
 | 12 | 2026-05-15 | Update dockerignore entries | `683ba48` | `master` |
 | 11 | 2026-05-14 | Update list sorting rules | `a2dd839` | `master` |

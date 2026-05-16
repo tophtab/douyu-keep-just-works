@@ -8,7 +8,7 @@
       "name": "Curtion"
     }
   ],
-  "license": "MIT",
+  "license": "UNLICENSED",
   "repository": "https://github.com/tophtab/douyu-keep-just-works.git",
   "scripts": {
     "lint": "eslint \"src/**/*.{js,ts,vue}\" \"test/**/*.js\" eslint.config.mjs",

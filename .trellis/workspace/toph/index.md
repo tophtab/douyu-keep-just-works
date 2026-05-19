@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 15
+- **Total Sessions**: 16
 - **Last Active**: 2026-05-19
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~511 | Active |
+| `journal-1.md` | ~545 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 16 | 2026-05-19 | Link WebUI brand to project repository | `4b1cec7`, `137d7e5` | `master` |
 | 15 | 2026-05-19 | WebUI save state synchronization | `14e30d0`, `485f62f` | `master` |
 | 14 | 2026-05-16 | Restrict license and update Trellis | `32180df`, `04fa18c` | `master` |
 | 13 | 2026-05-15 | Release 3.0.0 | `a5c128b`, `c1e543c`, `cf0f81a` | `master` |

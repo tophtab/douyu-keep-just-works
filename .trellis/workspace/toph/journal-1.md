@@ -509,3 +509,37 @@ Applied config save responses to WebUI shared state so saved task settings rende
 ### Next Steps
 
 - None - task complete
+
+
+## Session 16: Link WebUI brand to project repository
+
+**Date**: 2026-05-19
+**Task**: Link WebUI brand to project repository
+**Branch**: `master`
+
+### Summary
+
+Made the Docker WebUI brand text open the project repository, preserved sidebar styling and accessibility, and recorded the Vue macro ordering convention discovered during lint verification.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4b1cec7` | (see git log) |
+| `137d7e5` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

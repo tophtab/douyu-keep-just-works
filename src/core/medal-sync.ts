@@ -195,7 +195,7 @@ function normalizeDoubleCardGiftScope(value: DoubleCardGiftScope | undefined): D
 
 export function createDefaultDoubleCardConfig(fans: Fans[]): DoubleCardConfig {
   return {
-    active: true,
+    active: false,
     cron: DEFAULT_DOUBLE_CARD_CRON,
     model: DEFAULT_DOUBLE_CARD_MODEL,
     giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,

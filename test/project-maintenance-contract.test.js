@@ -22,6 +22,12 @@ function collectRepoFiles(relativeDir) {
   })
 }
 
+function extractExportedStringConstant(source, name) {
+  const match = source.match(new RegExp(`export const ${name} = '([^']+)'`))
+  assert.ok(match, `Missing exported constant ${name}`)
+  return match[1]
+}
+
 test('Node runtime version is aligned across package metadata, Docker, CI, and docs', () => {
   const packageJson = JSON.parse(readRepoFile('package.json'))
   const dockerfile = readRepoFile('Dockerfile')
@@ -43,6 +49,20 @@ test('npm test remains a contract-test plus Docker-build quality gate', () => {
   assert.equal(packageJson.scripts?.['test:contracts'], 'node --test test/*.test.js')
   assert.equal(packageJson.scripts?.test, 'npm run test:contracts && npm run build:docker')
   assert.match(contributing, /contract tests and then the Docker\s+build/)
+})
+
+test('config example cron defaults stay aligned with core defaults', () => {
+  const taskDefaults = readRepoFile('src/core/task-defaults.ts')
+  const configExample = JSON.parse(readRepoFile('config.example.json'))
+
+  assert.equal(configExample.cookieCloud?.cron, extractExportedStringConstant(taskDefaults, 'DEFAULT_COOKIE_CLOUD_SYNC_CRON'))
+  assert.equal(configExample.collectGift?.cron, extractExportedStringConstant(taskDefaults, 'DEFAULT_COLLECT_GIFT_CRON'))
+  assert.equal(configExample.keepalive?.cron, extractExportedStringConstant(taskDefaults, 'DEFAULT_KEEPALIVE_CRON'))
+  assert.equal(configExample.doubleCard?.cron, extractExportedStringConstant(taskDefaults, 'DEFAULT_DOUBLE_CARD_CRON'))
+  assert.equal(configExample.expiringGift?.cron, extractExportedStringConstant(taskDefaults, 'DEFAULT_EXPIRING_GIFT_CRON'))
+  assert.equal(configExample.yubaCheckIn?.cron, extractExportedStringConstant(taskDefaults, 'DEFAULT_YUBA_CHECK_IN_CRON'))
+  assert.equal(configExample.doubleCard?.active, false)
+  assert.match(taskDefaults, /doubleCard:\s*\{[\s\S]*?active: false/)
 })
 
 test('Docker WebUI is Vue-only and served as Vite static Docker assets', () => {
@@ -211,6 +231,9 @@ test('Docker WebUI is Vue-only and served as Vite static Docker assets', () => {
   assert.match(resources, /clearFansCookieBackedData\(\)/)
   assert.match(resources, /clearYubaCookieBackedData\(\)/)
   assert.doesNotMatch(resources, /export\s*\{[\s\S]*DEFAULT_RAW_CONFIG/)
+  assert.match(resourceConfig, /createDefaultRawDockerConfig/)
+  assert.doesNotMatch(resourceConfig, /DEFAULT_RAW_CONFIG/)
+  assert.match(readRepoFile('src/core/medal-sync.ts'), /createDefaultDoubleCardConfig\(fans: Fans\[\]\): DoubleCardConfig \{[\s\S]*?active: false/)
   assert.match(theme, /from '\.\/resource-config'/)
   assert.match(cookie, /from '\.\/resource-config'/)
   assert.match(cookie, /from '\.\/resource-fans'/)

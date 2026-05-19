@@ -8,7 +8,8 @@
     "active": false,
     "endpoint": "https://your-cookie-cloud.example.com",
     "uuid": "YOUR_COOKIE_CLOUD_UUID",
-    "password": "YOUR_COOKIE_CLOUD_PASSWORD"
+    "password": "YOUR_COOKIE_CLOUD_PASSWORD",
+    "cron": "0 5 0 * * *"
   },
   "ui": {
     "themeMode": "system"
@@ -19,7 +20,7 @@
   },
   "keepalive": {
     "active": true,
-    "cron": "0 0 8 */6 * *",
+    "cron": "0 0 8 */7 * *",
     "model": 2,
     "send": {
       "123456": {
@@ -39,7 +40,7 @@
     }
   },
   "doubleCard": {
-    "active": true,
+    "active": false,
     "cron": "0 20 17,20,22,23 * * *",
     "model": 1,
     "giftScope": "glowStick",

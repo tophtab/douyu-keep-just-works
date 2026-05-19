@@ -475,3 +475,37 @@ Changed the project license metadata from MIT to noncommercial/unlicensed wordin
 ### Next Steps
 
 - None - task complete
+
+
+## Session 15: WebUI save state synchronization
+
+**Date**: 2026-05-19
+**Task**: WebUI save state synchronization
+**Branch**: `master`
+
+### Summary
+
+Applied config save responses to WebUI shared state so saved task settings render immediately, changed the keepalive default cron to every 7 days, updated the state-management contract, and committed Trellis 0.5.17 template skill updates.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `14e30d0` | (see git log) |
+| `485f62f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

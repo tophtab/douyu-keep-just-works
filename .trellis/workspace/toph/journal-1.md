@@ -543,3 +543,36 @@ Made the Docker WebUI brand text open the project repository, preserved sidebar 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 17: Unify default config source
+
+**Date**: 2026-05-19
+**Task**: Unify default config source
+**Branch**: `master`
+
+### Summary
+
+Centralized Docker/WebUI default config in core, aligned config.example.json defaults, disabled double-card by default, and added drift-prevention contract coverage.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9315f6c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

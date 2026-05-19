@@ -7,6 +7,24 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ## Unreleased
 
+## 3.1.0 - 2026-05-19
+
+### Changed
+
+- Project licensing is now restricted to personal learning, technical
+  research, and non-commercial technical exchange.
+- Local Trellis templates and project maintenance specs were refreshed,
+  including repository analysis and spec bootstrap guidance.
+
+### Fixed
+
+- WebUI task save responses now stay synchronized with the saved task state so
+  task pages, resource fans, Yuba settings, and shared task actions reflect the
+  persisted configuration consistently.
+- WebUI brand navigation now links to the project repository.
+- Default task configuration is now sourced from the shared task-defaults
+  module instead of duplicating defaults in WebUI resource configuration.
+
 ## 3.0.0 - 2026-05-15
 
 ### Added

@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Verify the WebUI change follows the frontend guideline stack."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Verify shared state ownership and config-save response contracts."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Verify typed save response handling avoids unsafe API response usage."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Verify required frontend checks and contract test updates."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify default cron constant changes preserve Docker build/type-check contracts."}

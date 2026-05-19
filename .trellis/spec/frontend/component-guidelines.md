@@ -72,6 +72,7 @@ Current patterns to preserve:
 
 ## Common Mistakes
 
+- Do not place runtime constants before `defineProps` or `defineEmits` in `<script setup>`; Vue macros must come immediately after imports/type definitions to satisfy lint ordering.
 - Do not add imperative `data-action` handlers for Vue-owned controls.
 - Do not hide authenticated shell state with inline `style="display:none"`; use Vue state as in `App.vue`.
 - Do not put API fetch logic directly into deeply presentational table components.

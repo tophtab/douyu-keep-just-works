@@ -576,3 +576,37 @@ Centralized Docker/WebUI default config in core, aligned config.example.json def
 ### Next Steps
 
 - None - task complete
+
+
+## Session 18: Release 3.1.0
+
+**Date**: 2026-05-19
+**Task**: Release 3.1.0
+**Branch**: `master`
+
+### Summary
+
+Prepared changelog from commits since v3.0.0, ran release checks, created and pushed v3.1.0 release.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f43fabe` | (see git log) |
+| `3bc943a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

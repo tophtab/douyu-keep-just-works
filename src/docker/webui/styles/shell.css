@@ -112,6 +112,18 @@
   font-weight:800;
   letter-spacing:0;
 }
+.brand-link{
+  color:inherit;
+  text-decoration:none;
+}
+.brand-link:hover{
+  color:var(--accent);
+}
+.brand-link:focus-visible{
+  outline:none;
+  border-radius:8px;
+  box-shadow:var(--focus-ring);
+}
 .version-label{
   display:inline-flex;
   align-items:center;

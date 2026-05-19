@@ -15,13 +15,23 @@ defineProps<{
   themeNote: string
   versionLabel: string
 }>()
+
+const PROJECT_URL = 'https://github.com/tophtab/douyu-keep-just-works'
 </script>
 
 <template>
   <aside class="sidebar">
     <div class="brand-row">
       <h1 class="brand-title">
-        {{ appName }}
+        <a
+          class="brand-link"
+          :href="PROJECT_URL"
+          target="_blank"
+          rel="noopener noreferrer"
+          :aria-label="`${appName} 项目地址`"
+        >
+          {{ appName }}
+        </a>
       </h1>
       <span class="version-label">{{ versionLabel }}</span>
     </div>

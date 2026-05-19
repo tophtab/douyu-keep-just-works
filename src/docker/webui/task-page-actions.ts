@@ -1,9 +1,9 @@
 import type { Ref } from 'vue'
 import type { WebUiPageTab } from './navigation'
-import { loadFansStatus } from './resource-fans'
+import { applyManagedFansResponse, loadFansStatus } from './resource-fans'
 import { loadLogs, loadOverview, refreshOverviewSurface } from './resource-state'
 import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, isHttpUnauthorized, saveTaskConfig, triggerTask } from './task-shared'
-import type { TaskCardCell, TaskRunStatus, TaskStatusCardState, WebUiTaskType } from './task-shared'
+import type { SaveTaskConfigResult, TaskCardCell, TaskRunStatus, TaskStatusCardState, WebUiTaskType } from './task-shared'
 
 interface ToggleSaveOptions {
   revertCheckboxOnError?: boolean
@@ -20,7 +20,7 @@ interface ScheduledTaskCardOptions {
 interface TaskMutationOptions {
   failurePrefix: string
   payload: unknown
-  refresh: () => Promise<void>
+  refresh: (result: SaveTaskConfigResult | null) => Promise<void>
   restoreEnabled?: () => void
   revertCheckboxOnError?: boolean
   successMessage: string
@@ -34,6 +34,10 @@ function isUnauthorizedTaskError(error: unknown): boolean {
   return isHttpUnauthorized(error)
 }
 
+function isFansBackedTab(activeTab: WebUiPageTab): boolean {
+  return activeTab === 'keepalive' || activeTab === 'double-card' || activeTab === 'expiring-gift'
+}
+
 export function createOverviewTaskCard(options: ScheduledTaskCardOptions): TaskStatusCardState {
   if (!options.overviewReady) {
     return createPendingTaskCard(options.pendingThirdLabel)
@@ -42,7 +46,8 @@ export function createOverviewTaskCard(options: ScheduledTaskCardOptions): TaskS
   return createScheduledTaskCard(options.configured, options.status || {}, options.thirdCell)
 }
 
-export async function refreshTaskSurface(activeTab: WebUiPageTab): Promise<void> {
+export async function refreshTaskSurface(activeTab: WebUiPageTab, result: SaveTaskConfigResult | null = null): Promise<void> {
+  applyManagedFansResponse(result, { updateFans: isFansBackedTab(activeTab) })
   await refreshOverviewSurface(activeTab, false)
 }
 

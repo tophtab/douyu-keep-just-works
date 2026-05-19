@@ -56,6 +56,59 @@ When adding a new server resource, keep the API call in a Vue-owned composable o
 
 ---
 
+## Scenario: Applying Config Save Responses
+
+### 1. Scope / Trigger
+- Trigger: changes to `/api/config` save handling or any task page save/disable flow.
+- Scope: WebUI task configuration saves that cross backend persistence, config normalization, optional fans reconciliation, and frontend shared resource state.
+
+### 2. Signatures
+- Backend response shape: `POST /api/config -> { ok: true, data?: { config?: DockerConfig, fans?: Fans[] } }`.
+- Frontend save helper: `saveTaskConfig({ refresh: (result: SaveTaskConfigResult | null) => Promise<void>, ... })`.
+- Shared task refresh: `refreshTaskSurface(activeTab: WebUiPageTab, result: SaveTaskConfigResult | null)`.
+- Fans-backed state applicator: `applyManagedFansResponse(result, { updateFans: boolean })`.
+
+### 3. Contracts
+- `data.config` is the authoritative persisted config after backend defaults, normalization, and reconciliation. Apply it to `resource-config.rawConfig` before reloading derived surfaces.
+- For fans-backed task tabs (`keepalive`, `double-card`, `expiring-gift`), `data.fans` is authoritative for the managed fans list, including an empty array.
+- For non-fans-backed saves, update the managed config if a managed resource already exists, but do not clear an existing fans list just because the save response carries `fans: []`.
+- `managed.config` must not outlive or override a newer `rawConfig` after a successful save.
+
+### 4. Validation & Error Matrix
+- Unauthorized save response -> existing unauthorized event handling owns logout/session state; do not mutate task state after the request throws.
+- Failed save response -> keep the existing error toast/revert behavior in `saveTaskConfig` or `disableTaskConfig`.
+- Successful save with `config` only -> update raw config and any existing managed config, then refresh overview/current-tab data.
+- Successful fans-backed save with `config` and `fans` -> update raw config and managed `{ config, fans }`, then refresh overview/current-tab data.
+
+### 5. Good/Base/Bad Cases
+- Good: saving a keepalive room config immediately updates `rawConfig`, `managed.config`, and `managed.fans` from the POST result before current-tab refresh runs.
+- Base: saving a collect/yuba config updates `rawConfig` from the POST result and leaves any existing fans list intact.
+- Bad: reloading only `/api/config/raw` while leaving an older `managed.config` in memory, because task pages may resolve managed config before raw config.
+
+### 6. Tests Required
+- Contract tests should assert that `saveTaskConfig` passes `SaveTaskConfigResult` to refresh callbacks.
+- Contract tests should assert that `refreshTaskSurface` applies `applyManagedFansResponse(result, { updateFans: isFansBackedTab(activeTab) })`.
+- Contract tests should assert that managed fans helpers attach new fans to `getRawConfig()` rather than a stale managed config.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+await postConfigPayload(payload)
+await refreshOverviewSurface(activeTab, false)
+```
+
+#### Correct
+
+```typescript
+const result = await postConfigPayload(payload)
+applyManagedFansResponse(result, { updateFans: isFansBackedTab(activeTab) })
+await refreshOverviewSurface(activeTab, false)
+```
+
+---
+
 ## Common Mistakes
 
 - Do not add a global store for one page's local form state.

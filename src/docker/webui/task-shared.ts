@@ -1,3 +1,4 @@
+import type { DockerConfig, Fans } from '../../core/types'
 import { formatDate } from './datetime'
 import { requestJson } from './request'
 import { showToast } from './toast'
@@ -48,7 +49,7 @@ export interface SaveTaskConfigOptions {
   failurePrefix: string
   isUnauthorizedError: (error: unknown) => boolean
   payload: unknown
-  refresh: () => Promise<void>
+  refresh: (result: SaveTaskConfigResult | null) => Promise<void>
   revertCheckboxOnError?: boolean
   setEnabled: (enabled: boolean) => void
   successMessage: string
@@ -58,9 +59,18 @@ export interface DisableTaskConfigOptions {
   failurePrefix: string
   isUnauthorizedError: (error: unknown) => boolean
   payload: unknown
-  refresh: () => Promise<void>
+  refresh: (result: SaveTaskConfigResult | null) => Promise<void>
   successMessage: string
   restoreEnabled: () => void
+}
+
+export interface SaveTaskConfigResult {
+  config?: DockerConfig
+  fans?: Fans[]
+}
+
+interface SaveTaskConfigResponse {
+  data?: SaveTaskConfigResult
 }
 
 export interface FanListMessageOptions {
@@ -210,20 +220,21 @@ export function createScheduledTaskCard(configured: boolean, status: TaskRunStat
   }
 }
 
-async function postConfigPayload(payload: unknown): Promise<void> {
-  await requestJson('/api/config', {
+async function postConfigPayload(payload: unknown): Promise<SaveTaskConfigResult | null> {
+  const data = await requestJson<SaveTaskConfigResponse>('/api/config', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
+  return data.data || null
 }
 
 export async function saveTaskConfig(options: SaveTaskConfigOptions): Promise<void> {
   options.setEnabled(true)
   try {
-    await postConfigPayload(options.payload)
+    const result = await postConfigPayload(options.payload)
     showToast(options.successMessage, true)
-    await options.refresh()
+    await options.refresh(result)
   } catch (error) {
     if (options.revertCheckboxOnError) {
       options.setEnabled(false)
@@ -237,9 +248,9 @@ export async function saveTaskConfig(options: SaveTaskConfigOptions): Promise<vo
 
 export async function disableTaskConfig(options: DisableTaskConfigOptions): Promise<void> {
   try {
-    await postConfigPayload(options.payload)
+    const result = await postConfigPayload(options.payload)
     showToast(options.successMessage, true)
-    await options.refresh()
+    await options.refresh(result)
   } catch (error) {
     options.restoreEnabled()
     if (options.isUnauthorizedError(error)) {

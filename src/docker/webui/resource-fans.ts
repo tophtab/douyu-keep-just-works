@@ -9,9 +9,13 @@ import { showToast } from './toast'
 
 type FansResourceKey = 'fansSync' | 'fansList' | 'fansStatus'
 
-interface ManagedFansResponse {
+export interface ManagedFansResponse {
   config?: DockerConfig
   fans?: Fans[]
+}
+
+interface ApplyManagedFansResponseOptions {
+  updateFans?: boolean
 }
 
 export const managed = ref<ManagedFansResponse | null>(null)
@@ -71,8 +75,37 @@ export function getManagedFans(): Fans[] {
 
 export function setManagedFans(nextFans: Fans[]): void {
   managed.value = {
-    config: getManagedConfig(),
+    config: getRawConfig(),
     fans: Array.isArray(nextFans) ? nextFans : [],
+  }
+}
+
+export function applyManagedFansResponse(data: ManagedFansResponse | null | undefined, options: ApplyManagedFansResponseOptions = {}): void {
+  if (!data) {
+    return
+  }
+
+  const nextConfig = data.config || getRawConfig()
+  if (data.config) {
+    setRawConfig(data.config)
+  }
+
+  if (options.updateFans && Array.isArray(data.fans)) {
+    managed.value = {
+      config: nextConfig,
+      fans: data.fans,
+    }
+    fansListLoaded.value = true
+    fansListError.value = ''
+    markResourceLoaded('fansList')
+    return
+  }
+
+  if (data.config && managed.value) {
+    managed.value = {
+      ...managed.value,
+      config: data.config,
+    }
   }
 }
 
@@ -162,10 +195,7 @@ export async function syncFans(showSuccessToast = false): Promise<unknown> {
     if (resource.requestSeq !== requestSeq) {
       return undefined
     }
-    managed.value = data
-    if (data.config) {
-      setRawConfig(data.config)
-    }
+    applyManagedFansResponse(data, { updateFans: true })
     managedLoading.value = false
     fansListLoaded.value = true
     markResourceLoaded('fansList')

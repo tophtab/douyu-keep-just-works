@@ -2,11 +2,11 @@ import type { YubaCheckInConfig, YubaCheckInMode, YubaGroupStatus } from '../../
 import { computed, ref, watch } from 'vue'
 import { DEFAULT_YUBA_CHECK_IN_CRON, DEFAULT_YUBA_CHECK_IN_MODE } from '../../core/task-defaults'
 import { useCronPreview } from './composables/use-cron-preview'
-import { rawConfig as sharedRawConfig } from './resource-config'
+import { rawConfig as sharedRawConfig, setRawConfig } from './resource-config'
 import { loadLogs, loadOverview, overview as sharedOverview, refreshOverviewSurface } from './resource-state'
 import { loadYubaStatus as loadResourceYubaStatus, yubaStatus as sharedYubaStatus, yubaStatusError as sharedYubaStatusError, yubaStatusLoaded as sharedYubaStatusLoaded, yubaStatusLoading as sharedYubaStatusLoading } from './resource-yuba'
 import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask } from './task-shared'
-import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
+import type { CookieSourceConfig, SaveTaskConfigResult, TaskRunStatus } from './task-shared'
 
 interface YubaOverview {
   yubaCheckInConfigured?: boolean
@@ -56,7 +56,10 @@ function applyResourceState(): void {
   yubaStatusLoading.value = sharedYubaStatusLoading.value
 }
 
-async function refreshYubaSurfaces(): Promise<void> {
+async function refreshYubaSurfaces(result: SaveTaskConfigResult | null = null): Promise<void> {
+  if (result?.config) {
+    setRawConfig(result.config)
+  }
   await refreshOverviewSurface('yuba', false)
 }
 

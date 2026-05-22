@@ -186,7 +186,7 @@ export function hasFanTaskTableRows(rawConfig: CookieSourceConfig | null, rowCou
   return hasCookieSourceConfigured(rawConfig) && rowCount > 0
 }
 
-export function resolveCurrentTaskConfig<TConfig, RawConfig extends Record<string, unknown>>(options: {
+export function resolveCurrentTaskConfig<TConfig, RawConfig extends object>(options: {
   configKey: keyof RawConfig
   fallback: TConfig
   getManagedConfig?: () => RawConfig

@@ -1,12 +1,10 @@
 import type { DoubleCardConfig, DoubleCardGiftScope, Fans, FanStatus } from '../../core/types'
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { DEFAULT_DOUBLE_CARD_CRON, DEFAULT_DOUBLE_CARD_GIFT_SCOPE, DEFAULT_DOUBLE_CARD_MODEL } from '../../core/task-defaults'
 import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, buildEnabledRoomMap, formatRatioPercent, normalizeAllocationModel } from './allocation-task'
 import { useCronPreview } from './composables/use-cron-preview'
-import { rawConfig as sharedRawConfig } from './resource-config'
-import { fansListError as sharedFansListError, fansListLoaded as sharedFansListLoaded, fansStatus as sharedFansStatus, getManagedConfig, getManagedFans, managed, managedLoading as sharedManagedLoading } from './resource-fans'
-import { overview as sharedOverview } from './resource-state'
+import { createFansBackedTaskPageState } from './fans-backed-task-page'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
 import { createFanListMessages, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isTaskActive, resolveCurrentTaskConfig } from './task-shared'
 import { showToast } from './toast'
@@ -31,13 +29,8 @@ interface DoubleFanRow extends AllocationFanRow {
   enabled: boolean
 }
 
-const overview = ref<DoubleOverview | null>(null)
-const rawConfig = ref<RawDoubleConfig | null>(null)
-const managedConfig = ref<RawDoubleConfig | null>(null)
-const fans = ref<DoubleFan[]>([])
-const fansListError = ref('')
-const fansListLoaded = ref(false)
-const managedLoading = ref(false)
+const taskPage = createFansBackedTaskPageState<DoubleOverview, RawDoubleConfig, DoubleFan>()
+const { fans, fansListError, fansListLoaded, managedConfig, managedLoading, overview, rawConfig } = taskPage
 const doubleEnabled = ref(false)
 const doubleCron = ref(DEFAULT_DOUBLE_CARD_CRON)
 const doubleModel = ref<1 | 2>(DEFAULT_DOUBLE_CARD_MODEL)
@@ -92,13 +85,7 @@ function applyDoubleConfig(config: DoubleCardConfig): void {
 }
 
 function applyResourceState(): void {
-  rawConfig.value = sharedRawConfig.value
-  managedConfig.value = getManagedConfig()
-  overview.value = sharedOverview.value
-  fans.value = getManagedFans() as DoubleFan[]
-  fansListError.value = sharedFansListError.value
-  fansListLoaded.value = sharedFansListLoaded.value
-  managedLoading.value = sharedManagedLoading.value
+  taskPage.syncResourceState()
   applyDoubleConfig(getDoubleConfig())
 }
 
@@ -294,7 +281,7 @@ export function useDoubleTaskPage() {
     showToast(preset === 'level' ? '已按粉丝牌等级填入权重值' : '已将参与房间全部设为 1', true)
   }
 
-  watch([sharedRawConfig, managed, sharedFansStatus, sharedOverview, sharedManagedLoading, sharedFansListError, sharedFansListLoaded], applyResourceState, { immediate: true })
+  taskPage.watchResourceState(applyResourceState)
 
   return {
     applyDoubleRatioPreset,

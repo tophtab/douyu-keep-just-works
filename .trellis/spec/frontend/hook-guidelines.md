@@ -66,6 +66,26 @@ await triggerFansBackedTask('keepalive')
 
 Use `refreshTaskSurface(activeTab)` for the common `refreshOverviewSurface(activeTab, false)` pattern. This keeps the page composables focused on task-specific defaults, validation, and computed UI text while preserving the existing optimistic-toggle rollback behavior.
 
+For fans-backed scheduled task pages (`keepalive`, `double-card`, `expiring-gift`), use `createFansBackedTaskPageState` from `src/docker/webui/fans-backed-task-page.ts` before adding local copies of raw config, managed config, fans list, overview, loading, and shared resource watchers.
+
+```typescript
+const taskPage = createFansBackedTaskPageState<OverviewShape, RawConfigShape, Fans>()
+const { fans, managedConfig, overview, rawConfig } = taskPage
+
+function applyResourceState(): void {
+  taskPage.syncResourceState()
+  // Keep task-specific defaults, validation, and row building local.
+}
+
+taskPage.watchResourceState(applyResourceState)
+```
+
+Pages with additional shared resources can pass extra watch sources while keeping the same local `applyResourceState` shape:
+
+```typescript
+taskPage.watchResourceState(applyResourceState, [sharedGiftStatus])
+```
+
 ---
 
 ## Naming Conventions

@@ -3,7 +3,7 @@ import { isCookieCloudReady } from '../core/cookie-cloud'
 import type { CookieCloudConfig, DockerConfig, ManualCookieConfig } from '../core/types'
 import { getNextCronRuns, validateCronExpression } from './cron'
 import { validateCookieCloudConfig, validateCronConfig, validateDoubleCardConfig, validateExpiringGiftConfig, validateJobConfig, validateYubaCheckInConfig } from './config-validation'
-import { errorMessage } from './server-errors'
+import { sendJsonOk } from './server-route-utils'
 import type { AppContext } from './server-types'
 import { hasActiveTaskConfig, isTaskActive } from './task-metadata'
 
@@ -126,6 +126,10 @@ function validateConfigPayload(payload: Partial<DockerConfig>): string | null {
   return null
 }
 
+function resolveConfigRouteErrorStatus(): number {
+  return 500
+}
+
 export function registerConfigRoutes(app: express.Express, ctx: AppContext): void {
   app.get('/api/config', (_req, res) => {
     const config = ctx.getConfig()
@@ -164,28 +168,26 @@ export function registerConfigRoutes(app: express.Express, ctx: AppContext): voi
     })
   })
 
-  app.post('/api/cookie', (req, res) => {
-    try {
-      const mainCookie = String(req.body?.mainCookie ?? req.body?.cookie ?? '').trim()
-      const yubaCookie = String(req.body?.yubaCookie || '').trim()
-      if (!mainCookie && !yubaCookie) {
-        return res.status(400).json({ error: '缺少 cookie' })
-      }
-      ctx.saveCookie({ main: mainCookie, yuba: yubaCookie })
-      res.json({ ok: true })
-    } catch (e: unknown) {
-      res.status(500).json({ error: errorMessage(e) })
+  app.post('/api/cookie', async (req, res) => {
+    const mainCookie = String(req.body?.mainCookie ?? req.body?.cookie ?? '').trim()
+    const yubaCookie = String(req.body?.yubaCookie || '').trim()
+    if (!mainCookie && !yubaCookie) {
+      return res.status(400).json({ error: '缺少 cookie' })
     }
+
+    await sendJsonOk(res, () => ctx.saveCookie({ main: mainCookie, yuba: yubaCookie }), resolveConfigRouteErrorStatus)
   })
 
-  app.post('/api/config', (req, res) => {
-    try {
-      const payload = req.body as Partial<DockerConfig>
-      const validationError = validateConfigPayload(payload)
-      if (validationError) {
-        return res.status(400).json({ error: validationError })
-      }
-      ctx.saveTaskConfig({
+  app.post('/api/config', async (req, res) => {
+    const payload = req.body as Partial<DockerConfig>
+    const validationError = validateConfigPayload(payload)
+    if (validationError) {
+      return res.status(400).json({ error: validationError })
+    }
+
+    await sendJsonOk(
+      res,
+      () => ctx.saveTaskConfig({
         manualCookies: payload.manualCookies,
         cookieCloud: payload.cookieCloud,
         collectGift: payload.collectGift,
@@ -194,14 +196,9 @@ export function registerConfigRoutes(app: express.Express, ctx: AppContext): voi
         expiringGift: payload.expiringGift,
         yubaCheckIn: payload.yubaCheckIn,
         ui: payload.ui,
-      }).then((result) => {
-        res.json({ ok: true, data: result })
-      }).catch((e: unknown) => {
-        res.status(500).json({ error: errorMessage(e) })
-      })
-    } catch (e: unknown) {
-      res.status(500).json({ error: errorMessage(e) })
-    }
+      }),
+      resolveConfigRouteErrorStatus,
+    )
   })
 
   app.get('/api/status', (_req, res) => {

@@ -1,12 +1,10 @@
 import type { Fans, JobConfig } from '../../core/types'
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { DEFAULT_KEEPALIVE_CRON, DEFAULT_KEEPALIVE_MODEL } from '../../core/task-defaults'
 import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationModel } from './allocation-task'
 import { useCronPreview } from './composables/use-cron-preview'
-import { rawConfig as sharedRawConfig } from './resource-config'
-import { fansListError as sharedFansListError, fansListLoaded as sharedFansListLoaded, fansStatus as sharedFansStatus, getManagedConfig, getManagedFans, managed, managedLoading as sharedManagedLoading } from './resource-fans'
-import { overview as sharedOverview } from './resource-state'
+import { createFansBackedTaskPageState } from './fans-backed-task-page'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
 import { createFanListMessages, getAllocationValueLabel, hasFanTaskTableRows, isTaskActive, resolveCurrentTaskConfig } from './task-shared'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
@@ -25,13 +23,8 @@ interface RawKeepaliveConfig extends CookieSourceConfig {
 
 type KeepaliveFanRow = AllocationFanRow
 
-const overview = ref<KeepaliveOverview | null>(null)
-const rawConfig = ref<RawKeepaliveConfig | null>(null)
-const managedConfig = ref<RawKeepaliveConfig | null>(null)
-const fans = ref<Fans[]>([])
-const fansListError = ref('')
-const fansListLoaded = ref(false)
-const managedLoading = ref(false)
+const taskPage = createFansBackedTaskPageState<KeepaliveOverview, RawKeepaliveConfig, Fans>()
+const { fans, fansListError, fansListLoaded, managedConfig, managedLoading, overview, rawConfig } = taskPage
 const keepaliveEnabled = ref(false)
 const keepaliveCron = ref(DEFAULT_KEEPALIVE_CRON)
 const keepaliveModel = ref<1 | 2>(DEFAULT_KEEPALIVE_MODEL)
@@ -66,13 +59,7 @@ function buildFanRows(nextFans: Fans[], config: JobConfig): KeepaliveFanRow[] {
 }
 
 function applyResourceState(): void {
-  rawConfig.value = sharedRawConfig.value
-  managedConfig.value = getManagedConfig()
-  overview.value = sharedOverview.value
-  fans.value = getManagedFans()
-  fansListError.value = sharedFansListError.value
-  fansListLoaded.value = sharedFansListLoaded.value
-  managedLoading.value = sharedManagedLoading.value
+  taskPage.syncResourceState()
   const keepaliveConfig = getKeepaliveConfig()
   keepaliveEnabled.value = isTaskActive(keepaliveConfig)
   keepaliveCron.value = keepaliveConfig.cron || DEFAULT_KEEPALIVE_CRON
@@ -188,7 +175,7 @@ export function useKeepaliveTaskPage() {
     })
   }
 
-  watch([sharedRawConfig, managed, sharedFansStatus, sharedOverview, sharedManagedLoading, sharedFansListError, sharedFansListLoaded], applyResourceState, { immediate: true })
+  taskPage.watchResourceState(applyResourceState)
 
   return {
     fanRows,

@@ -1,12 +1,11 @@
 import type { BackpackGiftRow, ExpiringGiftConfig, Fans, GiftStatus } from '../../core/types'
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { DEFAULT_EXPIRING_GIFT_CRON, DEFAULT_EXPIRING_GIFT_MODEL, DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS } from '../../core/task-defaults'
 import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationModel } from './allocation-task'
 import { useCronPreview } from './composables/use-cron-preview'
-import { rawConfig as sharedRawConfig } from './resource-config'
-import { fansListError as sharedFansListError, fansListLoaded as sharedFansListLoaded, fansStatus as sharedFansStatus, fansStatusDetailsLoading as sharedFansStatusDetailsLoading, fansStatusLoaded as sharedFansStatusLoaded, fansStatusLoading as sharedFansStatusLoading, getManagedConfig, getManagedFans, giftStatus as sharedGiftStatus, managed, managedLoading as sharedManagedLoading } from './resource-fans'
-import { overview as sharedOverview } from './resource-state'
+import { createFansBackedTaskPageState } from './fans-backed-task-page'
+import { fansStatusDetailsLoading as sharedFansStatusDetailsLoading, fansStatusLoaded as sharedFansStatusLoaded, fansStatusLoading as sharedFansStatusLoading, giftStatus as sharedGiftStatus } from './resource-fans'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
 import { createFanListMessages, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isTaskActive, resolveCurrentTaskConfig } from './task-shared'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
@@ -36,16 +35,11 @@ interface ExpiringBackpackRow {
   remainingText: string
 }
 
-const overview = ref<ExpiringOverview | null>(null)
-const rawConfig = ref<RawExpiringConfig | null>(null)
-const managedConfig = ref<RawExpiringConfig | null>(null)
-const fans = ref<Fans[]>([])
-const fansListError = ref('')
-const fansListLoaded = ref(false)
+const taskPage = createFansBackedTaskPageState<ExpiringOverview, RawExpiringConfig, Fans>()
+const { fans, fansListError, fansListLoaded, managedConfig, managedLoading, overview, rawConfig } = taskPage
 const fansStatusLoaded = ref(false)
 const fansStatusLoading = ref(false)
 const fansStatusDetailsLoading = ref(false)
-const managedLoading = ref(false)
 const giftStatus = ref<GiftStatus | null>(null)
 const expiringEnabled = ref(false)
 const expiringCron = ref(DEFAULT_EXPIRING_GIFT_CRON)
@@ -97,16 +91,10 @@ function applyExpiringConfig(config: ExpiringGiftConfig): void {
 }
 
 function applyResourceState(): void {
-  rawConfig.value = sharedRawConfig.value
-  managedConfig.value = getManagedConfig()
-  overview.value = sharedOverview.value
-  fans.value = getManagedFans()
-  fansListError.value = sharedFansListError.value
-  fansListLoaded.value = sharedFansListLoaded.value
+  taskPage.syncResourceState()
   fansStatusLoaded.value = sharedFansStatusLoaded.value
   fansStatusLoading.value = sharedFansStatusLoading.value
   fansStatusDetailsLoading.value = sharedFansStatusDetailsLoading.value
-  managedLoading.value = sharedManagedLoading.value
   giftStatus.value = sharedGiftStatus.value
   applyExpiringConfig(getExpiringConfig())
 }
@@ -303,19 +291,12 @@ export function useExpiringGiftTaskPage() {
     })
   }
 
-  watch([
-    sharedRawConfig,
-    managed,
-    sharedFansStatus,
-    sharedOverview,
-    sharedManagedLoading,
-    sharedFansListError,
-    sharedFansListLoaded,
+  taskPage.watchResourceState(applyResourceState, [
     sharedFansStatusLoaded,
     sharedFansStatusLoading,
     sharedFansStatusDetailsLoading,
     sharedGiftStatus,
-  ], applyResourceState, { immediate: true })
+  ])
 
   return {
     expiringBackpackEmptyText,

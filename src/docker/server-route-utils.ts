@@ -23,3 +23,14 @@ export async function sendJsonResult<T>(
     sendJsonError(res, error, resolveErrorStatus)
   }
 }
+
+export async function sendJsonOk<T>(
+  res: express.Response,
+  run: () => Promise<T> | T,
+  resolveErrorStatus: ErrorStatusResolver,
+): Promise<void> {
+  await sendJsonResult(res, async () => {
+    const data = await run()
+    return { ok: true, data }
+  }, resolveErrorStatus)
+}

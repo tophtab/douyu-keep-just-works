@@ -42,6 +42,27 @@ export async function sendJsonResult<T>(
 }
 ```
 
+Use `sendJsonOk` when a mutation route should return the standard success envelope and delegate unexpected failures to the same JSON error path:
+
+```typescript
+await sendJsonOk(
+  res,
+  () => ctx.saveTaskConfig(payload),
+  () => 500,
+)
+```
+
+Validate expected bad input before calling the helper so validation errors keep their explicit `400` response:
+
+```typescript
+const validationError = validateConfigPayload(payload)
+if (validationError) {
+  return res.status(400).json({ error: validationError })
+}
+
+await sendJsonOk(res, () => ctx.saveTaskConfig(payload), () => 500)
+```
+
 Scheduler tasks catch failures, log them, and update next-run status:
 
 ```typescript

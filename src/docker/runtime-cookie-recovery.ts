@@ -42,7 +42,6 @@ export interface CredentialSnapshotRecoveryDeps {
 }
 
 interface PassportRecoveryMaterial {
-  cookie: string
   ltp0: string
   dyDid?: string
   source: 'cookieCloud' | 'manual'
@@ -82,7 +81,6 @@ function readPassportRecoveryMaterial(cookie: string, source: PassportRecoveryMa
   }
 
   return {
-    cookie: normalizedCookie,
     ltp0,
     dyDid: getCookieValue(normalizedCookie, 'dy_did'),
     source,

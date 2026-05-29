@@ -85,6 +85,15 @@ function applyRawConfig(config: DockerConfig | null): void {
   void ensureCronPreview()
 }
 
+function applyManualPassportSaveResponse(config: DockerConfig, rawPassportCookie: string): void {
+  const nextConfig = {
+    ...config,
+    manualPassport: rawPassportCookie ? { cookie: rawPassportCookie } : undefined,
+  }
+  setRawConfig(nextConfig)
+  applyRawConfig(nextConfig)
+}
+
 function buildCookieCheckText(result: CookieDiagnostics | null): string {
   if (!result) {
     const configCookieCloud = getCookieCloudConfig(rawConfig.value)
@@ -110,7 +119,7 @@ function buildCookieCheckText(result: CookieDiagnostics | null): string {
   const updateText = result.updateTime ? `，更新时间: ${formatDate(result.updateTime)}` : ''
   const passportText = result.passportLtp0Present === undefined
     ? ''
-    : ` passport/LTP0 ${result.passportLtp0Present ? '已配置' : '未配置'}。`
+    : ` passport Cookie ${result.passportLtp0Present ? '已配置' : '未配置'}。`
   return `来源: ${sourceLabel}，Cookie 数: ${result.cookieCount || 0}${updateText}。${mainText}；${yubaDyTokenText}；${yubaText}。${passportText}`
 }
 
@@ -161,12 +170,7 @@ async function saveManualPassport(): Promise<void> {
       }),
     })
     if (data.data?.config) {
-      const nextConfig = {
-        ...data.data.config,
-        manualPassport: nextPassportCookie ? { cookie: nextPassportCookie } : undefined,
-      }
-      setRawConfig(nextConfig)
-      applyRawConfig(nextConfig)
+      applyManualPassportSaveResponse(data.data.config, nextPassportCookie)
     }
     cookieCheck.value = null
     showToast(nextPassportCookie ? 'passport Cookie 已保存' : 'passport Cookie 已清空', true)

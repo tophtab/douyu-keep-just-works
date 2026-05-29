@@ -2,7 +2,7 @@
 
 ## Goal
 
-Add a CookieCloud-based recovery path that can refresh Douyu main-site login cookies through `passport.douyu.com` `LTP0` + `safeAuth`, then retry failed Douyu tasks once. Also document related project lineage in the README. The design must be explicit about the boundary between the app's local cookie snapshot and the user's browser cookie jar.
+Add a centralized recovery path that can refresh Douyu main-site login cookies through `passport.douyu.com` `LTP0` + `safeAuth`, then retry failed Douyu tasks once. CookieCloud can provide `LTP0` from the browser snapshot, and manual-cookie mode can provide `LTP0` through an explicit secret field. Also document related project lineage in the README. The design must be explicit about the boundary between the app's local cookie snapshot and the user's browser cookie jar.
 
 ## What I already know
 
@@ -24,7 +24,8 @@ The updated HAR at `/mnt/d/Download/yuba.douyu.com.har` still does not expose st
 
 ## Assumptions
 
-* `LTP0` should be read from CookieCloud when CookieCloud is enabled; no manual `LTP0` textbox is part of the MVP.
+* `LTP0` should be read from CookieCloud when CookieCloud is enabled.
+* Follow-up scope adds a manual `passport/LTP0` secret field for users who run hand-filled Cookie mode without CookieCloud.
 * The MVP should refresh the app's local main-site cookie snapshot only, not attempt to sync refreshed cookies back into the browser.
 * Fishbar-specific `acf_yb_*` refresh remains unproven and should not be promised by this MVP.
 * If Douyu rotates session credentials during server-side `safeAuth`, the browser may remain stale or become stale until it performs its own browser-side refresh/login flow. This is a product limitation, not something CookieCloud can solve by itself.
@@ -32,6 +33,7 @@ The updated HAR at `/mnt/d/Download/yuba.douyu.com.har` still does not expose st
 ## Requirements
 
 * When CookieCloud is enabled, extract `LTP0` from the `passport.douyu.com` cookie set and `dy_did` from the effective main-site cookie set.
+* When CookieCloud is not enabled, allow users to save a manual `passport/LTP0` secret; `dy_did` is still read from the current main-site Cookie and is not a separate config field.
 * Add a pure HTTP `safeAuth` helper that uses `LTP0 + dy_did` to refresh main-site Douyu login cookies without launching or automating a browser.
 * Merge refreshed main-site cookies into the local `manualCookies.main` snapshot when recovery succeeds.
 * Replace the existing "credential failure -> force CookieCloud sync -> retry once" path with a validate-gated credential recovery pipeline:
@@ -44,6 +46,7 @@ The updated HAR at `/mnt/d/Download/yuba.douyu.com.har` still does not expose st
 * Use the same staged recovery pipeline for scheduled runtime tasks and WebUI manual status reads, so manual refreshes and background jobs recover consistently.
 * Keep `/api/cookie-source/check` local-only; it must not fetch CookieCloud or call `safeAuth`.
 * Do not print raw cookies, `LTP0`, CookieCloud passwords, returned auth tokens, or HAR secrets in logs, tests, PRD, or WebUI responses.
+* `/api/config` and WebUI status surfaces must show only whether manual `passport/LTP0` is configured; `/api/config/raw` keeps the existing internal raw-config behavior.
 * Update README to include this project in the requested sub-series/related-project section.
 
 ## Acceptance Criteria
@@ -53,6 +56,8 @@ The updated HAR at `/mnt/d/Download/yuba.douyu.com.har` still does not expose st
 * [ ] A successful refresh updates the local main cookie with returned main-site auth fields.
 * [ ] Credential failure recovery force-syncs CookieCloud, validates the resulting local snapshot, attempts `safeAuth` only if the synced snapshot is still invalid, then retries the original failed operation only once.
 * [ ] WebUI manual reads and scheduled runtime tasks share the same recovery semantics.
+* [ ] Manual Cookie mode can save `manualPassport.ltp0`, public config responses mask it, and recovery uses it only through the centralized pipeline.
+* [ ] If the local main-site Cookie lacks `dy_did`, manual `passport/LTP0` recovery reports a non-secret reason and does not call `safeAuth`.
 * [ ] Credential validation has two levels: required-key checks for cheap diagnostics, and `getFansList()` as the Douyu-backed check that proves the main-site cookie is currently accepted.
 * [ ] If `LTP0`, `dy_did`, or returned auth fields are missing, the app logs a clear non-secret reason and falls back to existing behavior.
 * [ ] Fishbar status/sign-in behavior benefits from refreshed main-site `dy-token` material when possible.
@@ -62,7 +67,7 @@ The updated HAR at `/mnt/d/Download/yuba.douyu.com.har` still does not expose st
 
 ## Technical Approach
 
-Recommended MVP: add a CookieCloud-only passport refresh path.
+Recommended MVP: add a centralized passport refresh path.
 
 1. Extend cookie utilities to build a passport-domain cookie header and locate `LTP0` by name.
 2. Add a Douyu passport refresh helper in `src/core/` that calls `safeAuth` with `dy_did`, carries `LTP0`, follows/handles the response shape, and returns a sanitized cookie merge result.
@@ -70,15 +75,15 @@ Recommended MVP: add a CookieCloud-only passport refresh path.
    * missing required keys before any network request;
    * main-site cookie accepted by the fans-list endpoint;
    * main-site cookie rejected/expired by known Douyu auth failure messages or missing expected response shape.
-4. Extend `DockerCookieSourceManager` with a single recovery method, likely `recoverCredentialSnapshot`, that owns forced CookieCloud pull, validation, optional `safeAuth`, post-refresh validation, and local persistence.
-5. Wire runtime credential-retry flow to call the recovery method when CookieCloud is active, instead of directly calling `persistEffectiveCookies(true)`.
-6. Keep manual-cookie users on the existing behavior for this MVP.
+4. Extend `DockerCookieSourceManager` with a single recovery method, likely `recoverCredentialSnapshot`, that owns current-cookie validation, optional forced CookieCloud pull, optional manual `LTP0`, optional `safeAuth`, post-refresh validation, and local persistence.
+5. Wire runtime credential-retry flow to call the recovery method whenever CookieCloud or manual passport recovery material exists, instead of directly calling `persistEffectiveCookies(true)` or branching per task.
+6. Keep `dy_did` sourced from the main-site Cookie; do not add a separate manual `dy_did` field.
 
 ## Decision (ADR-lite)
 
 **Context**: CookieCloud gives the app a browser cookie snapshot, but the app needs a way to recover when short-lived business cookies expire and the browser would normally refresh them through passport.
 
-**Decision**: Use `LTP0` from CookieCloud as refresh material for a server-side, one-shot, pure HTTP `safeAuth` refresh only after a forced CookieCloud sync still fails local credential validation.
+**Decision**: Use `LTP0` from CookieCloud or from the manual passport secret as refresh material for a server-side, one-shot, pure HTTP `safeAuth` refresh only after the current local main-site cookie still fails validation. CookieCloud mode force-syncs once before `safeAuth`; manual mode uses the saved local main cookie directly.
 
 **Consequences**: This improves unattended recovery for the Docker runtime, but it deliberately does not update the browser's cookies. The browser and app can diverge until the browser itself refreshes/login-syncs and CookieCloud later exports a new snapshot.
 
@@ -86,7 +91,6 @@ Recommended MVP: add a CookieCloud-only passport refresh path.
 
 * Browser automation or simulated browser login.
 * Writing refreshed app cookies back into the browser or CookieCloud.
-* Manual `LTP0` text field in WebUI for MVP.
 * Guaranteed refresh of fishbar `acf_yb_*` cookies.
 * Using `getBackpackStatus()` / backpack APIs as a fallback credential validation probe.
 * Solving Gee / captcha / risk-control flows.

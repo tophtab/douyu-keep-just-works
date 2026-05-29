@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Verify recovery behavior and secret handling stay intact"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Verify manualPassport.cookie masking/persistence contract"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Verify WebUI config state handling remains consistent"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend quality verification"}

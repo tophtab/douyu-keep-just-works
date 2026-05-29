@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Credential recovery contracts and no-secret logging rules"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "manualPassport.cookie persistence and masking contracts"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Config save response handling conventions"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Shared config type usage in WebUI"}

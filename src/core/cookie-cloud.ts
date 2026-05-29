@@ -28,6 +28,7 @@ export interface CookieCloudSnapshot {
 const COOKIE_CLOUD_MAIN_REQUIRED_KEYS = ['acf_uid', 'dy_did', 'acf_auth', 'acf_stk']
 const COOKIE_CLOUD_YUBA_COOKIE_REQUIRED_KEYS = ['acf_yb_auth', 'acf_yb_uid', 'acf_yb_t']
 const COOKIE_CLOUD_YUBA_DY_TOKEN_REQUIRED_KEYS = ['acf_uid', 'acf_biz', 'acf_stk', 'acf_ct', 'acf_ltkid']
+const PASSPORT_DOUYU_URL = 'https://passport.douyu.com/'
 
 function normalizeString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
@@ -265,10 +266,15 @@ export function buildCookieHeaderForUrl(cookies: CookieCloudCookie[], targetUrl:
     .join('; ')
 }
 
+export function getCookieCloudPassportLtp0(cookies: CookieCloudCookie[]): string | undefined {
+  return getCookieValue(buildCookieHeaderForUrl(cookies, PASSPORT_DOUYU_URL), 'LTP0')
+}
+
 export function createCookieDiagnostics(source: 'manual' | 'cookieCloud', mainCookie: string, yubaCookie: string, options: {
   cookieCount: number
   domains: string[]
   updateTime?: string
+  passportLtp0Present?: boolean
 }): CookieDiagnostics {
   const missingMainKeys = COOKIE_CLOUD_MAIN_REQUIRED_KEYS.filter(name => !getCookieValue(mainCookie, name))
   const missingYubaCookieKeys = COOKIE_CLOUD_YUBA_COOKIE_REQUIRED_KEYS.filter(name => !getCookieValue(yubaCookie, name))
@@ -286,5 +292,6 @@ export function createCookieDiagnostics(source: 'manual' | 'cookieCloud', mainCo
     cookieCount: options.cookieCount,
     domains: options.domains,
     updateTime: options.updateTime,
+    passportLtp0Present: options.passportLtp0Present,
   }
 }

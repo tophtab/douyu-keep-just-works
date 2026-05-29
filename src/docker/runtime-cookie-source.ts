@@ -1,7 +1,9 @@
 import { parseCookieRecord } from '../core/api'
-import { buildCookieHeaderForUrl, createCookieDiagnostics, fetchCookieCloudSnapshot, isCookieCloudReady } from '../core/cookie-cloud'
+import { buildCookieHeaderForUrl, createCookieDiagnostics, fetchCookieCloudSnapshot, getCookieCloudPassportLtp0, isCookieCloudReady } from '../core/cookie-cloud'
 import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, EffectiveCookiePreview } from '../core/types'
 import { buildConfigWithPartialUpdate, configsEqual, saveConfigToDisk } from './config-store'
+import { recoverCredentialSnapshot as recoverCredentialSnapshotWithDeps } from './runtime-cookie-recovery'
+import type { CookieRecoveryLogger, CookieSnapshotValidator, CredentialSnapshotRecoveryResult } from './runtime-cookie-recovery'
 import type { StatusCacheScope } from './runtime-cache'
 import { MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
 
@@ -68,11 +70,13 @@ export class DockerCookieSourceManager {
     let mainCookie = this.getManualCookieForUrl(MAIN_DOUYU_URL, currentConfig)
     let yubaCookie = this.getManualCookieForUrl(YUBA_DOUYU_URL, currentConfig)
     let source: EffectiveCookiePreview['source'] = this.hasManualCookie(currentConfig) ? 'manual' : 'none'
+    let passportLtp0Present: boolean | undefined
 
     if (this.hasCookieCloudSource(currentConfig)) {
       const snapshot = await this.loadCookieCloudSnapshot(forceRefresh)
       const cloudMainCookie = buildCookieHeaderForUrl(snapshot.cookies, MAIN_DOUYU_URL)
       const cloudYubaCookie = buildCookieHeaderForUrl(snapshot.cookies, YUBA_DOUYU_URL)
+      passportLtp0Present = Boolean(getCookieCloudPassportLtp0(snapshot.cookies))
 
       if (cloudMainCookie || cloudYubaCookie) {
         mainCookie = cloudMainCookie || mainCookie
@@ -96,6 +100,7 @@ export class DockerCookieSourceManager {
       yubaCookie: resolvedYubaCookie,
       cookieCloudActive: this.hasCookieCloudSource(latestConfig),
       persistedLocally,
+      passportLtp0Present,
     }
   }
 
@@ -138,6 +143,20 @@ export class DockerCookieSourceManager {
     }
   }
 
+  async recoverCredentialSnapshot(options: {
+    validateMainCookie: CookieSnapshotValidator
+    log: CookieRecoveryLogger
+  }): Promise<CredentialSnapshotRecoveryResult> {
+    return await recoverCredentialSnapshotWithDeps({
+      ...options,
+      hasCookieCloudSource: () => this.hasCookieCloudSource(),
+      persistEffectiveCookies: async forceRefresh => await this.persistEffectiveCookies(forceRefresh),
+      loadCookieCloudSnapshot: async forceRefresh => await this.loadCookieCloudSnapshot(forceRefresh),
+      getCurrentYubaCookie: () => this.getManualCookieForUrl(YUBA_DOUYU_URL, this.getConfig()),
+      persistManualCookieSnapshot: (mainCookie, yubaCookie) => this.persistManualCookieSnapshot(mainCookie, yubaCookie),
+    })
+  }
+
   async inspectCookieSource(): Promise<CookieDiagnostics> {
     const currentConfig = this.getConfig()
     if (this.hasManualCookie(currentConfig)) {
@@ -149,6 +168,7 @@ export class DockerCookieSourceManager {
           ...parseCookieRecord(yubaCookie),
         }).length,
         domains: ['local'],
+        passportLtp0Present: undefined,
       })
     }
 
@@ -157,6 +177,23 @@ export class DockerCookieSourceManager {
     }
 
     throw new Error('请先配置 cookie')
+  }
+
+  private persistManualCookieSnapshot(mainCookie: string, yubaCookie: string): DockerConfig {
+    const nextConfig = buildConfigWithPartialUpdate(this.getConfig(), {
+      manualCookies: {
+        main: mainCookie.trim(),
+        yuba: yubaCookie.trim(),
+      },
+    })
+
+    if (!configsEqual(this.getConfig(), nextConfig)) {
+      saveConfigToDisk(this.getConfigPath(), nextConfig)
+    }
+    this.setConfig(nextConfig)
+    this.clearFansListCache()
+    this.invalidateStatusCaches('all')
+    return nextConfig
   }
 
   private async loadCookieCloudSnapshot(forceRefresh = false): Promise<Awaited<ReturnType<typeof fetchCookieCloudSnapshot>>> {

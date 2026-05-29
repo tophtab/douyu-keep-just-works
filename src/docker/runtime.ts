@@ -96,13 +96,16 @@ async function refreshCookieSourceAfterFailure(error: unknown, context: string):
 
   try {
     logSystem(`${context}检测到登录凭证可能失效，正在同步 CookieCloud 后重试`)
-    const result = await cookieSource.persistEffectiveCookies(true)
-    logSystem(result.updated
-      ? 'CookieCloud 已同步最新本地登录快照'
-      : 'CookieCloud 同步完成，本地登录快照无需更新')
-    return true
+    const result = await cookieSource.recoverCredentialSnapshot({
+      validateMainCookie: async (mainCookie) => {
+        await runtimeCache.getFansList(mainCookie)
+      },
+      log: logSystem,
+    })
+    logSystem(result.reason)
+    return result.recovered
   } catch (syncError: unknown) {
-    logSystem(`CookieCloud 失败后同步失败: ${errorMessage(syncError)}`)
+    logSystem(`CookieCloud 登录凭证恢复失败: ${errorMessage(syncError)}`)
     return false
   }
 }

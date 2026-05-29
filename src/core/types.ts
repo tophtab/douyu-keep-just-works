@@ -93,6 +93,7 @@ export interface CookieDiagnostics {
   cookieCount: number
   domains: string[]
   updateTime?: string
+  passportLtp0Present?: boolean
 }
 
 export interface EffectiveCookiePreview {
@@ -101,6 +102,7 @@ export interface EffectiveCookiePreview {
   yubaCookie: string
   cookieCloudActive: boolean
   persistedLocally: boolean
+  passportLtp0Present?: boolean
 }
 
 export interface YubaFollowedGroup {

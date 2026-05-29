@@ -103,39 +103,39 @@ Keep messages stable when frontend code or tests rely on them.
 
 ### 1. Scope / Trigger
 - Trigger: a Docker runtime task or WebUI status load fails with a message classified by `isCookieCredentialMessage`.
-- Scope: runtime-only recovery for CookieCloud-backed local login snapshots or manual-cookie mode with saved `manualPassport.ltp0`.
+- Scope: runtime-only recovery for CookieCloud-backed local login snapshots or manual-cookie mode with saved `manualPassport.cookie`.
 
 ### 2. Signatures
 - `isCookieCredentialMessage(message: string): boolean` identifies login-cookie failures.
 - `refreshCookieSourceAfterFailure(error: unknown, context: string): Promise<boolean>` delegates to `DockerCookieSourceManager.recoverCredentialSnapshot(...)` when CookieCloud or manual passport recovery material is configured.
 - `runWithCookieSourceRetry<T>(context: string, run: () => Promise<T>): Promise<T>` wraps WebUI-facing Douyu reads.
 - `RuntimeTaskRunnerDeps.refreshCookieSourceAfterFailure(error, context)` lets scheduled and manual tasks share the same recovery path.
-- `DockerCookieSourceManager.hasPassportRecoveryMaterial(config?): boolean` is true when CookieCloud is ready or manual `passport/LTP0` is saved.
+- `DockerCookieSourceManager.hasPassportRecoveryMaterial(config?): boolean` is true when CookieCloud is ready or manual `passport.douyu.com` cookie material is saved.
 - `DockerCookieSourceManager.recoverCredentialSnapshot({ validateMainCookie, log }): Promise<{ recovered: boolean; refreshedBy: 'cookieCloud' | 'safeAuth' | null; reason: string }>` owns current-cookie validation, optional CookieCloud sync, optional passport refresh, and persistence.
 - `src/docker/runtime-cookie-recovery.ts` contains the centralized recovery pipeline. Individual task runners must call the shared retry hook, not call `safeAuth` or `LTP0` handling directly.
 - `CredentialSnapshotRecoveryDeps.getCurrentMainCookie()` supplies the current local main-site cookie for manual-mode recovery.
-- `CredentialSnapshotRecoveryDeps.getManualPassportLtp0()` supplies the saved manual `passport/LTP0` secret.
+- `CredentialSnapshotRecoveryDeps.getManualPassportCookie()` supplies the saved manual `passport.douyu.com` cookie string.
 - `refreshDouyuMainCookiesWithSafeAuth({ mainCookie, dyDid, ltp0 }): Promise<{ refreshedCookie: string; returnedKeys: string[] }>` performs the pure HTTP `passport.douyu.com` refresh and returns a merged local main-cookie header.
 
 ### 3. Contracts
 - First failure is inspected by message only; there is no custom error class hierarchy.
-- Recovery runs only when CookieCloud is fully configured and active or manual `manualPassport.ltp0` is saved.
+- Recovery runs only when CookieCloud is fully configured and active or manual `manualPassport.cookie` is saved.
 - Recovery first validates the current local main cookie using required-key checks and `getFansList()`.
 - When CookieCloud is active and the current local main cookie is still invalid, recovery force-persists the effective CookieCloud snapshot to local `manualCookies`, then validates that synced main cookie.
-- If the synced/current main cookie is still invalid, recovery may call passport `safeAuth` only when `dy_did` is present in the local main cookie and `LTP0` is available from `passport.douyu.com` CookieCloud cookies or manual `manualPassport.ltp0`.
-- CookieCloud `LTP0` is preferred when CookieCloud has it; manual `LTP0` is a fallback for CookieCloud gaps and the primary source in manual-cookie mode.
+- If the synced/current main cookie is still invalid, recovery may call passport `safeAuth` only when `LTP0` is available from the `passport.douyu.com` CookieCloud cookie header or manual `manualPassport.cookie`, and `dy_did` is available from that passport cookie header or the local main cookie.
+- CookieCloud passport-domain cookie material is preferred when CookieCloud has `LTP0`; manual passport cookie material is a fallback for CookieCloud gaps and the primary source in manual-cookie mode.
 - `safeAuth` may update only the local main-cookie snapshot after its merged cookie passes the same validation gate; it must not write cookies back to the browser or CookieCloud.
 - The original operation is retried exactly once.
 - Recovery does not run a browser, simulate Douyu login pages, refresh fishbar `acf_yb_*`, or store standalone long-lived Douyu login tokens.
 - Logs may include cookie field names and high-level reasons, but must not include raw cookies, `LTP0`, CookieCloud passwords, or returned auth token values.
 
 ### 4. Validation & Error Matrix
-- CookieCloud inactive and manual `passport/LTP0` missing -> rethrow the original error.
+- CookieCloud inactive and manual passport cookie missing -> rethrow the original error.
 - Current local main cookie validates through `getFansList()` -> retry the original operation once without CookieCloud or `safeAuth`.
 - CookieCloud persist fails -> log the recovery failure and rethrow the original error.
 - CookieCloud sync validates through `getFansList()` -> retry the original operation once.
 - CookieCloud sync or manual local cookie remains invalid and `dy_did` or passport `LTP0` is missing -> log the non-secret reason and rethrow the original error.
-- Manual `passport/LTP0` exists but local main cookie lacks `dy_did` -> do not call `safeAuth`; log/return a non-secret missing-`dy_did` reason.
+- Manual passport cookie has `LTP0` but neither it nor the local main cookie has `dy_did` -> do not call `safeAuth`; log/return a non-secret missing-`dy_did` reason.
 - `safeAuth` returns no usable main-site auth fields -> log the recovery failure and rethrow the original error.
 - `safeAuth` returns fields but post-refresh `getFansList()` validation fails -> do not persist the refreshed cookie; log the non-secret reason and rethrow the original error.
 - `safeAuth` returns fields and validation passes -> persist the merged local main cookie, keep the current yuba cookie, invalidate local caches, and retry the original operation once.
@@ -145,7 +145,7 @@ Keep messages stable when frontend code or tests rely on them.
 ### 5. Good/Base/Bad Cases
 - Good: `getFansList` fails with "请检查主站 Cookie", CookieCloud sync updates `manualCookies`, validation passes, then the same read is retried once.
 - Good: CookieCloud sync still fails validation, passport `LTP0` + `dy_did` refresh main-site `acf_*` fields, post-refresh `getFansList()` passes, then the same read is retried once.
-- Good: manual-cookie mode has `manualPassport.ltp0`, current main cookie has `dy_did`, `safeAuth` refreshes main-site `acf_*` fields, post-refresh validation passes, then the same read is retried once.
+- Good: manual-cookie mode has `manualPassport.cookie = "dy_did=...; LTP0=..."`, `safeAuth` refreshes main-site `acf_*` fields, post-refresh validation passes, then the same read is retried once.
 - Base: a task fails for non-cookie business reasons; the scheduler logs the task error without CookieCloud traffic.
 - Bad: `/api/cookie-source/check` fetches CookieCloud remotely or task execution loops on repeated login failure.
 - Bad: persisting a `safeAuth` response before post-refresh validation passes.
@@ -156,7 +156,7 @@ Keep messages stable when frontend code or tests rely on them.
 - Contract tests must assert `refreshCookieSourceAfterFailure`, `runWithCookieSourceRetry`, and `RuntimeTaskRunnerDeps.refreshCookieSourceAfterFailure` exist.
 - Contract tests must assert credential recovery uses `recoverCredentialSnapshot`, which validates the current local cookie, calls `persistEffectiveCookies(true)` for CookieCloud mode, validates with `getFansList()`, optionally calls `safeAuth`, and validates again before persisting the passport refresh.
 - Unit-style tests must cover `LTP0` detection without exposing the value and `safeAuth` cookie merge behavior with mocked response headers.
-- Unit-style tests must cover manual `passport/LTP0` normalization, public config masking, manual-mode recovery, and missing-`dy_did` behavior.
+- Unit-style tests must cover manual passport cookie normalization, public config masking, manual-mode recovery, and missing-`dy_did` behavior.
 - Contract tests must assert task runner modules do not directly reference `safeAuth`, `LTP0`, `ltp0`, `getCookieCloudPassportLtp0`, or `refreshDouyuMainCookiesWithSafeAuth`.
 - Contract tests must assert fan reconcile preserves the side-effecting config write and merges the latest local cookie snapshot before `reconcileDockerConfig`.
 

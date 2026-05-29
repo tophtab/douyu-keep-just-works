@@ -751,3 +751,36 @@ Changed manual passport recovery from a hidden LTP0 field to a visible passport.
 ### Next Steps
 
 - None - task complete
+
+
+## Session 23: Clean up manual passport cookie handling
+
+**Date**: 2026-05-29
+**Task**: Clean up manual passport cookie handling
+**Branch**: `master`
+
+### Summary
+
+Removed unused passport recovery cookie retention, clarified WebUI manual passport save response handling, and unified passport Cookie wording after verification.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b19284d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -850,3 +850,36 @@ Merged manual passport Cookie into the existing login Cookie panel, unified manu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 26: CookieCloud passport sync
+
+**Date**: 2026-05-30
+**Task**: CookieCloud passport sync
+**Branch**: `master`
+
+### Summary
+
+Persist CookieCloud passport cookies into local manualPassport, rename WebUI endpoint label to server address, and add regression coverage.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `84cf34e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -678,3 +678,41 @@ Separated WebUI CookieCloud persist/check behavior and added one-shot CookieClou
 ### Next Steps
 
 - None - task complete
+
+
+## Session 21: LTP0 safeAuth and manual passport recovery
+
+**Date**: 2026-05-29
+**Task**: LTP0 safeAuth and manual passport recovery
+**Branch**: `master`
+
+### Summary
+
+Added centralized LTP0 safeAuth credential recovery, extended manual Cookie mode with masked passport/LTP0 recovery material, updated backend specs and task notes, and verified lint, type-check, contract tests, and Docker/WebUI build.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d095edf` | (see git log) |
+| `1057c93` | (see git log) |
+| `682a156` | (see git log) |
+| `ea1f96d` | (see git log) |
+| `65b0ee9` | (see git log) |
+| `6d6024d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

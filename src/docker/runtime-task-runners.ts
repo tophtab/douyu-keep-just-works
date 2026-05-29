@@ -2,7 +2,7 @@ import { executeCollectGiftJob, executeDoubleCardJob, executeExpiringGiftJob, ex
 import type { DockerConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig, YubaCheckInConfig } from '../core/types'
 import type { StatusCacheScope } from './runtime-cache'
 import { MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
-import { getTaskNotConfiguredMessage, createTaskRecord } from './task-metadata'
+import { getTaskLabel, getTaskNotConfiguredMessage, createTaskRecord } from './task-metadata'
 import type { TaskType } from './task-metadata'
 
 type TaskLoggerMap = Record<TaskType, (message: string) => void>
@@ -19,6 +19,7 @@ type TaskLockRunner = (
 export interface RuntimeTaskRunnerDeps {
   taskLoggers: TaskLoggerMap
   resolveCookieForUrl: (targetUrl: string) => string
+  refreshCookieSourceAfterFailure: (error: unknown, context: string) => Promise<boolean>
   runAndInvalidateStatusCache: (scope: StatusCacheScope, runTask: () => Promise<void>) => Promise<void>
   runTaskWithLock: TaskLockRunner
 }
@@ -79,7 +80,17 @@ async function triggerConfiguredTask<TConfig>(options: {
 }
 
 export async function runRuntimeTask(type: TaskType, config: DockerConfig[TaskType], deps: RuntimeTaskRunnerDeps): Promise<void> {
-  await runtimeTaskRunners[type](config, deps)
+  try {
+    await runtimeTaskRunners[type](config, deps)
+  } catch (error: unknown) {
+    const refreshed = await deps.refreshCookieSourceAfterFailure(error, getTaskLabel(type))
+    if (!refreshed) {
+      throw error
+    }
+
+    deps.taskLoggers[type]('CookieCloud 已同步本地登录快照，重试本次任务...')
+    await runtimeTaskRunners[type](config, deps)
+  }
 }
 
 export async function triggerRuntimeTask(

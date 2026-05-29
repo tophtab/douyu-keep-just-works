@@ -41,6 +41,7 @@ export class DockerTaskScheduler {
     private readonly logSystem: (message: string) => void,
     private readonly taskLoggers: Record<TaskType, (message: string) => void>,
     private readonly resolveCookieForUrl: (targetUrl: string) => string,
+    private readonly refreshCookieSourceAfterFailure: (error: unknown, context: string) => Promise<boolean>,
     private readonly runAndInvalidateStatusCache: (scope: StatusCacheScope, runTask: () => Promise<void>) => Promise<void>,
   ) {}
 
@@ -168,6 +169,7 @@ export class DockerTaskScheduler {
     return {
       taskLoggers: this.taskLoggers,
       resolveCookieForUrl: this.resolveCookieForUrl,
+      refreshCookieSourceAfterFailure: this.refreshCookieSourceAfterFailure,
       runAndInvalidateStatusCache: this.runAndInvalidateStatusCache,
       runTaskWithLock: async (type, runTask, options) => await this.runTaskWithLock(type, runTask, options),
     }

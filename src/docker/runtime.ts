@@ -14,6 +14,7 @@ import { DockerCookieSourceManager } from './runtime-cookie-source'
 import { DOCKER_TIMEZONE, MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
 import { DockerTaskScheduler } from './runtime-scheduler'
 import { formatScheduleForLog } from './runtime-time'
+import { isCookieCredentialMessage } from './server-errors'
 import { createTaskRecord, hasActiveTaskConfig, TASK_LOG_CATEGORIES } from './task-metadata'
 import type { TaskType } from './task-metadata'
 
@@ -44,6 +45,7 @@ const scheduler = new DockerTaskScheduler(
   logSystem,
   taskLoggers,
   targetUrl => cookieSource.resolveCookieForUrl(targetUrl),
+  async (error, context) => await refreshCookieSourceAfterFailure(error, context),
   (scope, runTask) => runtimeCache.runAndInvalidateStatus(scope, runTask),
 )
 
@@ -83,6 +85,37 @@ async function syncCookieCloudSnapshot(reason: 'startup' | 'scheduled'): Promise
     logSystem(`${reason === 'startup' ? 'CookieCloud 启动同步' : 'CookieCloud 每日同步'}失败: ${errorMessage(error)}`)
   } finally {
     cookieCloudSyncRunning = false
+  }
+}
+
+async function refreshCookieSourceAfterFailure(error: unknown, context: string): Promise<boolean> {
+  const message = errorMessage(error)
+  if (!isCookieCredentialMessage(message) || !cookieSource.hasCookieCloudSource()) {
+    return false
+  }
+
+  try {
+    logSystem(`${context}检测到登录凭证可能失效，正在同步 CookieCloud 后重试`)
+    const result = await cookieSource.persistEffectiveCookies(true)
+    logSystem(result.updated
+      ? 'CookieCloud 已同步最新本地登录快照'
+      : 'CookieCloud 同步完成，本地登录快照无需更新')
+    return true
+  } catch (syncError: unknown) {
+    logSystem(`CookieCloud 失败后同步失败: ${errorMessage(syncError)}`)
+    return false
+  }
+}
+
+async function runWithCookieSourceRetry<T>(context: string, run: () => Promise<T>): Promise<T> {
+  try {
+    return await run()
+  } catch (error: unknown) {
+    const refreshed = await refreshCookieSourceAfterFailure(error, context)
+    if (!refreshed) {
+      throw error
+    }
+    return await run()
   }
 }
 
@@ -127,6 +160,29 @@ function hasConfiguredJobs(config: DockerConfig): boolean {
 
 function hasSendRooms(config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined): boolean {
   return Object.keys(config?.send || {}).length > 0
+}
+
+function cookieSnapshotEqual(a: DockerConfig | null | undefined, b: DockerConfig | null | undefined): boolean {
+  return (a?.cookie || '') === (b?.cookie || '')
+    && jsonEquals(a?.manualCookies || null, b?.manualCookies || null)
+}
+
+function mergeLatestCookieSnapshot(config: DockerConfig): DockerConfig {
+  const latestConfig = currentConfig
+  if (!latestConfig || !cookieSource.hasCookieCloudSource(latestConfig)) {
+    return config
+  }
+
+  const latestManualCookies = latestConfig.manualCookies
+  if (!latestManualCookies?.main?.trim() && !latestManualCookies?.yuba?.trim() && !latestConfig.cookie?.trim()) {
+    return config
+  }
+
+  return normalizeDockerConfig({
+    ...config,
+    cookie: latestManualCookies?.main?.trim() || latestConfig.cookie || config.cookie,
+    ...(latestManualCookies ? { manualCookies: latestManualCookies } : {}),
+  })
 }
 
 function applyConfig(config: DockerConfig, reason: 'startup' | 'cookie_saved' | 'tasks_saved' | 'ui_saved' | 'medal_synced'): void {
@@ -190,21 +246,26 @@ function applyConfig(config: DockerConfig, reason: 'startup' | 'cookie_saved' | 
 }
 
 async function syncConfigWithFans(reason: 'tasks_saved' | 'medal_synced', baseConfig?: DockerConfig): Promise<{ config: DockerConfig; fans: Fans[] }> {
-  const sourceConfig = normalizeDockerConfig(baseConfig || currentConfig || createDefaultDockerConfig())
-  const cookie = cookieSource.resolveCookieForUrlFromConfig(MAIN_DOUYU_URL, sourceConfig)
-  const fans = await runtimeCache.getFansList(cookie)
-  const nextConfig = reconcileDockerConfig(sourceConfig, fans)
-  runtimeCache.invalidateStatus('fans')
+  const shouldMergeLatestCookieSnapshot = Boolean(baseConfig && cookieSnapshotEqual(baseConfig, currentConfig))
 
-  if (!configsEqual(currentConfig, nextConfig)) {
-    saveConfigToDisk(activeConfigPath, nextConfig)
-    applyConfig(nextConfig, reason)
-  }
+  return await runWithCookieSourceRetry('同步粉丝牌', async () => {
+    const sourceConfig = normalizeDockerConfig(baseConfig || currentConfig || createDefaultDockerConfig())
+    const cookieConfig = shouldMergeLatestCookieSnapshot ? mergeLatestCookieSnapshot(sourceConfig) : sourceConfig
+    const cookie = cookieSource.resolveCookieForUrlFromConfig(MAIN_DOUYU_URL, cookieConfig)
+    const fans = await runtimeCache.getFansList(cookie)
+    const nextConfig = reconcileDockerConfig(cookieConfig, fans)
+    runtimeCache.invalidateStatus('fans')
 
-  return {
-    config: nextConfig,
-    fans,
-  }
+    if (!configsEqual(currentConfig, nextConfig)) {
+      saveConfigToDisk(activeConfigPath, nextConfig)
+      applyConfig(nextConfig, reason)
+    }
+
+    return {
+      config: nextConfig,
+      fans,
+    }
+  })
 }
 
 export interface DockerRuntimeOptions {
@@ -293,30 +354,30 @@ export function startDockerRuntime(options: DockerRuntimeOptions): void {
     getEffectiveCookies: async (forceRefresh?: boolean) => await cookieSource.getEffectiveCookies(forceRefresh),
     persistEffectiveCookies: async (forceRefresh?: boolean) => await cookieSource.persistEffectiveCookies(forceRefresh),
     triggerTask: async (type: TaskType) => await scheduler.triggerTask(type, currentConfig, hasSendRooms),
-    fetchFans: async () => {
+    fetchFans: async () => await runWithCookieSourceRetry('加载粉丝牌列表', async () => {
       const cookie = cookieSource.resolveCookieForUrl(MAIN_DOUYU_URL)
       return await runtimeCache.getFansList(cookie)
-    },
-    fetchFansStatusBase: async () => {
+    }),
+    fetchFansStatusBase: async () => await runWithCookieSourceRetry('加载粉丝牌基础状态', async () => {
       const cookie = cookieSource.resolveCookieForUrl(MAIN_DOUYU_URL)
       return await runtimeCache.getFansStatusBase(cookie)
-    },
-    fetchFansStatusDetails: async () => {
+    }),
+    fetchFansStatusDetails: async () => await runWithCookieSourceRetry('加载粉丝牌详细状态', async () => {
       const cookie = cookieSource.resolveCookieForUrl(MAIN_DOUYU_URL)
       return await runtimeCache.getFansStatus(cookie, logSystem)
-    },
-    fetchFansStatus: async () => {
+    }),
+    fetchFansStatus: async () => await runWithCookieSourceRetry('加载粉丝牌状态', async () => {
       const cookie = cookieSource.resolveCookieForUrl(MAIN_DOUYU_URL)
       return await runtimeCache.getFansStatus(cookie, logSystem)
-    },
-    fetchYubaStatus: async () => {
+    }),
+    fetchYubaStatus: async () => await runWithCookieSourceRetry('加载鱼吧状态', async () => {
       return await runtimeCache.getYubaStatus(async () => {
         const mainCookie = cookieSource.resolveCookieForUrl(MAIN_DOUYU_URL)
         const yubaCookie = cookieSource.resolveCookieForUrl(YUBA_DOUYU_URL)
         const groups = await getFollowedYubaStatusesWithDyToken(yubaCookie, mainCookie)
         return { groups }
       })
-    },
+    }),
   }
 
   const app = createServer(ctx)

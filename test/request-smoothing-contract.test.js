@@ -115,7 +115,8 @@ test('Fans reconcile remains a side-effecting operation, not a cached whole resp
 
   const syncBody = getFunctionBody(runtime, 'syncConfigWithFans')
   assert.match(syncBody, /const fans = await runtimeCache\.getFansList\(cookie\)/)
-  assert.match(syncBody, /const nextConfig = reconcileDockerConfig\(sourceConfig,\s*fans\)/)
+  assert.match(syncBody, /const cookieConfig = shouldMergeLatestCookieSnapshot \? mergeLatestCookieSnapshot\(sourceConfig\) : sourceConfig/)
+  assert.match(syncBody, /const nextConfig = reconcileDockerConfig\(cookieConfig,\s*fans\)/)
   assert.match(syncBody, /saveConfigToDisk\(activeConfigPath,\s*nextConfig\)/)
   assert.doesNotMatch(syncBody, /getCachedStatus|reconcileCache|cachedReconcile|syncWithFansCache/)
 })

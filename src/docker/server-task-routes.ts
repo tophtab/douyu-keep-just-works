@@ -1,12 +1,12 @@
 import type express from 'express'
-import { isMissingCookieMessage } from './server-errors'
+import { isCookieCredentialMessage } from './server-errors'
 import { sendJsonError } from './server-route-utils'
 import type { AppContext } from './server-types'
 import { isTaskType } from './task-metadata'
 
 function resolveTaskErrorStatus(message: string): number {
   return (
-    isMissingCookieMessage(message)
+    isCookieCredentialMessage(message)
     || message.endsWith('未配置')
     || message === '任务正在执行中，请稍后再试'
   )

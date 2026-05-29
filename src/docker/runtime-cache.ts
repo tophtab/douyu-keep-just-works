@@ -1,6 +1,7 @@
 import { getFansList, getGiftStatus } from '../core/api'
 import { checkDoubleCard } from '../core/double-card'
 import type { FanStatus, Fans, FansStatusResponse, GiftStatus, YubaStatusResponse } from '../core/types'
+import { isCookieCredentialMessage } from './server-errors'
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -189,6 +190,9 @@ export class DockerRuntimeCache {
     const gift = await getGiftStatus(cookie, fanRoomIds).catch((error: unknown): GiftStatus => {
       const message = errorMessage(error)
       logSystem(`加载粉丝牌状态时无法获取背包明细: ${message}`)
+      if (isCookieCredentialMessage(message)) {
+        throw error
+      }
       return {
         error: message,
       }

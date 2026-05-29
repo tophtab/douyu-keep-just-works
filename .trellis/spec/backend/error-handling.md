@@ -85,6 +85,7 @@ await this.runTaskWithLock(type, async () => {
 Use status-specific JSON errors:
 
 - `400` for validation and malformed config.
+- `400` for missing or invalid Douyu login credentials, including local CookieCloud snapshot gaps and cookie fields that Douyu APIs require.
 - `401` for WebUI auth failures.
 - `500` for unexpected runtime failures.
 
@@ -98,9 +99,71 @@ Keep messages stable when frontend code or tests rely on them.
 
 ---
 
+## Scenario: CookieCloud Recovery Retry
+
+### 1. Scope / Trigger
+- Trigger: a Docker runtime task or WebUI status load fails with a message classified by `isCookieCredentialMessage`.
+- Scope: runtime-only recovery for CookieCloud-backed local login snapshots.
+
+### 2. Signatures
+- `isCookieCredentialMessage(message: string): boolean` identifies login-cookie failures.
+- `refreshCookieSourceAfterFailure(error: unknown, context: string): Promise<boolean>` forces `persistEffectiveCookies(true)` when CookieCloud is configured.
+- `runWithCookieSourceRetry<T>(context: string, run: () => Promise<T>): Promise<T>` wraps WebUI-facing Douyu reads.
+- `RuntimeTaskRunnerDeps.refreshCookieSourceAfterFailure(error, context)` lets scheduled and manual tasks share the same recovery path.
+
+### 3. Contracts
+- First failure is inspected by message only; there is no custom error class hierarchy.
+- Recovery runs only when CookieCloud is fully configured and active.
+- Recovery persists the effective CookieCloud snapshot to local `manualCookies` before retrying.
+- The original operation is retried exactly once.
+- Recovery does not run a browser, simulate Douyu login pages, or store standalone long-lived Douyu login tokens.
+
+### 4. Validation & Error Matrix
+- CookieCloud inactive -> rethrow the original error.
+- CookieCloud persist fails -> log the persist failure and rethrow the original error.
+- Retry fails -> surface the retry error through the existing route or scheduler path.
+- Missing config, not-configured task, or ordinary Douyu business failure -> no recovery retry.
+
+### 5. Good/Base/Bad Cases
+- Good: `getFansList` fails with "请检查主站 Cookie", CookieCloud sync updates `manualCookies`, then the same read is retried once.
+- Base: a task fails for non-cookie business reasons; the scheduler logs the task error without CookieCloud traffic.
+- Bad: `/api/cookie-source/check` fetches CookieCloud remotely or task execution loops on repeated login failure.
+
+### 6. Tests Required
+- Contract tests must assert `refreshCookieSourceAfterFailure`, `runWithCookieSourceRetry`, and `RuntimeTaskRunnerDeps.refreshCookieSourceAfterFailure` exist.
+- Contract tests must assert CookieCloud recovery uses `persistEffectiveCookies(true)`.
+- Contract tests must assert fan reconcile preserves the side-effecting config write and merges the latest local cookie snapshot before `reconcileDockerConfig`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+await runTask()
+await runTask()
+```
+
+#### Correct
+
+```typescript
+try {
+  await runTask()
+} catch (error: unknown) {
+  const refreshed = await deps.refreshCookieSourceAfterFailure(error, getTaskLabel(type))
+  if (!refreshed) {
+    throw error
+  }
+  await runTask()
+}
+```
+
+---
+
 ## Common Mistakes
 
 - Do not `catch (e)` and assume `e.message`; catch as `unknown` and normalize.
 - Do not throw raw Douyu response objects.
 - Do not let scheduled task errors escape out of cron callbacks.
 - Do not return stack traces or raw config secrets in API responses.
+- Do not hide remote CookieCloud fetches inside local-only diagnostics such as `/api/cookie-source/check`.
+- Do not add direct `LTP0` / passport refresh without a separate config, secret-masking, validation, and test plan.

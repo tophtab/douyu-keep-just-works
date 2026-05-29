@@ -1,10 +1,10 @@
 import type express from 'express'
-import { isMissingCookieMessage } from './server-errors'
+import { isCookieCredentialMessage } from './server-errors'
 import { sendJsonResult } from './server-route-utils'
 import type { AppContext } from './server-types'
 
 function resolveFansErrorStatus(message: string): number {
-  return isMissingCookieMessage(message) ? 400 : 500
+  return isCookieCredentialMessage(message) ? 400 : 500
 }
 
 export function registerFansRoutes(app: express.Express, ctx: AppContext): void {

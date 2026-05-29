@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend WebUI entrypoint and checklist for this change."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Protected-data loading and shared resource orchestration are being changed."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Keep TypeScript signatures clean while removing the sync callback."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Update architecture contract tests and run frontend checks."}

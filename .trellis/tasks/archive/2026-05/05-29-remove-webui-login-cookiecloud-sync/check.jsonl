@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend WebUI entrypoint and checklist for verification."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Verify protected-data loading responsibilities remain correct."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Verify TypeScript signatures remain strict."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Contract test and frontend quality requirements."}

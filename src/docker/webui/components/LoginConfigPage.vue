@@ -17,7 +17,6 @@ const {
   passportCookie,
   saveAndEnableCookieCloud,
   saveCookie,
-  saveManualPassport,
   yubaCookie,
 } = useCookieLoginPage()
 
@@ -45,9 +44,9 @@ function handleCookieCloudAction(index: number): void {
       登录 Cookie
     </h3>
     <p class="subtle">
-      运行时只使用本地登录 Cookie 快照。直播和鱼吧的 Cookie 分开保存，避免同名字段互相覆盖。启用 CookieCloud 后，系统会先同步到这里，再由各任务读取这两份本地值。
+      运行时只使用本地登录 Cookie 快照。直播、鱼吧和 passport 的 Cookie 分开保存，避免同名字段互相覆盖。启用 CookieCloud 后，系统会先同步到这里，再由各任务读取本地值。
     </p>
-    <div class="grid cols-2" style="margin-top:16px">
+    <div class="grid cols-3" style="margin-top:16px">
       <div class="field-block" style="margin-top:0">
         <label class="field-label" for="main-cookie-input">斗鱼直播的 Cookie</label>
         <textarea id="main-cookie-input" v-model="mainCookie" name="main-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 www.douyu.com / douyu.com 登录 Cookie" />
@@ -56,24 +55,15 @@ function handleCookieCloudAction(index: number): void {
         <label class="field-label" for="yuba-cookie-input">斗鱼鱼吧的 Cookie</label>
         <textarea id="yuba-cookie-input" v-model="yubaCookie" name="yuba-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 yuba.douyu.com 登录 Cookie" />
       </div>
-    </div>
-    <ActionBar :actions="[{ label: '保存手填 Cookie', kind: 'success' }]" @action="saveCookie" />
-  </div>
-
-  <div class="panel" style="margin-top:16px">
-    <h3 class="section-title">
-      手填 passport Cookie
-    </h3>
-    <p class="subtle">
-      可选。主站 Cookie 失效后，系统会使用这里保存的 LTP0 和 dy_did 进行一次 safeAuth 恢复。
-    </p>
-    <div class="grid cols-2" style="margin-top:16px">
       <div class="field-block" style="margin-top:0">
         <label class="field-label" for="manual-passport-cookie">passport.douyu.com Cookie</label>
         <textarea id="manual-passport-cookie" v-model="passportCookie" name="manual-passport-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="dy_did=...; LTP0=..." rows="4" />
       </div>
     </div>
-    <ActionBar :actions="[{ label: '保存 passport Cookie', kind: 'success' }]" @action="saveManualPassport" />
+    <p class="subtle" style="margin-top:4px">
+      passport Cookie 可选。主站 Cookie 失效后，系统会使用这里保存的 LTP0 和 dy_did 进行一次 safeAuth 恢复。
+    </p>
+    <ActionBar :actions="[{ label: '保存手填 Cookie', kind: 'success' }]" @action="saveCookie" />
   </div>
 
   <div class="panel" style="margin-top:16px">

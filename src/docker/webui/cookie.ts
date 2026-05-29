@@ -131,6 +131,7 @@ async function refreshOverviewAfterCookieChange(showSuccessToast: boolean): Prom
 }
 
 async function saveCookie(): Promise<void> {
+  const nextPassportCookie = passportCookie.value.trim()
   try {
     const data = await requestJson<{ data?: { config?: DockerConfig } }>('/api/config', {
       method: 'POST',
@@ -140,30 +141,6 @@ async function saveCookie(): Promise<void> {
           main: mainCookie.value.trim(),
           yuba: yubaCookie.value.trim(),
         },
-      }),
-    })
-    if (data.data?.config) {
-      setRawConfig(data.data.config)
-      applyRawConfig(data.data.config)
-    }
-    clearCookieBackedData()
-    showToast('手填 Cookie 已保存', true)
-    await refreshOverviewAfterCookieChange(false)
-  } catch (error) {
-    if (isHttpUnauthorized(error)) {
-      return
-    }
-    showToast(`保存手填 Cookie 失败：${getErrorMessage(error)}`, false)
-  }
-}
-
-async function saveManualPassport(): Promise<void> {
-  const nextPassportCookie = passportCookie.value.trim()
-  try {
-    const data = await requestJson<{ data?: { config?: DockerConfig } }>('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
         manualPassport: {
           cookie: nextPassportCookie,
         },
@@ -172,14 +149,15 @@ async function saveManualPassport(): Promise<void> {
     if (data.data?.config) {
       applyManualPassportSaveResponse(data.data.config, nextPassportCookie)
     }
+    clearCookieBackedData()
     cookieCheck.value = null
-    showToast(nextPassportCookie ? 'passport Cookie 已保存' : 'passport Cookie 已清空', true)
+    showToast('手填 Cookie 已保存', true)
     await refreshOverviewAfterCookieChange(false)
   } catch (error) {
     if (isHttpUnauthorized(error)) {
       return
     }
-    showToast(`保存 passport Cookie 失败：${getErrorMessage(error)}`, false)
+    showToast(`保存手填 Cookie 失败：${getErrorMessage(error)}`, false)
   }
 }
 
@@ -363,7 +341,6 @@ export function useCookieLoginPage() {
     passportCookie,
     saveAndEnableCookieCloud,
     saveCookie,
-    saveManualPassport,
     yubaCookie,
   }
 }

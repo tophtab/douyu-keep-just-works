@@ -18,6 +18,7 @@ Backend changes must preserve the Docker WebUI runtime first. Use Node.js 24, Ty
 - Do not duplicate task-wide facts such as labels, schedule summaries, active checks, or "not configured" messages across route, scheduler, and runner modules.
 - Do not expose secrets in `/api/config`, logs, tests, or docs.
 - Do not use untyped `any` when `unknown`, local interfaces, or shared types from `src/core/types.ts` are available.
+- Do not rely on implicit `any`; the Docker TypeScript config enables `noImplicitAny`.
 
 ---
 
@@ -68,6 +69,16 @@ Keep task-specific cookie/status-cache behavior in `runtime-task-runners.ts`; sc
 ### Validate Before Persisting
 
 Route handlers should validate config sections before calling `ctx.saveTaskConfig`. Follow `src/docker/server-config-routes.ts`, which returns `400` before persistence when validation fails.
+
+### Narrow External Response Data
+
+Treat remote API payloads as untrusted. When Axios response data flows into array helpers or object access, first narrow it with local interfaces, `unknown[]`, or `Record<string, unknown>` guards so `noImplicitAny` continues to protect the Docker backend.
+
+```typescript
+const rows = (data.data.list as unknown[])
+  .filter((item): item is Record<string, unknown> => isRecord(item))
+  .map(normalizeRow)
+```
 
 ---
 

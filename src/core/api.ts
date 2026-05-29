@@ -215,7 +215,8 @@ export async function getBackpackStatus(cookie: string, candidateRoomIds: number
         throw new Error('获取背包明细失败，返回数据格式异常')
       }
 
-      const rows = data.data.list
+      const backpackList = data.data.list as unknown[]
+      const rows = backpackList
         .filter((item: unknown): item is Record<string, unknown> => isRecord(item))
         .map(normalizeBackpackRow)
         .sort((a, b) => b.count - a.count)

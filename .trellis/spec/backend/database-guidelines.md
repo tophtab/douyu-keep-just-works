@@ -97,6 +97,73 @@ export function getRawConfig(): DockerConfig {
 
 ---
 
+## Scenario: Manual Passport Recovery Material
+
+### 1. Scope / Trigger
+- Trigger: adding or changing durable passport recovery material for manual-cookie mode.
+- Scope: `DockerConfig.manualPassport`, config normalization, `/api/config` masking, `/api/config/raw`, WebUI login config saves, and `config.example.json`.
+
+### 2. Signatures
+- Shared config type: `ManualPassportConfig { ltp0: string }`.
+- Runtime config field: `DockerConfig.manualPassport?: ManualPassportConfig`.
+- WebUI/API save payload: `POST /api/config` may include `{ manualPassport: { ltp0: string } }`.
+- Public config route: `GET /api/config -> { data: DockerConfig }` with `manualPassport.ltp0` masked when present.
+- Internal raw route: `GET /api/config/raw -> { exists: boolean, data?: DockerConfig }` returns the raw saved field under the existing internal raw-config contract.
+- Config summary may expose `manualPassportConfigured: boolean`, never the value.
+
+### 3. Contracts
+- Store only `LTP0` in `manualPassport`; read `dy_did` from the current main-site cookie during recovery.
+- `normalizeDockerConfig` trims `manualPassport.ltp0`; an empty value removes `manualPassport` from normalized runtime config.
+- `buildConfigWithPartialUpdate` must preserve existing `manualPassport` across unrelated config writes and replace it only when the update payload includes `manualPassport`.
+- `/api/config` and mutation responses must mask `manualPassport.ltp0`; `/api/config/raw` intentionally remains raw like other internal config secrets.
+- WebUI password inputs must not refill with the raw saved `LTP0`; status text may say only configured/unconfigured.
+
+### 4. Validation & Error Matrix
+- `manualPassport` missing -> no manual passport recovery material.
+- `manualPassport.ltp0` blank or whitespace -> normalize to absent.
+- `manualPassport` is not an object -> `POST /api/config` returns `400`.
+- Unrelated task/config save -> existing `manualPassport` remains unchanged.
+- Public config read/save response -> masked value or configured boolean only.
+- Raw config read -> raw value is returned under the established internal endpoint behavior.
+
+### 5. Good/Base/Bad Cases
+- Good: user saves `manualPassport.ltp0`, `/api/config` returns a masked value, WebUI clears the password input and shows "configured".
+- Good: user clears the field, normalization removes `manualPassport`, and recovery falls back to CookieCloud-only behavior if CookieCloud is active.
+- Base: a task config save without `manualPassport` keeps the existing saved secret.
+- Bad: adding a separate manual `dy_did` field instead of reading it from the main-site cookie.
+- Bad: showing the raw `LTP0` in WebUI, logs, `/api/config`, tests, or diagnostics.
+
+### 6. Tests Required
+- Contract tests should assert `ManualPassportConfig` exists and `DockerConfig.manualPassport` is shared through `src/core/types.ts`.
+- Contract tests should assert `config.example.json`, `createDefaultRawDockerConfig`, `buildConfigWithPartialUpdate`, and `normalizeDockerConfig` handle `manualPassport`.
+- Route tests or contract tests should assert `/api/config` masks manual `LTP0`, `/api/config/raw` remains raw, and `POST /api/config` saves the field.
+- Frontend contract tests should assert the login config UI uses a password input, saves `manualPassport.ltp0`, clears the raw input after loading config, and displays only configured/unconfigured state.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+await saveTaskConfig({
+  manualPassport: {
+    ltp0: payload.manualPassport?.ltp0 || '',
+    dyDid: payload.manualPassport?.dyDid || '',
+  },
+})
+```
+
+#### Correct
+
+```typescript
+await saveTaskConfig({
+  manualPassport: {
+    ltp0: payload.manualPassport?.ltp0?.trim() || '',
+  },
+})
+```
+
+---
+
 ## Naming Conventions
 
 - Config interfaces live in `src/core/types.ts`.

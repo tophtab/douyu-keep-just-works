@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 21
+- **Total Sessions**: 22
 - **Last Active**: 2026-05-29
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~718 | Active |
+| `journal-1.md` | ~753 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 22 | 2026-05-29 | Manual passport cookie recovery input | `8b655fb`, `6020c36`, `2a7ef12` | `master` |
 | 21 | 2026-05-29 | LTP0 safeAuth and manual passport recovery | `d095edf`, `1057c93`, `682a156`, `ea1f96d`, `65b0ee9`, `6d6024d` | `master` |
 | 20 | 2026-05-29 | CookieCloud credential recovery | `cfca492`, `0449a1b`, `fef4668` | `master` |
 | 19 | 2026-05-22 | Code optimization plumbing | `10990ba` | `master` |

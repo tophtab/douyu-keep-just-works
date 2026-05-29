@@ -716,3 +716,38 @@ Added centralized LTP0 safeAuth credential recovery, extended manual Cookie mode
 ### Next Steps
 
 - None - task complete
+
+
+## Session 22: Manual passport cookie recovery input
+
+**Date**: 2026-05-29
+**Task**: Manual passport cookie recovery input
+**Branch**: `master`
+
+### Summary
+
+Changed manual passport recovery from a hidden LTP0 field to a visible passport.douyu.com cookie field, parsed LTP0 and dy_did from passport cookie material for manual and CookieCloud recovery, updated contracts/tests/specs, and verified lint, type-check, contract tests, and Docker/WebUI build.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8b655fb` | (see git log) |
+| `6020c36` | (see git log) |
+| `2a7ef12` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

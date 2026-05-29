@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 19
-- **Last Active**: 2026-05-22
+- **Total Sessions**: 20
+- **Last Active**: 2026-05-29
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~645 | Active |
+| `journal-1.md` | ~680 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 20 | 2026-05-29 | CookieCloud credential recovery | `cfca492`, `0449a1b`, `fef4668` | `master` |
 | 19 | 2026-05-22 | Code optimization plumbing | `10990ba` | `master` |
 | 18 | 2026-05-19 | Release 3.1.0 | `f43fabe`, `3bc943a` | `master` |
 | 17 | 2026-05-19 | Unify default config source | `9315f6c` | `master` |

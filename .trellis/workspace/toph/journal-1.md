@@ -643,3 +643,38 @@ Implemented frontend fans-backed task-page state helper and backend config route
 ### Next Steps
 
 - None - task complete
+
+
+## Session 20: CookieCloud credential recovery
+
+**Date**: 2026-05-29
+**Task**: CookieCloud credential recovery
+**Branch**: `master`
+
+### Summary
+
+Separated WebUI CookieCloud persist/check behavior and added one-shot CookieCloud recovery retry for credential failures.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cfca492` | (see git log) |
+| `0449a1b` | (see git log) |
+| `fef4668` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

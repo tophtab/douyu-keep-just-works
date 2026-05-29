@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 23
+- **Total Sessions**: 24
 - **Last Active**: 2026-05-29
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~786 | Active |
+| `journal-1.md` | ~819 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 24 | 2026-05-29 | Harden dependency and backend type safety | `36c5d59` | `master` |
 | 23 | 2026-05-29 | Clean up manual passport cookie handling | `b19284d` | `master` |
 | 22 | 2026-05-29 | Manual passport cookie recovery input | `8b655fb`, `6020c36`, `2a7ef12` | `master` |
 | 21 | 2026-05-29 | LTP0 safeAuth and manual passport recovery | `d095edf`, `1057c93`, `682a156`, `ea1f96d`, `65b0ee9`, `6d6024d` | `master` |

@@ -817,3 +817,36 @@ Patched audited production dependency lockfile entries, enabled backend noImplic
 ### Next Steps
 
 - None - task complete
+
+
+## Session 25: Merge passport cookie into login panel
+
+**Date**: 2026-05-29
+**Task**: Merge passport cookie into login panel
+**Branch**: `master`
+
+### Summary
+
+Merged manual passport Cookie into the existing login Cookie panel, unified manual cookie save handling, and updated contract coverage plus WebUI verification.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `266bb42` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

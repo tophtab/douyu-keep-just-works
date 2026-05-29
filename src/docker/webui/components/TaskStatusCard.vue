@@ -33,7 +33,7 @@ defineProps<{
     <div class="task-card-pills">
       <span v-for="pill in pills" :key="pill.label" class="pill" :class="pill.kind">{{ pill.label }}</span>
     </div>
-    <div class="summary-grid">
+    <div class="summary-grid" :class="{ quad: cells.length === 4 }">
       <div v-for="cell in cells" :key="cell.label" class="summary-cell">
         <div class="mini-label">
           {{ cell.label }}

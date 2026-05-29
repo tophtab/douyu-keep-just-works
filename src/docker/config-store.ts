@@ -1,10 +1,11 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { normalizeDockerConfig } from '../core/medal-sync'
-import type { CollectGiftConfig, DockerConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig, ManualCookieConfig, YubaCheckInConfig } from '../core/types'
+import type { CollectGiftConfig, DockerConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig, ManualCookieConfig, ManualPassportConfig, YubaCheckInConfig } from '../core/types'
 
 export interface DockerConfigUpdate {
   manualCookies?: ManualCookieConfig
+  manualPassport?: ManualPassportConfig
   cookieCloud?: DockerConfig['cookieCloud']
   collectGift?: CollectGiftConfig | null
   keepalive?: JobConfig | null
@@ -45,6 +46,9 @@ export function buildConfigWithPartialUpdate(current: DockerConfig | null, updat
     ...(updates.manualCookies !== undefined
       ? { manualCookies: updates.manualCookies }
       : (current?.manualCookies ? { manualCookies: current.manualCookies } : {})),
+    ...(updates.manualPassport !== undefined
+      ? { manualPassport: updates.manualPassport }
+      : (current?.manualPassport ? { manualPassport: current.manualPassport } : {})),
     ...(updates.cookieCloud !== undefined
       ? (updates.cookieCloud ? { cookieCloud: updates.cookieCloud } : {})
       : (current?.cookieCloud ? { cookieCloud: current.cookieCloud } : {})),

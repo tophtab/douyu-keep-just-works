@@ -1,4 +1,4 @@
-import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, EffectiveCookiePreview, ManualCookieConfig } from '../../core/types'
+import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, EffectiveCookiePreview, ManualCookieConfig, ManualPassportConfig } from '../../core/types'
 import { computed, reactive, ref, watch } from 'vue'
 import { DEFAULT_COOKIE_CLOUD_SYNC_CRON } from '../../core/task-defaults'
 import { useCronPreview } from './composables/use-cron-preview'
@@ -28,6 +28,7 @@ interface PersistCookieSourceResponse {
 const cookieCheck = ref<CookieDiagnostics | null>(null)
 const mainCookie = ref('')
 const yubaCookie = ref('')
+const passportLtp0 = ref('')
 const cookieCloud = reactive({
   active: false,
   endpoint: '',
@@ -55,6 +56,16 @@ function getCookieCloudConfig(config: DockerConfig | null): CookieCloudConfig {
   }
 }
 
+function getManualPassportConfig(config: DockerConfig | null): ManualPassportConfig {
+  return config?.manualPassport || {
+    ltp0: '',
+  }
+}
+
+function hasManualPassport(config: DockerConfig | null): boolean {
+  return Boolean(getManualPassportConfig(config).ltp0.trim())
+}
+
 function getCookieSourceLabel(config: DockerConfig | null): string {
   return getCookieCloudConfig(config).active ? 'CookieCloud' : '手填'
 }
@@ -63,6 +74,7 @@ function applyRawConfig(config: DockerConfig | null): void {
   const manualCookies = getManualCookiesConfig(config)
   mainCookie.value = manualCookies.main || ''
   yubaCookie.value = manualCookies.yuba || ''
+  passportLtp0.value = ''
 
   const nextCookieCloud = getCookieCloudConfig(config)
   cookieCloud.active = nextCookieCloud.active === true
@@ -77,7 +89,7 @@ function buildCookieCheckText(result: CookieDiagnostics | null): string {
   if (!result) {
     const configCookieCloud = getCookieCloudConfig(rawConfig.value)
     if (!configCookieCloud.active) {
-      return '启用后会先从 CookieCloud 提取斗鱼主站和鱼吧相关 Cookie，并同步到上方两个本地登录 Cookie 输入框。运行时不会临时再拉 CookieCloud，而是直接使用这里保存的本地快照。'
+      return `手填 passport/LTP0 ${hasManualPassport(rawConfig.value) ? '已配置' : '未配置'}。启用 CookieCloud 后会先从浏览器同步斗鱼相关 Cookie；手填模式会在主站 Cookie 失效后使用已保存的 LTP0 恢复。`
     }
     if (!configCookieCloud.endpoint.trim() || !configCookieCloud.uuid.trim() || !configCookieCloud.password.trim()) {
       return 'CookieCloud 已启用，但 endpoint / UUID / 密码 还没填完整。'
@@ -96,7 +108,10 @@ function buildCookieCheckText(result: CookieDiagnostics | null): string {
     ? '鱼吧 dy-token 就绪'
     : `鱼吧 dy-token 缺少 ${(result.missingYubaDyTokenKeys || []).join(', ')}`
   const updateText = result.updateTime ? `，更新时间: ${formatDate(result.updateTime)}` : ''
-  return `来源: ${sourceLabel}，Cookie 数: ${result.cookieCount || 0}${updateText}。${mainText}；${yubaDyTokenText}；${yubaText}。`
+  const passportText = result.passportLtp0Present === undefined
+    ? ''
+    : ` passport/LTP0 ${result.passportLtp0Present ? '已配置' : '未配置'}。`
+  return `来源: ${sourceLabel}，Cookie 数: ${result.cookieCount || 0}${updateText}。${mainText}；${yubaDyTokenText}；${yubaText}。${passportText}`
 }
 
 async function refreshOverviewAfterCookieChange(showSuccessToast: boolean): Promise<void> {
@@ -130,6 +145,33 @@ async function saveCookie(): Promise<void> {
       return
     }
     showToast(`保存手填 Cookie 失败：${getErrorMessage(error)}`, false)
+  }
+}
+
+async function saveManualPassport(): Promise<void> {
+  const nextLtp0 = passportLtp0.value.trim()
+  try {
+    const data = await requestJson<{ data?: { config?: DockerConfig } }>('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        manualPassport: {
+          ltp0: nextLtp0,
+        },
+      }),
+    })
+    if (data.data?.config) {
+      setRawConfig(data.data.config)
+      applyRawConfig(data.data.config)
+    }
+    cookieCheck.value = null
+    showToast(nextLtp0 ? 'passport/LTP0 已保存' : 'passport/LTP0 已清空', true)
+    await refreshOverviewAfterCookieChange(false)
+  } catch (error) {
+    if (isHttpUnauthorized(error)) {
+      return
+    }
+    showToast(`保存 passport/LTP0 失败：${getErrorMessage(error)}`, false)
   }
 }
 
@@ -286,6 +328,7 @@ export function useCookieLoginPage() {
         { label: '系统就绪', value: overview.value.ready ? '已就绪' : '待配置' },
         { label: '粉丝牌', value: sourceReady ? `${getManagedFans().length} 个` : '未同步' },
         { label: '来源', value: getCookieSourceLabel(config) },
+        { label: 'passport/LTP0', value: hasManualPassport(config) ? '已配置' : '未配置' },
       ],
     }
   })
@@ -309,8 +352,10 @@ export function useCookieLoginPage() {
     loadCookieCloudCronPreview: loadCronPreview,
     loginStatus,
     mainCookie,
+    passportLtp0,
     saveAndEnableCookieCloud,
     saveCookie,
+    saveManualPassport,
     yubaCookie,
   }
 }

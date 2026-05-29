@@ -1,4 +1,4 @@
-import type { CollectGiftConfig, CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, ManualCookieConfig, YubaCheckInConfig, YubaStatusResponse } from '../core/types'
+import type { CollectGiftConfig, CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, ManualCookieConfig, ManualPassportConfig, YubaCheckInConfig, YubaStatusResponse } from '../core/types'
 import type { LogEntry } from './logger'
 import type { TaskType } from './task-metadata'
 
@@ -14,6 +14,7 @@ export interface AppContext {
   saveCookie(cookies: ManualCookieConfig): void
   saveTaskConfig(config: {
     manualCookies?: ManualCookieConfig
+    manualPassport?: ManualPassportConfig
     cookieCloud?: DockerConfig['cookieCloud']
     collectGift?: CollectGiftConfig | null
     keepalive?: JobConfig | null

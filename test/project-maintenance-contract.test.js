@@ -368,7 +368,7 @@ test('Docker config mutation routes use shared JSON error helpers', () => {
   assert.match(configRoutes, /app\.post\('\/api\/cookie', async \(req, res\)/)
   assert.match(configRoutes, /app\.post\('\/api\/config', async \(req, res\)/)
   assert.match(configRoutes, /sendJsonOk\(\s*res,\s*\(\) => ctx\.saveCookie/)
-  assert.match(configRoutes, /sendJsonOk\(\s*res,\s*\(\) => ctx\.saveTaskConfig/)
+  assert.match(configRoutes, /sendJsonOk\(\s*res,\s*async \(\) => [\s\S]*ctx\.saveTaskConfig/)
   assert.doesNotMatch(configRoutes, /\.then\(\(result\)/)
   assert.doesNotMatch(configRoutes, /\.catch\(\(e: unknown\)/)
 })
@@ -390,7 +390,7 @@ test('CookieCloud sync-and-check persists first, then checks the local snapshot 
   assert.match(cookieWebUi, /await syncCookieCloudToLoginCookies\(false, true\)[\s\S]*requestJson<CookieDiagnostics>\('\/api\/cookie-source\/check'/)
 })
 
-test('Docker runtime retries cookie-backed work once after CookieCloud recovery', () => {
+test('Docker runtime retries cookie-backed work once after centralized credential recovery', () => {
   const runtime = readRepoFile('src/docker/runtime.ts')
   const scheduler = readRepoFile('src/docker/runtime-scheduler.ts')
   const runners = readRepoFile('src/docker/runtime-task-runners.ts')
@@ -399,12 +399,22 @@ test('Docker runtime retries cookie-backed work once after CookieCloud recovery'
   const errors = readRepoFile('src/docker/server-errors.ts')
   const fansRoutes = readRepoFile('src/docker/server-fans-routes.ts')
   const taskRoutes = readRepoFile('src/docker/server-task-routes.ts')
+  const taskRunnerDirectSource = [
+    readRepoFile('src/docker/runtime-task-runners.ts'),
+    readRepoFile('src/core/job.ts'),
+    readRepoFile('src/core/collect-gift.ts'),
+    readRepoFile('src/core/gift-task.ts'),
+    readRepoFile('src/core/double-card.ts'),
+    readRepoFile('src/core/yuba-check-in.ts'),
+    readRepoFile('src/core/yuba-status.ts'),
+  ].join('\n')
 
   assert.match(errors, /export function isCookieCredentialMessage/)
   assert.match(errors, /message\.includes\('Cookie中没有找到'\)/)
   assert.match(errors, /message\.includes\('主站 Cookie 缺少'\)/)
   assert.match(runtime, /async function refreshCookieSourceAfterFailure/)
   assert.match(runtime, /isCookieCredentialMessage\(message\)/)
+  assert.match(runtime, /cookieSource\.hasPassportRecoveryMaterial\(\)/)
   assert.match(runtime, /cookieSource\.recoverCredentialSnapshot\(\{[\s\S]*validateMainCookie/)
   assert.match(runtime, /await runtimeCache\.getFansList\(mainCookie\)/)
   assert.match(runtime, /async function runWithCookieSourceRetry/)
@@ -418,10 +428,48 @@ test('Docker runtime retries cookie-backed work once after CookieCloud recovery'
   assert.match(runners, /await runtimeTaskRunners\[type\]\(config, deps\)[\s\S]*catch \(error: unknown\)[\s\S]*await deps\.refreshCookieSourceAfterFailure\(error, getTaskLabel\(type\)\)[\s\S]*await runtimeTaskRunners\[type\]\(config, deps\)/)
   assert.match(readRepoFile('src/docker/runtime-cookie-source.ts'), /recoverCredentialSnapshotWithDeps/)
   assert.match(recovery, /export async function recoverCredentialSnapshot/)
-  assert.match(recovery, /await deps\.persistEffectiveCookies\(true\)[\s\S]*validateRecoveredMainCookie[\s\S]*refreshDouyuMainCookiesWithSafeAuth[\s\S]*validateRecoveredMainCookie/)
+  assert.match(recovery, /validateRecoveredMainCookie\(syncedCookie, deps\.validateMainCookie\)[\s\S]*await deps\.persistEffectiveCookies\(true\)[\s\S]*validateRecoveredMainCookie\(syncedCookie, deps\.validateMainCookie\)[\s\S]*refreshDouyuMainCookiesWithSafeAuth[\s\S]*validateRecoveredMainCookie\(safeAuthResult\.refreshedCookie, deps\.validateMainCookie\)/)
+  assert.match(recovery, /getCurrentMainCookie/)
+  assert.match(recovery, /getManualPassportLtp0/)
   assert.match(readRepoFile('src/core/douyu-passport.ts'), /passport\.douyu\.com\/lapi\/passport\/iframe\/safeAuth/)
   assert.match(readRepoFile('src/core/cookie-cloud.ts'), /export function getCookieCloudPassportLtp0/)
+  assert.doesNotMatch(taskRunnerDirectSource, /safeAuth|LTP0|ltp0|getCookieCloudPassportLtp0|refreshDouyuMainCookiesWithSafeAuth/)
   assert.match(cache, /if \(isCookieCredentialMessage\(message\)\) \{\s*throw error\s*\}/)
   assert.match(fansRoutes, /isCookieCredentialMessage/)
   assert.match(taskRoutes, /isCookieCredentialMessage/)
+})
+
+test('manual passport LTP0 stays masked outside raw config and is saved from login config UI', () => {
+  const types = readRepoFile('src/core/types.ts')
+  const defaults = readRepoFile('src/core/task-defaults.ts')
+  const configStore = readRepoFile('src/docker/config-store.ts')
+  const configRoutes = readRepoFile('src/docker/server-config-routes.ts')
+  const cookieWebUi = readRepoFile('src/docker/webui/cookie.ts')
+  const loginConfigPage = readRepoFile('src/docker/webui/components/LoginConfigPage.vue')
+  const taskStatusCard = readRepoFile('src/docker/webui/components/TaskStatusCard.vue')
+  const configExample = JSON.parse(readRepoFile('config.example.json'))
+
+  assert.match(types, /export interface ManualPassportConfig \{[\s\S]*ltp0: string/)
+  assert.match(types, /manualPassport\?: ManualPassportConfig/)
+  assert.deepEqual(configExample.manualPassport, { ltp0: 'YOUR_PASSPORT_LTP0' })
+  assert.match(defaults, /manualPassport:\s*\{\s*ltp0: ''/)
+  assert.match(configStore, /manualPassport\?: ManualPassportConfig/)
+  assert.match(configStore, /updates\.manualPassport !== undefined/)
+
+  assert.match(configRoutes, /function maskManualPassport/)
+  assert.match(configRoutes, /function maskConfigManualPassport/)
+  assert.match(configRoutes, /manualPassport: maskManualPassport\(config\.manualPassport\)/)
+  assert.match(configRoutes, /app\.get\('\/api\/config\/raw'[\s\S]*res\.json\(\{ exists: true, data: config \}\)/)
+  assert.match(configRoutes, /app\.post\('\/api\/config'[\s\S]*maskConfigManualPassport\(await ctx\.saveTaskConfig/)
+  assert.match(configRoutes, /manualPassport: payload\.manualPassport/)
+
+  assert.match(cookieWebUi, /const passportLtp0 = ref\(''\)/)
+  assert.match(cookieWebUi, /passportLtp0\.value = ''/)
+  assert.match(cookieWebUi, /const nextLtp0 = passportLtp0\.value\.trim\(\)/)
+  assert.match(cookieWebUi, /manualPassport:\s*\{\s*ltp0: nextLtp0/)
+  assert.match(cookieWebUi, /passport\/LTP0', value: hasManualPassport\(config\) \? '已配置' : '未配置'/)
+  assert.doesNotMatch(cookieWebUi, /ltp0[^'\n]*redacted-secret-value/)
+  assert.match(loginConfigPage, /v-model="passportLtp0"[\s\S]*type="password"/)
+  assert.match(loginConfigPage, /@action="saveManualPassport"/)
+  assert.match(taskStatusCard, /:class="\{ quad: cells\.length === 4 \}"/)
 })

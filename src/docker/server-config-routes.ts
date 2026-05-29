@@ -1,6 +1,6 @@
 import type express from 'express'
 import { isCookieCloudReady } from '../core/cookie-cloud'
-import type { CookieCloudConfig, DockerConfig, ManualCookieConfig } from '../core/types'
+import type { CookieCloudConfig, DockerConfig, ManualCookieConfig, ManualPassportConfig } from '../core/types'
 import { getNextCronRuns, validateCronExpression } from './cron'
 import { validateCookieCloudConfig, validateCronConfig, validateDoubleCardConfig, validateExpiringGiftConfig, validateJobConfig, validateYubaCheckInConfig } from './config-validation'
 import { sendJsonOk } from './server-route-utils'
@@ -64,11 +64,32 @@ function maskManualCookies(config: ManualCookieConfig | undefined): ManualCookie
   }
 }
 
+function maskManualPassport(config: ManualPassportConfig | undefined): ManualPassportConfig | undefined {
+  if (!config) {
+    return undefined
+  }
+
+  return {
+    ltp0: config.ltp0 ? maskCookie(config.ltp0) : '',
+  }
+}
+
+function maskConfigManualPassport<T extends { config: DockerConfig }>(result: T): T {
+  return {
+    ...result,
+    config: {
+      ...result.config,
+      manualPassport: maskManualPassport(result.config.manualPassport),
+    },
+  }
+}
+
 function summarizeConfig(config: DockerConfig | null) {
   return {
     cookieSaved: hasConfiguredCookieSource(config),
     cookieSource: summarizeCookieSource(config),
     cookieCloudConfigured: isCookieCloudReady(config?.cookieCloud),
+    manualPassportConfigured: Boolean(config?.manualPassport?.ltp0?.trim()),
     collectGiftConfigured: isTaskActive(config?.collectGift),
     keepaliveConfigured: isTaskActive(config?.keepalive),
     doubleCardConfigured: isTaskActive(config?.doubleCard),
@@ -114,6 +135,9 @@ function validateConfigPayload(payload: Partial<DockerConfig>): string | null {
   if (payload.manualCookies && (typeof payload.manualCookies !== 'object' || Array.isArray(payload.manualCookies))) {
     return 'manualCookies 配置无效'
   }
+  if (payload.manualPassport && (typeof payload.manualPassport !== 'object' || Array.isArray(payload.manualPassport))) {
+    return 'manualPassport 配置无效'
+  }
   if (payload.cookieCloud) {
     const error = validateCookieCloudConfig(payload.cookieCloud)
     if (error) {
@@ -142,6 +166,7 @@ export function registerConfigRoutes(app: express.Express, ctx: AppContext): voi
         ...config,
         cookie: maskCookie(config.cookie),
         manualCookies: maskManualCookies(config.manualCookies),
+        manualPassport: maskManualPassport(config.manualPassport),
         cookieCloud: maskCookieCloud(config.cookieCloud),
       },
     })
@@ -187,8 +212,9 @@ export function registerConfigRoutes(app: express.Express, ctx: AppContext): voi
 
     await sendJsonOk(
       res,
-      () => ctx.saveTaskConfig({
+      async () => maskConfigManualPassport(await ctx.saveTaskConfig({
         manualCookies: payload.manualCookies,
+        manualPassport: payload.manualPassport,
         cookieCloud: payload.cookieCloud,
         collectGift: payload.collectGift,
         keepalive: payload.keepalive,
@@ -196,7 +222,7 @@ export function registerConfigRoutes(app: express.Express, ctx: AppContext): voi
         expiringGift: payload.expiringGift,
         yubaCheckIn: payload.yubaCheckIn,
         ui: payload.ui,
-      }),
+      })),
       resolveConfigRouteErrorStatus,
     )
   })

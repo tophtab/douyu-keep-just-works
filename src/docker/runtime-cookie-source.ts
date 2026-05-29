@@ -39,6 +39,14 @@ export class DockerCookieSourceManager {
     return isCookieCloudReady(config?.cookieCloud)
   }
 
+  hasManualPassport(config: DockerConfig | null | undefined = this.getConfig()): boolean {
+    return Boolean(config?.manualPassport?.ltp0?.trim())
+  }
+
+  hasPassportRecoveryMaterial(config: DockerConfig | null | undefined = this.getConfig()): boolean {
+    return this.hasCookieCloudSource(config) || this.hasManualPassport(config)
+  }
+
   hasConfiguredCookieSource(config: DockerConfig | null | undefined = this.getConfig()): boolean {
     return this.hasManualCookie(config) || this.hasCookieCloudSource(config)
   }
@@ -152,7 +160,9 @@ export class DockerCookieSourceManager {
       hasCookieCloudSource: () => this.hasCookieCloudSource(),
       persistEffectiveCookies: async forceRefresh => await this.persistEffectiveCookies(forceRefresh),
       loadCookieCloudSnapshot: async forceRefresh => await this.loadCookieCloudSnapshot(forceRefresh),
+      getCurrentMainCookie: () => this.getManualCookieForUrl(MAIN_DOUYU_URL, this.getConfig()),
       getCurrentYubaCookie: () => this.getManualCookieForUrl(YUBA_DOUYU_URL, this.getConfig()),
+      getManualPassportLtp0: () => this.getManualPassportLtp0(),
       persistManualCookieSnapshot: (mainCookie, yubaCookie) => this.persistManualCookieSnapshot(mainCookie, yubaCookie),
     })
   }
@@ -168,7 +178,7 @@ export class DockerCookieSourceManager {
           ...parseCookieRecord(yubaCookie),
         }).length,
         domains: ['local'],
-        passportLtp0Present: undefined,
+        passportLtp0Present: this.hasManualPassport(currentConfig) ? true : undefined,
       })
     }
 
@@ -223,6 +233,10 @@ export class DockerCookieSourceManager {
 
   private getCookieCloudCacheKey(config: CookieCloudConfig): string {
     return [config.endpoint, config.uuid, config.password, config.cryptoType || 'legacy'].join('|')
+  }
+
+  private getManualPassportLtp0(): string {
+    return this.getConfig()?.manualPassport?.ltp0?.trim() || ''
   }
 
   private getManualCookieForUrl(targetUrl: string, config: DockerConfig | null | undefined): string {

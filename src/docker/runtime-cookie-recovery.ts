@@ -33,10 +33,17 @@ export interface CredentialSnapshotRecoveryDeps {
   hasCookieCloudSource(): boolean
   persistEffectiveCookies(forceRefresh?: boolean): Promise<PersistedEffectiveCookies>
   loadCookieCloudSnapshot(forceRefresh?: boolean): Promise<CookieCloudSnapshot>
+  getCurrentMainCookie(): string
   getCurrentYubaCookie(): string
+  getManualPassportLtp0(): string
   persistManualCookieSnapshot(mainCookie: string, yubaCookie: string): DockerConfig
   validateMainCookie: CookieSnapshotValidator
   log: CookieRecoveryLogger
+}
+
+interface PassportLtp0Material {
+  ltp0: string
+  source: 'cookieCloud' | 'manual'
 }
 
 async function validateRecoveredMainCookie(mainCookie: string, validateMainCookie: CookieSnapshotValidator): Promise<{
@@ -65,56 +72,102 @@ async function validateRecoveredMainCookie(mainCookie: string, validateMainCooki
   }
 }
 
+async function resolvePassportLtp0Material(deps: CredentialSnapshotRecoveryDeps): Promise<PassportLtp0Material | null> {
+  const manualLtp0 = deps.getManualPassportLtp0().trim()
+
+  if (deps.hasCookieCloudSource()) {
+    const snapshot = await deps.loadCookieCloudSnapshot(false)
+    const cookieCloudLtp0 = getCookieCloudPassportLtp0(snapshot.cookies)
+    if (cookieCloudLtp0) {
+      return {
+        ltp0: cookieCloudLtp0,
+        source: 'cookieCloud',
+      }
+    }
+  }
+
+  if (manualLtp0) {
+    return {
+      ltp0: manualLtp0,
+      source: 'manual',
+    }
+  }
+
+  return null
+}
+
 export async function recoverCredentialSnapshot(deps: CredentialSnapshotRecoveryDeps): Promise<CredentialSnapshotRecoveryResult> {
-  if (!deps.hasCookieCloudSource()) {
+  let syncedCookie = deps.getCurrentMainCookie().trim()
+  let syncedByCookieCloud = false
+
+  if (syncedCookie) {
+    const localValidation = await validateRecoveredMainCookie(syncedCookie, deps.validateMainCookie)
+    if (localValidation.valid) {
+      return {
+        recovered: true,
+        refreshedBy: null,
+        reason: '本地主站 Cookie 已通过验证',
+      }
+    }
+    deps.log(`本地主站 Cookie 仍不可用: ${localValidation.reason}`)
+  }
+
+  if (deps.hasCookieCloudSource()) {
+    const persistResult = await deps.persistEffectiveCookies(true)
+    syncedByCookieCloud = true
+    deps.log(persistResult.updated
+      ? 'CookieCloud 已同步最新本地登录快照'
+      : 'CookieCloud 同步完成，本地登录快照无需更新')
+
+    syncedCookie = persistResult.config.manualCookies?.main?.trim() || persistResult.config.cookie.trim()
+  }
+
+  if (!syncedCookie.trim()) {
     return {
       recovered: false,
       refreshedBy: null,
-      reason: 'CookieCloud 未启用',
+      reason: '本地主站 Cookie 为空，无法恢复登录凭证',
     }
   }
 
-  const persistResult = await deps.persistEffectiveCookies(true)
-  deps.log(persistResult.updated
-    ? 'CookieCloud 已同步最新本地登录快照'
-    : 'CookieCloud 同步完成，本地登录快照无需更新')
-
-  const syncedCookie = persistResult.config.manualCookies?.main?.trim() || persistResult.config.cookie.trim()
-  const syncedValidation = await validateRecoveredMainCookie(syncedCookie, deps.validateMainCookie)
-  if (syncedValidation.valid) {
-    return {
-      recovered: true,
-      refreshedBy: 'cookieCloud',
-      reason: 'CookieCloud 同步后的主站 Cookie 已通过验证',
+  if (syncedByCookieCloud) {
+    const syncedValidation = await validateRecoveredMainCookie(syncedCookie, deps.validateMainCookie)
+    if (syncedValidation.valid) {
+      return {
+        recovered: true,
+        refreshedBy: 'cookieCloud',
+        reason: 'CookieCloud 同步后的主站 Cookie 已通过验证',
+      }
     }
+    deps.log(`CookieCloud 同步后主站 Cookie 仍不可用: ${syncedValidation.reason}`)
   }
-  deps.log(`CookieCloud 同步后主站 Cookie 仍不可用: ${syncedValidation.reason}`)
 
   const dyDid = getCookieValue(syncedCookie, 'dy_did')
   if (!dyDid) {
     return {
       recovered: false,
       refreshedBy: null,
-      reason: '缺少 dy_did，无法执行 safeAuth',
+      reason: '主站 Cookie 缺少 dy_did，无法执行 safeAuth',
     }
   }
 
-  const snapshot = await deps.loadCookieCloudSnapshot(false)
-  const ltp0 = getCookieCloudPassportLtp0(snapshot.cookies)
-  if (!ltp0) {
+  const passportLtp0 = await resolvePassportLtp0Material(deps)
+  if (!passportLtp0) {
     return {
       recovered: false,
       refreshedBy: null,
-      reason: 'CookieCloud 的 passport.douyu.com 快照缺少 LTP0',
+      reason: deps.hasCookieCloudSource()
+        ? 'CookieCloud 的 passport.douyu.com 快照缺少 LTP0，且手填 passport/LTP0 未配置'
+        : '手填 passport/LTP0 未配置，无法执行 safeAuth',
     }
   }
 
   const safeAuthResult = await refreshDouyuMainCookiesWithSafeAuth({
     mainCookie: syncedCookie,
     dyDid,
-    ltp0,
+    ltp0: passportLtp0.ltp0,
   })
-  deps.log(`safeAuth 已返回主站登录字段: ${safeAuthResult.returnedKeys.join(', ')}`)
+  deps.log(`safeAuth 已使用${passportLtp0.source === 'cookieCloud' ? 'CookieCloud' : '手填'} passport/LTP0 返回主站登录字段: ${safeAuthResult.returnedKeys.join(', ')}`)
 
   const safeAuthValidation = await validateRecoveredMainCookie(safeAuthResult.refreshedCookie, deps.validateMainCookie)
   if (!safeAuthValidation.valid) {

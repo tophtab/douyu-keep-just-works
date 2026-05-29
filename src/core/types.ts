@@ -69,6 +69,10 @@ export interface ManualCookieConfig {
   yuba: string
 }
 
+export interface ManualPassportConfig {
+  ltp0: string
+}
+
 export interface CookieCloudCookie {
   name: string
   value: string
@@ -189,6 +193,7 @@ export interface sendArgs {
 export interface DockerConfig {
   cookie: string
   manualCookies?: ManualCookieConfig
+  manualPassport?: ManualPassportConfig
   cookieCloud?: CookieCloudConfig
   ui?: DockerUiConfig
   collectGift?: CollectGiftConfig

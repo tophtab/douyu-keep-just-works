@@ -24,6 +24,9 @@ export function createDefaultRawDockerConfig(): DockerConfig {
       main: '',
       yuba: '',
     },
+    manualPassport: {
+      ltp0: '',
+    },
     cookieCloud: {
       active: false,
       endpoint: '',

@@ -30,6 +30,9 @@ export interface CookieSourceConfig {
     main?: string
     yuba?: string
   }
+  manualPassport?: {
+    ltp0?: string
+  }
   cookieCloud?: {
     active?: boolean
     endpoint?: string

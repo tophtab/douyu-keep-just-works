@@ -4,6 +4,9 @@
     "main": "acf_uid=YOUR_UID; dy_did=YOUR_DY_DID; acf_stk=YOUR_STK; ...",
     "yuba": "acf_yb_uid=YOUR_UID; acf_yb_t=YOUR_YUBA_TOKEN; ..."
   },
+  "manualPassport": {
+    "ltp0": "YOUR_PASSPORT_LTP0"
+  },
   "cookieCloud": {
     "active": false,
     "endpoint": "https://your-cookie-cloud.example.com",

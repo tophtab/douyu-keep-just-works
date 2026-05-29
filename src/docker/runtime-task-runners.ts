@@ -88,7 +88,7 @@ export async function runRuntimeTask(type: TaskType, config: DockerConfig[TaskTy
       throw error
     }
 
-    deps.taskLoggers[type]('CookieCloud 登录凭证恢复完成，重试本次任务...')
+    deps.taskLoggers[type]('登录凭证恢复完成，重试本次任务...')
     await runtimeTaskRunners[type](config, deps)
   }
 }

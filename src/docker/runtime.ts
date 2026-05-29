@@ -3,7 +3,7 @@ import { CronJob } from 'cron'
 import { getFollowedYubaStatusesWithDyToken } from '../core/yuba'
 import { createDefaultDockerConfig, normalizeDockerConfig, reconcileDockerConfig } from '../core/medal-sync'
 import { DEFAULT_COOKIE_CLOUD_SYNC_CRON } from '../core/task-defaults'
-import type { CollectGiftConfig, DockerConfig, DoubleCardConfig, ExpiringGiftConfig, Fans, JobConfig, ManualCookieConfig } from '../core/types'
+import type { CollectGiftConfig, DockerConfig, DoubleCardConfig, ExpiringGiftConfig, Fans, JobConfig, ManualCookieConfig, ManualPassportConfig } from '../core/types'
 import { buildConfigWithPartialUpdate, configsEqual, loadConfigFromDisk, saveConfigToDisk } from './config-store'
 import { assertDockerConfigCrons } from './cron'
 import { clearLogs, createLogger, getLogs } from './logger'
@@ -90,12 +90,12 @@ async function syncCookieCloudSnapshot(reason: 'startup' | 'scheduled'): Promise
 
 async function refreshCookieSourceAfterFailure(error: unknown, context: string): Promise<boolean> {
   const message = errorMessage(error)
-  if (!isCookieCredentialMessage(message) || !cookieSource.hasCookieCloudSource()) {
+  if (!isCookieCredentialMessage(message) || !cookieSource.hasPassportRecoveryMaterial()) {
     return false
   }
 
   try {
-    logSystem(`${context}检测到登录凭证可能失效，正在同步 CookieCloud 后重试`)
+    logSystem(`${context}检测到登录凭证可能失效，正在尝试恢复后重试`)
     const result = await cookieSource.recoverCredentialSnapshot({
       validateMainCookie: async (mainCookie) => {
         await runtimeCache.getFansList(mainCookie)
@@ -105,7 +105,7 @@ async function refreshCookieSourceAfterFailure(error: unknown, context: string):
     logSystem(result.reason)
     return result.recovered
   } catch (syncError: unknown) {
-    logSystem(`CookieCloud 登录凭证恢复失败: ${errorMessage(syncError)}`)
+    logSystem(`登录凭证恢复失败: ${errorMessage(syncError)}`)
     return false
   }
 }
@@ -168,6 +168,7 @@ function hasSendRooms(config: JobConfig | DoubleCardConfig | ExpiringGiftConfig 
 function cookieSnapshotEqual(a: DockerConfig | null | undefined, b: DockerConfig | null | undefined): boolean {
   return (a?.cookie || '') === (b?.cookie || '')
     && jsonEquals(a?.manualCookies || null, b?.manualCookies || null)
+    && jsonEquals(a?.manualPassport || null, b?.manualPassport || null)
 }
 
 function mergeLatestCookieSnapshot(config: DockerConfig): DockerConfig {
@@ -197,6 +198,7 @@ function applyConfig(config: DockerConfig, reason: 'startup' | 'cookie_saved' | 
   if (
     prevConfig?.cookie !== nextConfig.cookie
     || !jsonEquals(prevConfig?.manualCookies || null, nextConfig.manualCookies || null)
+    || !jsonEquals(prevConfig?.manualPassport || null, nextConfig.manualPassport || null)
     || !jsonEquals(prevConfig?.cookieCloud || null, nextConfig.cookieCloud || null)
   ) {
     cookieSource.clearCookieCloudCache()
@@ -313,6 +315,7 @@ export function startDockerRuntime(options: DockerRuntimeOptions): void {
     },
     saveTaskConfig: async (config: {
       manualCookies?: ManualCookieConfig
+      manualPassport?: ManualPassportConfig
       cookieCloud?: DockerConfig['cookieCloud']
       collectGift?: CollectGiftConfig | null
       keepalive?: JobConfig | null
@@ -322,7 +325,7 @@ export function startDockerRuntime(options: DockerRuntimeOptions): void {
       ui?: DockerConfig['ui']
     }) => {
       const nextConfig = buildConfigWithPartialUpdate(currentConfig, config)
-      const hasCookieSourcePayload = config.cookieCloud !== undefined || config.manualCookies !== undefined
+      const hasCookieSourcePayload = config.cookieCloud !== undefined || config.manualCookies !== undefined || config.manualPassport !== undefined
       const hasTaskPayload = config.collectGift !== undefined
         || config.keepalive !== undefined
         || config.doubleCard !== undefined

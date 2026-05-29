@@ -15,7 +15,7 @@ import {
   DEFAULT_YUBA_CHECK_IN_CRON,
   DEFAULT_YUBA_CHECK_IN_MODE,
 } from './task-defaults'
-import type { CollectGiftConfig, CookieCloudConfig, DockerConfig, DoubleCardConfig, DoubleCardGiftScope, ExpiringGiftConfig, Fans, JobConfig, ManualCookieConfig, SendGift, YubaCheckInConfig, sendConfig } from './types'
+import type { CollectGiftConfig, CookieCloudConfig, DockerConfig, DoubleCardConfig, DoubleCardGiftScope, ExpiringGiftConfig, Fans, JobConfig, ManualCookieConfig, ManualPassportConfig, SendGift, YubaCheckInConfig, sendConfig } from './types'
 
 function resolveTaskActive(active: boolean | undefined): boolean {
   return active !== false
@@ -148,6 +148,16 @@ function normalizeManualCookies(config: DockerConfig): ManualCookieConfig | unde
   }
 
   return { main, yuba }
+}
+
+function normalizeManualPassport(config: DockerConfig): ManualPassportConfig | undefined {
+  const ltp0 = config.manualPassport?.ltp0?.trim() || ''
+
+  if (!ltp0) {
+    return undefined
+  }
+
+  return { ltp0 }
 }
 
 export function createDefaultKeepaliveConfig(fans: Fans[]): JobConfig {
@@ -309,10 +319,12 @@ export function normalizeDockerConfig(config: DockerConfig, options: { ensureCol
   const collectGift = normalizeCollectGiftConfig(config.collectGift)
   const cookieCloud = normalizeCookieCloud(config.cookieCloud)
   const manualCookies = normalizeManualCookies(config)
+  const manualPassport = normalizeManualPassport(config)
   const yubaCheckIn = normalizeYubaCheckInConfig(config.yubaCheckIn)
   return {
     cookie: manualCookies?.main || config.cookie || '',
     ...(manualCookies ? { manualCookies } : {}),
+    ...(manualPassport ? { manualPassport } : {}),
     ...(cookieCloud ? { cookieCloud } : {}),
     ui: {
       themeMode: config.ui?.themeMode || DEFAULT_THEME_MODE,
@@ -331,10 +343,12 @@ export function reconcileDockerConfig(config: DockerConfig, fans: Fans[]): Docke
   const collectGift = normalizeCollectGiftConfig(config.collectGift)
   const cookieCloud = normalizeCookieCloud(config.cookieCloud)
   const manualCookies = normalizeManualCookies(config)
+  const manualPassport = normalizeManualPassport(config)
   const yubaCheckIn = normalizeYubaCheckInConfig(config.yubaCheckIn)
   return {
     cookie: manualCookies?.main || config.cookie,
     ...(manualCookies ? { manualCookies } : {}),
+    ...(manualPassport ? { manualPassport } : {}),
     ...(cookieCloud ? { cookieCloud } : {}),
     ui: {
       themeMode: config.ui?.themeMode || DEFAULT_THEME_MODE,

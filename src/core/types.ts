@@ -70,7 +70,7 @@ export interface ManualCookieConfig {
 }
 
 export interface ManualPassportConfig {
-  ltp0: string
+  cookie: string
 }
 
 export interface CookieCloudCookie {

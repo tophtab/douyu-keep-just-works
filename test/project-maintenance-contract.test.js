@@ -430,7 +430,7 @@ test('Docker runtime retries cookie-backed work once after centralized credentia
   assert.match(recovery, /export async function recoverCredentialSnapshot/)
   assert.match(recovery, /validateRecoveredMainCookie\(syncedCookie, deps\.validateMainCookie\)[\s\S]*await deps\.persistEffectiveCookies\(true\)[\s\S]*validateRecoveredMainCookie\(syncedCookie, deps\.validateMainCookie\)[\s\S]*refreshDouyuMainCookiesWithSafeAuth[\s\S]*validateRecoveredMainCookie\(safeAuthResult\.refreshedCookie, deps\.validateMainCookie\)/)
   assert.match(recovery, /getCurrentMainCookie/)
-  assert.match(recovery, /getManualPassportLtp0/)
+  assert.match(recovery, /getManualPassportCookie/)
   assert.match(readRepoFile('src/core/douyu-passport.ts'), /passport\.douyu\.com\/lapi\/passport\/iframe\/safeAuth/)
   assert.match(readRepoFile('src/core/cookie-cloud.ts'), /export function getCookieCloudPassportLtp0/)
   assert.doesNotMatch(taskRunnerDirectSource, /safeAuth|LTP0|ltp0|getCookieCloudPassportLtp0|refreshDouyuMainCookiesWithSafeAuth/)
@@ -439,7 +439,7 @@ test('Docker runtime retries cookie-backed work once after centralized credentia
   assert.match(taskRoutes, /isCookieCredentialMessage/)
 })
 
-test('manual passport LTP0 stays masked outside raw config and is saved from login config UI', () => {
+test('manual passport cookie stays masked outside raw config and is saved from login config UI', () => {
   const types = readRepoFile('src/core/types.ts')
   const defaults = readRepoFile('src/core/task-defaults.ts')
   const configStore = readRepoFile('src/docker/config-store.ts')
@@ -449,10 +449,10 @@ test('manual passport LTP0 stays masked outside raw config and is saved from log
   const taskStatusCard = readRepoFile('src/docker/webui/components/TaskStatusCard.vue')
   const configExample = JSON.parse(readRepoFile('config.example.json'))
 
-  assert.match(types, /export interface ManualPassportConfig \{[\s\S]*ltp0: string/)
+  assert.match(types, /export interface ManualPassportConfig \{[\s\S]*cookie: string/)
   assert.match(types, /manualPassport\?: ManualPassportConfig/)
-  assert.deepEqual(configExample.manualPassport, { ltp0: 'YOUR_PASSPORT_LTP0' })
-  assert.match(defaults, /manualPassport:\s*\{\s*ltp0: ''/)
+  assert.deepEqual(configExample.manualPassport, { cookie: 'dy_did=YOUR_DY_DID; LTP0=YOUR_PASSPORT_LTP0' })
+  assert.match(defaults, /manualPassport:\s*\{\s*cookie: ''/)
   assert.match(configStore, /manualPassport\?: ManualPassportConfig/)
   assert.match(configStore, /updates\.manualPassport !== undefined/)
 
@@ -463,13 +463,14 @@ test('manual passport LTP0 stays masked outside raw config and is saved from log
   assert.match(configRoutes, /app\.post\('\/api\/config'[\s\S]*maskConfigManualPassport\(await ctx\.saveTaskConfig/)
   assert.match(configRoutes, /manualPassport: payload\.manualPassport/)
 
-  assert.match(cookieWebUi, /const passportLtp0 = ref\(''\)/)
-  assert.match(cookieWebUi, /passportLtp0\.value = ''/)
-  assert.match(cookieWebUi, /const nextLtp0 = passportLtp0\.value\.trim\(\)/)
-  assert.match(cookieWebUi, /manualPassport:\s*\{\s*ltp0: nextLtp0/)
-  assert.match(cookieWebUi, /passport\/LTP0', value: hasManualPassport\(config\) \? '已配置' : '未配置'/)
+  assert.match(cookieWebUi, /const passportCookie = ref\(''\)/)
+  assert.match(cookieWebUi, /passportCookie\.value = getManualPassportConfig\(config\)\.cookie/)
+  assert.match(cookieWebUi, /const nextPassportCookie = passportCookie\.value\.trim\(\)/)
+  assert.match(cookieWebUi, /manualPassport:\s*\{\s*cookie: nextPassportCookie/)
+  assert.match(cookieWebUi, /passport Cookie', value: hasManualPassport\(config\) \? '已配置' : '未配置'/)
   assert.doesNotMatch(cookieWebUi, /ltp0[^'\n]*redacted-secret-value/)
-  assert.match(loginConfigPage, /v-model="passportLtp0"[\s\S]*type="password"/)
+  assert.match(loginConfigPage, /<textarea[\s\S]*v-model="passportCookie"/)
+  assert.doesNotMatch(loginConfigPage, /v-model="passportCookie"[\s\S]{0,160}type="password"/)
   assert.match(loginConfigPage, /@action="saveManualPassport"/)
   assert.match(taskStatusCard, /:class="\{ quad: cells\.length === 4 \}"/)
 })

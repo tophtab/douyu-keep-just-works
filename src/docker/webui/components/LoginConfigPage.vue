@@ -14,7 +14,7 @@ const {
   loadCookieCloudCronPreview,
   loginStatus,
   mainCookie,
-  passportLtp0,
+  passportCookie,
   saveAndEnableCookieCloud,
   saveCookie,
   saveManualPassport,
@@ -62,18 +62,18 @@ function handleCookieCloudAction(index: number): void {
 
   <div class="panel" style="margin-top:16px">
     <h3 class="section-title">
-      手填 passport/LTP0
+      手填 passport Cookie
     </h3>
     <p class="subtle">
-      可选。主站 Cookie 失效后，系统会从主站 Cookie 读取 dy_did，并使用这里保存的 LTP0 进行一次 safeAuth 恢复。
+      可选。主站 Cookie 失效后，系统会使用这里保存的 LTP0 和 dy_did 进行一次 safeAuth 恢复。
     </p>
     <div class="grid cols-2" style="margin-top:16px">
       <div class="field-block" style="margin-top:0">
-        <label class="field-label" for="manual-passport-ltp0">passport.douyu.com LTP0</label>
-        <input id="manual-passport-ltp0" v-model="passportLtp0" name="manual-passport-ltp0" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 passport.douyu.com 的 LTP0">
+        <label class="field-label" for="manual-passport-cookie">passport.douyu.com Cookie</label>
+        <textarea id="manual-passport-cookie" v-model="passportCookie" name="manual-passport-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="dy_did=...; LTP0=..." rows="4" />
       </div>
     </div>
-    <ActionBar :actions="[{ label: '保存 passport/LTP0', kind: 'success' }]" @action="saveManualPassport" />
+    <ActionBar :actions="[{ label: '保存 passport Cookie', kind: 'success' }]" @action="saveManualPassport" />
   </div>
 
   <div class="panel" style="margin-top:16px">

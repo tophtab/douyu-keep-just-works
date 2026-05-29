@@ -1,5 +1,5 @@
 import { getCookieValue } from '../core/api'
-import { getCookieCloudPassportLtp0 } from '../core/cookie-cloud'
+import { getCookieCloudPassportCookie } from '../core/cookie-cloud'
 import type { CookieCloudSnapshot } from '../core/cookie-cloud'
 import { refreshDouyuMainCookiesWithSafeAuth } from '../core/douyu-passport'
 import type { DockerConfig } from '../core/types'
@@ -35,14 +35,16 @@ export interface CredentialSnapshotRecoveryDeps {
   loadCookieCloudSnapshot(forceRefresh?: boolean): Promise<CookieCloudSnapshot>
   getCurrentMainCookie(): string
   getCurrentYubaCookie(): string
-  getManualPassportLtp0(): string
+  getManualPassportCookie(): string
   persistManualCookieSnapshot(mainCookie: string, yubaCookie: string): DockerConfig
   validateMainCookie: CookieSnapshotValidator
   log: CookieRecoveryLogger
 }
 
-interface PassportLtp0Material {
+interface PassportRecoveryMaterial {
+  cookie: string
   ltp0: string
+  dyDid?: string
   source: 'cookieCloud' | 'manual'
 }
 
@@ -72,28 +74,44 @@ async function validateRecoveredMainCookie(mainCookie: string, validateMainCooki
   }
 }
 
-async function resolvePassportLtp0Material(deps: CredentialSnapshotRecoveryDeps): Promise<PassportLtp0Material | null> {
-  const manualLtp0 = deps.getManualPassportLtp0().trim()
+function readPassportRecoveryMaterial(cookie: string, source: PassportRecoveryMaterial['source']): PassportRecoveryMaterial | null {
+  const normalizedCookie = cookie.trim()
+  const ltp0 = getCookieValue(normalizedCookie, 'LTP0')
+  if (!ltp0) {
+    return null
+  }
+
+  return {
+    cookie: normalizedCookie,
+    ltp0,
+    dyDid: getCookieValue(normalizedCookie, 'dy_did'),
+    source,
+  }
+}
+
+async function resolvePassportRecoveryMaterial(deps: CredentialSnapshotRecoveryDeps): Promise<PassportRecoveryMaterial | null> {
+  const manualPassportCookie = deps.getManualPassportCookie().trim()
 
   if (deps.hasCookieCloudSource()) {
     const snapshot = await deps.loadCookieCloudSnapshot(false)
-    const cookieCloudLtp0 = getCookieCloudPassportLtp0(snapshot.cookies)
-    if (cookieCloudLtp0) {
-      return {
-        ltp0: cookieCloudLtp0,
-        source: 'cookieCloud',
-      }
+    const cookieCloudMaterial = readPassportRecoveryMaterial(getCookieCloudPassportCookie(snapshot.cookies), 'cookieCloud')
+    if (cookieCloudMaterial) {
+      return cookieCloudMaterial
     }
   }
 
-  if (manualLtp0) {
-    return {
-      ltp0: manualLtp0,
-      source: 'manual',
-    }
+  if (manualPassportCookie) {
+    return readPassportRecoveryMaterial(manualPassportCookie, 'manual')
   }
 
   return null
+}
+
+function ensureCookieHasDyDid(cookie: string, dyDid: string): string {
+  if (getCookieValue(cookie, 'dy_did')) {
+    return cookie
+  }
+  return cookie.trim() ? `dy_did=${dyDid}; ${cookie.trim()}` : `dy_did=${dyDid}`
 }
 
 export async function recoverCredentialSnapshot(deps: CredentialSnapshotRecoveryDeps): Promise<CredentialSnapshotRecoveryResult> {
@@ -122,14 +140,6 @@ export async function recoverCredentialSnapshot(deps: CredentialSnapshotRecovery
     syncedCookie = persistResult.config.manualCookies?.main?.trim() || persistResult.config.cookie.trim()
   }
 
-  if (!syncedCookie.trim()) {
-    return {
-      recovered: false,
-      refreshedBy: null,
-      reason: '本地主站 Cookie 为空，无法恢复登录凭证',
-    }
-  }
-
   if (syncedByCookieCloud) {
     const syncedValidation = await validateRecoveredMainCookie(syncedCookie, deps.validateMainCookie)
     if (syncedValidation.valid) {
@@ -142,32 +152,33 @@ export async function recoverCredentialSnapshot(deps: CredentialSnapshotRecovery
     deps.log(`CookieCloud 同步后主站 Cookie 仍不可用: ${syncedValidation.reason}`)
   }
 
-  const dyDid = getCookieValue(syncedCookie, 'dy_did')
-  if (!dyDid) {
-    return {
-      recovered: false,
-      refreshedBy: null,
-      reason: '主站 Cookie 缺少 dy_did，无法执行 safeAuth',
-    }
-  }
-
-  const passportLtp0 = await resolvePassportLtp0Material(deps)
-  if (!passportLtp0) {
+  const passportMaterial = await resolvePassportRecoveryMaterial(deps)
+  if (!passportMaterial) {
     return {
       recovered: false,
       refreshedBy: null,
       reason: deps.hasCookieCloudSource()
-        ? 'CookieCloud 的 passport.douyu.com 快照缺少 LTP0，且手填 passport/LTP0 未配置'
-        : '手填 passport/LTP0 未配置，无法执行 safeAuth',
+        ? 'CookieCloud 的 passport.douyu.com 快照缺少 LTP0，且手填 passport Cookie 未配置'
+        : '手填 passport Cookie 未配置或缺少 LTP0，无法执行 safeAuth',
     }
   }
 
+  const dyDid = passportMaterial.dyDid || getCookieValue(syncedCookie, 'dy_did')
+  if (!dyDid) {
+    return {
+      recovered: false,
+      refreshedBy: null,
+      reason: 'passport Cookie 和主站 Cookie 均缺少 dy_did，无法执行 safeAuth',
+    }
+  }
+
+  const safeAuthMainCookie = ensureCookieHasDyDid(syncedCookie, dyDid)
   const safeAuthResult = await refreshDouyuMainCookiesWithSafeAuth({
-    mainCookie: syncedCookie,
+    mainCookie: safeAuthMainCookie,
     dyDid,
-    ltp0: passportLtp0.ltp0,
+    ltp0: passportMaterial.ltp0,
   })
-  deps.log(`safeAuth 已使用${passportLtp0.source === 'cookieCloud' ? 'CookieCloud' : '手填'} passport/LTP0 返回主站登录字段: ${safeAuthResult.returnedKeys.join(', ')}`)
+  deps.log(`safeAuth 已使用${passportMaterial.source === 'cookieCloud' ? 'CookieCloud' : '手填'} passport Cookie 返回主站登录字段: ${safeAuthResult.returnedKeys.join(', ')}`)
 
   const safeAuthValidation = await validateRecoveredMainCookie(safeAuthResult.refreshedCookie, deps.validateMainCookie)
   if (!safeAuthValidation.valid) {

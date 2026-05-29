@@ -70,7 +70,7 @@ function maskManualPassport(config: ManualPassportConfig | undefined): ManualPas
   }
 
   return {
-    ltp0: config.ltp0 ? maskCookie(config.ltp0) : '',
+    cookie: config.cookie ? maskCookie(config.cookie) : '',
   }
 }
 
@@ -89,7 +89,7 @@ function summarizeConfig(config: DockerConfig | null) {
     cookieSaved: hasConfiguredCookieSource(config),
     cookieSource: summarizeCookieSource(config),
     cookieCloudConfigured: isCookieCloudReady(config?.cookieCloud),
-    manualPassportConfigured: Boolean(config?.manualPassport?.ltp0?.trim()),
+    manualPassportConfigured: Boolean(config?.manualPassport?.cookie?.trim()),
     collectGiftConfigured: isTaskActive(config?.collectGift),
     keepaliveConfigured: isTaskActive(config?.keepalive),
     doubleCardConfigured: isTaskActive(config?.doubleCard),

@@ -151,13 +151,16 @@ function normalizeManualCookies(config: DockerConfig): ManualCookieConfig | unde
 }
 
 function normalizeManualPassport(config: DockerConfig): ManualPassportConfig | undefined {
-  const ltp0 = config.manualPassport?.ltp0?.trim() || ''
+  const legacyManualPassport = config.manualPassport as (Partial<ManualPassportConfig> & { ltp0?: string }) | undefined
+  const cookie = legacyManualPassport?.cookie?.trim() || ''
+  const legacyLtp0 = legacyManualPassport?.ltp0?.trim() || ''
+  const passportCookie = cookie || (legacyLtp0 ? `LTP0=${legacyLtp0}` : '')
 
-  if (!ltp0) {
+  if (!passportCookie) {
     return undefined
   }
 
-  return { ltp0 }
+  return { cookie: passportCookie }
 }
 
 export function createDefaultKeepaliveConfig(fans: Fans[]): JobConfig {

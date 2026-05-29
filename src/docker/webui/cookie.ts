@@ -28,7 +28,7 @@ interface PersistCookieSourceResponse {
 const cookieCheck = ref<CookieDiagnostics | null>(null)
 const mainCookie = ref('')
 const yubaCookie = ref('')
-const passportLtp0 = ref('')
+const passportCookie = ref('')
 const cookieCloud = reactive({
   active: false,
   endpoint: '',
@@ -58,12 +58,12 @@ function getCookieCloudConfig(config: DockerConfig | null): CookieCloudConfig {
 
 function getManualPassportConfig(config: DockerConfig | null): ManualPassportConfig {
   return config?.manualPassport || {
-    ltp0: '',
+    cookie: '',
   }
 }
 
 function hasManualPassport(config: DockerConfig | null): boolean {
-  return Boolean(getManualPassportConfig(config).ltp0.trim())
+  return Boolean(getManualPassportConfig(config).cookie.trim())
 }
 
 function getCookieSourceLabel(config: DockerConfig | null): string {
@@ -74,7 +74,7 @@ function applyRawConfig(config: DockerConfig | null): void {
   const manualCookies = getManualCookiesConfig(config)
   mainCookie.value = manualCookies.main || ''
   yubaCookie.value = manualCookies.yuba || ''
-  passportLtp0.value = ''
+  passportCookie.value = getManualPassportConfig(config).cookie || ''
 
   const nextCookieCloud = getCookieCloudConfig(config)
   cookieCloud.active = nextCookieCloud.active === true
@@ -89,7 +89,7 @@ function buildCookieCheckText(result: CookieDiagnostics | null): string {
   if (!result) {
     const configCookieCloud = getCookieCloudConfig(rawConfig.value)
     if (!configCookieCloud.active) {
-      return `手填 passport/LTP0 ${hasManualPassport(rawConfig.value) ? '已配置' : '未配置'}。启用 CookieCloud 后会先从浏览器同步斗鱼相关 Cookie；手填模式会在主站 Cookie 失效后使用已保存的 LTP0 恢复。`
+      return `手填 passport Cookie ${hasManualPassport(rawConfig.value) ? '已配置' : '未配置'}。启用 CookieCloud 后会先从浏览器同步斗鱼相关 Cookie；手填模式会在主站 Cookie 失效后使用已保存的 LTP0 和 dy_did 恢复。`
     }
     if (!configCookieCloud.endpoint.trim() || !configCookieCloud.uuid.trim() || !configCookieCloud.password.trim()) {
       return 'CookieCloud 已启用，但 endpoint / UUID / 密码 还没填完整。'
@@ -149,29 +149,33 @@ async function saveCookie(): Promise<void> {
 }
 
 async function saveManualPassport(): Promise<void> {
-  const nextLtp0 = passportLtp0.value.trim()
+  const nextPassportCookie = passportCookie.value.trim()
   try {
     const data = await requestJson<{ data?: { config?: DockerConfig } }>('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         manualPassport: {
-          ltp0: nextLtp0,
+          cookie: nextPassportCookie,
         },
       }),
     })
     if (data.data?.config) {
-      setRawConfig(data.data.config)
-      applyRawConfig(data.data.config)
+      const nextConfig = {
+        ...data.data.config,
+        manualPassport: nextPassportCookie ? { cookie: nextPassportCookie } : undefined,
+      }
+      setRawConfig(nextConfig)
+      applyRawConfig(nextConfig)
     }
     cookieCheck.value = null
-    showToast(nextLtp0 ? 'passport/LTP0 已保存' : 'passport/LTP0 已清空', true)
+    showToast(nextPassportCookie ? 'passport Cookie 已保存' : 'passport Cookie 已清空', true)
     await refreshOverviewAfterCookieChange(false)
   } catch (error) {
     if (isHttpUnauthorized(error)) {
       return
     }
-    showToast(`保存 passport/LTP0 失败：${getErrorMessage(error)}`, false)
+    showToast(`保存 passport Cookie 失败：${getErrorMessage(error)}`, false)
   }
 }
 
@@ -328,7 +332,7 @@ export function useCookieLoginPage() {
         { label: '系统就绪', value: overview.value.ready ? '已就绪' : '待配置' },
         { label: '粉丝牌', value: sourceReady ? `${getManagedFans().length} 个` : '未同步' },
         { label: '来源', value: getCookieSourceLabel(config) },
-        { label: 'passport/LTP0', value: hasManualPassport(config) ? '已配置' : '未配置' },
+        { label: 'passport Cookie', value: hasManualPassport(config) ? '已配置' : '未配置' },
       ],
     }
   })
@@ -352,7 +356,7 @@ export function useCookieLoginPage() {
     loadCookieCloudCronPreview: loadCronPreview,
     loginStatus,
     mainCookie,
-    passportLtp0,
+    passportCookie,
     saveAndEnableCookieCloud,
     saveCookie,
     saveManualPassport,

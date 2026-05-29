@@ -40,7 +40,7 @@ export class DockerCookieSourceManager {
   }
 
   hasManualPassport(config: DockerConfig | null | undefined = this.getConfig()): boolean {
-    return Boolean(config?.manualPassport?.ltp0?.trim())
+    return Boolean(config?.manualPassport?.cookie?.trim())
   }
 
   hasPassportRecoveryMaterial(config: DockerConfig | null | undefined = this.getConfig()): boolean {
@@ -162,7 +162,7 @@ export class DockerCookieSourceManager {
       loadCookieCloudSnapshot: async forceRefresh => await this.loadCookieCloudSnapshot(forceRefresh),
       getCurrentMainCookie: () => this.getManualCookieForUrl(MAIN_DOUYU_URL, this.getConfig()),
       getCurrentYubaCookie: () => this.getManualCookieForUrl(YUBA_DOUYU_URL, this.getConfig()),
-      getManualPassportLtp0: () => this.getManualPassportLtp0(),
+      getManualPassportCookie: () => this.getManualPassportCookie(),
       persistManualCookieSnapshot: (mainCookie, yubaCookie) => this.persistManualCookieSnapshot(mainCookie, yubaCookie),
     })
   }
@@ -178,7 +178,7 @@ export class DockerCookieSourceManager {
           ...parseCookieRecord(yubaCookie),
         }).length,
         domains: ['local'],
-        passportLtp0Present: this.hasManualPassport(currentConfig) ? true : undefined,
+        passportLtp0Present: parseCookieRecord(this.getManualPassportCookie()).LTP0 ? true : undefined,
       })
     }
 
@@ -235,8 +235,8 @@ export class DockerCookieSourceManager {
     return [config.endpoint, config.uuid, config.password, config.cryptoType || 'legacy'].join('|')
   }
 
-  private getManualPassportLtp0(): string {
-    return this.getConfig()?.manualPassport?.ltp0?.trim() || ''
+  private getManualPassportCookie(): string {
+    return this.getConfig()?.manualPassport?.cookie?.trim() || ''
   }
 
   private getManualCookieForUrl(targetUrl: string, config: DockerConfig | null | undefined): string {

@@ -266,8 +266,12 @@ export function buildCookieHeaderForUrl(cookies: CookieCloudCookie[], targetUrl:
     .join('; ')
 }
 
+export function getCookieCloudPassportCookie(cookies: CookieCloudCookie[]): string {
+  return buildCookieHeaderForUrl(cookies, PASSPORT_DOUYU_URL)
+}
+
 export function getCookieCloudPassportLtp0(cookies: CookieCloudCookie[]): string | undefined {
-  return getCookieValue(buildCookieHeaderForUrl(cookies, PASSPORT_DOUYU_URL), 'LTP0')
+  return getCookieValue(getCookieCloudPassportCookie(cookies), 'LTP0')
 }
 
 export function createCookieDiagnostics(source: 'manual' | 'cookieCloud', mainCookie: string, yubaCookie: string, options: {

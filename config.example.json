@@ -5,7 +5,7 @@
     "yuba": "acf_yb_uid=YOUR_UID; acf_yb_t=YOUR_YUBA_TOKEN; ..."
   },
   "manualPassport": {
-    "ltp0": "YOUR_PASSPORT_LTP0"
+    "cookie": "dy_did=YOUR_DY_DID; LTP0=YOUR_PASSPORT_LTP0"
   },
   "cookieCloud": {
     "active": false,

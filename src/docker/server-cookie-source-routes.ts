@@ -10,7 +10,7 @@ function resolveCookieSourceErrorStatus(message: string): number {
 
 export function registerCookieSourceRoutes(app: express.Express, ctx: AppContext): void {
   app.post('/api/cookie-source/check', async (_req, res) => {
-    await sendJsonResult(res, () => ctx.inspectCookieSource(true), resolveCookieSourceErrorStatus)
+    await sendJsonResult(res, () => ctx.inspectCookieSource(), resolveCookieSourceErrorStatus)
   })
 
   app.get('/api/cookie-source/effective', async (_req, res) => {

@@ -138,32 +138,22 @@ export class DockerCookieSourceManager {
     }
   }
 
-  async inspectCookieSource(forceRefresh = false): Promise<CookieDiagnostics> {
+  async inspectCookieSource(): Promise<CookieDiagnostics> {
     const currentConfig = this.getConfig()
-    if (this.hasCookieCloudSource(currentConfig)) {
-      const snapshot = await this.loadCookieCloudSnapshot(forceRefresh)
-      return createCookieDiagnostics(
-        'cookieCloud',
-        buildCookieHeaderForUrl(snapshot.cookies, MAIN_DOUYU_URL),
-        buildCookieHeaderForUrl(snapshot.cookies, YUBA_DOUYU_URL),
-        {
-          cookieCount: snapshot.cookies.length,
-          domains: snapshot.domains,
-          updateTime: snapshot.updateTime,
-        },
-      )
-    }
-
     if (this.hasManualCookie(currentConfig)) {
       const mainCookie = this.getManualCookieForUrl(MAIN_DOUYU_URL, currentConfig)
       const yubaCookie = this.getManualCookieForUrl(YUBA_DOUYU_URL, currentConfig)
-      return createCookieDiagnostics('manual', mainCookie, yubaCookie, {
+      return createCookieDiagnostics(this.hasCookieCloudSource(currentConfig) ? 'cookieCloud' : 'manual', mainCookie, yubaCookie, {
         cookieCount: Object.keys({
           ...parseCookieRecord(mainCookie),
           ...parseCookieRecord(yubaCookie),
         }).length,
-        domains: ['manual'],
+        domains: ['local'],
       })
+    }
+
+    if (this.hasCookieCloudSource(currentConfig)) {
+      throw new Error('CookieCloud 已启用，但本地登录快照为空，请先同步 CookieCloud')
     }
 
     throw new Error('请先配置 cookie')

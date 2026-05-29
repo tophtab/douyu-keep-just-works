@@ -1,4 +1,4 @@
-import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, ManualCookieConfig } from '../../core/types'
+import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, EffectiveCookiePreview, ManualCookieConfig } from '../../core/types'
 import { computed, reactive, ref, watch } from 'vue'
 import { DEFAULT_COOKIE_CLOUD_SYNC_CRON } from '../../core/task-defaults'
 import { useCronPreview } from './composables/use-cron-preview'
@@ -15,6 +15,14 @@ interface SaveCookieCloudOptions {
   forceDisable?: boolean
   quietSuccess?: boolean
   revertActiveTo?: boolean
+}
+
+interface PersistCookieSourceResponse {
+  data?: {
+    config?: DockerConfig
+    effective?: EffectiveCookiePreview
+    updated?: boolean
+  }
 }
 
 const cookieCheck = ref<CookieDiagnostics | null>(null)
@@ -125,13 +133,13 @@ async function saveCookie(): Promise<void> {
   }
 }
 
-export async function syncCookieCloudToLoginCookies(showSuccessToast?: boolean, rethrowError?: boolean): Promise<unknown> {
+export async function syncCookieCloudToLoginCookies(showSuccessToast?: boolean, rethrowError?: boolean): Promise<PersistCookieSourceResponse | null | undefined> {
   if (!getCookieCloudConfig(rawConfig.value).active) {
     return null
   }
 
   try {
-    const data = await requestJson<{ data?: { config?: DockerConfig, updated?: boolean } }>('/api/cookie-source/persist', {
+    const data = await requestJson<PersistCookieSourceResponse>('/api/cookie-source/persist', {
       method: 'POST',
     })
     if (data.data?.config) {

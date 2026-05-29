@@ -26,7 +26,7 @@ export interface AppContext {
   getStatus(): { collectGift: JobStatus; keepalive: JobStatus; doubleCard: JobStatus; expiringGift: JobStatus; yubaCheckIn: JobStatus }
   getLogs(): LogEntry[]
   clearLogs(): void
-  inspectCookieSource(forceRefresh?: boolean): Promise<CookieDiagnostics>
+  inspectCookieSource(): Promise<CookieDiagnostics>
   getEffectiveCookies(forceRefresh?: boolean): Promise<EffectiveCookiePreview>
   persistEffectiveCookies(forceRefresh?: boolean): Promise<{
     config: DockerConfig

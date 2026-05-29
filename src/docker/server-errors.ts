@@ -7,5 +7,5 @@ export function isMissingCookieMessage(message: string): boolean {
 }
 
 export function isCookieSourceConfigMessage(message: string): boolean {
-  return isMissingCookieMessage(message) || message.includes('配置不完整')
+  return isMissingCookieMessage(message) || message.includes('配置不完整') || message.includes('本地登录快照为空')
 }

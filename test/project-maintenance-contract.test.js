@@ -372,3 +372,20 @@ test('Docker config mutation routes use shared JSON error helpers', () => {
   assert.doesNotMatch(configRoutes, /\.then\(\(result\)/)
   assert.doesNotMatch(configRoutes, /\.catch\(\(e: unknown\)/)
 })
+
+test('CookieCloud sync-and-check persists first, then checks the local snapshot only', () => {
+  const cookieWebUi = readRepoFile('src/docker/webui/cookie.ts')
+  const cookieSource = readRepoFile('src/docker/runtime-cookie-source.ts')
+  const cookieRoutes = readRepoFile('src/docker/server-cookie-source-routes.ts')
+
+  assert.match(cookieRoutes, /ctx\.inspectCookieSource\(\)/)
+  assert.doesNotMatch(cookieRoutes, /ctx\.inspectCookieSource\(true\)/)
+  assert.match(cookieSource, /mainCookie = cloudMainCookie \|\| mainCookie/)
+  assert.match(cookieSource, /yubaCookie = cloudYubaCookie \|\| yubaCookie \|\| mainCookie/)
+  assert.match(cookieSource, /async inspectCookieSource\(\): Promise<CookieDiagnostics>/)
+  const inspectStart = cookieSource.indexOf('async inspectCookieSource()')
+  const inspectEnd = cookieSource.indexOf('private async loadCookieCloudSnapshot')
+  assert.ok(inspectStart >= 0 && inspectEnd > inspectStart)
+  assert.doesNotMatch(cookieSource.slice(inspectStart, inspectEnd), /loadCookieCloudSnapshot/)
+  assert.match(cookieWebUi, /await syncCookieCloudToLoginCookies\(false, true\)[\s\S]*requestJson<CookieDiagnostics>\('\/api\/cookie-source\/check'/)
+})

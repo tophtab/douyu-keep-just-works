@@ -107,6 +107,67 @@ applyManagedFansResponse(result, { updateFans: isFansBackedTab(activeTab) })
 await refreshOverviewSurface(activeTab, false)
 ```
 
+## Scenario: CookieCloud Sync-And-Local-Check
+
+### 1. Scope / Trigger
+- Trigger: changes to WebUI CookieCloud "同步并校验", `/api/cookie-source/persist`, or CookieCloud diagnostics flow.
+- Scope: one user action may combine remote CookieCloud persistence with a local-only cookie diagnostics step, but the diagnostics endpoint itself must not fetch CookieCloud.
+
+### 2. Signatures
+- Backend response shape: `POST /api/cookie-source/persist -> { ok: true, data?: { config: DockerConfig, effective: EffectiveCookiePreview, updated: boolean } }`.
+- Backend response shape: `POST /api/cookie-source/check -> CookieDiagnostics`.
+- Frontend helper: `syncCookieCloudToLoginCookies(showSuccessToast?, rethrowError?) -> Promise<PersistCookieSourceResponse | null | undefined>`.
+- Frontend check action: `checkCookieSource(showSuccessToast?) -> Promise<CookieDiagnostics | undefined>`.
+
+### 3. Contracts
+- When CookieCloud is active, `/api/cookie-source/persist` force-refreshes CookieCloud once and persists the effective local login cookie snapshot.
+- CookieCloud persist keeps the existing local cookie as a fallback when the fresh CookieCloud snapshot is missing one side; the persisted result may be a hybrid effective snapshot.
+- `/api/cookie-source/check` must only inspect saved local login cookies; it must not call CookieCloud or force-refresh remote data.
+- The WebUI "同步并校验" path runs persist first, then calls the local-only check endpoint.
+- When CookieCloud is inactive, the same check endpoint diagnoses the saved manual cookies.
+- Diagnostics are structural: required cookie keys, cookie count, domains, and CookieCloud update time. They are not a live Douyu login probe.
+
+### 4. Validation & Error Matrix
+- CookieCloud inactive before sync -> frontend sync helper returns `null`; local-only check diagnoses saved manual cookies.
+- `/api/cookie-source/persist` fails -> `rethrowError` makes check stop and show the sync/check failure toast.
+- Unauthorized response -> existing unauthorized handling owns session state; do not mutate cookie diagnostics.
+- Persist succeeds -> call `/api/cookie-source/check`; that check must read only the saved local snapshot.
+- CookieCloud returns only one usable Douyu side and an existing local cookie is available -> persist keeps the existing local value for the missing side, then check diagnoses the persisted effective snapshot.
+- CookieCloud active but no local snapshot -> `/api/cookie-source/check` returns a configuration error telling the user to sync CookieCloud first.
+
+### 5. Good/Base/Bad Cases
+- Good: click "同步并校验" with CookieCloud active -> `/persist` does one remote CookieCloud fetch, writes the effective local snapshot, then `/check` diagnoses the saved local snapshot.
+- Base: fresh CookieCloud data misses one side but local cookies already contain it -> `/persist` preserves the local fallback for that side.
+- Base: CookieCloud inactive/manual cookie source -> no persist call; `/api/cookie-source/check` diagnoses saved manual cookies.
+- Bad: `/api/cookie-source/check` calls CookieCloud directly or returns diagnostics from a remote snapshot that was not persisted locally.
+
+### 6. Tests Required
+- Contract tests should assert `/api/cookie-source/check` calls `ctx.inspectCookieSource()` without a force-refresh argument.
+- Contract tests should assert `inspectCookieSource` does not call `loadCookieCloudSnapshot`.
+- Contract tests should assert CookieCloud persist keeps existing local cookies as fallback when composing effective cookies.
+- Contract tests should assert frontend check code runs `syncCookieCloudToLoginCookies(false, true)` before `/api/cookie-source/check`.
+- Type checks should cover the shared `CookieDiagnostics` response shape.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+async inspectCookieSource(forceRefresh = false): Promise<CookieDiagnostics> {
+  const snapshot = await this.loadCookieCloudSnapshot(forceRefresh)
+  return this.createCookieCloudDiagnostics(snapshot)
+}
+```
+
+#### Correct
+
+```typescript
+await syncCookieCloudToLoginCookies(false, true)
+const data = await requestJson<CookieDiagnostics>('/api/cookie-source/check', {
+  method: 'POST',
+})
+```
+
 ---
 
 ## Common Mistakes

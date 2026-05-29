@@ -289,7 +289,7 @@ export function startDockerRuntime(options: DockerRuntimeOptions): void {
     getStatus: () => scheduler.getStatus(),
     getLogs: () => getLogs(),
     clearLogs: () => clearLogs(),
-    inspectCookieSource: async (forceRefresh?: boolean) => await cookieSource.inspectCookieSource(forceRefresh),
+    inspectCookieSource: async () => await cookieSource.inspectCookieSource(),
     getEffectiveCookies: async (forceRefresh?: boolean) => await cookieSource.getEffectiveCookies(forceRefresh),
     persistEffectiveCookies: async (forceRefresh?: boolean) => await cookieSource.persistEffectiveCookies(forceRefresh),
     triggerTask: async (type: TaskType) => await scheduler.triggerTask(type, currentConfig, hasSendRooms),

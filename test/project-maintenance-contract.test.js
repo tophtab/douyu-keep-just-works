@@ -183,7 +183,7 @@ test('Docker WebUI is Vue-only and served as Vite static Docker assets', () => {
   assert.match(appVue, /usePageNavigation\(bootstrap\.pageRoutes\)/)
   assert.match(appVue, /useAuthSession\(\{[\s\S]*clearProtectedState[\s\S]*loadProtectedData/)
   assert.match(appVue, /loadProtectedData\(activeTab\.value/)
-  assert.match(appVue, /syncCookieCloudToLoginCookies\(false\)/)
+  assert.doesNotMatch(appVue, /syncCookieCloudToLoginCookies/)
   assert.match(appVue, /watch\(\[authenticated, activeTab\]/)
   assert.match(appVue, /loadActiveTabData\(nextTab\)/)
   assert.match(appVue, /useOverviewPage\(activeTab\)/)
@@ -225,6 +225,7 @@ test('Docker WebUI is Vue-only and served as Vite static Docker assets', () => {
   assert.doesNotMatch(auth + request + toast, /WEBUI_BRIDGE_EVENTS|bridge-contract/)
 
   assert.match(resources, /export async function loadProtectedData/)
+  assert.doesNotMatch(resources, /syncCookieCloud/)
   assert.match(resources, /export async function refreshOverviewSurface/)
   assert.match(resources, /from '\.\/resource-config'/)
   assert.match(resources, /from '\.\/resource-fans'/)

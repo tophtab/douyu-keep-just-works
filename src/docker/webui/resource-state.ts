@@ -191,12 +191,11 @@ export async function refreshOverviewSurface(activeTab: WebUiPageTab, showSucces
   }
 }
 
-export async function loadProtectedData(activeTab: WebUiPageTab, syncCookieCloud: () => Promise<unknown>): Promise<void> {
+export async function loadProtectedData(activeTab: WebUiPageTab): Promise<void> {
   await Promise.all([
     loadRawConfig(),
     loadOverview(),
     loadLogs(),
   ])
-  await syncCookieCloud()
   await loadActiveTabData(activeTab)
 }

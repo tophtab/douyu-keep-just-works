@@ -3,7 +3,6 @@ import AppShell from './components/AppShell.vue'
 import AuthShell from './components/AuthShell.vue'
 import { watch } from 'vue'
 import { useAuthSession } from './auth'
-import { syncCookieCloudToLoginCookies } from './cookie'
 import { usePageNavigation } from './navigation'
 import { useOverviewPage } from './overview'
 import { clearProtectedState, loadActiveTabData, loadProtectedData } from './resource-state'
@@ -45,7 +44,7 @@ const {
   submittingLogin,
 } = useAuthSession({
   clearProtectedState,
-  loadProtectedData: () => loadProtectedData(activeTab.value, () => syncCookieCloudToLoginCookies(false)),
+  loadProtectedData: () => loadProtectedData(activeTab.value),
 })
 
 const {

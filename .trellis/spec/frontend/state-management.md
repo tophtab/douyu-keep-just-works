@@ -122,6 +122,8 @@ await refreshOverviewSurface(activeTab, false)
 ### 3. Contracts
 - When CookieCloud is active, `/api/cookie-source/persist` force-refreshes CookieCloud once and persists the effective local login cookie snapshot.
 - CookieCloud persist keeps the existing local cookie as a fallback when the fresh CookieCloud snapshot is missing one side; the persisted result may be a hybrid effective snapshot.
+- CookieCloud persist also stores a `passport.douyu.com` cookie header in `manualPassport.cookie` when the fresh snapshot contains `LTP0`; this keeps the login page's passport field aligned with the local recovery material.
+- CookieCloud persist must not replace an existing local `manualPassport.cookie` with incomplete CookieCloud passport material that lacks `LTP0`.
 - `/api/cookie-source/check` must only inspect saved local login cookies; it must not call CookieCloud or force-refresh remote data.
 - The WebUI "同步并校验" path runs persist first, then calls the local-only check endpoint.
 - When CookieCloud is inactive, the same check endpoint diagnoses the saved manual cookies.
@@ -133,18 +135,24 @@ await refreshOverviewSurface(activeTab, false)
 - Unauthorized response -> existing unauthorized handling owns session state; do not mutate cookie diagnostics.
 - Persist succeeds -> call `/api/cookie-source/check`; that check must read only the saved local snapshot.
 - CookieCloud returns only one usable Douyu side and an existing local cookie is available -> persist keeps the existing local value for the missing side, then check diagnoses the persisted effective snapshot.
+- CookieCloud returns passport `LTP0` -> persist writes `manualPassport.cookie`; the login page raw config refresh should populate the passport textarea from that local field.
+- CookieCloud passport material lacks `LTP0` -> persist leaves the current `manualPassport` unchanged.
 - CookieCloud active but no local snapshot -> `/api/cookie-source/check` returns a configuration error telling the user to sync CookieCloud first.
 
 ### 5. Good/Base/Bad Cases
 - Good: click "同步并校验" with CookieCloud active -> `/persist` does one remote CookieCloud fetch, writes the effective local snapshot, then `/check` diagnoses the saved local snapshot.
+- Good: CookieCloud includes `passport.douyu.com` `LTP0` -> `/persist` saves the composed passport cookie into `manualPassport.cookie`, and the WebUI shows it in the passport textarea after applying the returned raw config.
 - Base: fresh CookieCloud data misses one side but local cookies already contain it -> `/persist` preserves the local fallback for that side.
+- Base: CookieCloud lacks passport `LTP0` but a manual passport cookie is already saved -> `/persist` keeps the saved manual passport cookie.
 - Base: CookieCloud inactive/manual cookie source -> no persist call; `/api/cookie-source/check` diagnoses saved manual cookies.
 - Bad: `/api/cookie-source/check` calls CookieCloud directly or returns diagnostics from a remote snapshot that was not persisted locally.
+- Bad: `/persist` updates main/yuba but silently ignores complete CookieCloud passport material.
 
 ### 6. Tests Required
 - Contract tests should assert `/api/cookie-source/check` calls `ctx.inspectCookieSource()` without a force-refresh argument.
 - Contract tests should assert `inspectCookieSource` does not call `loadCookieCloudSnapshot`.
 - Contract tests should assert CookieCloud persist keeps existing local cookies as fallback when composing effective cookies.
+- Tests should assert CookieCloud persist writes complete passport material to `manualPassport.cookie` and does not expose raw passport material through diagnostics.
 - Contract tests should assert frontend check code runs `syncCookieCloudToLoginCookies(false, true)` before `/api/cookie-source/check`.
 - Type checks should cover the shared `CookieDiagnostics` response shape.
 

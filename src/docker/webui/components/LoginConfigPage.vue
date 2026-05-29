@@ -87,7 +87,7 @@ function handleCookieCloudAction(index: number): void {
     </div>
     <div class="grid cols-2">
       <div class="field-block">
-        <label class="field-label" for="cookie-cloud-endpoint">Endpoint</label>
+        <label class="field-label" for="cookie-cloud-endpoint">服务器地址</label>
         <input id="cookie-cloud-endpoint" v-model="cookieCloud.endpoint" name="cookie-cloud-endpoint" type="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="https://cookiecloud.example.com">
       </div>
       <div class="field-block">

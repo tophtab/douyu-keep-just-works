@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
+const os = require('node:os')
 const path = require('node:path')
 const vm = require('node:vm')
 const ts = require('typescript')
@@ -355,4 +356,61 @@ test('credential recovery reports missing dy_did when passport and main cookies 
 
   assert.equal(result.recovered, false)
   assert.match(result.reason, /均缺少 dy_did/)
+})
+
+test('CookieCloud persist stores passport cookie in the local manual passport snapshot', async () => {
+  const { DockerCookieSourceManager } = loadTypeScriptModule('src/docker/runtime-cookie-source.ts', {
+    '../core/cookie-cloud': {
+      buildCookieHeaderForUrl: (_cookies, targetUrl) => targetUrl.includes('yuba.douyu.com')
+        ? 'acf_yb_auth=yb-auth-redacted; acf_yb_uid=yb-uid-redacted; acf_yb_t=yb-t-redacted'
+        : 'acf_uid=uid-redacted; dy_did=did-redacted; acf_auth=auth-redacted; acf_stk=stk-redacted',
+      createCookieDiagnostics: () => ({}),
+      fetchCookieCloudSnapshot: async () => ({
+        cookies: [],
+        cryptoType: 'legacy',
+        domains: ['douyu.com', 'passport.douyu.com'],
+      }),
+      getCookieCloudPassportCookie: () => 'dy_did=did-redacted; LTP0=ltp0-redacted',
+      isCookieCloudReady: config => Boolean(config?.active && config.endpoint && config.uuid && config.password),
+    },
+  })
+  let config = {
+    cookie: '',
+    cookieCloud: {
+      active: true,
+      endpoint: 'https://cookiecloud.example.com',
+      uuid: 'uuid-redacted',
+      password: 'password-redacted',
+    },
+  }
+  const cacheInvalidations = []
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'douyu-cookie-source-'))
+  const configPath = path.join(tempDir, 'config.json')
+
+  try {
+    const manager = new DockerCookieSourceManager(
+      () => config,
+      (nextConfig) => {
+        config = nextConfig
+      },
+      () => configPath,
+      (nextConfig) => {
+        config = nextConfig
+      },
+      () => {},
+      (scope) => {
+        cacheInvalidations.push(scope)
+      },
+    )
+
+    const result = await manager.persistEffectiveCookies(true)
+    const savedConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+
+    assert.equal(result.config.manualPassport.cookie, 'dy_did=did-redacted; LTP0=ltp0-redacted')
+    assert.equal(savedConfig.manualPassport.cookie, 'dy_did=did-redacted; LTP0=ltp0-redacted')
+    assert.equal(savedConfig.manualCookies.main.includes('acf_auth=auth-redacted'), true)
+    assert.deepEqual(cacheInvalidations, ['all'])
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true })
+  }
 })

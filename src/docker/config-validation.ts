@@ -112,7 +112,7 @@ export function validateCookieCloudConfig(config: CookieCloudConfig): string | n
   }
   if (config.active === true) {
     if (!String(config.endpoint || '').trim()) {
-      return 'CookieCloud endpoint 不能为空'
+      return 'CookieCloud 服务器地址不能为空'
     }
     if (!String(config.uuid || '').trim()) {
       return 'CookieCloud UUID 不能为空'

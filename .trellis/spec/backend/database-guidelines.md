@@ -114,6 +114,8 @@ export function getRawConfig(): DockerConfig {
 ### 3. Contracts
 - Store a visible `passport.douyu.com` cookie string in `manualPassport.cookie`; parse `LTP0` and `dy_did` from that cookie during recovery.
 - Do not add a separate standalone `dy_did` field.
+- CookieCloud persistence should write complete passport-domain material into `manualPassport.cookie` when the CookieCloud snapshot contains `LTP0`, so the saved local config remains the source of truth after sync.
+- CookieCloud persistence should preserve an existing `manualPassport.cookie` when the remote passport material is absent or lacks `LTP0`.
 - `normalizeDockerConfig` trims `manualPassport.cookie`; an empty value removes `manualPassport` from normalized runtime config.
 - Normalization may migrate legacy `manualPassport.ltp0` into `manualPassport.cookie = "LTP0=<value>"` for compatibility.
 - `buildConfigWithPartialUpdate` must preserve existing `manualPassport` across unrelated config writes and replace it only when the update payload includes `manualPassport`.
@@ -125,20 +127,26 @@ export function getRawConfig(): DockerConfig {
 - `manualPassport.cookie` blank or whitespace -> normalize to absent.
 - `manualPassport` is not an object -> `POST /api/config` returns `400`.
 - Unrelated task/config save -> existing `manualPassport` remains unchanged.
+- CookieCloud persist with passport `LTP0` -> `manualPassport.cookie` is replaced with the composed CookieCloud passport cookie header.
+- CookieCloud persist without passport `LTP0` -> existing `manualPassport.cookie` remains unchanged.
 - Public config read/save response -> masked value or configured boolean only.
 - Raw config read -> raw value is returned under the established internal endpoint behavior.
 
 ### 5. Good/Base/Bad Cases
 - Good: user saves `manualPassport.cookie = "dy_did=...; LTP0=..."`, `/api/config` returns a masked value, and the raw-config WebUI keeps the visible cookie string available for editing.
+- Good: CookieCloud sync receives `dy_did=...; LTP0=...` for `passport.douyu.com`, persists it to `manualPassport.cookie`, and later recovery reads the saved local value when needed.
 - Good: user clears the field, normalization removes `manualPassport`, and recovery falls back to CookieCloud-only behavior if CookieCloud is active.
 - Base: a task config save without `manualPassport` keeps the existing saved secret.
+- Base: CookieCloud has no passport `LTP0`; the current saved manual passport cookie is retained.
 - Bad: adding a separate manual `dy_did` field instead of reading it from the passport cookie string.
+- Bad: CookieCloud sync saves main/yuba cookies but drops complete passport material, leaving the login page out of sync with local recovery state.
 - Bad: showing the raw passport cookie in logs, `/api/config`, public diagnostics, or non-editing status surfaces.
 
 ### 6. Tests Required
 - Contract tests should assert `ManualPassportConfig` exists and `DockerConfig.manualPassport` is shared through `src/core/types.ts`.
 - Contract tests should assert `config.example.json`, `createDefaultRawDockerConfig`, `buildConfigWithPartialUpdate`, and `normalizeDockerConfig` handle `manualPassport`.
 - Route tests or contract tests should assert `/api/config` masks manual passport cookie material, `/api/config/raw` remains raw, and `POST /api/config` saves the field.
+- Tests should assert CookieCloud persist writes complete passport material into `manualPassport.cookie` and preserves existing manual passport material when CookieCloud lacks `LTP0`.
 - Frontend contract tests should assert the login config UI uses a visible textarea, saves `manualPassport.cookie`, and displays configured/unconfigured state.
 
 ### 7. Wrong vs Correct

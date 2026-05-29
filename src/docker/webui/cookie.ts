@@ -101,7 +101,7 @@ function buildCookieCheckText(result: CookieDiagnostics | null): string {
       return `手填 passport Cookie ${hasManualPassport(rawConfig.value) ? '已配置' : '未配置'}。启用 CookieCloud 后会先从浏览器同步斗鱼相关 Cookie；手填模式会在主站 Cookie 失效后使用已保存的 LTP0 和 dy_did 恢复。`
     }
     if (!configCookieCloud.endpoint.trim() || !configCookieCloud.uuid.trim() || !configCookieCloud.password.trim()) {
-      return 'CookieCloud 已启用，但 endpoint / UUID / 密码 还没填完整。'
+      return 'CookieCloud 已启用，但服务器地址 / UUID / 密码 还没填完整。'
     }
     return 'CookieCloud 已启用。系统会在启动时同步一次，并按这里配置的同步 Cron 自动刷新本地登录 Cookie。点击“同步并校验”会先同步 CookieCloud，再检查当前结果是否齐全。'
   }

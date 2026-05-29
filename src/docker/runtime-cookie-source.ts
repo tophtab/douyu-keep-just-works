@@ -1,5 +1,5 @@
 import { parseCookieRecord } from '../core/api'
-import { buildCookieHeaderForUrl, createCookieDiagnostics, fetchCookieCloudSnapshot, getCookieCloudPassportLtp0, isCookieCloudReady } from '../core/cookie-cloud'
+import { buildCookieHeaderForUrl, createCookieDiagnostics, fetchCookieCloudSnapshot, getCookieCloudPassportCookie, isCookieCloudReady } from '../core/cookie-cloud'
 import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, EffectiveCookiePreview } from '../core/types'
 import { buildConfigWithPartialUpdate, configsEqual, saveConfigToDisk } from './config-store'
 import { recoverCredentialSnapshot as recoverCredentialSnapshotWithDeps } from './runtime-cookie-recovery'
@@ -13,6 +13,11 @@ interface CookieCloudCacheEntry {
   key: string
   fetchedAt: number
   snapshot: Awaited<ReturnType<typeof fetchCookieCloudSnapshot>>
+}
+
+interface EffectiveCookieMaterial {
+  effective: EffectiveCookiePreview
+  manualPassportCookie?: string
 }
 
 export class DockerCookieSourceManager {
@@ -74,17 +79,26 @@ export class DockerCookieSourceManager {
   }
 
   async getEffectiveCookies(forceRefresh = false): Promise<EffectiveCookiePreview> {
+    return (await this.resolveEffectiveCookieMaterial(forceRefresh)).effective
+  }
+
+  private async resolveEffectiveCookieMaterial(forceRefresh = false): Promise<EffectiveCookieMaterial> {
     const currentConfig = this.getConfig()
     let mainCookie = this.getManualCookieForUrl(MAIN_DOUYU_URL, currentConfig)
     let yubaCookie = this.getManualCookieForUrl(YUBA_DOUYU_URL, currentConfig)
     let source: EffectiveCookiePreview['source'] = this.hasManualCookie(currentConfig) ? 'manual' : 'none'
     let passportLtp0Present: boolean | undefined
+    let manualPassportCookie: string | undefined
 
     if (this.hasCookieCloudSource(currentConfig)) {
       const snapshot = await this.loadCookieCloudSnapshot(forceRefresh)
       const cloudMainCookie = buildCookieHeaderForUrl(snapshot.cookies, MAIN_DOUYU_URL)
       const cloudYubaCookie = buildCookieHeaderForUrl(snapshot.cookies, YUBA_DOUYU_URL)
-      passportLtp0Present = Boolean(getCookieCloudPassportLtp0(snapshot.cookies))
+      const cloudPassportCookie = getCookieCloudPassportCookie(snapshot.cookies).trim()
+      passportLtp0Present = Boolean(parseCookieRecord(cloudPassportCookie).LTP0)
+      if (passportLtp0Present) {
+        manualPassportCookie = cloudPassportCookie
+      }
 
       if (cloudMainCookie || cloudYubaCookie) {
         mainCookie = cloudMainCookie || mainCookie
@@ -99,16 +113,21 @@ export class DockerCookieSourceManager {
 
     const resolvedYubaCookie = yubaCookie || mainCookie
     const latestConfig = this.getConfig()
+    const localPassportCookie = latestConfig?.manualPassport?.cookie?.trim() || ''
     const persistedLocally = latestConfig?.manualCookies?.main?.trim() === mainCookie
       && latestConfig?.manualCookies?.yuba?.trim() === resolvedYubaCookie
+      && (!manualPassportCookie || localPassportCookie === manualPassportCookie)
 
     return {
-      source,
-      mainCookie,
-      yubaCookie: resolvedYubaCookie,
-      cookieCloudActive: this.hasCookieCloudSource(latestConfig),
-      persistedLocally,
-      passportLtp0Present,
+      effective: {
+        source,
+        mainCookie,
+        yubaCookie: resolvedYubaCookie,
+        cookieCloudActive: this.hasCookieCloudSource(latestConfig),
+        persistedLocally,
+        passportLtp0Present,
+      },
+      manualPassportCookie,
     }
   }
 
@@ -119,12 +138,15 @@ export class DockerCookieSourceManager {
     effective: EffectiveCookiePreview
     updated: boolean
   }> {
-    const effective = await this.getEffectiveCookies(forceRefresh)
+    const { effective, manualPassportCookie } = await this.resolveEffectiveCookieMaterial(forceRefresh)
     const nextConfig = buildConfigWithPartialUpdate(this.getConfig(), {
       manualCookies: {
         main: effective.mainCookie.trim(),
         yuba: effective.yubaCookie.trim(),
       },
+      ...(manualPassportCookie
+        ? { manualPassport: { cookie: manualPassportCookie } }
+        : {}),
     })
 
     if (configsEqual(this.getConfig(), nextConfig)) {

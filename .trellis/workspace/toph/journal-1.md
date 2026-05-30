@@ -883,3 +883,38 @@ Persist CookieCloud passport cookies into local manualPassport, rename WebUI end
 ### Next Steps
 
 - None - task complete
+
+
+## Session 27: Focused architecture cleanup
+
+**Date**: 2026-05-30
+**Task**: Focused architecture cleanup
+**Branch**: `master`
+
+### Summary
+
+Split Docker runtime and WebUI cookie internals into focused modules, updated ownership specs, and recorded task context.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `58e3c39` | (see git log) |
+| `5561efa` | (see git log) |
+| `4452493` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 26
+- **Total Sessions**: 27
 - **Last Active**: 2026-05-30
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~885 | Active |
+| `journal-1.md` | ~920 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 27 | 2026-05-30 | Focused architecture cleanup | `58e3c39`, `5561efa`, `4452493` | `master` |
 | 26 | 2026-05-30 | CookieCloud passport sync | `84cf34e` | `master` |
 | 25 | 2026-05-29 | Merge passport cookie into login panel | `266bb42` | `master` |
 | 24 | 2026-05-29 | Harden dependency and backend type safety | `36c5d59` | `master` |

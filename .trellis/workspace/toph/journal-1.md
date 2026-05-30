@@ -918,3 +918,38 @@ Split Docker runtime and WebUI cookie internals into focused modules, updated ow
 ### Next Steps
 
 - None - task complete
+
+
+## Session 28: Split runtime composition root
+
+**Date**: 2026-05-30
+**Task**: Split runtime composition root
+**Branch**: `master`
+
+### Summary
+
+Refactored the Docker runtime into a composition root with focused app-context, cookie-recovery, and fans-sync runtime services; updated backend specs and contract guardrails.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bfdcb2c` | (see git log) |
+| `e2ceca5` | (see git log) |
+| `14d7ae4` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

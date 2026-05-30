@@ -27,6 +27,9 @@ Current examples:
 - `src/core/job.ts` coordinates task execution using shared APIs.
 - `src/core/gift-task.ts` owns pure gift-task helpers used by task execution, such as enabled-room filtering and gift send-job preparation.
 - `src/docker/runtime.ts` wires config loading, runtime services, scheduler dependencies, and Express app startup.
+- `src/docker/runtime-app-context.ts` builds the WebUI `AppContext` from runtime services.
+- `src/docker/runtime-cookie-recovery.ts` owns credential-recovery retry orchestration and the lower-level CookieCloud/passport recovery pipeline.
+- `src/docker/runtime-fans-sync.ts` owns fan-medal synchronization, config reconcile, and latest cookie snapshot merging.
 - `src/docker/runtime-cookie-cloud-sync.ts` owns CookieCloud scheduled sync lifecycle.
 - `src/docker/runtime-config-service.ts` owns config application side effects: normalization, cache invalidation, CookieCloud sync reconciliation, scheduler reconciliation, and user-facing runtime logs.
 - `src/docker/server.ts` creates the Express app and registers route modules.
@@ -53,9 +56,14 @@ Route modules should register routes through a `register*Routes(app, ctx)` funct
 
 Runtime orchestration should stay in `src/docker/runtime.ts` as the composition root. Stable runtime responsibilities should live in focused sibling services when they can be described independently:
 
+- WebUI `AppContext` construction belongs in `runtime-app-context.ts`;
+- credential-recovery retry orchestration and low-level CookieCloud/passport recovery belong in `runtime-cookie-recovery.ts`;
+- fan-medal synchronization, config reconcile, and local cookie snapshot merging belong in `runtime-fans-sync.ts`;
 - scheduled CookieCloud sync lifecycle belongs in `runtime-cookie-cloud-sync.ts`;
 - config application and cache/scheduler side effects belong in `runtime-config-service.ts`;
 - task scheduling and task execution details stay in `runtime-scheduler.ts` and `runtime-task-runners.ts`.
+
+`runtime.ts` may know which services exist, how they are constructed, startup order, server listening, and shutdown handling. It should not own rules such as when to retry credential recovery, how to reconcile fan-backed config, how to merge CookieCloud/manual cookie snapshots, or the concrete WebUI route context method bodies.
 
 ---
 

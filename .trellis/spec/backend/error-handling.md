@@ -109,10 +109,12 @@ Keep messages stable when frontend code or tests rely on them.
 - `isCookieCredentialMessage(message: string): boolean` identifies login-cookie failures.
 - `refreshCookieSourceAfterFailure(error: unknown, context: string): Promise<boolean>` delegates to `DockerCookieSourceManager.recoverCredentialSnapshot(...)` when CookieCloud or manual passport recovery material is configured.
 - `runWithCookieSourceRetry<T>(context: string, run: () => Promise<T>): Promise<T>` wraps WebUI-facing Douyu reads.
+- `DockerRuntimeCookieRecoveryService.refreshCookieSourceAfterFailure(error, context)` owns runtime retry eligibility, logging, and delegation to `DockerCookieSourceManager.recoverCredentialSnapshot(...)`.
+- `DockerRuntimeCookieRecoveryService.runWithCookieSourceRetry(context, run)` wraps WebUI-facing Douyu reads and retries the original operation once after successful recovery.
 - `RuntimeTaskRunnerDeps.refreshCookieSourceAfterFailure(error, context)` lets scheduled and manual tasks share the same recovery path.
 - `DockerCookieSourceManager.hasPassportRecoveryMaterial(config?): boolean` is true when CookieCloud is ready or manual `passport.douyu.com` cookie material is saved.
 - `DockerCookieSourceManager.recoverCredentialSnapshot({ validateMainCookie, log }): Promise<{ recovered: boolean; refreshedBy: 'cookieCloud' | 'safeAuth' | null; reason: string }>` owns current-cookie validation, optional CookieCloud sync, optional passport refresh, and persistence.
-- `src/docker/runtime-cookie-recovery.ts` contains the centralized recovery pipeline. Individual task runners must call the shared retry hook, not call `safeAuth` or `LTP0` handling directly.
+- `src/docker/runtime-cookie-recovery.ts` contains the centralized runtime retry service and recovery pipeline. Individual task runners must call the shared retry hook, not call `safeAuth` or `LTP0` handling directly.
 - `CredentialSnapshotRecoveryDeps.getCurrentMainCookie()` supplies the current local main-site cookie for manual-mode recovery.
 - `CredentialSnapshotRecoveryDeps.getManualPassportCookie()` supplies the saved manual `passport.douyu.com` cookie string.
 - `refreshDouyuMainCookiesWithSafeAuth({ mainCookie, dyDid, ltp0 }): Promise<{ refreshedCookie: string; returnedKeys: string[] }>` performs the pure HTTP `passport.douyu.com` refresh and returns a merged local main-cookie header.

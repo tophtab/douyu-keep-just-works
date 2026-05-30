@@ -401,13 +401,21 @@ test('CookieCloud sync-and-check persists first, then checks the local snapshot 
   assert.match(cookieSource, /mainCookie = cloudMainCookie \|\| mainCookie/)
   assert.match(cookieSource, /yubaCookie = cloudYubaCookie \|\| yubaCookie \|\| mainCookie/)
   assert.match(cookieSource, /getCookieCloudPassportCookie\(snapshot\.cookies\)\.trim\(\)/)
+  assert.match(cookieSource, /buildCookieHeaderForUrl\(snapshot\.cookies, MAIN_DOUYU_URL\)/)
+  assert.match(cookieSource, /buildCookieHeaderForUrl\(snapshot\.cookies, YUBA_DOUYU_URL\)/)
   assert.match(cookieSource, /manualPassport:\s*\{\s*cookie: manualPassportCookie\s*\}/)
+  assert.doesNotMatch(cookieSource, /manualCookies:\s*snapshot\.cookies/)
+  assert.doesNotMatch(cookieSource, /manualPassport:\s*\{\s*cookie:\s*JSON\.stringify/)
   assert.match(cookieSource, /async inspectCookieSource\(\): Promise<CookieDiagnostics>/)
   const inspectStart = cookieSource.indexOf('async inspectCookieSource()')
   const inspectEnd = cookieSource.indexOf('private async loadCookieCloudSnapshot')
   assert.ok(inspectStart >= 0 && inspectEnd > inspectStart)
   assert.doesNotMatch(cookieSource.slice(inspectStart, inspectEnd), /loadCookieCloudSnapshot/)
   assert.match(cookieSourceActions, /await syncCookieCloudToLoginCookies\(false, true\)[\s\S]*requestJson<CookieDiagnostics>\('\/api\/cookie-source\/check'/)
+
+  const cookieSourceCopy = readRepoFile('src/docker/webui/cookie-source-copy.ts')
+  assert.doesNotMatch(cookieSourceCopy, /Cookie 数/)
+  assert.doesNotMatch(cookieSourceCopy, /cookieCount/)
 })
 
 test('Docker runtime retries cookie-backed work once after centralized credential recovery', () => {

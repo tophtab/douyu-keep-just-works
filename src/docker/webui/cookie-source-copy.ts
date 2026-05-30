@@ -32,7 +32,7 @@ export function buildCookieCheckText(result: CookieDiagnostics | null): string {
   const passportText = result.passportLtp0Present === undefined
     ? ''
     : ` passport Cookie ${result.passportLtp0Present ? '已配置' : '未配置'}。`
-  return `来源: ${sourceLabel}，Cookie 数: ${result.cookieCount || 0}${updateText}。${mainText}；${yubaDyTokenText}；${yubaText}。${passportText}`
+  return `来源: ${sourceLabel}${updateText}。${mainText}；${yubaDyTokenText}；${yubaText}。${passportText}`
 }
 
 export function buildLoginStatus() {

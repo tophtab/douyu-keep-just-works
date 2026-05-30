@@ -128,6 +128,7 @@ await refreshOverviewSurface(activeTab, false)
 - The WebUI "同步并校验" path runs persist first, then calls the local-only check endpoint.
 - When CookieCloud is inactive, the same check endpoint diagnoses the saved manual cookies.
 - Diagnostics are structural: required cookie keys, cookie count, domains, and CookieCloud update time. They are not a live Douyu login probe.
+- The WebUI check summary should not display raw `cookieCount`; the useful user-facing result is the source, update time, readiness, missing key names, and passport recovery-material state.
 
 ### 4. Validation & Error Matrix
 - CookieCloud inactive before sync -> frontend sync helper returns `null`; local-only check diagnoses saved manual cookies.
@@ -154,6 +155,7 @@ await refreshOverviewSurface(activeTab, false)
 - Contract tests should assert CookieCloud persist keeps existing local cookies as fallback when composing effective cookies.
 - Tests should assert CookieCloud persist writes complete passport material to `manualPassport.cookie` and does not expose raw passport material through diagnostics.
 - Contract tests should assert frontend check code runs `syncCookieCloudToLoginCookies(false, true)` before `/api/cookie-source/check`.
+- Contract tests should assert the WebUI check summary does not display `cookieCount` or a raw "Cookie 数" status.
 - Type checks should cover the shared `CookieDiagnostics` response shape.
 
 ### 7. Wrong vs Correct

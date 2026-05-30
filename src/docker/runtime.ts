@@ -1,21 +1,22 @@
 import process from 'node:process'
-import { CronJob } from 'cron'
 import { getFollowedYubaStatusesWithDyToken } from '../core/yuba'
 import { createDefaultDockerConfig, normalizeDockerConfig, reconcileDockerConfig } from '../core/medal-sync'
-import { DEFAULT_COOKIE_CLOUD_SYNC_CRON } from '../core/task-defaults'
 import type { CollectGiftConfig, DockerConfig, DoubleCardConfig, ExpiringGiftConfig, Fans, JobConfig, ManualCookieConfig, ManualPassportConfig } from '../core/types'
 import { buildConfigWithPartialUpdate, configsEqual, loadConfigFromDisk, saveConfigToDisk } from './config-store'
 import { assertDockerConfigCrons } from './cron'
+import { jsonEquals } from './config-equality'
 import { clearLogs, createLogger, getLogs } from './logger'
 import { createServer } from './server'
 import type { AppContext } from './server'
 import { DockerRuntimeCache } from './runtime-cache'
+import { DockerRuntimeConfigService } from './runtime-config-service'
+import type { DockerRuntimeConfigApplyReason } from './runtime-config-service'
+import { DockerCookieCloudSyncService } from './runtime-cookie-cloud-sync'
 import { DockerCookieSourceManager } from './runtime-cookie-source'
-import { DOCKER_TIMEZONE, MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
+import { MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
 import { DockerTaskScheduler } from './runtime-scheduler'
-import { formatScheduleForLog } from './runtime-time'
 import { isCookieCredentialMessage } from './server-errors'
-import { createTaskRecord, hasActiveTaskConfig, TASK_LOG_CATEGORIES } from './task-metadata'
+import { createTaskRecord, TASK_LOG_CATEGORIES } from './task-metadata'
 import type { TaskType } from './task-metadata'
 
 function errorMessage(error: unknown): string {
@@ -24,8 +25,6 @@ function errorMessage(error: unknown): string {
 
 let currentConfig: DockerConfig | null = null
 let activeConfigPath = ''
-let cookieCloudSyncJob: CronJob | null = null
-let cookieCloudSyncRunning = false
 
 const logSystem = createLogger('系统')
 const taskLoggers: Record<TaskType, (message: string) => void> = createTaskRecord(type => createLogger(TASK_LOG_CATEGORIES[type]))
@@ -49,44 +48,27 @@ const scheduler = new DockerTaskScheduler(
   (scope, runTask) => runtimeCache.runAndInvalidateStatus(scope, runTask),
 )
 
-function jsonEquals(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a) === JSON.stringify(b)
-}
+const cookieCloudSync = new DockerCookieCloudSyncService({
+  hasCookieCloudSource: config => cookieSource.hasCookieCloudSource(config),
+  logSystem,
+  persistEffectiveCookies: async forceRefresh => await cookieSource.persistEffectiveCookies(forceRefresh),
+})
 
-function stopCookieCloudSyncJob(): void {
-  if (cookieCloudSyncJob) {
-    cookieCloudSyncJob.stop()
-    cookieCloudSyncJob = null
-  }
-}
-
-async function syncCookieCloudSnapshot(reason: 'startup' | 'scheduled'): Promise<void> {
-  if (!cookieSource.hasCookieCloudSource()) {
-    return
-  }
-  if (cookieCloudSyncRunning) {
-    if (reason === 'scheduled') {
-      logSystem('CookieCloud 每日同步仍在执行中，跳过本次触发')
-    }
-    return
-  }
-
-  cookieCloudSyncRunning = true
-  try {
-    const result = await cookieSource.persistEffectiveCookies(true)
-    if (result.updated) {
-      logSystem(reason === 'startup'
-        ? 'CookieCloud 启动同步完成，本地登录快照已更新'
-        : 'CookieCloud 每日同步完成，本地登录快照已更新')
-    } else if (reason === 'scheduled') {
-      logSystem('CookieCloud 每日同步完成，本地登录快照无需更新')
-    }
-  } catch (error) {
-    logSystem(`${reason === 'startup' ? 'CookieCloud 启动同步' : 'CookieCloud 每日同步'}失败: ${errorMessage(error)}`)
-  } finally {
-    cookieCloudSyncRunning = false
-  }
-}
+const runtimeConfigService = new DockerRuntimeConfigService({
+  clearCookieCloudCache: () => cookieSource.clearCookieCloudCache(),
+  clearFansListCache: () => runtimeCache.clearFansList(),
+  getCurrentConfig: () => currentConfig,
+  hasConfiguredCookieSource: config => cookieSource.hasConfiguredCookieSource(config),
+  invalidateStatusCaches: scope => runtimeCache.invalidateStatus(scope),
+  logSystem,
+  logTaskReloadSummary: (reason, summary) => scheduler.logTaskReloadSummary(reason, summary),
+  reconcileCookieCloudSync: (prevConfig, nextConfig) => cookieCloudSync.reconcile(prevConfig, nextConfig),
+  reconcileTaskJobs: (prevConfig, nextConfig, hasCookieSource) => scheduler.reconcileTaskJobs(prevConfig, nextConfig, hasCookieSource),
+  setCurrentConfig: (config) => {
+    currentConfig = config
+  },
+  stopTaskJobs: () => scheduler.stopJobs(),
+})
 
 async function refreshCookieSourceAfterFailure(error: unknown, context: string): Promise<boolean> {
   const message = errorMessage(error)
@@ -122,45 +104,6 @@ async function runWithCookieSourceRetry<T>(context: string, run: () => Promise<T
   }
 }
 
-function startCookieCloudSyncJob(config: DockerConfig): void {
-  stopCookieCloudSyncJob()
-
-  if (!cookieSource.hasCookieCloudSource(config)) {
-    return
-  }
-
-  const cron = config.cookieCloud?.cron || DEFAULT_COOKIE_CLOUD_SYNC_CRON
-  const job = new CronJob(cron, () => {
-    void syncCookieCloudSnapshot('scheduled')
-  }, null, false, DOCKER_TIMEZONE)
-  cookieCloudSyncJob = job
-  job.start()
-
-  logSystem(`CookieCloud 每日同步已启动, cron: ${cron}, 下次执行: ${formatScheduleForLog(job.nextDate().toISO())}`)
-  void syncCookieCloudSnapshot('startup')
-}
-
-function reconcileCookieCloudSyncJob(prevConfig: DockerConfig | null, nextConfig: DockerConfig): void {
-  const nextShouldRun = cookieSource.hasCookieCloudSource(nextConfig)
-  const wasRunning = Boolean(cookieCloudSyncJob)
-  const configChanged = !jsonEquals(prevConfig?.cookieCloud || null, nextConfig.cookieCloud || null)
-
-  if (!nextShouldRun) {
-    if (wasRunning) {
-      stopCookieCloudSyncJob()
-    }
-    return
-  }
-
-  if (!wasRunning || configChanged) {
-    startCookieCloudSyncJob(nextConfig)
-  }
-}
-
-function hasConfiguredJobs(config: DockerConfig): boolean {
-  return hasActiveTaskConfig(config)
-}
-
 function hasSendRooms(config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined): boolean {
   return Object.keys(config?.send || {}).length > 0
 }
@@ -189,65 +132,8 @@ function mergeLatestCookieSnapshot(config: DockerConfig): DockerConfig {
   })
 }
 
-function applyConfig(config: DockerConfig, reason: 'startup' | 'cookie_saved' | 'tasks_saved' | 'ui_saved' | 'medal_synced'): void {
-  const nextConfig = normalizeDockerConfig(config)
-  const prevConfig = currentConfig
-  assertDockerConfigCrons(nextConfig)
-  currentConfig = nextConfig
-
-  if (
-    prevConfig?.cookie !== nextConfig.cookie
-    || !jsonEquals(prevConfig?.manualCookies || null, nextConfig.manualCookies || null)
-    || !jsonEquals(prevConfig?.manualPassport || null, nextConfig.manualPassport || null)
-    || !jsonEquals(prevConfig?.cookieCloud || null, nextConfig.cookieCloud || null)
-  ) {
-    cookieSource.clearCookieCloudCache()
-    runtimeCache.clearFansList()
-    runtimeCache.invalidateStatus('all')
-  } else {
-    if (
-      !jsonEquals(prevConfig?.keepalive || null, nextConfig.keepalive || null)
-      || !jsonEquals(prevConfig?.doubleCard || null, nextConfig.doubleCard || null)
-      || !jsonEquals(prevConfig?.expiringGift || null, nextConfig.expiringGift || null)
-    ) {
-      runtimeCache.invalidateStatus('fans')
-    }
-    if (!jsonEquals(prevConfig?.yubaCheckIn || null, nextConfig.yubaCheckIn || null)) {
-      runtimeCache.invalidateStatus('yuba')
-    }
-  }
-  reconcileCookieCloudSyncJob(prevConfig, nextConfig)
-
-  if (!cookieSource.hasConfiguredCookieSource(currentConfig)) {
-    if (reason === 'startup') {
-      logSystem('配置已加载，但登录凭证为空，请通过 WebUI 填写 Cookie 或启用 CookieCloud')
-    } else if (hasConfiguredJobs(currentConfig)) {
-      scheduler.stopJobs()
-      logSystem('任务配置已保存，但登录凭证为空，任务未启动')
-    } else if (reason === 'tasks_saved') {
-      scheduler.stopJobs()
-      logSystem('任务配置已保存，可继续保存 Cookie 或启用 CookieCloud')
-    } else {
-      scheduler.stopJobs()
-      logSystem('登录凭证为空，请先保存 Cookie 或启用 CookieCloud')
-    }
-    return
-  }
-
-  if (!hasConfiguredJobs(currentConfig)) {
-    scheduler.stopJobs()
-    if (reason === 'startup') {
-      logSystem('配置已加载，但未启用任何任务')
-    } else if (reason === 'cookie_saved') {
-      logSystem('登录凭证已更新，可继续配置任务')
-    } else {
-      logSystem('任务配置已保存，但未启用任何任务')
-    }
-    return
-  }
-
-  const summary = scheduler.reconcileTaskJobs(prevConfig, currentConfig, cookieSource.hasConfiguredCookieSource(currentConfig))
-  scheduler.logTaskReloadSummary(reason, summary)
+function applyConfig(config: DockerConfig, reason: DockerRuntimeConfigApplyReason): void {
+  runtimeConfigService.applyConfig(config, reason)
 }
 
 async function syncConfigWithFans(reason: 'tasks_saved' | 'medal_synced', baseConfig?: DockerConfig): Promise<{ config: DockerConfig; fans: Fans[] }> {
@@ -393,7 +279,7 @@ export function startDockerRuntime(options: DockerRuntimeOptions): void {
 
   const shutdown = () => {
     logSystem('收到停止信号，正在关闭...')
-    stopCookieCloudSyncJob()
+    cookieCloudSync.stop()
     scheduler.stopJobs()
     process.exit(0)
   }

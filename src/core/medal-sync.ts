@@ -31,59 +31,49 @@ function resolveWeight(item: Partial<SendGift> | undefined, fallback: number): n
   return fallback
 }
 
-function createDefaultSendItem(roomId: number, model: 1 | 2): SendGift {
-  return {
-    roomId,
-    giftId: DEFAULT_GIFT_ID,
-    number: model === 2 ? 1 : 0,
-    weight: model === 1 ? 1 : 0,
-    count: 0,
-  }
+interface SendRoomRef {
+  key: string
+  roomId: number
 }
 
-function createDefaultExpiringGiftSendItem(roomId: number, model: 1 | 2, index: number): SendGift {
-  return {
-    roomId,
-    giftId: DEFAULT_GIFT_ID,
-    number: model === 2 ? 1 : 0,
-    weight: model === 1 && index === 0 ? 1 : 0,
-    count: 0,
-  }
+function createSendRoomRefsFromFans(fans: Fans[]): SendRoomRef[] {
+  return fans.map(fan => ({
+    key: String(fan.roomId),
+    roomId: fan.roomId,
+  }))
 }
 
-function normalizeSendItem(item: Partial<SendGift> | undefined, roomId: number, model: 1 | 2): SendGift {
+function createSendRoomRefsFromConfig(send: sendConfig | undefined): SendRoomRef[] {
+  return Object.keys(send || {}).map(key => ({
+    key,
+    roomId: Number(key),
+  }))
+}
+
+function normalizeSendItem(item: Partial<SendGift> | undefined, roomId: number, model: 1 | 2, weightFallback: number): SendGift {
   return {
     roomId,
     giftId: item?.giftId || DEFAULT_GIFT_ID,
     number: typeof item?.number === 'number' && Number.isFinite(item.number)
       ? item.number
       : (model === 2 ? 1 : 0),
-    weight: model === 1 ? resolveWeight(item, 1) : 0,
+    weight: model === 1 ? resolveWeight(item, weightFallback) : 0,
     count: typeof item?.count === 'number' && Number.isFinite(item.count) ? item.count : 0,
   }
 }
 
-function mergeSendConfig(send: sendConfig | undefined, fans: Fans[], model: 1 | 2): sendConfig {
+function normalizeSendMap(
+  send: sendConfig | undefined,
+  rooms: SendRoomRef[],
+  model: 1 | 2,
+  resolveMissingWeight: (index: number) => number = () => 1,
+): sendConfig {
   const next: sendConfig = {}
 
-  for (const fan of fans) {
-    const key = String(fan.roomId)
-    next[key] = send?.[key]
-      ? normalizeSendItem(send[key], fan.roomId, model)
-      : createDefaultSendItem(fan.roomId, model)
-  }
-
-  return next
-}
-
-function mergeExpiringGiftSendConfig(send: sendConfig | undefined, fans: Fans[], model: 1 | 2): sendConfig {
-  const next: sendConfig = {}
-
-  fans.forEach((fan, index) => {
-    const key = String(fan.roomId)
-    next[key] = send?.[key]
-      ? normalizeSendItem(send[key], fan.roomId, model)
-      : createDefaultExpiringGiftSendItem(fan.roomId, model, index)
+  rooms.forEach(({ key, roomId }, index) => {
+    const item = send?.[key]
+    const weightFallback = item ? 1 : resolveMissingWeight(index)
+    next[key] = normalizeSendItem(item, roomId, model, weightFallback)
   })
 
   return next
@@ -168,7 +158,7 @@ export function createDefaultKeepaliveConfig(fans: Fans[]): JobConfig {
     active: true,
     cron: DEFAULT_KEEPALIVE_CRON,
     model: DEFAULT_KEEPALIVE_MODEL,
-    send: mergeSendConfig(undefined, fans, DEFAULT_KEEPALIVE_MODEL),
+    send: normalizeSendMap(undefined, createSendRoomRefsFromFans(fans), DEFAULT_KEEPALIVE_MODEL),
   }
 }
 
@@ -182,7 +172,7 @@ export function reconcileKeepaliveConfig(config: JobConfig | undefined, fans: Fa
     active: resolveTaskActive(config.active),
     cron: config.cron || DEFAULT_KEEPALIVE_CRON,
     model,
-    send: mergeSendConfig(config.send, fans, model),
+    send: normalizeSendMap(config.send, createSendRoomRefsFromFans(fans), model),
   }
 }
 
@@ -212,7 +202,7 @@ export function createDefaultDoubleCardConfig(fans: Fans[]): DoubleCardConfig {
     cron: DEFAULT_DOUBLE_CARD_CRON,
     model: DEFAULT_DOUBLE_CARD_MODEL,
     giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
-    send: mergeSendConfig(undefined, fans, DEFAULT_DOUBLE_CARD_MODEL),
+    send: normalizeSendMap(undefined, createSendRoomRefsFromFans(fans), DEFAULT_DOUBLE_CARD_MODEL),
     enabled: buildEnabledMap(fans.map(fan => String(fan.roomId)), undefined),
   }
 }
@@ -228,7 +218,7 @@ export function reconcileDoubleCardConfig(config: DoubleCardConfig | undefined, 
     cron: config.cron || DEFAULT_DOUBLE_CARD_CRON,
     model,
     giftScope: normalizeDoubleCardGiftScope(config.giftScope),
-    send: mergeSendConfig(config.send, fans, model),
+    send: normalizeSendMap(config.send, createSendRoomRefsFromFans(fans), model),
     enabled: buildEnabledMap(fans.map(fan => String(fan.roomId)), config),
   }
 }
@@ -239,7 +229,7 @@ export function createDefaultExpiringGiftConfig(fans: Fans[]): ExpiringGiftConfi
     cron: DEFAULT_EXPIRING_GIFT_CRON,
     thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
     model: DEFAULT_EXPIRING_GIFT_MODEL,
-    send: mergeExpiringGiftSendConfig(undefined, fans, DEFAULT_EXPIRING_GIFT_MODEL),
+    send: normalizeSendMap(undefined, createSendRoomRefsFromFans(fans), DEFAULT_EXPIRING_GIFT_MODEL, index => (index === 0 ? 1 : 0)),
   }
 }
 
@@ -254,7 +244,7 @@ export function reconcileExpiringGiftConfig(config: ExpiringGiftConfig | undefin
     cron: config.cron || DEFAULT_EXPIRING_GIFT_CRON,
     thresholdHours: normalizeThresholdHours(config.thresholdHours),
     model,
-    send: mergeExpiringGiftSendConfig(config.send, fans, model),
+    send: normalizeSendMap(config.send, createSendRoomRefsFromFans(fans), model, index => (index === 0 ? 1 : 0)),
   }
 }
 
@@ -273,10 +263,7 @@ function normalizeKeepaliveConfig(config: JobConfig | undefined): JobConfig | un
     active: resolveTaskActive(config.active),
     cron: config.cron || DEFAULT_KEEPALIVE_CRON,
     model: config.model === 2 ? 2 : 1,
-    send: Object.entries(config.send || {}).reduce((acc, [key, item]) => {
-      acc[key] = normalizeSendItem(item, Number(key), config.model === 2 ? 2 : 1)
-      return acc
-    }, {} as sendConfig),
+    send: normalizeSendMap(config.send, createSendRoomRefsFromConfig(config.send), config.model === 2 ? 2 : 1),
   }
 }
 
@@ -286,10 +273,7 @@ function normalizeDoubleCardConfig(config: DoubleCardConfig | undefined): Double
   }
 
   const model = config.model === 2 ? 2 : 1
-  const send = Object.entries(config.send || {}).reduce((acc, [key, item]) => {
-    acc[key] = normalizeSendItem(item, Number(key), model)
-    return acc
-  }, {} as sendConfig)
+  const send = normalizeSendMap(config.send, createSendRoomRefsFromConfig(config.send), model)
   return {
     active: resolveTaskActive(config.active),
     cron: config.cron || DEFAULT_DOUBLE_CARD_CRON,
@@ -311,10 +295,7 @@ function normalizeExpiringGiftConfig(config: ExpiringGiftConfig | undefined): Ex
     cron: config.cron || DEFAULT_EXPIRING_GIFT_CRON,
     thresholdHours: normalizeThresholdHours(config.thresholdHours),
     model,
-    send: Object.entries(config.send || {}).reduce((acc, [key, item]) => {
-      acc[key] = normalizeSendItem(item, Number(key), model)
-      return acc
-    }, {} as sendConfig),
+    send: normalizeSendMap(config.send, createSendRoomRefsFromConfig(config.send), model),
   }
 }
 

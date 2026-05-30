@@ -2,6 +2,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { normalizeDockerConfig } from '../core/medal-sync'
 import type { CollectGiftConfig, DockerConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig, ManualCookieConfig, ManualPassportConfig, YubaCheckInConfig } from '../core/types'
+import { jsonEquals } from './config-equality'
 
 export interface DockerConfigUpdate {
   manualCookies?: ManualCookieConfig
@@ -37,7 +38,7 @@ export function configsEqual(a: DockerConfig | null, b: DockerConfig): boolean {
   if (!a) {
     return false
   }
-  return JSON.stringify(a) === JSON.stringify(b)
+  return jsonEquals(a, b)
 }
 
 export function buildConfigWithPartialUpdate(current: DockerConfig | null, updates: DockerConfigUpdate): DockerConfig {

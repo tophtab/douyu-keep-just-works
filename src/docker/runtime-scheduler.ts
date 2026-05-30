@@ -1,6 +1,7 @@
 import { CronJob } from 'cron'
 import type { DockerConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig } from '../core/types'
 import type { JobStatus } from './server'
+import { jsonEquals } from './config-equality'
 import { createTaskRecord, formatTaskList, getTaskConfig, getTaskCron, getTaskLabel, getTaskScheduleSummary, isTaskActive, TASK_TYPES } from './task-metadata'
 import type { TaskType } from './task-metadata'
 import { DOCKER_TIMEZONE } from './runtime-constants'
@@ -14,10 +15,6 @@ import type { RuntimeTaskRunnerDeps } from './runtime-task-runners'
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
-}
-
-function jsonEquals(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a) === JSON.stringify(b)
 }
 
 function createIdleStatus(): JobStatus {

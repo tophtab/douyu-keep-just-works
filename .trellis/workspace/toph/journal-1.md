@@ -953,3 +953,36 @@ Refactored the Docker runtime into a composition root with focused app-context, 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 29: Hide CookieCloud cookie count
+
+**Date**: 2026-05-30
+**Task**: Hide CookieCloud cookie count
+**Branch**: `master`
+
+### Summary
+
+Removed the raw CookieCloud cookie count from the login check summary, added contract coverage for local-only persisted Douyu snapshots, and recorded the WebUI display rule in specs.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c40c070` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

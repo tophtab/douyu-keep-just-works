@@ -1,21 +1,18 @@
 import process from 'node:process'
-import { getFollowedYubaStatusesWithDyToken } from '../core/yuba'
-import { createDefaultDockerConfig, normalizeDockerConfig, reconcileDockerConfig } from '../core/medal-sync'
-import type { CollectGiftConfig, DockerConfig, DoubleCardConfig, ExpiringGiftConfig, Fans, JobConfig, ManualCookieConfig, ManualPassportConfig } from '../core/types'
-import { buildConfigWithPartialUpdate, configsEqual, loadConfigFromDisk, saveConfigToDisk } from './config-store'
-import { assertDockerConfigCrons } from './cron'
-import { jsonEquals } from './config-equality'
-import { clearLogs, createLogger, getLogs } from './logger'
+import { createDefaultDockerConfig } from '../core/medal-sync'
+import type { DockerConfig } from '../core/types'
+import { loadConfigFromDisk, saveConfigToDisk } from './config-store'
+import { createLogger } from './logger'
 import { createServer } from './server'
-import type { AppContext } from './server'
+import { createRuntimeAppContext } from './runtime-app-context'
 import { DockerRuntimeCache } from './runtime-cache'
 import { DockerRuntimeConfigService } from './runtime-config-service'
 import type { DockerRuntimeConfigApplyReason } from './runtime-config-service'
 import { DockerCookieCloudSyncService } from './runtime-cookie-cloud-sync'
+import { DockerRuntimeCookieRecoveryService } from './runtime-cookie-recovery'
 import { DockerCookieSourceManager } from './runtime-cookie-source'
-import { MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
+import { DockerRuntimeFansSyncService } from './runtime-fans-sync'
 import { DockerTaskScheduler } from './runtime-scheduler'
-import { isCookieCredentialMessage } from './server-errors'
 import { createTaskRecord, TASK_LOG_CATEGORIES } from './task-metadata'
 import type { TaskType } from './task-metadata'
 
@@ -40,11 +37,21 @@ const cookieSource = new DockerCookieSourceManager(
   () => runtimeCache.clearFansList(),
   scope => runtimeCache.invalidateStatus(scope),
 )
+
+const cookieRecovery = new DockerRuntimeCookieRecoveryService({
+  hasPassportRecoveryMaterial: () => cookieSource.hasPassportRecoveryMaterial(),
+  recoverCredentialSnapshot: async options => await cookieSource.recoverCredentialSnapshot(options),
+  validateMainCookie: async (mainCookie) => {
+    await runtimeCache.getFansList(mainCookie)
+  },
+  logSystem,
+})
+
 const scheduler = new DockerTaskScheduler(
   logSystem,
   taskLoggers,
   targetUrl => cookieSource.resolveCookieForUrl(targetUrl),
-  async (error, context) => await refreshCookieSourceAfterFailure(error, context),
+  async (error, context) => await cookieRecovery.refreshCookieSourceAfterFailure(error, context),
   (scope, runTask) => runtimeCache.runAndInvalidateStatus(scope, runTask),
 )
 
@@ -70,93 +77,20 @@ const runtimeConfigService = new DockerRuntimeConfigService({
   stopTaskJobs: () => scheduler.stopJobs(),
 })
 
-async function refreshCookieSourceAfterFailure(error: unknown, context: string): Promise<boolean> {
-  const message = errorMessage(error)
-  if (!isCookieCredentialMessage(message) || !cookieSource.hasPassportRecoveryMaterial()) {
-    return false
-  }
-
-  try {
-    logSystem(`${context}检测到登录凭证可能失效，正在尝试恢复后重试`)
-    const result = await cookieSource.recoverCredentialSnapshot({
-      validateMainCookie: async (mainCookie) => {
-        await runtimeCache.getFansList(mainCookie)
-      },
-      log: logSystem,
-    })
-    logSystem(result.reason)
-    return result.recovered
-  } catch (syncError: unknown) {
-    logSystem(`登录凭证恢复失败: ${errorMessage(syncError)}`)
-    return false
-  }
-}
-
-async function runWithCookieSourceRetry<T>(context: string, run: () => Promise<T>): Promise<T> {
-  try {
-    return await run()
-  } catch (error: unknown) {
-    const refreshed = await refreshCookieSourceAfterFailure(error, context)
-    if (!refreshed) {
-      throw error
-    }
-    return await run()
-  }
-}
-
-function hasSendRooms(config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined): boolean {
-  return Object.keys(config?.send || {}).length > 0
-}
-
-function cookieSnapshotEqual(a: DockerConfig | null | undefined, b: DockerConfig | null | undefined): boolean {
-  return (a?.cookie || '') === (b?.cookie || '')
-    && jsonEquals(a?.manualCookies || null, b?.manualCookies || null)
-    && jsonEquals(a?.manualPassport || null, b?.manualPassport || null)
-}
-
-function mergeLatestCookieSnapshot(config: DockerConfig): DockerConfig {
-  const latestConfig = currentConfig
-  if (!latestConfig || !cookieSource.hasCookieCloudSource(latestConfig)) {
-    return config
-  }
-
-  const latestManualCookies = latestConfig.manualCookies
-  if (!latestManualCookies?.main?.trim() && !latestManualCookies?.yuba?.trim() && !latestConfig.cookie?.trim()) {
-    return config
-  }
-
-  return normalizeDockerConfig({
-    ...config,
-    cookie: latestManualCookies?.main?.trim() || latestConfig.cookie || config.cookie,
-    ...(latestManualCookies ? { manualCookies: latestManualCookies } : {}),
-  })
-}
+const fansSync = new DockerRuntimeFansSyncService({
+  getCurrentConfig: () => currentConfig,
+  getConfigPath: () => activeConfigPath,
+  hasCookieCloudSource: config => cookieSource.hasCookieCloudSource(config),
+  resolveCookieForUrlFromConfig: (targetUrl, config) => cookieSource.resolveCookieForUrlFromConfig(targetUrl, config),
+  getFansList: async cookie => await runtimeCache.getFansList(cookie),
+  invalidateStatusCaches: scope => runtimeCache.invalidateStatus(scope),
+  saveConfig: saveConfigToDisk,
+  applyConfig: (config, reason) => applyConfig(config, reason),
+  runWithCookieSourceRetry: async (context, run) => await cookieRecovery.runWithCookieSourceRetry(context, run),
+})
 
 function applyConfig(config: DockerConfig, reason: DockerRuntimeConfigApplyReason): void {
   runtimeConfigService.applyConfig(config, reason)
-}
-
-async function syncConfigWithFans(reason: 'tasks_saved' | 'medal_synced', baseConfig?: DockerConfig): Promise<{ config: DockerConfig; fans: Fans[] }> {
-  const shouldMergeLatestCookieSnapshot = Boolean(baseConfig && cookieSnapshotEqual(baseConfig, currentConfig))
-
-  return await runWithCookieSourceRetry('同步粉丝牌', async () => {
-    const sourceConfig = normalizeDockerConfig(baseConfig || currentConfig || createDefaultDockerConfig())
-    const cookieConfig = shouldMergeLatestCookieSnapshot ? mergeLatestCookieSnapshot(sourceConfig) : sourceConfig
-    const cookie = cookieSource.resolveCookieForUrlFromConfig(MAIN_DOUYU_URL, cookieConfig)
-    const fans = await runtimeCache.getFansList(cookie)
-    const nextConfig = reconcileDockerConfig(cookieConfig, fans)
-    runtimeCache.invalidateStatus('fans')
-
-    if (!configsEqual(currentConfig, nextConfig)) {
-      saveConfigToDisk(activeConfigPath, nextConfig)
-      applyConfig(nextConfig, reason)
-    }
-
-    return {
-      config: nextConfig,
-      fans,
-    }
-  })
 }
 
 export interface DockerRuntimeOptions {
@@ -186,91 +120,30 @@ export function startDockerRuntime(options: DockerRuntimeOptions): void {
     logSystem(`配置加载失败: ${errorMessage(error)}`)
   }
 
-  const ctx: AppContext = {
+  const ctx = createRuntimeAppContext({
     webPassword,
-    getConfig: () => currentConfig,
-    saveCookie: (cookies: ManualCookieConfig) => {
-      const nextConfig = buildConfigWithPartialUpdate(currentConfig, {})
-      nextConfig.manualCookies = {
-        main: cookies.main.trim(),
-        yuba: cookies.yuba.trim(),
-      }
-      nextConfig.cookie = nextConfig.manualCookies.main || nextConfig.manualCookies.yuba || ''
-      saveConfigToDisk(configPath, nextConfig)
-      applyConfig(nextConfig, 'cookie_saved')
+    getCurrentConfig: () => currentConfig,
+    getConfigPath: () => activeConfigPath,
+    setCurrentConfig: (config) => {
+      currentConfig = config
     },
-    saveTaskConfig: async (config: {
-      manualCookies?: ManualCookieConfig
-      manualPassport?: ManualPassportConfig
-      cookieCloud?: DockerConfig['cookieCloud']
-      collectGift?: CollectGiftConfig | null
-      keepalive?: JobConfig | null
-      doubleCard?: DoubleCardConfig | null
-      expiringGift?: ExpiringGiftConfig | null
-      yubaCheckIn?: DockerConfig['yubaCheckIn'] | null
-      ui?: DockerConfig['ui']
-    }) => {
-      const nextConfig = buildConfigWithPartialUpdate(currentConfig, config)
-      const hasCookieSourcePayload = config.cookieCloud !== undefined || config.manualCookies !== undefined || config.manualPassport !== undefined
-      const hasTaskPayload = config.collectGift !== undefined
-        || config.keepalive !== undefined
-        || config.doubleCard !== undefined
-        || config.expiringGift !== undefined
-        || config.yubaCheckIn !== undefined
-      const needsFanSync = config.keepalive !== undefined || config.doubleCard !== undefined || config.expiringGift !== undefined
-
-      assertDockerConfigCrons(nextConfig)
-      if (needsFanSync && cookieSource.hasConfiguredCookieSource(nextConfig)) {
-        return await syncConfigWithFans('tasks_saved', nextConfig)
-      }
-
-      saveConfigToDisk(configPath, nextConfig)
-      if (hasTaskPayload) {
-        applyConfig(nextConfig, 'tasks_saved')
-      } else if (hasCookieSourcePayload) {
-        applyConfig(nextConfig, 'cookie_saved')
-      } else {
-        currentConfig = nextConfig
-        logSystem('界面偏好已更新')
-      }
-      return {
-        config: nextConfig,
-        fans: [],
-      }
-    },
-    syncWithFans: async () => await syncConfigWithFans('medal_synced'),
-    getStatus: () => scheduler.getStatus(),
-    getLogs: () => getLogs(),
-    clearLogs: () => clearLogs(),
+    saveConfig: saveConfigToDisk,
+    applyConfig,
+    hasConfiguredCookieSource: config => cookieSource.hasConfiguredCookieSource(config),
+    resolveCookieForUrl: targetUrl => cookieSource.resolveCookieForUrl(targetUrl),
     inspectCookieSource: async () => await cookieSource.inspectCookieSource(),
-    getEffectiveCookies: async (forceRefresh?: boolean) => await cookieSource.getEffectiveCookies(forceRefresh),
-    persistEffectiveCookies: async (forceRefresh?: boolean) => await cookieSource.persistEffectiveCookies(forceRefresh),
-    triggerTask: async (type: TaskType) => await scheduler.triggerTask(type, currentConfig, hasSendRooms),
-    fetchFans: async () => await runWithCookieSourceRetry('加载粉丝牌列表', async () => {
-      const cookie = cookieSource.resolveCookieForUrl(MAIN_DOUYU_URL)
-      return await runtimeCache.getFansList(cookie)
-    }),
-    fetchFansStatusBase: async () => await runWithCookieSourceRetry('加载粉丝牌基础状态', async () => {
-      const cookie = cookieSource.resolveCookieForUrl(MAIN_DOUYU_URL)
-      return await runtimeCache.getFansStatusBase(cookie)
-    }),
-    fetchFansStatusDetails: async () => await runWithCookieSourceRetry('加载粉丝牌详细状态', async () => {
-      const cookie = cookieSource.resolveCookieForUrl(MAIN_DOUYU_URL)
-      return await runtimeCache.getFansStatus(cookie, logSystem)
-    }),
-    fetchFansStatus: async () => await runWithCookieSourceRetry('加载粉丝牌状态', async () => {
-      const cookie = cookieSource.resolveCookieForUrl(MAIN_DOUYU_URL)
-      return await runtimeCache.getFansStatus(cookie, logSystem)
-    }),
-    fetchYubaStatus: async () => await runWithCookieSourceRetry('加载鱼吧状态', async () => {
-      return await runtimeCache.getYubaStatus(async () => {
-        const mainCookie = cookieSource.resolveCookieForUrl(MAIN_DOUYU_URL)
-        const yubaCookie = cookieSource.resolveCookieForUrl(YUBA_DOUYU_URL)
-        const groups = await getFollowedYubaStatusesWithDyToken(yubaCookie, mainCookie)
-        return { groups }
-      })
-    }),
-  }
+    getEffectiveCookies: async forceRefresh => await cookieSource.getEffectiveCookies(forceRefresh),
+    persistEffectiveCookies: async forceRefresh => await cookieSource.persistEffectiveCookies(forceRefresh),
+    syncConfigWithFans: async (reason, baseConfig) => await fansSync.syncConfigWithFans(reason, baseConfig),
+    getStatus: () => scheduler.getStatus(),
+    triggerTask: async (type, config, hasSendRooms) => await scheduler.triggerTask(type, config, hasSendRooms),
+    getFansList: async cookie => await runtimeCache.getFansList(cookie),
+    getFansStatusBase: async cookie => await runtimeCache.getFansStatusBase(cookie),
+    getFansStatus: async (cookie, logger) => await runtimeCache.getFansStatus(cookie, logger),
+    getYubaStatus: async fetchStatus => await runtimeCache.getYubaStatus(fetchStatus),
+    runWithCookieSourceRetry: async (context, run) => await cookieRecovery.runWithCookieSourceRetry(context, run),
+    logSystem,
+  })
 
   const app = createServer(ctx)
   app.listen(webPort, '0.0.0.0', () => {

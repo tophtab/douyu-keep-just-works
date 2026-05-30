@@ -115,15 +115,15 @@ test('Fans reconcile remains a side-effecting operation, not a cached whole resp
   // Behavioral boundary guardrail: fans reconcile must persist the reconciled config
   // and merge the latest local cookie snapshot instead of serving a cached response.
   const fansRoutes = readRepoFile('src/docker/server-fans-routes.ts')
-  const runtime = readRepoFile('src/docker/runtime.ts')
+  const fansSync = readRepoFile('src/docker/runtime-fans-sync.ts')
 
   assert.match(fansRoutes, /app\.post\('\/api\/fans\/reconcile'[\s\S]*ctx\.syncWithFans\(\)/)
 
-  const syncBody = getFunctionBody(runtime, 'syncConfigWithFans')
-  assert.match(syncBody, /const fans = await runtimeCache\.getFansList\(cookie\)/)
-  assert.match(syncBody, /const cookieConfig = shouldMergeLatestCookieSnapshot \? mergeLatestCookieSnapshot\(sourceConfig\) : sourceConfig/)
+  const syncBody = getAsyncMethodBody(fansSync, 'syncConfigWithFans')
+  assert.match(syncBody, /const fans = await this\.deps\.getFansList\(cookie\)/)
+  assert.match(syncBody, /const cookieConfig = shouldMergeLatestCookieSnapshot \? this\.mergeLatestCookieSnapshot\(sourceConfig\) : sourceConfig/)
   assert.match(syncBody, /const nextConfig = reconcileDockerConfig\(cookieConfig,\s*fans\)/)
-  assert.match(syncBody, /saveConfigToDisk\(activeConfigPath,\s*nextConfig\)/)
+  assert.match(syncBody, /this\.deps\.saveConfig\(this\.deps\.getConfigPath\(\),\s*nextConfig\)/)
   assert.doesNotMatch(syncBody, /getCachedStatus|reconcileCache|cachedReconcile|syncWithFansCache/)
 })
 

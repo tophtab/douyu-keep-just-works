@@ -3,6 +3,7 @@ import { getCookieCloudPassportCookie } from '../core/cookie-cloud'
 import type { CookieCloudSnapshot } from '../core/cookie-cloud'
 import { refreshDouyuMainCookiesWithSafeAuth } from '../core/douyu-passport'
 import type { DockerConfig } from '../core/types'
+import { isCookieCredentialMessage } from './server-errors'
 
 const LOCAL_MAIN_RECOVERY_REQUIRED_KEYS = [
   'acf_uid',
@@ -41,10 +42,60 @@ export interface CredentialSnapshotRecoveryDeps {
   log: CookieRecoveryLogger
 }
 
+export interface DockerRuntimeCookieRecoveryDeps {
+  hasPassportRecoveryMaterial: () => boolean
+  recoverCredentialSnapshot: (options: {
+    validateMainCookie: CookieSnapshotValidator
+    log: CookieRecoveryLogger
+  }) => Promise<CredentialSnapshotRecoveryResult>
+  validateMainCookie: CookieSnapshotValidator
+  logSystem: CookieRecoveryLogger
+}
+
 interface PassportRecoveryMaterial {
   ltp0: string
   dyDid?: string
   source: 'cookieCloud' | 'manual'
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+export class DockerRuntimeCookieRecoveryService {
+  constructor(private readonly deps: DockerRuntimeCookieRecoveryDeps) {}
+
+  async refreshCookieSourceAfterFailure(error: unknown, context: string): Promise<boolean> {
+    const message = errorMessage(error)
+    if (!isCookieCredentialMessage(message) || !this.deps.hasPassportRecoveryMaterial()) {
+      return false
+    }
+
+    try {
+      this.deps.logSystem(`${context}检测到登录凭证可能失效，正在尝试恢复后重试`)
+      const result = await this.deps.recoverCredentialSnapshot({
+        validateMainCookie: this.deps.validateMainCookie,
+        log: this.deps.logSystem,
+      })
+      this.deps.logSystem(result.reason)
+      return result.recovered
+    } catch (syncError: unknown) {
+      this.deps.logSystem(`登录凭证恢复失败: ${errorMessage(syncError)}`)
+      return false
+    }
+  }
+
+  async runWithCookieSourceRetry<T>(context: string, run: () => Promise<T>): Promise<T> {
+    try {
+      return await run()
+    } catch (error: unknown) {
+      const refreshed = await this.refreshCookieSourceAfterFailure(error, context)
+      if (!refreshed) {
+        throw error
+      }
+      return await run()
+    }
+  }
 }
 
 async function validateRecoveredMainCookie(mainCookie: string, validateMainCookie: CookieSnapshotValidator): Promise<{

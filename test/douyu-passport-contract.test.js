@@ -2,36 +2,8 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
-const vm = require('node:vm')
-const ts = require('typescript')
 const { test } = require('node:test')
-
-const repoRoot = path.resolve(__dirname, '..')
-
-function loadTypeScriptModule(relativePath, mocks = {}) {
-  const source = fs.readFileSync(path.join(repoRoot, relativePath), 'utf8')
-  const output = ts.transpileModule(source, {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2022,
-      esModuleInterop: true,
-    },
-  }).outputText
-  const exports = {}
-  const module = { exports }
-  function localRequire(name) {
-    if (mocks[name]) {
-      return mocks[name]
-    }
-    if (name.startsWith('.')) {
-      const dependencyPath = path.normalize(path.join(path.dirname(relativePath), `${name}.ts`))
-      return loadTypeScriptModule(dependencyPath, mocks)
-    }
-    return require(name)
-  }
-  vm.runInNewContext(output, { exports, module, require: localRequire, URL }, { filename: relativePath })
-  return module.exports
-}
+const { loadTypeScriptModule } = require('./helpers/typescript-module-loader')
 
 test('CookieCloud can build passport cookie material without exposing the value in diagnostics', () => {
   const { createCookieDiagnostics, getCookieCloudPassportCookie, getCookieCloudPassportLtp0 } = loadTypeScriptModule('src/core/cookie-cloud.ts')

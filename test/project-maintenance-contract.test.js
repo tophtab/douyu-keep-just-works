@@ -66,6 +66,8 @@ test('config example cron defaults stay aligned with core defaults', () => {
 })
 
 test('Docker WebUI is Vue-only and served as Vite static Docker assets', () => {
+  // Architecture guardrail: these source checks preserve the Vue-only WebUI runtime,
+  // Vite asset pipeline, and deleted legacy bridge boundary during refactors.
   const packageJson = JSON.parse(readRepoFile('package.json'))
   const viteConfig = readRepoFile('vite.config.ts')
   const webui = readRepoFile('src/docker/webui.ts')
@@ -336,6 +338,8 @@ test('Docker WebUI is Vue-only and served as Vite static Docker assets', () => {
 })
 
 test('Docker task scheduling uses shared task metadata for inventory facts', () => {
+  // Refactorable shape guardrail: task inventory facts should stay centralized in
+  // task-metadata even if scheduler and runner internals are later reorganized.
   const taskMetadata = readRepoFile('src/docker/task-metadata.ts')
   const scheduler = readRepoFile('src/docker/runtime-scheduler.ts')
   const runners = readRepoFile('src/docker/runtime-task-runners.ts')
@@ -360,6 +364,8 @@ test('Docker task scheduling uses shared task metadata for inventory facts', () 
 })
 
 test('Docker config mutation routes use shared JSON error helpers', () => {
+  // Refactorable shape guardrail: mutation routes should keep validation before
+  // persistence and share the JSON success/error envelope helpers.
   const configRoutes = readRepoFile('src/docker/server-config-routes.ts')
   const routeUtils = readRepoFile('src/docker/server-route-utils.ts')
 
@@ -374,6 +380,8 @@ test('Docker config mutation routes use shared JSON error helpers', () => {
 })
 
 test('CookieCloud sync-and-check persists first, then checks the local snapshot only', () => {
+  // Behavioral boundary guardrail: sync may fetch CookieCloud, but diagnostics must
+  // inspect only the local persisted snapshot.
   const cookieWebUi = readRepoFile('src/docker/webui/cookie.ts')
   const cookieSource = readRepoFile('src/docker/runtime-cookie-source.ts')
   const cookieRoutes = readRepoFile('src/docker/server-cookie-source-routes.ts')
@@ -393,6 +401,8 @@ test('CookieCloud sync-and-check persists first, then checks the local snapshot 
 })
 
 test('Docker runtime retries cookie-backed work once after centralized credential recovery', () => {
+  // Forbidden-pattern guardrail: task runners must use the shared recovery hook and
+  // must not grow direct safeAuth, LTP0, or passport-refresh branches.
   const runtime = readRepoFile('src/docker/runtime.ts')
   const scheduler = readRepoFile('src/docker/runtime-scheduler.ts')
   const runners = readRepoFile('src/docker/runtime-task-runners.ts')
@@ -442,6 +452,8 @@ test('Docker runtime retries cookie-backed work once after centralized credentia
 })
 
 test('manual passport cookie stays masked outside raw config and is saved from login config UI', () => {
+  // Cross-layer guardrail: manual passport material must share one config field,
+  // stay editable in raw/login surfaces, and remain masked in public config paths.
   const types = readRepoFile('src/core/types.ts')
   const defaults = readRepoFile('src/core/task-defaults.ts')
   const configStore = readRepoFile('src/docker/config-store.ts')

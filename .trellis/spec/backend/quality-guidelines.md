@@ -86,6 +86,8 @@ const rows = (data.data.list as unknown[])
 
 - Update `test/project-maintenance-contract.test.js` when changing build architecture, WebUI file organization, Node version alignment, or legacy bridge deletion guarantees.
 - Add or update focused Node contract tests under `test/*.test.js` for request smoothing, config persistence, scheduling contracts, and static architecture rules.
+- For route auth, config masking, or secret-boundary behavior, prefer route-level Node tests through `createServer(ctx)` with a fake `AppContext` over source-text regex checks.
+- When a Node contract test needs to execute TypeScript modules directly, use `test/helpers/typescript-module-loader.js` instead of duplicating TypeScript transpile/module-loading setup.
 - Run `npm run type-check` for TypeScript shape changes across backend and WebUI.
 - Run `npm run lint` before handoff.
 

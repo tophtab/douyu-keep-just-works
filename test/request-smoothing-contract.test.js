@@ -60,6 +60,8 @@ function getAsyncMethodBody(source, methodName) {
 }
 
 test('Docker WebUI coalesces duplicate local Douyu-backed reads without client cooldowns', () => {
+  // Architecture guardrail: WebUI resource modules may coalesce in-flight reads,
+  // but client-side cooldown/rate-limit timing belongs outside the Vue layer.
   const resourceRequest = readRepoFile('src/docker/webui/resource-request.ts')
   const resourceFans = readRepoFile('src/docker/webui/resource-fans.ts')
   const resourceYuba = readRepoFile('src/docker/webui/resource-yuba.ts')
@@ -88,6 +90,8 @@ test('Docker WebUI coalesces duplicate local Douyu-backed reads without client c
 })
 
 test('Docker runtime keeps backend cache TTLs and pending-promise coalescing authoritative', () => {
+  // Architecture guardrail: backend cache TTLs and pending-promise coalescing stay
+  // authoritative so frontend refactors do not duplicate freshness policy.
   const runtimeCache = readRepoFile('src/docker/runtime-cache.ts')
 
   assert.match(runtimeCache, /const FANS_LIST_CACHE_TTL_MS = 60 \* 1000/)
@@ -108,6 +112,8 @@ test('Docker runtime keeps backend cache TTLs and pending-promise coalescing aut
 })
 
 test('Fans reconcile remains a side-effecting operation, not a cached whole response', () => {
+  // Behavioral boundary guardrail: fans reconcile must persist the reconciled config
+  // and merge the latest local cookie snapshot instead of serving a cached response.
   const fansRoutes = readRepoFile('src/docker/server-fans-routes.ts')
   const runtime = readRepoFile('src/docker/runtime.ts')
 
@@ -122,6 +128,8 @@ test('Fans reconcile remains a side-effecting operation, not a cached whole resp
 })
 
 test('Docker WebUI does not install or mount a mandatory global Express rate limiter', () => {
+  // Forbidden-pattern guardrail: avoid a mandatory global Express limiter unless a
+  // future task explicitly changes the local Docker WebUI request policy.
   const packageJson = JSON.parse(readRepoFile('package.json'))
   const serverSources = readServerSources()
 

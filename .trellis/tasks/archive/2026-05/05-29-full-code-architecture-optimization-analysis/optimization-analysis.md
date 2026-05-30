@@ -2,6 +2,8 @@
 
 Date: 2026-05-29
 
+Last updated: 2026-05-30
+
 ## Scope
 
 This analysis inspected the maintained Docker-first runtime and WebUI path:
@@ -11,7 +13,10 @@ This analysis inspected the maintained Docker-first runtime and WebUI path:
 * Quality/build: `package.json`, TypeScript configs, ESLint, Dockerfile, GitHub workflow, contract tests
 * Trellis specs: backend and frontend guideline indexes plus relevant quality/state/directory guides
 
-No business code was changed in this pass.
+The original pass did not change business code. Follow-up implementation already completed the Batch 1 hardening work, and subsequent login-cookie tasks changed the current baseline in two important ways:
+
+* `fix: merge passport cookie into login cookie panel` moved `manualPassport.cookie` into the main login Cookie panel and saves it together with `manualCookies`.
+* `fix: persist CookieCloud passport cookie` makes CookieCloud persistence store complete `passport.douyu.com` material into `manualPassport.cookie` when `LTP0` is present, and preserves existing passport recovery material when the remote snapshot is incomplete.
 
 ## Current Quality Signals
 
@@ -19,10 +24,13 @@ No business code was changed in this pass.
 
 * `npm run lint` passed.
 * `npm run type-check` passed.
-* `npm run test:contracts` passed: 24 tests, 24 passed.
-* `npm audit --omit=dev --audit-level=moderate` found 2 moderate production dependency advisories:
+* `npm run test:contracts` passed in the original analysis: 24 tests, 24 passed.
+* After the follow-up passport-cookie tasks, `npm run test:contracts` passed on 2026-05-30: 25 tests, 25 passed.
+* After Batch 2 test guardrails were added, `npm run test:contracts` passed on 2026-05-30: 29 tests, 29 passed.
+* `npm audit --omit=dev --audit-level=moderate` initially found 2 moderate production dependency advisories:
   * `qs` 6.11.1-6.15.1, transitive, remotely triggerable DoS advisory.
   * `ws` 8.0.0-8.20.0, uninitialized memory disclosure advisory.
+* Batch 1 patched the audited production dependencies; `npm audit --omit=dev --audit-level=moderate` passed on 2026-05-30 with 0 vulnerabilities.
 * `npm outdated --depth=0` shows small patch updates available, including `ws` 8.21.0, `vite` 8.0.14, `vue` 3.5.35, `axios` 1.16.1, `vue-tsc` 3.3.2.
 
 ### Strengths Worth Preserving
@@ -32,9 +40,10 @@ No business code was changed in this pass.
 * Task-wide metadata is centralized in `src/docker/task-metadata.ts`.
 * Scheduler lifecycle and task execution have already been split into `runtime-scheduler.ts` and `runtime-task-runners.ts`.
 * Cookie credential recovery is centralized instead of being copied into each task runner.
+* Passport recovery material now has one durable config field, `manualPassport.cookie`, shared by manual entry and CookieCloud persistence.
 * WebUI is Vue-only with a clear composition root in `App.vue`.
 * Frontend resource ownership is already split into focused modules (`resource-config`, `resource-fans`, `resource-yuba`, `resource-request`).
-* Contract tests lock several important architecture guarantees, especially Vue-only runtime, request coalescing, credential recovery, config save flows, and task metadata ownership.
+* Contract tests lock several important architecture guarantees, especially Vue-only runtime, request coalescing, credential recovery, config save flows, passport-cookie masking/persistence, and task metadata ownership.
 
 ## Findings and Recommendations
 
@@ -143,10 +152,10 @@ Separate this into a small hardening task:
 
 **Evidence**
 
-`src/docker/webui/cookie.ts` is 369 lines and currently owns:
+`src/docker/webui/cookie.ts` is still a large page-facing facade and currently owns:
 
 * manual cookie form state
-* manual passport form state
+* manual passport form state, now saved with the login Cookie form instead of a standalone panel
 * CookieCloud form state
 * cron preview binding
 * save flows
@@ -157,7 +166,7 @@ Separate this into a small hardening task:
 
 **Risk**
 
-This module is a frequent change point for login/CookieCloud behavior. It mixes sensitive form state, API effects, text generation, and cross-page refresh side effects. That makes future changes riskier, especially around secret handling and partial failure behavior.
+This module is a frequent change point for login/CookieCloud behavior. The recent passport-cookie merge improved the UI information architecture, but it also tightened the coupling between manual cookie saves, masked `/api/config` responses, local raw-config state, CookieCloud persist responses, and cross-page refresh side effects. That makes future changes riskier, especially around secret handling and partial failure behavior.
 
 **Recommendation**
 
@@ -167,16 +176,17 @@ Split only the non-UI state/effects:
 * `cookie-source-actions.ts`: save/sync/check API effects.
 * `cookie-source-copy.ts`: `buildCookieCheckText` and status-card formatting.
 * Keep `useCookieLoginPage()` as the page-facing facade to avoid churn in `LoginConfigPage.vue`.
+* Before splitting, keep or add behavior-level tests that prove masked `/api/config` responses do not overwrite the raw passport textarea value and that CookieCloud persist can update `manualPassport.cookie`.
 
 ### P1: Contract Tests Are Valuable but Some Are Too Source-Text Coupled
 
 **Evidence**
 
-`test/project-maintenance-contract.test.js` and `test/request-smoothing-contract.test.js` assert many implementation details by regex against source files.
+`test/project-maintenance-contract.test.js` and `test/request-smoothing-contract.test.js` assert many implementation details by regex against source files. The follow-up passport-cookie tasks added useful coverage in `test/douyu-passport-contract.test.js`, including behavior-level checks for manual passport normalization, public config masking, credential recovery, and CookieCloud passport persistence.
 
 **Risk**
 
-These tests are effective at preserving architecture decisions, but they can block safe refactors by requiring exact source shapes. This is already visible in the WebUI/runtime architecture contracts. Heavy refactoring will need test rewrites before behavior changes.
+These tests are effective at preserving architecture decisions, but they can block safe refactors by requiring exact source shapes. This is already visible in the WebUI/runtime architecture contracts. Heavy refactoring will need test rewrites before behavior changes. The regex tests are still useful for forbidden patterns, but they should be clearly labeled so future refactors know which checks are architecture guardrails and which are replaceable shape checks.
 
 **Recommendation**
 
@@ -185,6 +195,7 @@ Keep architecture contract tests, but convert the most brittle checks into expor
 * Prefer testing helper outputs and route behavior through lightweight in-memory contexts.
 * Keep regex tests only for true forbidden patterns, such as no legacy WebUI bridge and no direct `safeAuth` in task runners.
 * Add a short comment per regex block explaining the architectural rule it protects.
+* Add route-level tests through `createServer(ctx)` for auth boundaries and config masking, instead of only invoking route installers by hand.
 
 ### P2: Runtime Equality Uses `JSON.stringify`
 
@@ -272,6 +283,8 @@ Status: implemented in this task for items 1 and 2. Item 3 remains optional and 
 2. Add route-level tests for config masking and auth boundary.
 3. Document which regex contract tests are forbidden-pattern checks vs refactorable shape checks.
 
+Status: implemented in this task.
+
 ### Batch 3: Focused Architecture Cleanup
 
 1. Extract CookieCloud scheduled sync from `runtime.ts`.
@@ -286,12 +299,11 @@ Status: implemented in this task for items 1 and 2. Item 3 remains optional and 
 
 ## Recommended MVP for the Next Implementation Task
 
-Start with Batch 1. It is small, has clear success criteria, and reduces real risk without architecture churn:
+Batch 1 and Batch 2 are complete. The next MVP is the first low-risk Batch 3 extraction:
 
-* patch audited dependencies,
-* tighten backend implicit-any checking,
-* fix the one explicit `any`,
-* run full quality gates.
+* start with the smallest stable extraction behind the new guardrails,
+* prefer behavior-preserving CookieCloud sync or config-application helpers before broader WebUI splitting,
+* run lint, type-check, and contract tests after each extraction.
 
 ## Implementation Notes: Batch 1
 
@@ -311,4 +323,20 @@ Verification:
 * `npm audit --omit=dev --audit-level=moderate` passed with 0 vulnerabilities.
 * `npm run build:docker` passed.
 
-After that, Batch 2 should precede the larger runtime/config/WebUI module splits.
+Batch 2 now precedes the larger runtime/config/WebUI module splits as intended.
+
+## Implementation Notes: Batch 2
+
+Implemented after the follow-up passport-cookie tasks:
+
+* Added behavior-level config guardrails for `normalizeDockerConfig` and `reconcileDockerConfig`, covering missing defaults, legacy `percentage`, double-card enabled migration, stale fan-room removal, and expiring-gift first-row weight defaults.
+* Added route-level `createServer(ctx)` tests with a fake `AppContext`, covering auth protection for config routes, public config masking, raw config protection, and manual passport masking in config mutation responses.
+* Added a shared TypeScript module loader for Node contract tests so behavior tests can load TypeScript modules without duplicating VM/transpile setup.
+* Annotated source-regex contract tests to distinguish forbidden-pattern checks, cross-layer behavior boundaries, and refactorable shape checks.
+* Updated backend quality guidance to prefer `createServer(ctx)` route tests for auth/masking boundaries and the shared TypeScript module loader for direct TypeScript module tests.
+
+Verification:
+
+* `npm run test:contracts` passed with 29 tests.
+* `npm run lint` passed.
+* `npm run type-check` passed.

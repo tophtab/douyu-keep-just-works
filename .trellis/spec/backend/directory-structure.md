@@ -26,7 +26,9 @@ Current examples:
 - `src/core/api.ts` owns low-level Douyu HTTP helpers, cookie parsing, and response normalization.
 - `src/core/job.ts` coordinates task execution using shared APIs.
 - `src/core/gift-task.ts` owns pure gift-task helpers used by task execution, such as enabled-room filtering and gift send-job preparation.
-- `src/docker/runtime.ts` wires config loading, CookieCloud sync, scheduler reconciliation, and Express app startup.
+- `src/docker/runtime.ts` wires config loading, runtime services, scheduler dependencies, and Express app startup.
+- `src/docker/runtime-cookie-cloud-sync.ts` owns CookieCloud scheduled sync lifecycle.
+- `src/docker/runtime-config-service.ts` owns config application side effects: normalization, cache invalidation, CookieCloud sync reconciliation, scheduler reconciliation, and user-facing runtime logs.
 - `src/docker/server.ts` creates the Express app and registers route modules.
 - `src/docker/runtime-scheduler.ts` owns cron job lifecycle and task locking.
 - `src/docker/runtime-task-runners.ts` adapts runtime dependencies into `src/core/job.ts`.
@@ -49,7 +51,11 @@ registerTaskRoutes(app, ctx)
 
 Route modules should register routes through a `register*Routes(app, ctx)` function, as in `src/docker/server-config-routes.ts`, `src/docker/server-fans-routes.ts`, and `src/docker/server-task-routes.ts`.
 
-Runtime orchestration should stay in `src/docker/runtime.ts`; scheduling and task execution details should stay in `src/docker/runtime-scheduler.ts` and `src/docker/runtime-task-runners.ts`.
+Runtime orchestration should stay in `src/docker/runtime.ts` as the composition root. Stable runtime responsibilities should live in focused sibling services when they can be described independently:
+
+- scheduled CookieCloud sync lifecycle belongs in `runtime-cookie-cloud-sync.ts`;
+- config application and cache/scheduler side effects belong in `runtime-config-service.ts`;
+- task scheduling and task execution details stay in `runtime-scheduler.ts` and `runtime-task-runners.ts`.
 
 ---
 

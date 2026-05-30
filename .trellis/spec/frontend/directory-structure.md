@@ -29,6 +29,7 @@ Current examples:
 - `components/LoginConfigPage.vue`, `CollectPage.vue`, `YubaPage.vue`, `KeepalivePage.vue`, `DoublePage.vue`, `ExpiringPage.vue`, and `LogsPage.vue` are page components.
 - `composables/use-cron-preview.ts` is a reusable composable.
 - `request.ts`, `resource-state.ts`, `resource-config.ts`, `resource-fans.ts`, `resource-yuba.ts`, `resource-request.ts`, `logs-resource.ts`, `task-shared.ts`, `theme.ts`, and `toast.ts` hold shared frontend logic.
+- `cookie.ts` is the page-facing login-cookie facade; `cookie-source-state.ts`, `cookie-source-actions.ts`, and `cookie-source-copy.ts` own its state, API effects, and display text helpers.
 
 ---
 
@@ -46,6 +47,8 @@ export function useThemeMode() {
 ```
 
 Do not add compatibility bridge installers or old imperative app runtimes. Cross-page resource ownership belongs in Vue composables or shared TypeScript modules. Keep `resource-state.ts` focused on refresh orchestration; focused resource modules own raw config, fans/gift, yuba, and request tracking. Import those owners directly and cover ownership changes in the maintenance contract test.
+
+For large page-facing composables, keep the existing `use*` facade stable for components and split non-UI internals by responsibility. The login-cookie page uses this pattern: `useCookieLoginPage()` stays exported from `cookie.ts`, while sibling modules own form refs and raw-config application (`cookie-source-state.ts`), save/sync/check API effects (`cookie-source-actions.ts`), and status/diagnostic copy (`cookie-source-copy.ts`).
 
 ---
 

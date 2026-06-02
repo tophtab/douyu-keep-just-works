@@ -7,6 +7,30 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ## Unreleased
 
+## 3.2.0 - 2026-06-02
+
+### Changed
+
+- Docker runtime composition was split into focused modules with clearer
+  ownership for startup, CookieCloud synchronization, and task execution.
+- Task page and config route plumbing were optimized to reduce cross-module
+  coupling while preserving the Docker WebUI deployment surface.
+- Dependency and backend type-safety guardrails were hardened.
+- Runtime service ownership, credential recovery contracts, and manual
+  passport cookie behavior are now documented in project maintenance specs.
+
+### Fixed
+
+- CookieCloud checks no longer expose cookie counts in the check summary.
+- CookieCloud-backed credential handling now persists passport cookies and
+  retries synchronization after credential failures.
+- Manual passport cookie recovery now supports recovery material, uses passport
+  cookies for manual recovery, and cleans up manual passport cookie handling.
+- CookieCloud persistence and local credential checks are separated so local
+  recovery state does not incorrectly imply remote sync state.
+- `safeAuth` can recover Douyu cookies from browser snapshot material for
+  downstream task flows.
+
 ## 3.1.0 - 2026-05-19
 
 ### Changed

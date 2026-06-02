@@ -986,3 +986,38 @@ Removed the raw CookieCloud cookie count from the login check summary, added con
 ### Next Steps
 
 - None - task complete
+
+
+## Session 30: Release 3.2.0
+
+**Date**: 2026-06-02
+**Task**: Release 3.2.0
+**Branch**: `master`
+
+### Summary
+
+Prepared and published Docker WebUI release 3.2.0. Updated changelog, ran lint/type-check/build/test quality gates, created the npm version release commit and v3.2.0 tag, pushed master and tag, and verified the Docker release workflow plus multi-arch image manifest.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ac88e30` | (see git log) |
+| `b0a6268` | (see git log) |
+| `4ec0a11` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

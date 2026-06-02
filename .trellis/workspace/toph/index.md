@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 29
-- **Last Active**: 2026-05-30
+- **Total Sessions**: 30
+- **Last Active**: 2026-06-02
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~988 | Active |
+| `journal-1.md` | ~1023 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 30 | 2026-06-02 | Release 3.2.0 | `ac88e30`, `b0a6268`, `4ec0a11` | `master` |
 | 29 | 2026-05-30 | Hide CookieCloud cookie count | `c40c070` | `master` |
 | 28 | 2026-05-30 | Split runtime composition root | `bfdcb2c`, `e2ceca5`, `14d7ae4` | `master` |
 | 27 | 2026-05-30 | Focused architecture cleanup | `58e3c39`, `5561efa`, `4452493` | `master` |

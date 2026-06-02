@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Docker-first release quality gate and backend runtime constraints"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Required lint, type-check, build, and test release gate"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Docker WebUI build constraints"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Required WebUI build and type-check release gate"}
+{"file": ".trellis/spec/guides/index.md", "reason": "Shared pre-modification guidance"}

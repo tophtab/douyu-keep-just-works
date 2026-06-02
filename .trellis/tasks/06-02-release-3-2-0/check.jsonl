@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify Docker-first release gate"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Verify WebUI build and Vue runtime quality gate"}
+{"file": ".trellis/spec/guides/index.md", "reason": "Shared verification guidance"}

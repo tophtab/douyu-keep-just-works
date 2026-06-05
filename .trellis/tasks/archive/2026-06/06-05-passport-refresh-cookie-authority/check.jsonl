@@ -1,0 +1,14 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Check backend implementation against Docker runtime ownership and checklist"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Check Docker config persistence, normalization, masking, and manualPassport contracts"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Check route errors and centralized credential recovery behavior"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Check that logs do not expose raw cookies, QR codes, LTP0, or tickets"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Check quality gate, tests, and forbidden backend patterns"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Check WebUI changes against Vue/Vite ownership"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Check QR login UI component structure"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Check QR polling, partial success, and retryable state handling"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Check frontend/backend response type consistency"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check frontend lint, accessibility, and quality expectations"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check cross-layer data flow across core, routes, config, and WebUI"}
+{"file": ".trellis/tasks/06-05-passport-refresh-cookie-authority/research/local-code-cookie-authority.md", "reason": "Check implementation against existing cookie authority and recovery constraints"}
+{"file": ".trellis/tasks/06-05-passport-refresh-cookie-authority/research/douyu-qr-passport-login.md", "reason": "Check QR login implementation against verified endpoint flow and secrecy constraints"}
+{"file": ".trellis/tasks/06-05-passport-refresh-cookie-authority/research/yuba-sso-bridge.md", "reason": "Check full Yuba login implementation against verified passport-rooted SSO behavior"}

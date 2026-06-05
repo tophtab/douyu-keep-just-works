@@ -1,0 +1,15 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend Docker runtime ownership and required pre-development checklist"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Place QR login, cookie-source, and runtime route/service code in the correct backend modules"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Persist passport/main/Yuba login snapshots through normalized Docker config only"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Keep credential recovery, route errors, and retry behavior centralized and user-safe"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Avoid logging raw cookies, QR codes, LTP0, tickets, or CookieCloud secrets"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Maintain Docker-first quality gate, secret boundaries, and contract-test coverage"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend Docker WebUI ownership and required pre-development checklist"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Implement QR login UI in the existing Vue component patterns"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Model QR polling, partial success, and retryable Yuba state through existing WebUI resource patterns"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Keep backend route response and frontend state shapes explicit"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Verify accessibility, lint, and frontend quality for login UI changes"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Feature spans core services, Docker routes, config persistence, and WebUI state"}
+{"file": ".trellis/tasks/06-05-passport-refresh-cookie-authority/research/local-code-cookie-authority.md", "reason": "Existing cookie authority, safeAuth, and recovery behavior constraints"}
+{"file": ".trellis/tasks/06-05-passport-refresh-cookie-authority/research/douyu-qr-passport-login.md", "reason": "Verified Douyu QR passport login endpoint flow and cookie results"}
+{"file": ".trellis/tasks/06-05-passport-refresh-cookie-authority/research/yuba-sso-bridge.md", "reason": "Verified passport-rooted Yuba SSO bridge and full Yuba cookie authority"}

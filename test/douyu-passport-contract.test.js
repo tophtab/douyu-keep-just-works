@@ -250,6 +250,8 @@ test('Yuba SSO follows passport safeAuth bridge location and merges full Yuba co
               'acf_yb_auth=yb-auth-redacted; Path=/; Domain=yuba.douyu.com',
               'acf_yb_uid=yb-uid-redacted; Path=/; Domain=yuba.douyu.com',
               'acf_yb_new_uid=yb-new-uid-redacted; Path=/; Domain=yuba.douyu.com',
+              'acf_jwt_token=jwt-redacted; Path=/; Domain=yuba.douyu.com',
+              'acf_dmjwt_token=dmjwt-redacted; Path=/; Domain=yuba.douyu.com',
             ],
           },
         }
@@ -278,6 +280,8 @@ test('Yuba SSO follows passport safeAuth bridge location and merges full Yuba co
   assert.doesNotMatch(requests[3].options.headers.Cookie, /stale-yb-auth-redacted/)
   assert.notEqual(requests[3].url, 'https://yuba.douyu.com/ybapi/authlogin')
   assert.deepEqual(JSON.parse(JSON.stringify(result.returnedKeys)), [
+    'acf_dmjwt_token',
+    'acf_jwt_token',
     'acf_yb_auth',
     'acf_yb_new_uid',
     'acf_yb_uid',
@@ -285,6 +289,8 @@ test('Yuba SSO follows passport safeAuth bridge location and merges full Yuba co
   assert.match(result.yubaCookie, /acf_yb_t=yb-t-redacted/)
   assert.match(result.yubaCookie, /acf_yb_auth=yb-auth-redacted/)
   assert.match(result.yubaCookie, /acf_yb_uid=yb-uid-redacted/)
+  assert.match(result.yubaCookie, /acf_jwt_token=jwt-redacted/)
+  assert.match(result.yubaCookie, /acf_dmjwt_token=dmjwt-redacted/)
   assert.doesNotMatch(result.yubaCookie, /stale-yb-auth-redacted/)
 })
 

@@ -25,7 +25,7 @@ const SAFE_AUTH_RETURNED_COOKIE_KEYS = [
 ]
 const SAFE_AUTH_REQUIRED_COOKIE_KEYS = ['acf_uid', 'acf_auth', 'acf_stk', 'acf_ltkid', 'acf_biz', 'acf_ct']
 const PASSPORT_COOKIE_KEYS = ['dy_accounts_main', 'LTP0', 'dy_did', 'acf_did', 'game_did']
-const YUBA_RETURNED_COOKIE_KEYS = ['acf_yb_auth', 'acf_yb_uid', 'acf_yb_t', 'acf_yb_new_uid', 'dy_did']
+const YUBA_RETURNED_COOKIE_KEYS = ['acf_yb_auth', 'acf_yb_uid', 'acf_yb_t', 'acf_yb_new_uid', 'acf_jwt_token', 'acf_dmjwt_token', 'dy_did']
 const YUBA_REQUIRED_COOKIE_KEYS = ['acf_yb_auth', 'acf_yb_uid', 'acf_yb_t']
 
 export type DouyuPassportQrStatus = 'waiting' | 'scanned' | 'confirmed' | 'expired' | 'cancelled' | 'failed'

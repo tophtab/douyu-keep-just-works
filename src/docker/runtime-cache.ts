@@ -52,14 +52,19 @@ async function getCachedStatus<T>(
   cache: StatusCacheEntry<T>,
   ttlMs: number,
   fetchStatus: () => Promise<T>,
+  forceRefresh = false,
 ): Promise<T> {
+  if (cache.pending) {
+    return await cache.pending
+  }
+
+  if (forceRefresh) {
+    clearStatusCache(cache)
+  }
+
   const now = Date.now()
   if (cache.snapshot && (now - cache.fetchedAt) < ttlMs) {
     return cache.snapshot
-  }
-
-  if (cache.pending) {
-    return await cache.pending
   }
 
   const generation = cache.generation
@@ -137,14 +142,19 @@ export class DockerRuntimeCache {
     }
   }
 
-  async getFansList(cookie: string): Promise<Fans[]> {
-    const now = Date.now()
-    if (this.fansListCache.cookie === cookie && this.fansListCache.snapshot && (now - this.fansListCache.fetchedAt) < FANS_LIST_CACHE_TTL_MS) {
-      return this.fansListCache.snapshot
+  async getFansList(cookie: string, forceRefresh = false): Promise<Fans[]> {
+    const sameCookie = this.fansListCache.cookie === cookie
+    if (sameCookie && this.fansListCache.pending) {
+      return await this.fansListCache.pending
     }
 
-    if (this.fansListCache.cookie === cookie && this.fansListCache.pending) {
-      return await this.fansListCache.pending
+    if (forceRefresh) {
+      this.clearFansList()
+    }
+
+    const now = Date.now()
+    if (!forceRefresh && sameCookie && this.fansListCache.snapshot && (now - this.fansListCache.fetchedAt) < FANS_LIST_CACHE_TTL_MS) {
+      return this.fansListCache.snapshot
     }
 
     const generation = this.fansListCache.generation
@@ -164,25 +174,29 @@ export class DockerRuntimeCache {
     return await pending
   }
 
-  async getFansStatusBase(cookie: string): Promise<FansStatusResponse> {
-    const cached = getFreshStatusSnapshot(this.fansStatusCache, FANS_STATUS_CACHE_TTL_MS)
+  async getFansStatusBase(cookie: string, forceRefresh = false): Promise<FansStatusResponse> {
+    if (forceRefresh && !this.fansStatusCache.pending) {
+      clearStatusCache(this.fansStatusCache)
+    }
+
+    const cached = forceRefresh ? null : getFreshStatusSnapshot(this.fansStatusCache, FANS_STATUS_CACHE_TTL_MS)
     if (cached) {
       return cached
     }
 
-    const fans = await this.getFansList(cookie)
+    const fans = await this.getFansList(cookie, forceRefresh)
     return createFansListStatusResponse(fans)
   }
 
-  async getFansStatus(cookie: string, logSystem: (message: string) => void): Promise<FansStatusResponse> {
+  async getFansStatus(cookie: string, logSystem: (message: string) => void, forceRefresh = false): Promise<FansStatusResponse> {
     return await getCachedStatus(this.fansStatusCache, FANS_STATUS_CACHE_TTL_MS, async () => {
-      const fans = await this.getFansList(cookie)
+      const fans = await this.getFansList(cookie, forceRefresh)
       return await this.buildFansStatusSnapshot(cookie, fans, logSystem)
-    })
+    }, forceRefresh)
   }
 
-  async getYubaStatus(fetchStatus: () => Promise<YubaStatusResponse>): Promise<YubaStatusResponse> {
-    return await getCachedStatus(this.yubaStatusCache, YUBA_STATUS_CACHE_TTL_MS, fetchStatus)
+  async getYubaStatus(fetchStatus: () => Promise<YubaStatusResponse>, forceRefresh = false): Promise<YubaStatusResponse> {
+    return await getCachedStatus(this.yubaStatusCache, YUBA_STATUS_CACHE_TTL_MS, fetchStatus, forceRefresh)
   }
 
   private async buildFansStatusSnapshot(cookie: string, fans: Fans[], logSystem: (message: string) => void): Promise<FansStatusResponse> {

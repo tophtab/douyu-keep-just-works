@@ -56,6 +56,61 @@ When adding a new server resource, keep the API call in a Vue-owned composable o
 
 ---
 
+## Scenario: Manual Force Refresh Of Cache-Backed Resources
+
+### 1. Scope / Trigger
+- Trigger: changing the top-right WebUI refresh action, resource loaders, or Docker read routes for fans/Yuba status.
+- Scope: manual refresh may bypass Docker runtime status caches; automatic page load, tab-switch load, task-save refresh, and background reloads remain cache-friendly.
+
+### 2. Signatures
+- Frontend top-level refresh: `refreshOverviewSurface(activeTab: WebUiPageTab, showSuccessToast?: boolean, forceRefresh?: boolean): Promise<void>`.
+- Resource loaders: `loadFansStatus(showSuccessToast?: boolean, forceRefresh?: boolean)`, `loadFansList(showSuccessToast?: boolean, forceRefresh?: boolean)`, and `loadYubaStatus(showSuccessToast?: boolean, forceRefresh?: boolean)`.
+- Backend read endpoints accept `force=1` for cache-backed reads: `GET /api/fans?force=1`, `GET /api/fans/status/base?force=1`, `GET /api/fans/status/details?force=1`, `GET /api/fans/status?force=1`, and `GET /api/yuba/status?force=1`.
+
+### 3. Contracts
+- Only the top-right manual refresh path calls `refreshOverviewSurface(activeTab, true, true)`.
+- Automatic `loadActiveTabData`, task-save `refreshTaskSurface`, cookie-source refreshes, and page-owned refreshes call the same loaders without `forceRefresh`.
+- When `forceRefresh` is true, frontend resource helpers append `force=1`; they do not call Douyu directly or clear Docker caches locally.
+- Backend routes translate `force=1` into `CacheRefreshOptions.forceRefresh` and the runtime cache invalidates only the relevant cache scope before fetching when no same-resource request is already pending.
+- Logs reload does not send `force=1`; login and collect manual refresh reload raw config and overview only.
+- A same-resource pending request is reused instead of starting overlapping duplicate reads.
+
+### 4. Validation & Error Matrix
+- Missing or falsey `force` query -> preserve normal cache TTL behavior.
+- `force=1` on fans list -> bypass only the fans-list cache.
+- `force=1` on fans status endpoints -> bypass the fans-status cache and the dependent fans-list cache used to build current rows; do not clear Yuba status.
+- `force=1` on Yuba status -> bypass only the Yuba status cache.
+- Unauthorized or credential errors -> preserve existing request unauthorized handling, error toasts, and backend JSON error status mapping.
+
+### 5. Good/Base/Bad Cases
+- Good: top-right refresh on Yuba calls `/api/yuba/status?force=1`, invalidates the Yuba status cache, and updates the current page.
+- Good: top-right refresh on overview or expiring-gift calls fans status endpoints with `force=1` while still coalescing repeated clicks.
+- Base: automatic tab switch to Yuba calls `/api/yuba/status` without `force=1` and can reuse the 10 minute Docker cache.
+- Base: top-right refresh on logs reloads `/api/logs` only.
+- Bad: adding `force=1` to `loadActiveTabData`, task-save refresh, or background logs refresh.
+- Bad: clearing all Docker runtime caches for a resource-specific force refresh.
+
+### 6. Tests Required
+- Contract tests must assert route query forwarding from `force=1` to `CacheRefreshOptions.forceRefresh` for fans and Yuba read endpoints.
+- Contract tests must assert `DockerRuntimeCache` force refresh bypasses fresh snapshots for fans list, fans status, and Yuba status while preserving pending-promise coalescing.
+- Contract tests must assert only the top-right manual refresh path passes `forceRefresh: true`, and automatic/task-save paths remain non-force.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+await loadActiveTabData(activeTab)
+await loadYubaStatus(false, true)
+```
+
+#### Correct
+
+```typescript
+void refreshOverviewSurface(activeTab.value, true, true)
+await refreshOverviewSurface(activeTab, false)
+```
+
 ## Scenario: Applying Config Save Responses
 
 ### 1. Scope / Trigger

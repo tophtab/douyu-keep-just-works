@@ -180,6 +180,67 @@ const data = await requestJson<CookieDiagnostics>('/api/cookie-source/check', {
 
 ---
 
+## Scenario: Passport QR Login Polling
+
+### 1. Scope / Trigger
+- Trigger: changing the login page QR flow, `cookie-source-actions.ts`, `cookie.ts`, or `/api/cookie-source/passport-login/*` consumption.
+- Scope: WebUI starts a backend-owned QR login session, polls every 2 seconds while active, applies saved config after backend persistence, and stops polling on terminal states.
+
+### 2. Signatures
+- Shared type: `PassportQrLoginPublicStatus` from `src/core/types.ts`.
+- Frontend actions:
+  - `startPassportQrLogin() -> Promise<PassportQrLoginPublicStatus | undefined | null>`
+  - `pollPassportQrLogin() -> Promise<PassportQrLoginPublicStatus | undefined | null>`
+  - `retryPassportQrLoginYuba() -> Promise<PassportQrLoginPublicStatus | undefined | null>`
+  - `cancelPassportQrLogin() -> Promise<void>`
+- Page state: `passportQrLogin: Ref<PassportQrLoginPublicStatus | null>` and `passportQrLoginBusy: Ref<boolean>`.
+
+### 3. Contracts
+- WebUI never receives or stores raw `scan_code`, login ticket, `LTP0`, or cookie strings from QR APIs.
+- The login page places `扫码登录` before `手填保存` in the existing manual-cookie action row.
+- QR image rendering uses `status.qrImageDataUrl` from the backend and appears directly below that action row.
+- Polling interval is 2 seconds while `passportQrLogin.finished === false`; timers must be cleared on terminal status and component unmount.
+- When a status reports `mainSaved` or `yubaSaved`, reload raw config and apply it to login form state before refreshing cookie-backed resources.
+- `yuba_failed` shows a retry action only when `canRetryYuba` is true.
+
+### 4. Validation & Error Matrix
+- Unauthorized response -> existing request unauthorized handling owns logout/session state; do not keep polling.
+- Start failure -> show a failure toast and leave existing manual fields unchanged.
+- Poll returns `expired`, `cancelled`, `failed`, `yuba_saved`, or `yuba_failed` -> stop polling.
+- `mainSaved` with `yuba_failed` -> refresh config, keep status visible, show retry action.
+- Retry failure -> keep `canRetryYuba` state visible and do not clear saved passport/main form values.
+
+### 5. Good/Base/Bad Cases
+- Good: click `扫码登录`, QR appears below the row, polling shows waiting/scanned/passport/main/Yuba derived states, then stops.
+- Good: Yuba fails after main saved; raw config refresh shows saved passport/main, and the UI offers `重试鱼吧`.
+- Base: user clicks `取消`; backend cancels and frontend clears the polling timer.
+- Bad: a component calls `safeAuth`, parses `LTP0`, or derives cookies directly.
+- Bad: polling continues after a terminal state or after the component unmounts.
+
+### 6. Tests Required
+- Contract tests should assert login page action order and QR placement.
+- Contract tests should assert WebUI imports QR actions from `cookie-source-actions.ts` and state from `cookie-source-state.ts`, not route logic in the component.
+- Type checks should cover `PassportQrLoginPublicStatus` across backend and WebUI.
+- Runtime tests should assert public statuses contain no raw secrets; frontend tests should not use raw cookie fixtures in visible text.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+const code = new URL(status.loginUrl).searchParams.get('code')
+```
+
+#### Correct
+
+```typescript
+passportQrPollingTimer = window.setInterval(() => {
+  void pollPassportQrLogin()
+}, 2000)
+```
+
+---
+
 ## Common Mistakes
 
 - Do not add a global store for one page's local form state.

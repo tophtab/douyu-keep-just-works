@@ -174,6 +174,73 @@ await saveTaskConfig({
 
 ---
 
+## Scenario: Project-Owned Passport QR Login Snapshots
+
+### 1. Scope / Trigger
+- Trigger: adding or changing WebUI Passport QR login, `/api/cookie-source/passport-login/*`, or local passport/main/Yuba snapshot persistence.
+- Scope: QR login creates project-owned local snapshots in `DockerConfig.manualPassport.cookie`, `manualCookies.main`, and `manualCookies.yuba`; it must not write back to browser profiles or CookieCloud.
+
+### 2. Signatures
+- Core QR challenge: `generateDouyuPassportQrChallenge() -> { code, qrUrl, expiresIn, expiresAt }` stays internal to backend services.
+- Core poll: `pollDouyuPassportQrAuth(code, currentPassportCookie?) -> { status, message, passportCookie?, loginUrl? }`.
+- Runtime public status: `PassportQrLoginPublicStatus { sessionId, status, message, expiresAt, qrImageDataUrl?, passportSaved, mainSaved, yubaSaved, canRetryYuba, finished, error? }`.
+- Routes:
+  - `POST /api/cookie-source/passport-login/start -> { ok: true, data: PassportQrLoginPublicStatus }`
+  - `POST /api/cookie-source/passport-login/poll -> { ok: true, data: PassportQrLoginPublicStatus }`
+  - `POST /api/cookie-source/passport-login/retry-yuba -> { ok: true, data: PassportQrLoginPublicStatus }`
+  - `POST /api/cookie-source/passport-login/cancel -> { ok: true, data: PassportQrLoginPublicStatus | null }`
+
+### 3. Contracts
+- `scan_code`, login ticket/code, `LTP0`, raw cookies, and login URLs are service-private. Public route responses may expose a rendered QR image data URL, but not raw scan/login/cookie text.
+- Status is a derived chain: `waiting` -> `scanned` -> `passport_confirmed` -> `main_saved` -> `yuba_saved`; `yuba_failed` is retryable only after passport/main were saved.
+- Passport/main success persists `manualPassport.cookie` and `manualCookies.main` immediately. Yuba success later persists `manualCookies.yuba`.
+- If Yuba SSO fails after main success, preserve the previous Yuba snapshot and return `canRetryYuba: true`; do not discard a working local Yuba cookie because the bridge failed once.
+- CookieCloud persistence is completeness-aware: incomplete fresh main/Yuba cookies must not overwrite complete local snapshots.
+
+### 4. Validation & Error Matrix
+- No active QR session on poll -> `400` JSON error.
+- QR challenge expired before confirmation -> public status `expired`, no persistence.
+- Passport confirmation lacks `LTP0` or login URL -> public status `failed`, no main/Yuba persistence.
+- Main login URL exchange fails -> public status `failed`, passport-only material is not exposed publicly.
+- Yuba SSO fails after main saved -> public status `yuba_failed`, passport/main remain saved, existing Yuba remains unchanged.
+- Retry Yuba without saved passport/main material -> `400` JSON error.
+
+### 5. Good/Base/Bad Cases
+- Good: QR confirmation saves passport/main, then Yuba SSO saves full `acf_yb_*` material and public status contains no raw secrets.
+- Good: QR main succeeds and Yuba fails once; the UI can retry Yuba without a fresh scan.
+- Base: user cancels before scanning; no config write occurs.
+- Base: CookieCloud sync receives incomplete main/Yuba cookies while local snapshots are complete; local complete snapshots remain authoritative.
+- Bad: returning `scan_code`, `LTP0`, login ticket, or raw cookie values in public API responses.
+- Bad: putting QR polling or `safeAuth` logic in WebUI or task runners instead of `src/core` / `src/docker/runtime-cookie-source.ts`.
+
+### 6. Tests Required
+- Core tests should mock QR challenge/poll, safeAuth redirect handling, and Yuba SSO cookie merge behavior.
+- Runtime tests should assert passport/main persistence before Yuba, retryable Yuba failure, local Yuba preservation on failure, and no public secret leakage.
+- CookieCloud tests should assert incomplete fresh snapshots do not replace complete local main/Yuba snapshots.
+- Contract tests should assert route names and centralized ownership remain in cookie-source services, not task runners or WebUI.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+res.json({ scanCode, loginUrl, passportCookie })
+```
+
+#### Correct
+
+```typescript
+return {
+  status: session.status,
+  qrImageDataUrl,
+  passportSaved: Boolean(session.passportCookie),
+  mainSaved: Boolean(session.mainCookie),
+  yubaSaved: Boolean(session.yubaCookie),
+}
+```
+
+---
+
 ## Naming Conventions
 
 - Config interfaces live in `src/core/types.ts`.

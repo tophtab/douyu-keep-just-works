@@ -1154,3 +1154,36 @@ Fixed project-owned QR Yuba cookie retrieval by using the Yuba safeAuth bridge, 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 35: Refine passport QR scan status
+
+**Date**: 2026-06-05
+**Task**: Refine passport QR scan status
+**Branch**: `master`
+
+### Summary
+
+Implemented QR scan-state detail in the passport login flow, updated WebUI progress nodes, added contract coverage, and recorded CSRF as out of scope.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6134485` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

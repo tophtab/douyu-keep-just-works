@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 34
+- **Total Sessions**: 35
 - **Last Active**: 2026-06-05
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1156 | Active |
+| `journal-1.md` | ~1189 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 35 | 2026-06-05 | Refine passport QR scan status | `6134485` | `master` |
 | 34 | 2026-06-05 | Fix Yuba passport bridge login | `0cbb241` | `master` |
 | 33 | 2026-06-05 | Fix Douyu QR dy_did bootstrap | `f20b1ec` | `master` |
 | 32 | 2026-06-05 | Fix Douyu QR main login exchange | `3508ef6` | `master` |

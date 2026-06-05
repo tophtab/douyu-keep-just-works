@@ -89,7 +89,7 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
     <ActionBar
       :actions="[
         { label: passportQrLoginBusy ? '扫码中' : '扫码登录', kind: 'primary' },
-        { label: '手填保存', kind: 'success' },
+        { label: '手填保存', kind: 'secondary' },
       ]"
       @action="handleManualCookieAction"
     />

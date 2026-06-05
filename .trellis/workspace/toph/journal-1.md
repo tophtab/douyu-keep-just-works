@@ -1222,3 +1222,36 @@ Implemented manual force refresh for cache-backed WebUI resources, preserved Yub
 ### Next Steps
 
 - None - task complete
+
+
+## Session 37: Align manual save button style
+
+**Date**: 2026-06-06
+**Task**: Align manual save button style
+**Branch**: `master`
+
+### Summary
+
+Changed the LoginConfigPage manual save action to use the secondary ActionBar button style, matching the sync-and-check action. Verified lint, webui type-check, webui build, and full npm test.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `42690ba` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

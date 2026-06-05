@@ -1088,3 +1088,36 @@ Normalized Douyu QR main login URLs with JSONP parameters, split QR main-login m
 ### Next Steps
 
 - None - task complete
+
+
+## Session 33: Fix Douyu QR dy_did bootstrap
+
+**Date**: 2026-06-05
+**Task**: Fix Douyu QR dy_did bootstrap
+**Branch**: `master`
+
+### Summary
+
+Local deployment QR test found backend-only sessions lacked dy_did. Added backend-owned device cookie bootstrap, carried it through QR generation/polling/main persistence, updated tests/specs, and verified local QR login reaches mainCookieReady with fans/yuba dy-token APIs working.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f20b1ec` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -1121,3 +1121,36 @@ Local deployment QR test found backend-only sessions lacked dy_did. Added backen
 ### Next Steps
 
 - None - task complete
+
+
+## Session 34: Fix Yuba passport bridge login
+
+**Date**: 2026-06-05
+**Task**: Fix Yuba passport bridge login
+**Branch**: `master`
+
+### Summary
+
+Fixed project-owned QR Yuba cookie retrieval by using the Yuba safeAuth bridge, avoiding stale imported Yuba cookies during refresh, validating live QR retry success, and recording the backend contract.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0cbb241` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

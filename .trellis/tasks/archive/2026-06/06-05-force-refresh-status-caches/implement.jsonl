@@ -1,0 +1,10 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend route/runtime/cache changes must follow Docker runtime guidelines."}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Task touches backend route, runtime context, and cache boundaries."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Force-refresh endpoints must preserve existing route error behavior."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend cache and cookie changes require focused contract coverage."}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Cookie/JWT material must not leak into logs while changing Yuba SSO behavior."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Top-right refresh behavior and page resource loading are Docker WebUI changes."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Manual refresh semantics must fit existing shared resource state patterns."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Refresh behavior lives in Vue composables/resource modules."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Force-refresh request/API shapes should stay typed and validated."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend request and refresh changes need focused verification."}

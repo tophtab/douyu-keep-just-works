@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Review backend changes against Docker runtime guidelines."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Verify route error behavior is preserved."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify focused tests cover cache invalidation and Yuba cookie preservation."}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Verify no raw cookie/JWT/passport secrets leak."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Review WebUI refresh behavior against frontend guidelines."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Verify manual refresh and automatic loading state semantics are correct."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Verify request/API shape changes remain type-safe."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Verify frontend behavior and accessibility quality expectations."}

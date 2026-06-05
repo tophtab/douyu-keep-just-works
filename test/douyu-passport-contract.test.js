@@ -116,6 +116,34 @@ test('QR challenge carries backend-owned passport device cookie', async () => {
   assert.equal(challenge.expiresAt, 301000)
 })
 
+test('QR auth poll exposes scanned and cancelled states without login material', async () => {
+  const requests = []
+  const responses = [
+    { data: { error: 1, msg: '客户端已扫码' }, headers: {} },
+    { data: { error: -1, msg: '客户端取消登录' }, headers: {} },
+  ]
+  const axiosMock = {
+    get: async (url, options) => {
+      requests.push({ url, options })
+      return responses.shift()
+    },
+  }
+  const { pollDouyuPassportQrAuth } = loadTypeScriptModule('src/core/douyu-passport.ts', { axios: axiosMock })
+
+  const scanned = await pollDouyuPassportQrAuth('scan-code-redacted', 'dy_did=did-redacted')
+  const cancelled = await pollDouyuPassportQrAuth('scan-code-redacted', 'dy_did=did-redacted')
+
+  assert.equal(requests[0].url, 'https://passport.douyu.com/japi/scan/auth')
+  assert.equal(requests[0].options.headers.Cookie, 'dy_did=did-redacted')
+  assert.equal(requests[0].options.params.code, 'scan-code-redacted')
+  assert.equal(scanned.status, 'scanned')
+  assert.equal(scanned.message, '客户端已扫码')
+  assert.equal(scanned.passportCookie, undefined)
+  assert.equal(scanned.loginUrl, undefined)
+  assert.equal(cancelled.status, 'cancelled')
+  assert.equal(cancelled.message, '客户端取消登录')
+})
+
 test('QR main login exchange adds JSONP parameters and merges main-site auth fields', async () => {
   let request
   const axiosMock = {
@@ -655,6 +683,7 @@ test('passport QR login session persists passport and main before retryable Yuba
   const secretPassport = 'passport-ltp0-redacted-secret-value'
   const secretMainAuth = 'main-auth-redacted-secret-value'
   const secretYubaAuth = 'yuba-auth-redacted-secret-value'
+  let pollAttempts = 0
   let yubaAttempts = 0
   let config = {
     cookie: '',
@@ -686,6 +715,13 @@ test('passport QR login session persists passport and main before retryable Yuba
       },
       pollDouyuPassportQrAuth: async (_code, currentPassportCookie) => {
         assert.equal(currentPassportCookie, 'dy_did=did-redacted; acf_did=did-redacted; game_did=did-redacted')
+        pollAttempts += 1
+        if (pollAttempts === 1) {
+          return {
+            status: 'scanned',
+            message: '客户端已扫码',
+          }
+        }
         return {
           status: 'confirmed',
           message: 'success',
@@ -737,6 +773,13 @@ test('passport QR login session persists passport and main before retryable Yuba
     assert.equal(started.qrImageDataUrl, 'data:image/png;base64,qr-redacted')
     assert.equal(JSON.stringify(started).includes(secretScanCode), false)
     assert.equal(JSON.stringify(started).includes('did-redacted'), false)
+
+    const scanned = await manager.pollPassportQrLogin()
+    assert.equal(scanned.status, 'scanned')
+    assert.equal(scanned.message, '已扫码，等待确认')
+    assert.equal(scanned.passportSaved, false)
+    assert.equal(scanned.qrImageDataUrl, 'data:image/png;base64,qr-redacted')
+    assert.equal(JSON.stringify(scanned).includes(secretScanCode), false)
 
     const passportConfirmed = await manager.pollPassportQrLogin()
     assert.equal(passportConfirmed.status, 'passport_confirmed')

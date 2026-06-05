@@ -292,7 +292,7 @@ function readPassportQrStatus(errorCode: number | undefined): DouyuPassportQrSta
   if (errorCode === -3 || errorCode === 2) {
     return 'expired'
   }
-  if (errorCode === -4) {
+  if (errorCode === -4 || errorCode === -1) {
     return 'cancelled'
   }
   return 'failed'

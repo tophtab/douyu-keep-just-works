@@ -418,6 +418,11 @@ test('CookieCloud sync-and-check persists first, then checks the local snapshot 
   assert.match(cookieRoutes, /ctx\.pollPassportQrLogin\(\)/)
 
   const cookieSourceCopy = readRepoFile('src/docker/webui/cookie-source-copy.ts')
+  const loginConfigPage = readRepoFile('src/docker/webui/components/LoginConfigPage.vue')
+  assert.match(loginConfigPage, /isPassportQrScanned\(passportQrLogin\)[\s\S]*>扫码</)
+  assert.match(loginConfigPage, /isPassportQrConfirmed\(passportQrLogin\)[\s\S]*>确认</)
+  assert.match(loginConfigPage, /passportQrLogin\.mainSaved[\s\S]*>主站</)
+  assert.match(loginConfigPage, /passportQrLogin\.yubaSaved[\s\S]*>鱼吧</)
   assert.doesNotMatch(cookieSourceCopy, /Cookie 数/)
   assert.doesNotMatch(cookieSourceCopy, /cookieCount/)
 })

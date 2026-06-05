@@ -200,8 +200,11 @@ const data = await requestJson<CookieDiagnostics>('/api/cookie-source/check', {
 - The login page places `扫码登录` before `手填保存` in the existing manual-cookie action row.
 - QR image rendering uses `status.qrImageDataUrl` from the backend and appears directly below that action row.
 - Polling interval is 2 seconds while `passportQrLogin.finished === false`; timers must be cleared on terminal status and component unmount.
+- The backend-owned passport poll result `scanned` is a real public state; the UI should show a separate scan progress node before the passport-confirmed/main/Yuba nodes.
+- QR progress should distinguish at least `扫码`, `确认`, `主站`, and `鱼吧`: scan is complete when status is `scanned` or later, confirmation is complete when `passportSaved` is true, and main/Yuba use `mainSaved`/`yubaSaved`.
 - When a status reports `mainSaved` or `yubaSaved`, reload raw config and apply it to login form state before refreshing cookie-backed resources.
 - `yuba_failed` shows a retry action only when `canRetryYuba` is true.
+- Do not add legacy QR polling fallback endpoints or main-site `getCsrfCookie` enrichment to the QR status UI path unless a separate task explicitly scopes those login-chain changes.
 
 ### 4. Validation & Error Matrix
 - Unauthorized response -> existing request unauthorized handling owns logout/session state; do not keep polling.
@@ -211,7 +214,7 @@ const data = await requestJson<CookieDiagnostics>('/api/cookie-source/check', {
 - Retry failure -> keep `canRetryYuba` state visible and do not clear saved passport/main form values.
 
 ### 5. Good/Base/Bad Cases
-- Good: click `扫码登录`, QR appears below the row, polling shows waiting/scanned/passport/main/Yuba derived states, then stops.
+- Good: click `扫码登录`, QR appears below the row, polling shows waiting/scanned/passport/main/Yuba derived states, and the progress row shows `扫码` before `确认`, `主站`, and `鱼吧`, then stops.
 - Good: Yuba fails after main saved; raw config refresh shows saved passport/main, and the UI offers `重试鱼吧`.
 - Base: user clicks `取消`; backend cancels and frontend clears the polling timer.
 - Bad: a component calls `safeAuth`, parses `LTP0`, or derives cookies directly.
@@ -219,7 +222,9 @@ const data = await requestJson<CookieDiagnostics>('/api/cookie-source/check', {
 
 ### 6. Tests Required
 - Contract tests should assert login page action order and QR placement.
+- Contract tests should assert login page QR progress includes separate scan and confirmation nodes.
 - Contract tests should assert WebUI imports QR actions from `cookie-source-actions.ts` and state from `cookie-source-state.ts`, not route logic in the component.
+- Contract tests should assert backend QR polling maps scanned and cancelled API states without exposing scan code, login ticket, or cookie material.
 - Type checks should cover `PassportQrLoginPublicStatus` across backend and WebUI.
 - Runtime tests should assert public statuses contain no raw secrets; frontend tests should not use raw cookie fixtures in visible text.
 

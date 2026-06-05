@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { PassportQrLoginPublicStatus } from '../../../core/types'
 import { useCookieLoginPage } from '../cookie'
 import ActionBar from './ActionBar.vue'
 import CronField from './CronField.vue'
@@ -40,6 +41,14 @@ function handleCookieCloudAction(index: number): void {
     return
   }
   void checkCookieSource()
+}
+
+function isPassportQrScanned(status: PassportQrLoginPublicStatus): boolean {
+  return status.status === 'scanned' || isPassportQrConfirmed(status)
+}
+
+function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
+  return status.passportSaved || status.mainSaved || status.yubaSaved
 }
 </script>
 
@@ -99,7 +108,8 @@ function handleCookieCloudAction(index: number): void {
           {{ passportQrLoginText }}
         </div>
         <div class="passport-qr-steps" aria-label="扫码登录进度">
-          <span :class="{ ok: passportQrLogin.passportSaved }">passport</span>
+          <span :class="{ ok: isPassportQrScanned(passportQrLogin) }">扫码</span>
+          <span :class="{ ok: isPassportQrConfirmed(passportQrLogin) }">确认</span>
           <span :class="{ ok: passportQrLogin.mainSaved }">主站</span>
           <span :class="{ ok: passportQrLogin.yubaSaved, warn: passportQrLogin.canRetryYuba }">鱼吧</span>
         </div>

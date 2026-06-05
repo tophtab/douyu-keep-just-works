@@ -1,7 +1,7 @@
 import type { DockerConfig, Fans, FansStatusResponse, FanStatus, GiftStatus } from '../../core/types'
 import { ref } from 'vue'
 import { getRawConfig, hasCookieSourceConfigured, setRawConfig } from './resource-config'
-import { createResourceRequest, markResourceRequestLoaded, resetResourceRequest, trackResourceRequest } from './resource-request'
+import { createResourceRequest, markResourceRequestLoaded, resetResourceRequest, trackResourceRequest, withForceRefresh } from './resource-request'
 import type { ResourceRequest } from './resource-request'
 import { requestJson } from './request'
 import { getErrorMessage, isHttpUnauthorized } from './task-shared'
@@ -220,7 +220,7 @@ export async function syncFans(showSuccessToast = false): Promise<unknown> {
   return trackResourceRequest(resource, requestSeq, pending)
 }
 
-export async function loadFansList(showSuccessToast = false): Promise<unknown> {
+export async function loadFansList(showSuccessToast = false, forceRefresh = false): Promise<unknown> {
   const config = getRawConfig()
   const resource = getResourceRequest('fansList')
   if (!hasCookieSourceConfigured(config)) {
@@ -243,7 +243,7 @@ export async function loadFansList(showSuccessToast = false): Promise<unknown> {
   managedLoading.value = true
   fansListError.value = ''
 
-  const pending = requestJson<Fans[]>('/api/fans').then((data) => {
+  const pending = requestJson<Fans[]>(withForceRefresh('/api/fans', forceRefresh)).then((data) => {
     if (resource.requestSeq !== requestSeq) {
       return undefined
     }
@@ -271,7 +271,7 @@ export async function loadFansList(showSuccessToast = false): Promise<unknown> {
   return trackResourceRequest(resource, requestSeq, pending)
 }
 
-export async function loadFansStatus(showSuccessToast = false): Promise<unknown> {
+export async function loadFansStatus(showSuccessToast = false, forceRefresh = false): Promise<unknown> {
   const config = getRawConfig()
   const resource = getResourceRequest('fansStatus')
   if (!hasCookieSourceConfigured(config)) {
@@ -297,7 +297,7 @@ export async function loadFansStatus(showSuccessToast = false): Promise<unknown>
   fansStatusLoading.value = true
   fansStatusDetailsLoading.value = true
 
-  const pending = requestJson<FansStatusResponse>('/api/fans/status/base').then((data) => {
+  const pending = requestJson<FansStatusResponse>(withForceRefresh('/api/fans/status/base', forceRefresh)).then((data) => {
     if (resource.requestSeq !== requestSeq) {
       return null
     }
@@ -314,7 +314,7 @@ export async function loadFansStatus(showSuccessToast = false): Promise<unknown>
       }
       return null
     }
-    return requestJson<FansStatusResponse>('/api/fans/status/details')
+    return requestJson<FansStatusResponse>(withForceRefresh('/api/fans/status/details', forceRefresh))
   }).then((data) => {
     if (!data || resource.requestSeq !== requestSeq) {
       return undefined

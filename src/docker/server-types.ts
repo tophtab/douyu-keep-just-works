@@ -8,6 +8,10 @@ export interface JobStatus {
   nextRun: string | null
 }
 
+export interface CacheRefreshOptions {
+  forceRefresh?: boolean
+}
+
 export interface AppContext {
   webPassword: string
   getConfig(): DockerConfig | null
@@ -40,9 +44,9 @@ export interface AppContext {
   cancelPassportQrLogin(): PassportQrLoginPublicStatus | null
   retryPassportQrLoginYuba(): Promise<PassportQrLoginPublicStatus>
   triggerTask(type: TaskType): Promise<void>
-  fetchFans(): Promise<Fans[]>
-  fetchFansStatusBase(): Promise<FansStatusResponse>
-  fetchFansStatusDetails(): Promise<FansStatusResponse>
-  fetchFansStatus(): Promise<FansStatusResponse>
-  fetchYubaStatus(): Promise<YubaStatusResponse>
+  fetchFans(options?: CacheRefreshOptions): Promise<Fans[]>
+  fetchFansStatusBase(options?: CacheRefreshOptions): Promise<FansStatusResponse>
+  fetchFansStatusDetails(options?: CacheRefreshOptions): Promise<FansStatusResponse>
+  fetchFansStatus(options?: CacheRefreshOptions): Promise<FansStatusResponse>
+  fetchYubaStatus(options?: CacheRefreshOptions): Promise<YubaStatusResponse>
 }

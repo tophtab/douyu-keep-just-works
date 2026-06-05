@@ -8,7 +8,7 @@ import { MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
 import type { DockerRuntimeConfigApplyReason } from './runtime-config-service'
 import type { DockerRuntimeFansSyncReason } from './runtime-fans-sync'
 import type { JobStatus } from './server'
-import type { AppContext } from './server-types'
+import type { AppContext, CacheRefreshOptions } from './server-types'
 import type { TaskType } from './task-metadata'
 
 type TaskStatusMap = Record<TaskType, JobStatus>
@@ -41,10 +41,10 @@ interface DockerRuntimeAppContextDeps {
     config: DockerConfig | null,
     hasSendRooms: (config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined) => boolean,
   ) => Promise<void>
-  getFansList: (cookie: string) => Promise<Fans[]>
-  getFansStatusBase: (cookie: string) => Promise<FansStatusResponse>
-  getFansStatus: (cookie: string, logSystem: (message: string) => void) => Promise<FansStatusResponse>
-  getYubaStatus: (fetchStatus: () => Promise<YubaStatusResponse>) => Promise<YubaStatusResponse>
+  getFansList: (cookie: string, options?: CacheRefreshOptions) => Promise<Fans[]>
+  getFansStatusBase: (cookie: string, options?: CacheRefreshOptions) => Promise<FansStatusResponse>
+  getFansStatus: (cookie: string, logSystem: (message: string) => void, options?: CacheRefreshOptions) => Promise<FansStatusResponse>
+  getYubaStatus: (fetchStatus: () => Promise<YubaStatusResponse>, options?: CacheRefreshOptions) => Promise<YubaStatusResponse>
   runWithCookieSourceRetry: <T>(context: string, run: () => Promise<T>) => Promise<T>
   logSystem: (message: string) => void
 }
@@ -118,29 +118,29 @@ export function createRuntimeAppContext(deps: DockerRuntimeAppContextDeps): AppC
     cancelPassportQrLogin: () => deps.cancelPassportQrLogin(),
     retryPassportQrLoginYuba: async () => await deps.retryPassportQrLoginYuba(),
     triggerTask: async (type: TaskType) => await deps.triggerTask(type, deps.getCurrentConfig(), hasSendRooms),
-    fetchFans: async () => await deps.runWithCookieSourceRetry('加载粉丝牌列表', async () => {
+    fetchFans: async (options: CacheRefreshOptions = {}) => await deps.runWithCookieSourceRetry('加载粉丝牌列表', async () => {
       const cookie = deps.resolveCookieForUrl(MAIN_DOUYU_URL)
-      return await deps.getFansList(cookie)
+      return await deps.getFansList(cookie, options)
     }),
-    fetchFansStatusBase: async () => await deps.runWithCookieSourceRetry('加载粉丝牌基础状态', async () => {
+    fetchFansStatusBase: async (options: CacheRefreshOptions = {}) => await deps.runWithCookieSourceRetry('加载粉丝牌基础状态', async () => {
       const cookie = deps.resolveCookieForUrl(MAIN_DOUYU_URL)
-      return await deps.getFansStatusBase(cookie)
+      return await deps.getFansStatusBase(cookie, options)
     }),
-    fetchFansStatusDetails: async () => await deps.runWithCookieSourceRetry('加载粉丝牌详细状态', async () => {
+    fetchFansStatusDetails: async (options: CacheRefreshOptions = {}) => await deps.runWithCookieSourceRetry('加载粉丝牌详细状态', async () => {
       const cookie = deps.resolveCookieForUrl(MAIN_DOUYU_URL)
-      return await deps.getFansStatus(cookie, deps.logSystem)
+      return await deps.getFansStatus(cookie, deps.logSystem, options)
     }),
-    fetchFansStatus: async () => await deps.runWithCookieSourceRetry('加载粉丝牌状态', async () => {
+    fetchFansStatus: async (options: CacheRefreshOptions = {}) => await deps.runWithCookieSourceRetry('加载粉丝牌状态', async () => {
       const cookie = deps.resolveCookieForUrl(MAIN_DOUYU_URL)
-      return await deps.getFansStatus(cookie, deps.logSystem)
+      return await deps.getFansStatus(cookie, deps.logSystem, options)
     }),
-    fetchYubaStatus: async () => await deps.runWithCookieSourceRetry('加载鱼吧状态', async () => {
+    fetchYubaStatus: async (options: CacheRefreshOptions = {}) => await deps.runWithCookieSourceRetry('加载鱼吧状态', async () => {
       return await deps.getYubaStatus(async () => {
         const mainCookie = deps.resolveCookieForUrl(MAIN_DOUYU_URL)
         const yubaCookie = deps.resolveCookieForUrl(YUBA_DOUYU_URL)
         const groups = await getFollowedYubaStatusesWithDyToken(yubaCookie, mainCookie)
         return { groups }
-      })
+      }, options)
     }),
   }
 }

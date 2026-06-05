@@ -22,6 +22,13 @@ export function markResourceRequestLoaded(resource: ResourceRequest): void {
   resource.fetchedAt = Date.now()
 }
 
+export function withForceRefresh(url: string, forceRefresh = false): string {
+  if (!forceRefresh) {
+    return url
+  }
+  return `${url}${url.includes('?') ? '&' : '?'}force=1`
+}
+
 export function trackResourceRequest<T>(resource: ResourceRequest, requestSeq: number, pending: Promise<T>): Promise<T> {
   const tracked = pending.then(
     (value) => {

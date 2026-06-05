@@ -1,7 +1,7 @@
 import type { YubaGroupStatus, YubaStatusResponse } from '../../core/types'
 import { ref } from 'vue'
 import { getRawConfig, hasCookieSourceConfigured } from './resource-config'
-import { createResourceRequest, markResourceRequestLoaded, resetResourceRequest, trackResourceRequest } from './resource-request'
+import { createResourceRequest, markResourceRequestLoaded, resetResourceRequest, trackResourceRequest, withForceRefresh } from './resource-request'
 import { requestJson } from './request'
 import { getErrorMessage, isHttpUnauthorized } from './task-shared'
 import { showToast } from './toast'
@@ -26,7 +26,7 @@ export function clearYubaCookieBackedData(): void {
   yubaStatusLoading.value = false
 }
 
-export async function loadYubaStatus(showSuccessToast = false): Promise<unknown> {
+export async function loadYubaStatus(showSuccessToast = false, forceRefresh = false): Promise<unknown> {
   const config = getRawConfig()
   if (!hasCookieSourceConfigured(config)) {
     clearYubaCookieBackedData()
@@ -45,7 +45,7 @@ export async function loadYubaStatus(showSuccessToast = false): Promise<unknown>
   yubaStatusError.value = ''
   yubaStatusLoading.value = true
 
-  const pending = requestJson<YubaStatusResponse>('/api/yuba/status').then((data) => {
+  const pending = requestJson<YubaStatusResponse>(withForceRefresh('/api/yuba/status', forceRefresh)).then((data) => {
     if (yubaStatusRequest.requestSeq !== requestSeq) {
       return undefined
     }

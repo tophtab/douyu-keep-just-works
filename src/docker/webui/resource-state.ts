@@ -60,6 +60,9 @@ export const logsRefreshedAt = ref<string | null>(null)
 export const logsLoading = ref(false)
 export const logsClearing = ref(false)
 export const logsAutoRefresh = ref(true)
+export const surfaceRefreshLoading = ref(false)
+
+let surfaceRefreshPending: Promise<void> | null = null
 
 function normalizeLogs(data: unknown): LogEntry[] {
   if (!Array.isArray(data)) {
@@ -91,6 +94,9 @@ export function clearProtectedState(): void {
 }
 
 export function isActiveRefreshLoading(activeTab: WebUiPageTab): boolean {
+  if (surfaceRefreshLoading.value) {
+    return true
+  }
   if (activeTab === 'overview' || activeTab === 'expiring-gift') {
     return fansStatusLoading.value || managedLoading.value
   }
@@ -162,7 +168,7 @@ export async function loadActiveTabData(activeTab: WebUiPageTab): Promise<void> 
   }
 }
 
-export async function refreshOverviewSurface(activeTab: WebUiPageTab, showSuccessToast = false): Promise<void> {
+async function runRefreshOverviewSurface(activeTab: WebUiPageTab, showSuccessToast: boolean, forceRefresh: boolean): Promise<void> {
   await loadRawConfig()
   const config = getRawConfig()
   if (!hasCookieSourceConfigured(config)) {
@@ -176,11 +182,11 @@ export async function refreshOverviewSurface(activeTab: WebUiPageTab, showSucces
 
   const reloads: Array<Promise<unknown>> = [loadOverview()]
   if (activeTab === 'overview' || activeTab === 'expiring-gift') {
-    reloads.push(loadFansStatus(false))
+    reloads.push(loadFansStatus(false, forceRefresh))
   } else if (activeTab === 'keepalive' || activeTab === 'double-card') {
-    reloads.push(loadFansList(false))
+    reloads.push(loadFansList(false, forceRefresh))
   } else if (activeTab === 'yuba') {
-    reloads.push(loadYubaStatus(false))
+    reloads.push(loadYubaStatus(false, forceRefresh))
   } else if (activeTab === 'logs') {
     reloads.push(loadLogs())
   }
@@ -189,6 +195,22 @@ export async function refreshOverviewSurface(activeTab: WebUiPageTab, showSucces
   if (showSuccessToast) {
     showToast('状态已刷新', true)
   }
+}
+
+export async function refreshOverviewSurface(activeTab: WebUiPageTab, showSuccessToast = false, forceRefresh = false): Promise<void> {
+  if (surfaceRefreshPending) {
+    return await surfaceRefreshPending
+  }
+
+  surfaceRefreshLoading.value = true
+  const pending = runRefreshOverviewSurface(activeTab, showSuccessToast, forceRefresh).finally(() => {
+    if (surfaceRefreshPending === pending) {
+      surfaceRefreshPending = null
+      surfaceRefreshLoading.value = false
+    }
+  })
+  surfaceRefreshPending = pending
+  return await pending
 }
 
 export async function loadProtectedData(activeTab: WebUiPageTab): Promise<void> {

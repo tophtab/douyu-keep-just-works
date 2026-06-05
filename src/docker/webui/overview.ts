@@ -205,7 +205,7 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
   const refreshOverviewTitle = computed(() => refreshLoading.value ? '正在刷新' : '刷新')
 
   function refreshOverview(): void {
-    void refreshOverviewSurface(activeTab.value, true)
+    void refreshOverviewSurface(activeTab.value, true, true)
   }
 
   function getOverview(): WebUiOverview | null {

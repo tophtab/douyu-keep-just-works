@@ -86,6 +86,79 @@ test('safeAuth helper rejects responses without usable main-site auth fields', (
   )
 })
 
+test('QR main login exchange adds JSONP parameters and merges main-site auth fields', async () => {
+  let request
+  const axiosMock = {
+    get: async (url, options) => {
+      request = { url, options }
+      return {
+        data: 'appClient_json_callback({"error":0,"msg":"ok","data":[]})',
+        headers: {
+          'set-cookie': [
+            'acf_uid=uid-new; Path=/; Domain=.douyu.com',
+            'acf_auth=auth-new; Path=/; Domain=.douyu.com',
+            'acf_stk=stk-new; Path=/; Domain=.douyu.com',
+            'acf_ltkid=ltk-new; Path=/; Domain=.douyu.com',
+            'acf_biz=biz-new; Path=/; Domain=.douyu.com',
+            'acf_ct=ct-new; Path=/; Domain=.douyu.com',
+            'dy_auth=dy-auth-new; Path=/; Domain=.douyu.com',
+          ],
+        },
+      }
+    },
+  }
+  const { fetchDouyuMainCookiesFromLoginUrl } = loadTypeScriptModule('src/core/douyu-passport.ts', { axios: axiosMock })
+
+  const result = await fetchDouyuMainCookiesFromLoginUrl({
+    loginUrl: 'https://www.douyu.com/api/passport/login?uid=uid-redacted&code=login-ticket-redacted&loginType=scanCheck&state=&client_id=1',
+    mainCookie: 'existing=kept',
+    passportCookie: 'LTP0=passport-ltp0-redacted',
+  })
+
+  const requestedUrl = new URL(request.url)
+  assert.equal(requestedUrl.origin, 'https://www.douyu.com')
+  assert.equal(requestedUrl.pathname, '/api/passport/login')
+  assert.equal(requestedUrl.searchParams.get('code'), 'login-ticket-redacted')
+  assert.equal(requestedUrl.searchParams.get('callback'), 'appClient_json_callback')
+  assert.ok(requestedUrl.searchParams.get('_'))
+  assert.equal(request.options.headers.Cookie, 'LTP0=passport-ltp0-redacted; existing=kept')
+  assert.deepEqual(JSON.parse(JSON.stringify(result.returnedKeys)), [
+    'acf_auth',
+    'acf_biz',
+    'acf_ct',
+    'acf_ltkid',
+    'acf_stk',
+    'acf_uid',
+    'dy_auth',
+  ])
+  assert.match(result.refreshedCookie, /existing=kept/)
+  assert.match(result.refreshedCookie, /acf_auth=auth-new/)
+})
+
+test('QR main login exchange reports QR-specific missing main-site auth fields', async () => {
+  const axiosMock = {
+    get: async () => ({
+      data: 'appClient_json_callback({"error":0,"msg":"ok","data":[]})',
+      headers: {
+        'set-cookie': ['acf_yb_t=ignored-yuba; Path=/; Domain=.douyu.com'],
+      },
+    }),
+  }
+  const { fetchDouyuMainCookiesFromLoginUrl } = loadTypeScriptModule('src/core/douyu-passport.ts', { axios: axiosMock })
+
+  await assert.rejects(
+    async () => await fetchDouyuMainCookiesFromLoginUrl({
+      loginUrl: 'https://www.douyu.com/api/passport/login?code=login-ticket-redacted',
+      passportCookie: 'LTP0=passport-ltp0-redacted',
+    }),
+    (error) => {
+      assert.match(error.message, /扫码登录主站未返回可用登录字段/)
+      assert.doesNotMatch(error.message, /safeAuth/)
+      return true
+    },
+  )
+})
+
 test('Docker config normalizes manual passport cookie as optional recovery material', () => {
   const { normalizeDockerConfig } = loadTypeScriptModule('src/core/medal-sync.ts')
 

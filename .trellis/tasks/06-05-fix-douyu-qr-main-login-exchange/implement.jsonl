@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend entry point and pre-development checklist for shared Douyu logic changes."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "QR login failure wording and cookie/API error handling conventions."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "TypeScript, contract-test, and secret-boundary requirements for backend changes."}
+{"file": ".trellis/tasks/archive/2026-06/06-05-passport-refresh-cookie-authority/research/douyu-qr-passport-login.md", "reason": "Recorded QR login exchange contract, including JSONP callback parameters and expected Set-Cookie names."}

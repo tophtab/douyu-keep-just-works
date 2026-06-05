@@ -5,6 +5,9 @@ const SAFE_AUTH_URL = 'https://passport.douyu.com/lapi/passport/iframe/safeAuth'
 const PASSPORT_QR_GENERATE_URL = 'https://passport.douyu.com/scan/generateCode'
 const PASSPORT_QR_AUTH_URL = 'https://passport.douyu.com/japi/scan/auth'
 const PASSPORT_LOGIN_REFERER = 'https://passport.douyu.com/index/login?type=login&client_id=1'
+const PASSPORT_MAIN_LOGIN_ORIGIN = 'https://www.douyu.com'
+const PASSPORT_MAIN_LOGIN_PATH = '/api/passport/login'
+const PASSPORT_MAIN_LOGIN_CALLBACK = 'appClient_json_callback'
 const YUBA_MY_GROUPS_URL = 'https://yuba.douyu.com/mygroups'
 const YUBA_AUTH_LOGIN_URL = 'https://yuba.douyu.com/ybapi/authlogin'
 const SAFE_AUTH_RETURNED_COOKIE_KEYS = [
@@ -133,13 +136,17 @@ function mergeCookieWithSetCookieHeaders(args: {
   }
 }
 
-export function mergeMainCookieWithSetCookieHeaders(currentCookie: string, setCookieHeaders: string[]): DouyuPassportSafeAuthResult {
+export function mergeMainCookieWithSetCookieHeaders(
+  currentCookie: string,
+  setCookieHeaders: string[],
+  missingMessage = 'safeAuth 未返回可用主站登录字段',
+): DouyuPassportSafeAuthResult {
   return mergeCookieWithSetCookieHeaders({
     currentCookie,
     setCookieHeaders,
     allowedKeys: SAFE_AUTH_RETURNED_COOKIE_KEYS,
     requiredKeys: SAFE_AUTH_REQUIRED_COOKIE_KEYS,
-    missingMessage: 'safeAuth 未返回可用主站登录字段',
+    missingMessage,
   })
 }
 
@@ -184,6 +191,28 @@ function getJsonpBodyObject(data: unknown): unknown {
   } catch {
     return data
   }
+}
+
+function normalizePassportMainLoginUrl(rawLoginUrl: string): string {
+  let loginUrl: URL
+  try {
+    loginUrl = new URL(rawLoginUrl)
+  } catch {
+    throw new Error('扫码登录主站地址无效')
+  }
+
+  if (loginUrl.origin !== PASSPORT_MAIN_LOGIN_ORIGIN || loginUrl.pathname !== PASSPORT_MAIN_LOGIN_PATH) {
+    throw new Error('扫码登录主站地址无效')
+  }
+
+  if (!loginUrl.searchParams.has('callback')) {
+    loginUrl.searchParams.set('callback', PASSPORT_MAIN_LOGIN_CALLBACK)
+  }
+  if (!loginUrl.searchParams.has('_')) {
+    loginUrl.searchParams.set('_', String(Date.now()))
+  }
+
+  return loginUrl.toString()
 }
 
 function readPassportQrStatus(errorCode: number | undefined): DouyuPassportQrStatus {
@@ -290,10 +319,7 @@ export async function fetchDouyuMainCookiesFromLoginUrl(args: {
   mainCookie?: string
   passportCookie?: string
 }): Promise<DouyuPassportSafeAuthResult> {
-  const loginUrl = args.loginUrl.trim()
-  if (!loginUrl || !loginUrl.startsWith('https://www.douyu.com/api/passport/login')) {
-    throw new Error('扫码登录主站地址无效')
-  }
+  const loginUrl = normalizePassportMainLoginUrl(args.loginUrl.trim())
 
   const response = await axios.get(loginUrl, {
     headers: {
@@ -314,7 +340,11 @@ export async function fetchDouyuMainCookiesFromLoginUrl(args: {
 
   const dyDid = getCookieValue(args.passportCookie || '', 'dy_did')
   const baseMainCookie = args.mainCookie?.trim() || (dyDid ? `dy_did=${dyDid}` : '')
-  return mergeMainCookieWithSetCookieHeaders(baseMainCookie, readSetCookieHeaders(response.headers))
+  return mergeMainCookieWithSetCookieHeaders(
+    baseMainCookie,
+    readSetCookieHeaders(response.headers),
+    '扫码登录主站未返回可用登录字段',
+  )
 }
 
 export async function fetchDouyuYubaCookiesWithPassport(args: {

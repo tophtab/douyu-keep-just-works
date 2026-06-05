@@ -1187,3 +1187,38 @@ Implemented QR scan-state detail in the passport login flow, updated WebUI progr
 ### Next Steps
 
 - None - task complete
+
+
+## Session 36: Force refresh status caches
+
+**Date**: 2026-06-06
+**Task**: Force refresh status caches
+**Branch**: `master`
+
+### Summary
+
+Implemented manual force refresh for cache-backed WebUI resources, preserved Yuba JWT cookies from passport SSO, added focused cache/route/frontend contract coverage, and updated the frontend state-management spec.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `753497e` | (see git log) |
+| `4e54368` | (see git log) |
+| `ce50a16` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

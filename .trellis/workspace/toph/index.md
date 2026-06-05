@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 31
+- **Total Sessions**: 32
 - **Last Active**: 2026-06-05
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1057 | Active |
+| `journal-1.md` | ~1090 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 32 | 2026-06-05 | Fix Douyu QR main login exchange | `3508ef6` | `master` |
 | 31 | 2026-06-05 | Passport QR Login Cookie Authority | `e6f38c5`, `427f45b` | `master` |
 | 30 | 2026-06-02 | Release 3.2.0 | `ac88e30`, `b0a6268`, `4ec0a11` | `master` |
 | 29 | 2026-05-30 | Hide CookieCloud cookie count | `c40c070` | `master` |

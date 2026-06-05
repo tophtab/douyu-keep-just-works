@@ -1055,3 +1055,36 @@ Added project-owned Douyu Passport QR login snapshot flow, Yuba SSO retry handli
 ### Next Steps
 
 - None - task complete
+
+
+## Session 32: Fix Douyu QR main login exchange
+
+**Date**: 2026-06-05
+**Task**: Fix Douyu QR main login exchange
+**Branch**: `master`
+
+### Summary
+
+Normalized Douyu QR main login URLs with JSONP parameters, split QR main-login missing-cookie errors from safeAuth wording, added regression tests, and documented the QR exchange gotcha.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3508ef6` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

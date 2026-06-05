@@ -1021,3 +1021,37 @@ Prepared and published Docker WebUI release 3.2.0. Updated changelog, ran lint/t
 ### Next Steps
 
 - None - task complete
+
+
+## Session 31: Passport QR Login Cookie Authority
+
+**Date**: 2026-06-05
+**Task**: Passport QR Login Cookie Authority
+**Branch**: `master`
+
+### Summary
+
+Added project-owned Douyu Passport QR login snapshot flow, Yuba SSO retry handling, completeness-aware CookieCloud import behavior, WebUI scan login controls, tests, README notes, and Trellis cookie authority contracts.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e6f38c5` | (see git log) |
+| `427f45b` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

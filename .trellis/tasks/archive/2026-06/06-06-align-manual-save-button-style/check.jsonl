@@ -1,0 +1,3 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend scope and checklist for review."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Confirm the change reuses existing component styling patterns."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Confirm required frontend checks and visual-change considerations."}

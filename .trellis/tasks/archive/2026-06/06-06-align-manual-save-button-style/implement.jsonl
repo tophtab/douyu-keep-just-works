@@ -1,0 +1,3 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend entry point and pre-development checklist for Docker WebUI changes."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Vue component and existing global styling conventions for ActionBar-based controls."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Verification expectations for frontend changes."}

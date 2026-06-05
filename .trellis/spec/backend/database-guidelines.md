@@ -193,6 +193,8 @@ await saveTaskConfig({
 ### 3. Contracts
 - `scan_code`, login ticket/code, `LTP0`, raw cookies, and login URLs are service-private. Public route responses may expose a rendered QR image data URL, but not raw scan/login/cookie text.
 - Status is a derived chain: `waiting` -> `scanned` -> `passport_confirmed` -> `main_saved` -> `yuba_saved`; `yuba_failed` is retryable only after passport/main were saved.
+- Backend-owned QR sessions must bootstrap browser-like device material before QR generation. The session passport cookie should include `dy_did`, plus matching `acf_did` and `game_did` for passport/browser parity, before `LTP0` exists.
+- Public `passportSaved` means `LTP0` exists. A waiting/scanned session that only has backend-generated device material must not be reported as passport-saved.
 - Passport/main success persists `manualPassport.cookie` and `manualCookies.main` immediately. Yuba success later persists `manualCookies.yuba`.
 - The main-site exchange must normalize Douyu's returned `www.douyu.com/api/passport/login` URL before requesting it: preserve returned query fields, add missing `callback=appClient_json_callback`, and add missing `_=<timestamp>`. Live diagnostics showed Douyu may return HTTP 200 without main-site `Set-Cookie` when these JSONP parameters are absent.
 - QR main-site missing-cookie errors must identify the QR main-login exchange, not `safeAuth`; `safeAuth` wording is reserved for centralized recovery.
@@ -203,6 +205,7 @@ await saveTaskConfig({
 - No active QR session on poll -> `400` JSON error.
 - QR challenge expired before confirmation -> public status `expired`, no persistence.
 - Passport confirmation lacks `LTP0` or login URL -> public status `failed`, no main/Yuba persistence.
+- Passport confirmation returns `LTP0` but the session lacks `dy_did` -> main snapshot would be incomplete; QR session startup must prevent this by generating device material before challenge generation.
 - Main login URL is not exactly `https://www.douyu.com/api/passport/login` -> public status `failed`, passport-only material is not exposed publicly.
 - Main login URL exchange returns no usable main-site `acf_*` fields -> public status `failed` with a QR main-login reason, passport-only material is not exposed publicly.
 - Yuba SSO fails after main saved -> public status `yuba_failed`, passport/main remain saved, existing Yuba remains unchanged.
@@ -210,16 +213,20 @@ await saveTaskConfig({
 
 ### 5. Good/Base/Bad Cases
 - Good: QR confirmation saves passport/main, then Yuba SSO saves full `acf_yb_*` material and public status contains no raw secrets.
+- Good: backend creates `dy_did/acf_did/game_did`, passes them through QR challenge and polling, then persists `dy_did` with both the passport snapshot and main snapshot after `LTP0`/main cookies arrive.
 - Good: QR confirmation returns a main login URL without `callback` or `_`; backend adds those parameters before the request and captures the returned main-site `Set-Cookie` fields.
 - Good: QR main succeeds and Yuba fails once; the UI can retry Yuba without a fresh scan.
 - Base: user cancels before scanning; no config write occurs.
 - Base: CookieCloud sync receives incomplete main/Yuba cookies while local snapshots are complete; local complete snapshots remain authoritative.
 - Bad: requesting the raw QR `loginUrl` as-is, receiving HTTP 200 without `Set-Cookie`, and surfacing a misleading `safeAuth` error.
+- Bad: starting a backend-only QR session with no `dy_did`, saving `acf_*` main cookies, and then failing local diagnostics because the main snapshot lacks `dy_did`.
 - Bad: returning `scan_code`, `LTP0`, login ticket, or raw cookie values in public API responses.
 - Bad: putting QR polling or `safeAuth` logic in WebUI or task runners instead of `src/core` / `src/docker/runtime-cookie-source.ts`.
 
 ### 6. Tests Required
 - Core tests should mock QR challenge/poll, safeAuth redirect handling, and Yuba SSO cookie merge behavior.
+- Core/runtime tests should assert backend QR sessions create and carry device cookie material, while public `passportSaved` stays false until `LTP0` is present.
+- Runtime tests should assert QR main persistence writes `dy_did` into both `manualPassport.cookie` and `manualCookies.main`.
 - Core tests should assert QR main login URL normalization adds missing `callback=appClient_json_callback` and `_` parameters while preserving the returned ticket/query fields.
 - Core tests should assert QR main login missing-cookie failures use QR-specific wording and do not mention `safeAuth`.
 - Runtime tests should assert passport/main persistence before Yuba, retryable Yuba failure, local Yuba preservation on failure, and no public secret leakage.

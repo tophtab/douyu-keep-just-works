@@ -86,6 +86,36 @@ test('safeAuth helper rejects responses without usable main-site auth fields', (
   )
 })
 
+test('QR challenge carries backend-owned passport device cookie', async () => {
+  let request
+  const axiosMock = {
+    post: async (url, body, options) => {
+      request = { url, body, options }
+      return {
+        data: {
+          error: 0,
+          data: {
+            code: 'scan-code-redacted',
+            url: 'https://m.douyu.com/topic/scan-login-middle-page?scan_code=scan-code-redacted',
+            expire: 300,
+          },
+        },
+      }
+    },
+  }
+  const { createDouyuPassportDeviceCookie, generateDouyuPassportQrChallenge } = loadTypeScriptModule('src/core/douyu-passport.ts', { axios: axiosMock })
+  const passportDeviceCookie = createDouyuPassportDeviceCookie('did-redacted')
+
+  const challenge = await generateDouyuPassportQrChallenge(1000, passportDeviceCookie)
+
+  assert.equal(passportDeviceCookie, 'dy_did=did-redacted; acf_did=did-redacted; game_did=did-redacted')
+  assert.equal(request.url, 'https://passport.douyu.com/scan/generateCode')
+  assert.equal(request.body, 'client_id=1&isMultiAccount=0')
+  assert.equal(request.options.headers.Cookie, passportDeviceCookie)
+  assert.equal(challenge.code, 'scan-code-redacted')
+  assert.equal(challenge.expiresAt, 301000)
+})
+
 test('QR main login exchange adds JSONP parameters and merges main-site auth fields', async () => {
   let request
   const axiosMock = {
@@ -546,20 +576,29 @@ test('passport QR login session persists passport and main before retryable Yuba
       },
     },
     '../core/douyu-passport': {
-      generateDouyuPassportQrChallenge: async () => ({
-        code: secretScanCode,
-        qrUrl: `https://m.douyu.com/topic/scan-login-middle-page?scan_code=${secretScanCode}`,
-        expiresIn: 300,
-        expiresAt: Date.now() + 300000,
-      }),
-      pollDouyuPassportQrAuth: async () => ({
-        status: 'confirmed',
-        message: 'success',
-        passportCookie: `dy_did=did-redacted; LTP0=${secretPassport}`,
-        loginUrl: `https://www.douyu.com/api/passport/login?code=${secretLoginTicket}`,
-      }),
+      createDouyuPassportDeviceCookie: () => 'dy_did=did-redacted; acf_did=did-redacted; game_did=did-redacted',
+      generateDouyuPassportQrChallenge: async (_now, passportCookie) => {
+        assert.equal(passportCookie, 'dy_did=did-redacted; acf_did=did-redacted; game_did=did-redacted')
+        return {
+          code: secretScanCode,
+          qrUrl: `https://m.douyu.com/topic/scan-login-middle-page?scan_code=${secretScanCode}`,
+          expiresIn: 300,
+          expiresAt: Date.now() + 300000,
+        }
+      },
+      pollDouyuPassportQrAuth: async (_code, currentPassportCookie) => {
+        assert.equal(currentPassportCookie, 'dy_did=did-redacted; acf_did=did-redacted; game_did=did-redacted')
+        return {
+          status: 'confirmed',
+          message: 'success',
+          passportCookie: `${currentPassportCookie}; LTP0=${secretPassport}`,
+          loginUrl: `https://www.douyu.com/api/passport/login?code=${secretLoginTicket}`,
+        }
+      },
       fetchDouyuMainCookiesFromLoginUrl: async (args) => {
         assert.match(args.loginUrl, new RegExp(secretLoginTicket))
+        assert.match(args.passportCookie, /dy_did=did-redacted/)
+        assert.match(args.passportCookie, new RegExp(secretPassport))
         return {
           refreshedCookie: `dy_did=did-redacted; acf_uid=uid-redacted; acf_auth=${secretMainAuth}; acf_stk=stk-redacted; acf_ltkid=ltk-redacted; acf_biz=biz-redacted; acf_ct=ct-redacted`,
           returnedKeys: ['acf_auth'],
@@ -596,8 +635,10 @@ test('passport QR login session persists passport and main before retryable Yuba
 
     const started = await manager.startPassportQrLogin()
     assert.equal(started.status, 'waiting')
+    assert.equal(started.passportSaved, false)
     assert.equal(started.qrImageDataUrl, 'data:image/png;base64,qr-redacted')
     assert.equal(JSON.stringify(started).includes(secretScanCode), false)
+    assert.equal(JSON.stringify(started).includes('did-redacted'), false)
 
     const passportConfirmed = await manager.pollPassportQrLogin()
     assert.equal(passportConfirmed.status, 'passport_confirmed')
@@ -609,7 +650,9 @@ test('passport QR login session persists passport and main before retryable Yuba
     assert.equal(mainSaved.status, 'main_saved')
     assert.equal(mainSaved.mainSaved, true)
     assert.equal(config.manualPassport.cookie.includes(secretPassport), true)
+    assert.equal(config.manualPassport.cookie.includes('dy_did=did-redacted'), true)
     assert.equal(config.manualCookies.main.includes(secretMainAuth), true)
+    assert.equal(config.manualCookies.main.includes('dy_did=did-redacted'), true)
     assert.equal(config.manualCookies.yuba.includes('old-yuba'), true)
     assert.equal(JSON.stringify(mainSaved).includes(secretMainAuth), false)
 

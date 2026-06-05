@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend entry point for shared Douyu/runtime QR login changes."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Project-owned Passport QR login snapshot contracts and persistence behavior."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Credential and QR login error-handling/secret-boundary expectations."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Contract-test and Docker TypeScript quality requirements."}
+{"file": ".trellis/tasks/archive/2026-06/06-05-passport-refresh-cookie-authority/research/douyu-qr-passport-login.md", "reason": "Browser QR research showing dy_did/acf_did exists before QR login."}

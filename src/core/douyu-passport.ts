@@ -1,3 +1,4 @@
+import crypto from 'node:crypto'
 import axios from 'axios'
 import { DOUYU_USER_AGENT, getCookieValue, parseCookieRecord } from './api'
 
@@ -96,6 +97,21 @@ function buildCookieHeader(cookieRecord: Record<string, string>): string {
     .filter(([, value]) => value !== '')
     .map(([name, value]) => `${name}=${value}`)
     .join('; ')
+}
+
+function createDouyuDeviceId(): string {
+  const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
+  const bytes = crypto.randomBytes(31)
+  let suffix = ''
+  for (const byte of bytes) {
+    suffix += alphabet[byte % alphabet.length]
+  }
+
+  return `b${suffix}`
+}
+
+export function createDouyuPassportDeviceCookie(deviceId = createDouyuDeviceId()): string {
+  return `dy_did=${deviceId}; acf_did=${deviceId}; game_did=${deviceId}`
 }
 
 function mergeCookieWithSetCookieHeaders(args: {
@@ -234,10 +250,11 @@ function readPassportQrStatus(errorCode: number | undefined): DouyuPassportQrSta
   return 'failed'
 }
 
-export async function generateDouyuPassportQrChallenge(now = Date.now()): Promise<DouyuPassportQrChallenge> {
+export async function generateDouyuPassportQrChallenge(now = Date.now(), currentPassportCookie = ''): Promise<DouyuPassportQrChallenge> {
   const formData = new URLSearchParams()
   formData.set('client_id', '1')
   formData.set('isMultiAccount', '0')
+  const cookie = currentPassportCookie.trim()
 
   const { data } = await axios.post(PASSPORT_QR_GENERATE_URL, formData.toString(), {
     headers: {
@@ -245,6 +262,7 @@ export async function generateDouyuPassportQrChallenge(now = Date.now()): Promis
       'X-Requested-With': 'XMLHttpRequest',
       'User-Agent': DOUYU_USER_AGENT,
       'Referer': PASSPORT_LOGIN_REFERER,
+      ...(cookie ? { Cookie: cookie } : {}),
     },
   })
 

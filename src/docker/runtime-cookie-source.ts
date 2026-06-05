@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import QRCode from 'qrcode'
 import { parseCookieRecord } from '../core/api'
 import { buildCookieHeaderForUrl, createCookieDiagnostics, fetchCookieCloudSnapshot, getCookieCloudPassportCookie, isCookieCloudReady } from '../core/cookie-cloud'
-import { fetchDouyuMainCookiesFromLoginUrl, fetchDouyuYubaCookiesWithPassport, generateDouyuPassportQrChallenge, pollDouyuPassportQrAuth } from '../core/douyu-passport'
+import { createDouyuPassportDeviceCookie, fetchDouyuMainCookiesFromLoginUrl, fetchDouyuYubaCookiesWithPassport, generateDouyuPassportQrChallenge, pollDouyuPassportQrAuth } from '../core/douyu-passport'
 import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, EffectiveCookiePreview, PassportQrLoginPublicStatus, PassportQrLoginStatus } from '../core/types'
 import { buildConfigWithPartialUpdate, configsEqual, saveConfigToDisk } from './config-store'
 import { recoverCredentialSnapshot as recoverCredentialSnapshotWithDeps } from './runtime-cookie-recovery'
@@ -105,7 +105,8 @@ export class DockerCookieSourceManager {
   }
 
   async startPassportQrLogin(): Promise<PassportQrLoginPublicStatus> {
-    const challenge = await generateDouyuPassportQrChallenge()
+    const passportCookie = createDouyuPassportDeviceCookie()
+    const challenge = await generateDouyuPassportQrChallenge(Date.now(), passportCookie)
     const qrImageDataUrl = await QRCode.toDataURL(challenge.qrUrl, {
       errorCorrectionLevel: 'M',
       margin: 1,
@@ -118,6 +119,7 @@ export class DockerCookieSourceManager {
       qrImageDataUrl,
       status: 'waiting',
       message: '等待扫码',
+      passportCookie,
     }
     return this.toPassportQrPublicStatus(this.passportQrLoginSession)
   }
@@ -389,7 +391,7 @@ export class DockerCookieSourceManager {
   }
 
   private toPassportQrPublicStatus(session: PassportQrLoginSession): PassportQrLoginPublicStatus {
-    const passportSaved = Boolean(session.passportCookie)
+    const passportSaved = Boolean(parseCookieRecord(session.passportCookie || '').LTP0)
     const mainSaved = Boolean(session.mainCookie)
     const yubaSaved = Boolean(session.yubaCookie) || session.status === 'yuba_saved'
     const canRetryYuba = session.status === 'yuba_failed' && passportSaved && mainSaved

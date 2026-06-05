@@ -189,6 +189,104 @@ test('QR main login exchange reports QR-specific missing main-site auth fields',
   )
 })
 
+test('Yuba SSO follows passport safeAuth bridge location and merges full Yuba cookies', async () => {
+  const requests = []
+  const axiosMock = {
+    get: async (url, options) => {
+      requests.push({ url, options })
+      if (url === 'https://yuba.douyu.com/mygroups') {
+        return {
+          headers: {
+            'set-cookie': ['dy_did=did-redacted; Path=/; Domain=.douyu.com'],
+          },
+        }
+      }
+      if (url === 'https://yuba.douyu.com/wbapi/web/leaderboardTop') {
+        return {
+          headers: {
+            'set-cookie': ['acf_yb_t=yb-t-redacted; Path=/; Domain=yuba.douyu.com'],
+          },
+        }
+      }
+      if (url === 'https://passport.douyu.com/lapi/passport/iframe/safeAuth') {
+        return {
+          headers: {
+            location: '//yuba.douyu.com/ybapi/authlogin?callback=axiosJsonpCallback&code=bridge-code-redacted&loginType=safeAuth&uid=uid-redacted',
+          },
+        }
+      }
+      if (url === 'https://yuba.douyu.com/ybapi/authlogin?callback=axiosJsonpCallback&code=bridge-code-redacted&loginType=safeAuth&uid=uid-redacted') {
+        return {
+          headers: {
+            'set-cookie': [
+              'acf_yb_auth=yb-auth-redacted; Path=/; Domain=yuba.douyu.com',
+              'acf_yb_uid=yb-uid-redacted; Path=/; Domain=yuba.douyu.com',
+              'acf_yb_new_uid=yb-new-uid-redacted; Path=/; Domain=yuba.douyu.com',
+            ],
+          },
+        }
+      }
+      throw new Error(`unexpected url: ${url}`)
+    },
+  }
+  const { fetchDouyuYubaCookiesWithPassport } = loadTypeScriptModule('src/core/douyu-passport.ts', { axios: axiosMock })
+
+  const result = await fetchDouyuYubaCookiesWithPassport({
+    passportCookie: 'dy_did=did-redacted; LTP0=ltp0-redacted',
+    mainCookie: 'acf_uid=uid-redacted; acf_auth=main-auth-redacted; acf_stk=stk-redacted; acf_ltkid=ltk-redacted; acf_biz=biz-redacted; acf_ct=ct-redacted',
+    yubaCookie: 'acf_yb_auth=stale-yb-auth-redacted; acf_yb_uid=stale-yb-uid-redacted; acf_yb_t=stale-yb-t-redacted',
+  })
+
+  assert.deepEqual(requests.map(request => request.url), [
+    'https://yuba.douyu.com/mygroups',
+    'https://yuba.douyu.com/wbapi/web/leaderboardTop',
+    'https://passport.douyu.com/lapi/passport/iframe/safeAuth',
+    'https://yuba.douyu.com/ybapi/authlogin?callback=axiosJsonpCallback&code=bridge-code-redacted&loginType=safeAuth&uid=uid-redacted',
+  ])
+  assert.equal(requests[2].options.maxRedirects, 0)
+  assert.equal(requests[2].options.params.client_id, '5')
+  assert.equal(requests[2].options.params.did, 'did-redacted')
+  assert.doesNotMatch(requests[2].options.headers.Cookie, /stale-yb-auth-redacted/)
+  assert.doesNotMatch(requests[3].options.headers.Cookie, /stale-yb-auth-redacted/)
+  assert.notEqual(requests[3].url, 'https://yuba.douyu.com/ybapi/authlogin')
+  assert.deepEqual(JSON.parse(JSON.stringify(result.returnedKeys)), [
+    'acf_yb_auth',
+    'acf_yb_new_uid',
+    'acf_yb_uid',
+  ])
+  assert.match(result.yubaCookie, /acf_yb_t=yb-t-redacted/)
+  assert.match(result.yubaCookie, /acf_yb_auth=yb-auth-redacted/)
+  assert.match(result.yubaCookie, /acf_yb_uid=yb-uid-redacted/)
+  assert.doesNotMatch(result.yubaCookie, /stale-yb-auth-redacted/)
+})
+
+test('Yuba SSO rejects missing passport bridge location with a Yuba-specific error', async () => {
+  const axiosMock = {
+    get: async (url) => {
+      if (url === 'https://yuba.douyu.com/mygroups' || url === 'https://yuba.douyu.com/wbapi/web/leaderboardTop') {
+        return {
+          headers: {
+            'set-cookie': ['acf_yb_t=yb-t-redacted; Path=/; Domain=yuba.douyu.com'],
+          },
+        }
+      }
+      if (url === 'https://passport.douyu.com/lapi/passport/iframe/safeAuth') {
+        return { headers: {} }
+      }
+      throw new Error(`unexpected url: ${url}`)
+    },
+  }
+  const { fetchDouyuYubaCookiesWithPassport } = loadTypeScriptModule('src/core/douyu-passport.ts', { axios: axiosMock })
+
+  await assert.rejects(
+    async () => await fetchDouyuYubaCookiesWithPassport({
+      passportCookie: 'dy_did=did-redacted; LTP0=ltp0-redacted',
+      mainCookie: 'acf_uid=uid-redacted; acf_auth=main-auth-redacted; acf_stk=stk-redacted',
+    }),
+    /鱼吧 SSO 未返回 authlogin 跳转地址/,
+  )
+})
+
 test('Docker config normalizes manual passport cookie as optional recovery material', () => {
   const { normalizeDockerConfig } = loadTypeScriptModule('src/core/medal-sync.ts')
 

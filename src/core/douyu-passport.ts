@@ -10,7 +10,9 @@ const PASSPORT_MAIN_LOGIN_ORIGIN = 'https://www.douyu.com'
 const PASSPORT_MAIN_LOGIN_PATH = '/api/passport/login'
 const PASSPORT_MAIN_LOGIN_CALLBACK = 'appClient_json_callback'
 const YUBA_MY_GROUPS_URL = 'https://yuba.douyu.com/mygroups'
-const YUBA_AUTH_LOGIN_URL = 'https://yuba.douyu.com/ybapi/authlogin'
+const YUBA_LEADERBOARD_TOP_URL = 'https://yuba.douyu.com/wbapi/web/leaderboardTop'
+const YUBA_ORIGIN = 'https://yuba.douyu.com'
+const YUBA_AUTH_LOGIN_PATH = '/ybapi/authlogin'
 const SAFE_AUTH_RETURNED_COOKIE_KEYS = [
   'acf_uid',
   'acf_auth',
@@ -80,6 +82,19 @@ export function readSetCookieHeaders(headers: unknown): string[] {
   return typeof value === 'string' ? [value] : []
 }
 
+function readHeaderString(headers: unknown, name: string): string {
+  if (!headers || typeof headers !== 'object') {
+    return ''
+  }
+
+  const record = headers as Record<string, unknown>
+  const value = record[name.toLowerCase()] ?? record[name]
+  if (Array.isArray(value)) {
+    return typeof value[0] === 'string' ? value[0].trim() : ''
+  }
+  return typeof value === 'string' ? value.trim() : ''
+}
+
 export function parseSetCookiePair(header: string): [string, string] | null {
   const firstPart = header.split(';')[0]?.trim() || ''
   const separatorIndex = firstPart.indexOf('=')
@@ -97,6 +112,24 @@ function buildCookieHeader(cookieRecord: Record<string, string>): string {
     .filter(([, value]) => value !== '')
     .map(([name, value]) => `${name}=${value}`)
     .join('; ')
+}
+
+function mergeCookieWithAllowedSetCookieHeaders(currentCookie: string, setCookieHeaders: string[], allowedKeys: string[]): string {
+  const nextCookies = parseCookieRecord(currentCookie)
+
+  for (const header of setCookieHeaders) {
+    const pair = parseSetCookiePair(header)
+    if (!pair) {
+      continue
+    }
+
+    const [name, value] = pair
+    if (allowedKeys.includes(name)) {
+      nextCookies[name] = value
+    }
+  }
+
+  return buildCookieHeader(nextCookies)
 }
 
 function createDouyuDeviceId(): string {
@@ -226,6 +259,21 @@ function normalizePassportMainLoginUrl(rawLoginUrl: string): string {
   }
   if (!loginUrl.searchParams.has('_')) {
     loginUrl.searchParams.set('_', String(Date.now()))
+  }
+
+  return loginUrl.toString()
+}
+
+function normalizeYubaAuthLoginUrl(rawLoginUrl: string): string {
+  let loginUrl: URL
+  try {
+    loginUrl = new URL(rawLoginUrl, YUBA_ORIGIN)
+  } catch {
+    throw new Error('鱼吧 SSO 跳转地址无效')
+  }
+
+  if (loginUrl.origin !== YUBA_ORIGIN || loginUrl.pathname !== YUBA_AUTH_LOGIN_PATH) {
+    throw new Error('鱼吧 SSO 跳转地址无效')
   }
 
   return loginUrl.toString()
@@ -375,23 +423,53 @@ export async function fetchDouyuYubaCookiesWithPassport(args: {
     throw new Error('鱼吧 SSO 缺少 passport LTP0')
   }
 
-  const mergedCookie = [passportCookie, args.mainCookie, args.yubaCookie]
+  const mergedCookie = [passportCookie, args.mainCookie]
     .filter((item): item is string => Boolean(item?.trim()))
     .join('; ')
 
-  const safeAuthResponse = await axios.get(SAFE_AUTH_URL, {
+  const seedResponse = await axios.get(YUBA_MY_GROUPS_URL, {
     headers: {
       'Cookie': mergedCookie,
+      'User-Agent': DOUYU_USER_AGENT,
+      'Referer': YUBA_MY_GROUPS_URL,
+    },
+    validateStatus: status => status >= 200 && status < 400,
+  })
+  const leaderboardResponse = await axios.get(YUBA_LEADERBOARD_TOP_URL, {
+    headers: {
+      'Cookie': [mergedCookie, mergeCookieWithAllowedSetCookieHeaders('', readSetCookieHeaders(seedResponse.headers), YUBA_RETURNED_COOKIE_KEYS)]
+        .filter((item): item is string => Boolean(item?.trim()))
+        .join('; '),
+      'User-Agent': DOUYU_USER_AGENT,
+      'Referer': YUBA_MY_GROUPS_URL,
+    },
+    validateStatus: status => status >= 200 && status < 400,
+  })
+  const yubaCookie = [
+    readSetCookieHeaders(seedResponse.headers),
+    readSetCookieHeaders(leaderboardResponse.headers),
+  ].reduce(
+    (cookie, headers) => mergeCookieWithAllowedSetCookieHeaders(cookie, headers, YUBA_RETURNED_COOKIE_KEYS),
+    '',
+  )
+  const dyDid = getCookieValue(mergedCookie, 'dy_did')
+
+  const safeAuthResponse = await axios.get(SAFE_AUTH_URL, {
+    headers: {
+      'Cookie': [passportCookie, args.mainCookie, yubaCookie]
+        .filter((item): item is string => Boolean(item?.trim()))
+        .join('; '),
       'User-Agent': DOUYU_USER_AGENT,
       'Referer': YUBA_MY_GROUPS_URL,
       'Origin': 'https://yuba.douyu.com',
     },
     params: {
-      client_id: '1',
+      client_id: '5',
+      ...(dyDid ? { did: dyDid } : {}),
       t: String(Date.now()),
-      _: String(Date.now()),
       callback: 'axiosJsonpCallback',
     },
+    maxRedirects: 0,
     validateStatus: status => status >= 200 && status < 400,
   })
 
@@ -402,9 +480,14 @@ export async function fetchDouyuYubaCookiesWithPassport(args: {
     bridgeMainCookie = args.mainCookie
   }
 
-  const authResponse = await axios.get(YUBA_AUTH_LOGIN_URL, {
+  const bridgeLocation = readHeaderString(safeAuthResponse.headers, 'location')
+  if (!bridgeLocation) {
+    throw new Error('鱼吧 SSO 未返回 authlogin 跳转地址')
+  }
+  const yubaAuthLoginUrl = normalizeYubaAuthLoginUrl(bridgeLocation)
+  const authResponse = await axios.get(yubaAuthLoginUrl, {
     headers: {
-      'Cookie': [passportCookie, bridgeMainCookie, args.yubaCookie]
+      'Cookie': [passportCookie, bridgeMainCookie, yubaCookie]
         .filter((item): item is string => Boolean(item?.trim()))
         .join('; '),
       'User-Agent': DOUYU_USER_AGENT,
@@ -413,7 +496,7 @@ export async function fetchDouyuYubaCookiesWithPassport(args: {
     validateStatus: status => status >= 200 && status < 400,
   })
 
-  return mergeYubaCookieWithSetCookieHeaders(args.yubaCookie || '', readSetCookieHeaders(authResponse.headers))
+  return mergeYubaCookieWithSetCookieHeaders(yubaCookie, readSetCookieHeaders(authResponse.headers))
 }
 
 export async function refreshDouyuMainCookiesWithSafeAuth(args: {

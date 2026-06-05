@@ -197,6 +197,8 @@ await saveTaskConfig({
 - Public `passportSaved` means `LTP0` exists. A waiting/scanned session that only has backend-generated device material must not be reported as passport-saved.
 - Passport/main success persists `manualPassport.cookie` and `manualCookies.main` immediately. Yuba success later persists `manualCookies.yuba`.
 - The main-site exchange must normalize Douyu's returned `www.douyu.com/api/passport/login` URL before requesting it: preserve returned query fields, add missing `callback=appClient_json_callback`, and add missing `_=<timestamp>`. Live diagnostics showed Douyu may return HTTP 200 without main-site `Set-Cookie` when these JSONP parameters are absent.
+- Full Yuba SSO must use the Yuba Passport bridge: call passport `safeAuth` with `client_id=5`, capture the 302 `Location`, validate that it resolves to `https://yuba.douyu.com/ybapi/authlogin`, and request that full redirected URL with its one-time query. `client_id=1` is the main-site bridge and redirects to `www.douyu.com/api/passport/login`, which does not mint full Yuba cookies.
+- Full Yuba SSO refresh must not send the previous local full Yuba snapshot into passport `safeAuth`. Live validation showed stale CookieCloud/imported Yuba cookies can make Douyu return HTTP 400. Seed only current-run Yuba material such as a freshly returned `acf_yb_t`, then merge the returned `acf_yb_auth` and `acf_yb_uid`.
 - QR main-site missing-cookie errors must identify the QR main-login exchange, not `safeAuth`; `safeAuth` wording is reserved for centralized recovery.
 - If Yuba SSO fails after main success, preserve the previous Yuba snapshot and return `canRetryYuba: true`; do not discard a working local Yuba cookie because the bridge failed once.
 - CookieCloud persistence is completeness-aware: incomplete fresh main/Yuba cookies must not overwrite complete local snapshots.
@@ -208,6 +210,8 @@ await saveTaskConfig({
 - Passport confirmation returns `LTP0` but the session lacks `dy_did` -> main snapshot would be incomplete; QR session startup must prevent this by generating device material before challenge generation.
 - Main login URL is not exactly `https://www.douyu.com/api/passport/login` -> public status `failed`, passport-only material is not exposed publicly.
 - Main login URL exchange returns no usable main-site `acf_*` fields -> public status `failed` with a QR main-login reason, passport-only material is not exposed publicly.
+- Yuba `safeAuth` uses `client_id=1` and redirects to `www.douyu.com/api/passport/login` -> treat as Yuba SSO failure; do not call bare Yuba `authlogin`.
+- Yuba `safeAuth` receives a stale local Yuba snapshot and returns HTTP 400 -> retry logic should avoid stale Yuba cookies rather than discard passport/main snapshots.
 - Yuba SSO fails after main saved -> public status `yuba_failed`, passport/main remain saved, existing Yuba remains unchanged.
 - Retry Yuba without saved passport/main material -> `400` JSON error.
 
@@ -219,6 +223,8 @@ await saveTaskConfig({
 - Base: user cancels before scanning; no config write occurs.
 - Base: CookieCloud sync receives incomplete main/Yuba cookies while local snapshots are complete; local complete snapshots remain authoritative.
 - Bad: requesting the raw QR `loginUrl` as-is, receiving HTTP 200 without `Set-Cookie`, and surfacing a misleading `safeAuth` error.
+- Bad: using `client_id=1` for Yuba `safeAuth`, then following the resulting main-site login bridge as if it were Yuba SSO.
+- Bad: carrying `manualCookies.yuba` from CookieCloud/old snapshots into a fresh Yuba SSO bridge request.
 - Bad: starting a backend-only QR session with no `dy_did`, saving `acf_*` main cookies, and then failing local diagnostics because the main snapshot lacks `dy_did`.
 - Bad: returning `scan_code`, `LTP0`, login ticket, or raw cookie values in public API responses.
 - Bad: putting QR polling or `safeAuth` logic in WebUI or task runners instead of `src/core` / `src/docker/runtime-cookie-source.ts`.
@@ -229,6 +235,7 @@ await saveTaskConfig({
 - Runtime tests should assert QR main persistence writes `dy_did` into both `manualPassport.cookie` and `manualCookies.main`.
 - Core tests should assert QR main login URL normalization adds missing `callback=appClient_json_callback` and `_` parameters while preserving the returned ticket/query fields.
 - Core tests should assert QR main login missing-cookie failures use QR-specific wording and do not mention `safeAuth`.
+- Core tests should assert Yuba SSO uses `client_id=5`, captures the Yuba `authlogin` redirect location, does not request bare `/ybapi/authlogin`, and does not send stale local Yuba auth cookies into the fresh bridge.
 - Runtime tests should assert passport/main persistence before Yuba, retryable Yuba failure, local Yuba preservation on failure, and no public secret leakage.
 - CookieCloud tests should assert incomplete fresh snapshots do not replace complete local main/Yuba snapshots.
 - Contract tests should assert route names and centralized ownership remain in cookie-source services, not task runners or WebUI.

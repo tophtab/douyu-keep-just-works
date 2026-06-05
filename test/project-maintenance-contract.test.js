@@ -398,8 +398,9 @@ test('CookieCloud sync-and-check persists first, then checks the local snapshot 
 
   assert.match(cookieRoutes, /ctx\.inspectCookieSource\(\)/)
   assert.doesNotMatch(cookieRoutes, /ctx\.inspectCookieSource\(true\)/)
-  assert.match(cookieSource, /mainCookie = cloudMainCookie \|\| mainCookie/)
-  assert.match(cookieSource, /yubaCookie = cloudYubaCookie \|\| yubaCookie \|\| mainCookie/)
+  assert.match(cookieSource, /shouldUseSourceCookie\(cloudMainCookie, mainCookie, COMPLETE_MAIN_COOKIE_KEYS\)/)
+  assert.match(cookieSource, /shouldUseSourceCookie\(cloudYubaCookie, yubaCookie, COMPLETE_YUBA_COOKIE_KEYS\)/)
+  assert.match(cookieSource, /yubaCookie = yubaCookie \|\| mainCookie/)
   assert.match(cookieSource, /getCookieCloudPassportCookie\(snapshot\.cookies\)\.trim\(\)/)
   assert.match(cookieSource, /buildCookieHeaderForUrl\(snapshot\.cookies, MAIN_DOUYU_URL\)/)
   assert.match(cookieSource, /buildCookieHeaderForUrl\(snapshot\.cookies, YUBA_DOUYU_URL\)/)
@@ -412,6 +413,9 @@ test('CookieCloud sync-and-check persists first, then checks the local snapshot 
   assert.ok(inspectStart >= 0 && inspectEnd > inspectStart)
   assert.doesNotMatch(cookieSource.slice(inspectStart, inspectEnd), /loadCookieCloudSnapshot/)
   assert.match(cookieSourceActions, /await syncCookieCloudToLoginCookies\(false, true\)[\s\S]*requestJson<CookieDiagnostics>\('\/api\/cookie-source\/check'/)
+  assert.match(cookieRoutes, /\/api\/cookie-source\/passport-login\/start/)
+  assert.match(cookieRoutes, /ctx\.startPassportQrLogin\(\)/)
+  assert.match(cookieRoutes, /ctx\.pollPassportQrLogin\(\)/)
 
   const cookieSourceCopy = readRepoFile('src/docker/webui/cookie-source-copy.ts')
   assert.doesNotMatch(cookieSourceCopy, /Cookie 数/)

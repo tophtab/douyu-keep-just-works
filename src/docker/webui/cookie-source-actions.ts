@@ -1,6 +1,6 @@
-import type { CookieDiagnostics, DockerConfig, EffectiveCookiePreview } from '../../core/types'
+import type { CookieDiagnostics, DockerConfig, EffectiveCookiePreview, PassportQrLoginPublicStatus } from '../../core/types'
 import { requestJson } from './request'
-import { rawConfig, setRawConfig } from './resource-config'
+import { loadRawConfig, rawConfig, setRawConfig } from './resource-config'
 import { clearCookieBackedData, refreshOverviewSurface } from './resource-state'
 import { getErrorMessage, isHttpUnauthorized } from './task-shared'
 import { showToast } from './toast'
@@ -12,6 +12,8 @@ import {
   getCookieCloudConfig,
   mainCookie,
   passportCookie,
+  passportQrLogin,
+  passportQrLoginBusy,
   yubaCookie,
 } from './cookie-source-state'
 
@@ -30,10 +32,83 @@ export interface PersistCookieSourceResponse {
   }
 }
 
+interface PassportQrLoginResponse {
+  data?: PassportQrLoginPublicStatus | null
+}
+
 async function refreshOverviewAfterCookieChange(showSuccessToast: boolean): Promise<void> {
   await refreshOverviewSurface('overview', false)
   if (showSuccessToast) {
     showToast('状态已刷新', true)
+  }
+}
+
+async function applyPassportQrLoginStatus(status: PassportQrLoginPublicStatus | null): Promise<void> {
+  passportQrLogin.value = status
+  if (!status?.mainSaved && !status?.yubaSaved) {
+    return
+  }
+
+  await loadRawConfig()
+  applyRawConfig(rawConfig.value)
+  clearCookieBackedData()
+  cookieCheck.value = null
+  await refreshOverviewAfterCookieChange(false)
+}
+
+async function requestPassportQrLoginStatus(pathname: string): Promise<PassportQrLoginPublicStatus | null | undefined> {
+  try {
+    const data = await requestJson<PassportQrLoginResponse>(pathname, {
+      method: pathname.endsWith('/status') ? 'GET' : 'POST',
+    })
+    await applyPassportQrLoginStatus(data.data || null)
+    return data.data || null
+  } catch (error) {
+    if (isHttpUnauthorized(error)) {
+      return undefined
+    }
+    showToast(`扫码登录失败：${getErrorMessage(error)}`, false)
+    return undefined
+  }
+}
+
+export async function startPassportQrLogin(): Promise<PassportQrLoginPublicStatus | undefined | null> {
+  passportQrLoginBusy.value = true
+  try {
+    return await requestPassportQrLoginStatus('/api/cookie-source/passport-login/start')
+  } finally {
+    passportQrLoginBusy.value = false
+  }
+}
+
+export async function pollPassportQrLogin(): Promise<PassportQrLoginPublicStatus | undefined | null> {
+  const status = await requestPassportQrLoginStatus('/api/cookie-source/passport-login/poll')
+  if (status?.status === 'yuba_saved') {
+    showToast('扫码登录快照已保存', true)
+  } else if (status?.status === 'yuba_failed') {
+    showToast('主站登录态已保存，鱼吧登录态可重试', false)
+  } else if (status?.status === 'failed' || status?.status === 'expired' || status?.status === 'cancelled') {
+    showToast(status.message, false)
+  }
+  return status
+}
+
+export async function cancelPassportQrLogin(): Promise<void> {
+  await requestPassportQrLoginStatus('/api/cookie-source/passport-login/cancel')
+}
+
+export async function retryPassportQrLoginYuba(): Promise<PassportQrLoginPublicStatus | undefined | null> {
+  passportQrLoginBusy.value = true
+  try {
+    const status = await requestPassportQrLoginStatus('/api/cookie-source/passport-login/retry-yuba')
+    if (status?.status === 'yuba_saved') {
+      showToast('鱼吧登录态已保存', true)
+    } else if (status?.status === 'yuba_failed') {
+      showToast('鱼吧登录态获取失败，请稍后重试', false)
+    }
+    return status
+  } finally {
+    passportQrLoginBusy.value = false
   }
 }
 

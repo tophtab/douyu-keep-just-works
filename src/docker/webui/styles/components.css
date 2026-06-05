@@ -309,3 +309,53 @@ textarea{
   flex-wrap:wrap;
   gap:10px;
 }
+.passport-qr-panel{
+  margin-top:14px;
+  display:flex;
+  align-items:flex-start;
+  gap:16px;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:var(--surface-soft);
+}
+.passport-qr-image{
+  width:160px;
+  height:160px;
+  flex:0 0 auto;
+  border-radius:12px;
+  border:1px solid var(--line-strong);
+  background:#fff;
+}
+.passport-qr-copy{
+  min-width:0;
+  flex:1;
+}
+.passport-qr-steps{
+  margin-top:12px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.passport-qr-steps span{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:3px 9px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+  background:rgba(120,138,160,.14);
+  color:var(--muted);
+}
+.passport-qr-steps span.ok{
+  background:rgba(39,178,127,.16);
+  color:var(--success);
+}
+.passport-qr-steps span.warn{
+  background:rgba(248,184,76,.16);
+  color:var(--warning);
+}
+.passport-qr-actions{
+  margin-top:14px;
+}

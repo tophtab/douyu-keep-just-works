@@ -1,4 +1,4 @@
-import type { CollectGiftConfig, CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, ManualCookieConfig, ManualPassportConfig, YubaCheckInConfig, YubaStatusResponse } from '../core/types'
+import type { CollectGiftConfig, CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, ManualCookieConfig, ManualPassportConfig, PassportQrLoginPublicStatus, YubaCheckInConfig, YubaStatusResponse } from '../core/types'
 import type { LogEntry } from './logger'
 import type { TaskType } from './task-metadata'
 
@@ -34,6 +34,11 @@ export interface AppContext {
     effective: EffectiveCookiePreview
     updated: boolean
   }>
+  startPassportQrLogin(): Promise<PassportQrLoginPublicStatus>
+  getPassportQrLoginStatus(): PassportQrLoginPublicStatus | null
+  pollPassportQrLogin(): Promise<PassportQrLoginPublicStatus>
+  cancelPassportQrLogin(): PassportQrLoginPublicStatus | null
+  retryPassportQrLoginYuba(): Promise<PassportQrLoginPublicStatus>
   triggerTask(type: TaskType): Promise<void>
   fetchFans(): Promise<Fans[]>
   fetchFansStatusBase(): Promise<FansStatusResponse>

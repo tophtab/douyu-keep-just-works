@@ -30,12 +30,14 @@
     "cron": "^4.4.0",
     "cron-parser": "^5.5.0",
     "express": "^5.2.1",
+    "qrcode": "^1.5.4",
     "ws": "^8.20.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",
     "@types/express": "^5.0.6",
     "@types/node": "^24.0.0",
+    "@types/qrcode": "^1.5.6",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-vue": "^6.0.6",
     "eslint": "^10.3.0",

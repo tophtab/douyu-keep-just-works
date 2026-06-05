@@ -1,5 +1,5 @@
 import { getFollowedYubaStatusesWithDyToken } from '../core/yuba'
-import type { CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, ManualCookieConfig, YubaStatusResponse } from '../core/types'
+import type { CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, ManualCookieConfig, PassportQrLoginPublicStatus, YubaStatusResponse } from '../core/types'
 import { assertDockerConfigCrons } from './cron'
 import { buildConfigWithPartialUpdate } from './config-store'
 import type { DockerConfigUpdate } from './config-store'
@@ -29,6 +29,11 @@ interface DockerRuntimeAppContextDeps {
     effective: EffectiveCookiePreview
     updated: boolean
   }>
+  startPassportQrLogin: () => Promise<PassportQrLoginPublicStatus>
+  getPassportQrLoginStatus: () => PassportQrLoginPublicStatus | null
+  pollPassportQrLogin: () => Promise<PassportQrLoginPublicStatus>
+  cancelPassportQrLogin: () => PassportQrLoginPublicStatus | null
+  retryPassportQrLoginYuba: () => Promise<PassportQrLoginPublicStatus>
   syncConfigWithFans: (reason: DockerRuntimeFansSyncReason, baseConfig?: DockerConfig) => Promise<{ config: DockerConfig; fans: Fans[] }>
   getStatus: () => TaskStatusMap
   triggerTask: (
@@ -107,6 +112,11 @@ export function createRuntimeAppContext(deps: DockerRuntimeAppContextDeps): AppC
     inspectCookieSource: async () => await deps.inspectCookieSource(),
     getEffectiveCookies: async (forceRefresh?: boolean) => await deps.getEffectiveCookies(forceRefresh),
     persistEffectiveCookies: async (forceRefresh?: boolean) => await deps.persistEffectiveCookies(forceRefresh),
+    startPassportQrLogin: async () => await deps.startPassportQrLogin(),
+    getPassportQrLoginStatus: () => deps.getPassportQrLoginStatus(),
+    pollPassportQrLogin: async () => await deps.pollPassportQrLogin(),
+    cancelPassportQrLogin: () => deps.cancelPassportQrLogin(),
+    retryPassportQrLoginYuba: async () => await deps.retryPassportQrLoginYuba(),
     triggerTask: async (type: TaskType) => await deps.triggerTask(type, deps.getCurrentConfig(), hasSendRooms),
     fetchFans: async () => await deps.runWithCookieSourceRetry('加载粉丝牌列表', async () => {
       const cookie = deps.resolveCookieForUrl(MAIN_DOUYU_URL)

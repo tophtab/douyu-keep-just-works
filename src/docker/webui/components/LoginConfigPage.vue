@@ -6,6 +6,7 @@ import EnableSwitch from './EnableSwitch.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
 
 const {
+  cancelPassportLogin,
   checkCookieSource,
   cookieCheckText,
   cookieCloud,
@@ -15,10 +16,23 @@ const {
   loginStatus,
   mainCookie,
   passportCookie,
+  passportQrLogin,
+  passportQrLoginBusy,
+  passportQrLoginText,
+  retryPassportYubaLogin,
   saveAndEnableCookieCloud,
   saveCookie,
+  startPassportLogin,
   yubaCookie,
 } = useCookieLoginPage()
+
+function handleManualCookieAction(index: number): void {
+  if (index === 0) {
+    void startPassportLogin()
+    return
+  }
+  void saveCookie()
+}
 
 function handleCookieCloudAction(index: number): void {
   if (index === 0) {
@@ -63,7 +77,52 @@ function handleCookieCloudAction(index: number): void {
     <p class="subtle" style="margin-top:4px">
       passport Cookie 可选。主站 Cookie 失效后，系统会使用这里保存的 LTP0 和 dy_did 进行一次 safeAuth 恢复。
     </p>
-    <ActionBar :actions="[{ label: '保存手填 Cookie', kind: 'success' }]" @action="saveCookie" />
+    <ActionBar
+      :actions="[
+        { label: passportQrLoginBusy ? '扫码中' : '扫码登录', kind: 'primary' },
+        { label: '手填保存', kind: 'success' },
+      ]"
+      @action="handleManualCookieAction"
+    />
+    <div v-if="passportQrLogin" class="passport-qr-panel" role="status" aria-live="polite">
+      <img
+        v-if="passportQrLogin.qrImageDataUrl"
+        class="passport-qr-image"
+        :src="passportQrLogin.qrImageDataUrl"
+        alt="斗鱼扫码登录二维码"
+      >
+      <div class="passport-qr-copy">
+        <div class="mini-label">
+          扫码登录
+        </div>
+        <div class="mini-value">
+          {{ passportQrLoginText }}
+        </div>
+        <div class="passport-qr-steps" aria-label="扫码登录进度">
+          <span :class="{ ok: passportQrLogin.passportSaved }">passport</span>
+          <span :class="{ ok: passportQrLogin.mainSaved }">主站</span>
+          <span :class="{ ok: passportQrLogin.yubaSaved, warn: passportQrLogin.canRetryYuba }">鱼吧</span>
+        </div>
+        <div class="actions passport-qr-actions">
+          <button
+            v-if="passportQrLogin.canRetryYuba"
+            class="btn btn-secondary"
+            type="button"
+            @click="retryPassportYubaLogin"
+          >
+            重试鱼吧
+          </button>
+          <button
+            v-if="!passportQrLogin.finished"
+            class="btn btn-secondary"
+            type="button"
+            @click="cancelPassportLogin"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="panel" style="margin-top:16px">

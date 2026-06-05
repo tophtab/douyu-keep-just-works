@@ -1,6 +1,9 @@
+import { randomUUID } from 'node:crypto'
+import QRCode from 'qrcode'
 import { parseCookieRecord } from '../core/api'
 import { buildCookieHeaderForUrl, createCookieDiagnostics, fetchCookieCloudSnapshot, getCookieCloudPassportCookie, isCookieCloudReady } from '../core/cookie-cloud'
-import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, EffectiveCookiePreview } from '../core/types'
+import { fetchDouyuMainCookiesFromLoginUrl, fetchDouyuYubaCookiesWithPassport, generateDouyuPassportQrChallenge, pollDouyuPassportQrAuth } from '../core/douyu-passport'
+import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, EffectiveCookiePreview, PassportQrLoginPublicStatus, PassportQrLoginStatus } from '../core/types'
 import { buildConfigWithPartialUpdate, configsEqual, saveConfigToDisk } from './config-store'
 import { recoverCredentialSnapshot as recoverCredentialSnapshotWithDeps } from './runtime-cookie-recovery'
 import type { CookieRecoveryLogger, CookieSnapshotValidator, CredentialSnapshotRecoveryResult } from './runtime-cookie-recovery'
@@ -8,6 +11,9 @@ import type { StatusCacheScope } from './runtime-cache'
 import { MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
 
 const COOKIE_CLOUD_CACHE_TTL_MS = 60 * 1000
+const PASSPORT_QR_IMAGE_SIZE = 240
+const COMPLETE_MAIN_COOKIE_KEYS = ['acf_uid', 'dy_did', 'acf_auth', 'acf_stk', 'acf_ltkid', 'acf_biz', 'acf_ct']
+const COMPLETE_YUBA_COOKIE_KEYS = ['acf_yb_auth', 'acf_yb_uid', 'acf_yb_t']
 
 interface CookieCloudCacheEntry {
   key: string
@@ -20,8 +26,46 @@ interface EffectiveCookieMaterial {
   manualPassportCookie?: string
 }
 
+interface PassportQrLoginSession {
+  id: string
+  code: string
+  expiresAt: number
+  qrImageDataUrl?: string
+  status: PassportQrLoginStatus
+  message: string
+  passportCookie?: string
+  loginUrl?: string
+  mainCookie?: string
+  yubaCookie?: string
+  error?: string
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+function cookieHasKeys(cookie: string, keys: string[]): boolean {
+  const record = parseCookieRecord(cookie)
+  return keys.every(name => Boolean(record[name]))
+}
+
+function shouldUseSourceCookie(sourceCookie: string, currentCookie: string, requiredKeys: string[]): boolean {
+  if (!sourceCookie) {
+    return false
+  }
+  if (!currentCookie) {
+    return true
+  }
+  return !(cookieHasKeys(currentCookie, requiredKeys) && !cookieHasKeys(sourceCookie, requiredKeys))
+}
+
+function isTerminalPassportQrStatus(status: PassportQrLoginStatus): boolean {
+  return ['yuba_saved', 'yuba_failed', 'expired', 'cancelled', 'failed'].includes(status)
+}
+
 export class DockerCookieSourceManager {
   private cookieCloudCache: CookieCloudCacheEntry | null = null
+  private passportQrLoginSession: PassportQrLoginSession | null = null
 
   constructor(
     private readonly getConfig: () => DockerConfig | null,
@@ -58,6 +102,127 @@ export class DockerCookieSourceManager {
 
   clearCookieCloudCache(): void {
     this.cookieCloudCache = null
+  }
+
+  async startPassportQrLogin(): Promise<PassportQrLoginPublicStatus> {
+    const challenge = await generateDouyuPassportQrChallenge()
+    const qrImageDataUrl = await QRCode.toDataURL(challenge.qrUrl, {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      width: PASSPORT_QR_IMAGE_SIZE,
+    })
+    this.passportQrLoginSession = {
+      id: randomUUID(),
+      code: challenge.code,
+      expiresAt: challenge.expiresAt,
+      qrImageDataUrl,
+      status: 'waiting',
+      message: '等待扫码',
+    }
+    return this.toPassportQrPublicStatus(this.passportQrLoginSession)
+  }
+
+  getPassportQrLoginStatus(): PassportQrLoginPublicStatus | null {
+    const session = this.passportQrLoginSession
+    if (!session) {
+      return null
+    }
+    this.markPassportQrExpiredIfNeeded(session)
+    return this.toPassportQrPublicStatus(session)
+  }
+
+  async pollPassportQrLogin(): Promise<PassportQrLoginPublicStatus> {
+    const session = this.passportQrLoginSession
+    if (!session) {
+      throw new Error('扫码登录会话不存在')
+    }
+    this.markPassportQrExpiredIfNeeded(session)
+    if (isTerminalPassportQrStatus(session.status)) {
+      return this.toPassportQrPublicStatus(session)
+    }
+
+    try {
+      if (session.status === 'waiting' || session.status === 'scanned') {
+        const pollResult = await pollDouyuPassportQrAuth(session.code, session.passportCookie || '')
+        if (pollResult.status === 'waiting' || pollResult.status === 'scanned') {
+          session.status = pollResult.status
+          session.message = pollResult.status === 'scanned' ? '已扫码，等待确认' : '等待扫码'
+          return this.toPassportQrPublicStatus(session)
+        }
+        if (pollResult.status === 'expired' || pollResult.status === 'cancelled' || pollResult.status === 'failed') {
+          session.status = pollResult.status
+          session.message = pollResult.message
+          return this.toPassportQrPublicStatus(session)
+        }
+
+        session.status = 'passport_confirmed'
+        session.message = 'passport 已确认，正在获取主站登录态'
+        session.passportCookie = pollResult.passportCookie
+        session.loginUrl = pollResult.loginUrl
+        return this.toPassportQrPublicStatus(session)
+      }
+
+      if (session.status === 'passport_confirmed') {
+        await this.completePassportQrMainSnapshot(session)
+        return this.toPassportQrPublicStatus(session)
+      }
+
+      if (session.status === 'main_saved') {
+        await this.completePassportQrYubaSnapshot(session)
+        return this.toPassportQrPublicStatus(session)
+      }
+    } catch (error: unknown) {
+      session.status = 'failed'
+      session.message = '扫码登录失败'
+      session.error = errorMessage(error)
+    }
+
+    return this.toPassportQrPublicStatus(session)
+  }
+
+  cancelPassportQrLogin(): PassportQrLoginPublicStatus | null {
+    const session = this.passportQrLoginSession
+    if (!session) {
+      return null
+    }
+    if (!isTerminalPassportQrStatus(session.status)) {
+      session.status = 'cancelled'
+      session.message = '扫码登录已取消'
+    }
+    return this.toPassportQrPublicStatus(session)
+  }
+
+  async retryPassportQrLoginYuba(): Promise<PassportQrLoginPublicStatus> {
+    const currentSession = this.passportQrLoginSession
+    const passportCookie = currentSession?.passportCookie || this.getManualPassportCookie()
+    const mainCookie = currentSession?.mainCookie || this.getManualCookieForUrl(MAIN_DOUYU_URL, this.getConfig())
+    if (!passportCookie || !mainCookie) {
+      throw new Error('鱼吧重试缺少已保存的 passport 或主站登录态')
+    }
+
+    const session: PassportQrLoginSession = currentSession || {
+      id: randomUUID(),
+      code: '',
+      expiresAt: Date.now(),
+      status: 'main_saved',
+      message: '主站已保存，正在获取鱼吧登录态',
+      passportCookie,
+      mainCookie,
+    }
+    this.passportQrLoginSession = session
+    session.status = 'main_saved'
+    session.message = '主站已保存，正在获取鱼吧登录态'
+    session.error = undefined
+
+    try {
+      await this.completePassportQrYubaSnapshot(session)
+    } catch (error: unknown) {
+      session.status = 'yuba_failed'
+      session.message = '鱼吧登录态获取失败，可重试'
+      session.error = errorMessage(error)
+    }
+
+    return this.toPassportQrPublicStatus(session)
   }
 
   resolveCookieForUrlFromConfig(targetUrl: string, config: DockerConfig | null | undefined): string {
@@ -101,8 +266,13 @@ export class DockerCookieSourceManager {
       }
 
       if (cloudMainCookie || cloudYubaCookie) {
-        mainCookie = cloudMainCookie || mainCookie
-        yubaCookie = cloudYubaCookie || yubaCookie || mainCookie
+        if (shouldUseSourceCookie(cloudMainCookie, mainCookie, COMPLETE_MAIN_COOKIE_KEYS)) {
+          mainCookie = cloudMainCookie
+        }
+        if (shouldUseSourceCookie(cloudYubaCookie, yubaCookie, COMPLETE_YUBA_COOKIE_KEYS)) {
+          yubaCookie = cloudYubaCookie
+        }
+        yubaCookie = yubaCookie || mainCookie
         source = this.hasManualCookie(currentConfig) ? 'hybrid' : 'cookieCloud'
       }
     }
@@ -209,6 +379,107 @@ export class DockerCookieSourceManager {
     }
 
     throw new Error('请先配置 cookie')
+  }
+
+  private markPassportQrExpiredIfNeeded(session: PassportQrLoginSession): void {
+    if ((session.status === 'waiting' || session.status === 'scanned') && Date.now() >= session.expiresAt) {
+      session.status = 'expired'
+      session.message = '扫码登录已过期'
+    }
+  }
+
+  private toPassportQrPublicStatus(session: PassportQrLoginSession): PassportQrLoginPublicStatus {
+    const passportSaved = Boolean(session.passportCookie)
+    const mainSaved = Boolean(session.mainCookie)
+    const yubaSaved = Boolean(session.yubaCookie) || session.status === 'yuba_saved'
+    const canRetryYuba = session.status === 'yuba_failed' && passportSaved && mainSaved
+    const showQrImage = (session.status === 'waiting' || session.status === 'scanned') && Boolean(session.qrImageDataUrl)
+
+    return {
+      sessionId: session.id,
+      status: session.status,
+      message: session.message,
+      expiresAt: session.expiresAt,
+      ...(showQrImage ? { qrImageDataUrl: session.qrImageDataUrl } : {}),
+      passportSaved,
+      mainSaved,
+      yubaSaved,
+      canRetryYuba,
+      finished: isTerminalPassportQrStatus(session.status),
+      ...(session.error ? { error: session.error } : {}),
+    }
+  }
+
+  private async completePassportQrMainSnapshot(session: PassportQrLoginSession): Promise<void> {
+    if (!session.passportCookie || !session.loginUrl) {
+      throw new Error('扫码登录缺少 passport 或主站登录地址')
+    }
+
+    const mainResult = await fetchDouyuMainCookiesFromLoginUrl({
+      loginUrl: session.loginUrl,
+      mainCookie: this.getManualCookieForUrl(MAIN_DOUYU_URL, this.getConfig()),
+      passportCookie: session.passportCookie,
+    })
+    session.mainCookie = mainResult.refreshedCookie
+    this.persistPassportQrCookieSnapshot({
+      passportCookie: session.passportCookie,
+      mainCookie: session.mainCookie,
+    })
+    session.status = 'main_saved'
+    session.message = '主站已保存，正在获取鱼吧登录态'
+  }
+
+  private async completePassportQrYubaSnapshot(session: PassportQrLoginSession): Promise<void> {
+    if (!session.passportCookie || !session.mainCookie) {
+      throw new Error('鱼吧 SSO 缺少 passport 或主站登录态')
+    }
+
+    try {
+      const yubaResult = await fetchDouyuYubaCookiesWithPassport({
+        passportCookie: session.passportCookie,
+        mainCookie: session.mainCookie,
+        yubaCookie: this.getManualCookieForUrl(YUBA_DOUYU_URL, this.getConfig()),
+      })
+      session.yubaCookie = yubaResult.yubaCookie
+      this.persistPassportQrCookieSnapshot({
+        passportCookie: session.passportCookie,
+        mainCookie: session.mainCookie,
+        yubaCookie: session.yubaCookie,
+      })
+      session.status = 'yuba_saved'
+      session.message = '登录快照已保存'
+    } catch (error: unknown) {
+      session.status = 'yuba_failed'
+      session.message = '鱼吧登录态获取失败，可重试'
+      session.error = errorMessage(error)
+    }
+  }
+
+  private persistPassportQrCookieSnapshot(args: {
+    passportCookie: string
+    mainCookie: string
+    yubaCookie?: string
+  }): DockerConfig {
+    const currentYubaCookie = this.getConfig()?.manualCookies?.yuba?.trim() || ''
+    const nextConfig = buildConfigWithPartialUpdate(this.getConfig(), {
+      manualCookies: {
+        main: args.mainCookie.trim(),
+        yuba: args.yubaCookie?.trim() || currentYubaCookie,
+      },
+      manualPassport: {
+        cookie: args.passportCookie.trim(),
+      },
+    })
+
+    if (!configsEqual(this.getConfig(), nextConfig)) {
+      saveConfigToDisk(this.getConfigPath(), nextConfig)
+      this.applyConfig(nextConfig, 'cookie_saved')
+    } else {
+      this.setConfig(nextConfig)
+      this.clearFansListCache()
+      this.invalidateStatusCaches('all')
+    }
+    return nextConfig
   }
 
   private persistManualCookieSnapshot(mainCookie: string, yubaCookie: string): DockerConfig {

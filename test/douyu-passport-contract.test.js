@@ -60,6 +60,7 @@ test('safeAuth helper sends dy_did and LTP0 and merges returned main-site auth f
   assert.equal(request.options.headers.Cookie, 'dy_did=did-redacted; LTP0=ltp0-redacted')
   assert.equal(request.options.params.client_id, '1')
   assert.equal(request.options.params.callback, 'axiosJsonpCallback')
+  assert.notEqual(request.options.maxRedirects, 0)
   assert.deepEqual(JSON.parse(JSON.stringify(result.returnedKeys)), [
     'acf_auth',
     'acf_biz',
@@ -382,6 +383,173 @@ test('CookieCloud persist stores passport cookie in the local manual passport sn
     assert.equal(savedConfig.manualPassport.cookie, 'dy_did=did-redacted; LTP0=ltp0-redacted')
     assert.equal(savedConfig.manualCookies.main.includes('acf_auth=auth-redacted'), true)
     assert.deepEqual(cacheInvalidations, ['all'])
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true })
+  }
+})
+
+test('CookieCloud persist keeps complete local snapshots when fresh CookieCloud cookies are incomplete', async () => {
+  const completeMain = 'acf_uid=uid-local; dy_did=did-local; acf_auth=auth-local; acf_stk=stk-local; acf_ltkid=ltk-local; acf_biz=biz-local; acf_ct=ct-local'
+  const completeYuba = 'acf_yb_auth=yb-auth-local; acf_yb_uid=yb-uid-local; acf_yb_t=yb-t-local'
+  const { DockerCookieSourceManager } = loadTypeScriptModule('src/docker/runtime-cookie-source.ts', {
+    qrcode: {
+      __esModule: true,
+      default: { toDataURL: async () => 'data:image/png;base64,qr-redacted' },
+    },
+    '../core/cookie-cloud': {
+      buildCookieHeaderForUrl: (_cookies, targetUrl) => targetUrl.includes('yuba.douyu.com')
+        ? 'acf_yb_t=yb-t-incomplete'
+        : 'acf_uid=uid-cloud; dy_did=did-cloud',
+      createCookieDiagnostics: () => ({}),
+      fetchCookieCloudSnapshot: async () => ({
+        cookies: [],
+        cryptoType: 'legacy',
+        domains: ['douyu.com', 'yuba.douyu.com'],
+      }),
+      getCookieCloudPassportCookie: () => '',
+      isCookieCloudReady: config => Boolean(config?.active && config.endpoint && config.uuid && config.password),
+    },
+  })
+  let config = {
+    cookie: completeMain,
+    manualCookies: {
+      main: completeMain,
+      yuba: completeYuba,
+    },
+    cookieCloud: {
+      active: true,
+      endpoint: 'https://cookiecloud.example.com',
+      uuid: 'uuid-redacted',
+      password: 'password-redacted',
+    },
+  }
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'douyu-cookie-source-'))
+  const configPath = path.join(tempDir, 'config.json')
+
+  try {
+    const manager = new DockerCookieSourceManager(
+      () => config,
+      (nextConfig) => {
+        config = nextConfig
+      },
+      () => configPath,
+      (nextConfig) => {
+        config = nextConfig
+      },
+      () => {},
+      () => {},
+    )
+
+    const result = await manager.persistEffectiveCookies(true)
+    assert.equal(result.config.manualCookies.main, completeMain)
+    assert.equal(result.config.manualCookies.yuba, completeYuba)
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true })
+  }
+})
+
+test('passport QR login session persists passport and main before retryable Yuba success without public secrets', async () => {
+  const secretScanCode = 'scan-code-redacted-secret-value'
+  const secretLoginTicket = 'login-ticket-redacted-secret-value'
+  const secretPassport = 'passport-ltp0-redacted-secret-value'
+  const secretMainAuth = 'main-auth-redacted-secret-value'
+  const secretYubaAuth = 'yuba-auth-redacted-secret-value'
+  let yubaAttempts = 0
+  let config = {
+    cookie: '',
+    manualCookies: {
+      main: '',
+      yuba: 'acf_yb_auth=old-yuba; acf_yb_uid=old-uid; acf_yb_t=old-t',
+    },
+  }
+  const { DockerCookieSourceManager } = loadTypeScriptModule('src/docker/runtime-cookie-source.ts', {
+    qrcode: {
+      __esModule: true,
+      default: {
+        toDataURL: async (url) => {
+          assert.match(url, new RegExp(secretScanCode))
+          return 'data:image/png;base64,qr-redacted'
+        },
+      },
+    },
+    '../core/douyu-passport': {
+      generateDouyuPassportQrChallenge: async () => ({
+        code: secretScanCode,
+        qrUrl: `https://m.douyu.com/topic/scan-login-middle-page?scan_code=${secretScanCode}`,
+        expiresIn: 300,
+        expiresAt: Date.now() + 300000,
+      }),
+      pollDouyuPassportQrAuth: async () => ({
+        status: 'confirmed',
+        message: 'success',
+        passportCookie: `dy_did=did-redacted; LTP0=${secretPassport}`,
+        loginUrl: `https://www.douyu.com/api/passport/login?code=${secretLoginTicket}`,
+      }),
+      fetchDouyuMainCookiesFromLoginUrl: async (args) => {
+        assert.match(args.loginUrl, new RegExp(secretLoginTicket))
+        return {
+          refreshedCookie: `dy_did=did-redacted; acf_uid=uid-redacted; acf_auth=${secretMainAuth}; acf_stk=stk-redacted; acf_ltkid=ltk-redacted; acf_biz=biz-redacted; acf_ct=ct-redacted`,
+          returnedKeys: ['acf_auth'],
+        }
+      },
+      fetchDouyuYubaCookiesWithPassport: async () => {
+        yubaAttempts += 1
+        if (yubaAttempts === 1) {
+          throw new Error('Yuba SSO failed once')
+        }
+        return {
+          yubaCookie: `acf_yb_auth=${secretYubaAuth}; acf_yb_uid=yb-uid-redacted; acf_yb_t=yb-t-redacted`,
+          returnedKeys: ['acf_yb_auth', 'acf_yb_uid', 'acf_yb_t'],
+        }
+      },
+    },
+  })
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'douyu-qr-login-'))
+  const configPath = path.join(tempDir, 'config.json')
+
+  try {
+    const manager = new DockerCookieSourceManager(
+      () => config,
+      (nextConfig) => {
+        config = nextConfig
+      },
+      () => configPath,
+      (nextConfig) => {
+        config = nextConfig
+      },
+      () => {},
+      () => {},
+    )
+
+    const started = await manager.startPassportQrLogin()
+    assert.equal(started.status, 'waiting')
+    assert.equal(started.qrImageDataUrl, 'data:image/png;base64,qr-redacted')
+    assert.equal(JSON.stringify(started).includes(secretScanCode), false)
+
+    const passportConfirmed = await manager.pollPassportQrLogin()
+    assert.equal(passportConfirmed.status, 'passport_confirmed')
+    assert.equal(passportConfirmed.passportSaved, true)
+    assert.equal(JSON.stringify(passportConfirmed).includes(secretPassport), false)
+    assert.equal(JSON.stringify(passportConfirmed).includes(secretLoginTicket), false)
+
+    const mainSaved = await manager.pollPassportQrLogin()
+    assert.equal(mainSaved.status, 'main_saved')
+    assert.equal(mainSaved.mainSaved, true)
+    assert.equal(config.manualPassport.cookie.includes(secretPassport), true)
+    assert.equal(config.manualCookies.main.includes(secretMainAuth), true)
+    assert.equal(config.manualCookies.yuba.includes('old-yuba'), true)
+    assert.equal(JSON.stringify(mainSaved).includes(secretMainAuth), false)
+
+    const yubaFailed = await manager.pollPassportQrLogin()
+    assert.equal(yubaFailed.status, 'yuba_failed')
+    assert.equal(yubaFailed.canRetryYuba, true)
+    assert.equal(config.manualCookies.yuba.includes('old-yuba'), true)
+
+    const yubaSaved = await manager.retryPassportQrLoginYuba()
+    assert.equal(yubaSaved.status, 'yuba_saved')
+    assert.equal(yubaSaved.yubaSaved, true)
+    assert.equal(config.manualCookies.yuba.includes(secretYubaAuth), true)
+    assert.equal(JSON.stringify(yubaSaved).includes(secretYubaAuth), false)
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true })
   }

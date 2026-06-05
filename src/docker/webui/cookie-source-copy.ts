@@ -1,4 +1,4 @@
-import type { CookieDiagnostics } from '../../core/types'
+import type { CookieDiagnostics, PassportQrLoginPublicStatus } from '../../core/types'
 import { formatDate } from './datetime'
 import { rawConfig } from './resource-config'
 import { getManagedFans } from './resource-fans'
@@ -33,6 +33,15 @@ export function buildCookieCheckText(result: CookieDiagnostics | null): string {
     ? ''
     : ` passport Cookie ${result.passportLtp0Present ? '已配置' : '未配置'}。`
   return `来源: ${sourceLabel}${updateText}。${mainText}；${yubaDyTokenText}；${yubaText}。${passportText}`
+}
+
+export function buildPassportQrLoginText(status: PassportQrLoginPublicStatus | null): string {
+  if (!status) {
+    return '扫码登录未开始'
+  }
+  const retryText = status.canRetryYuba ? '，鱼吧可重试' : ''
+  const errorText = status.error ? `：${status.error}` : ''
+  return `${status.message}${retryText}${errorText}`
 }
 
 export function buildLoginStatus() {

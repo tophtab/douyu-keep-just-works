@@ -1,4 +1,4 @@
-import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, ManualCookieConfig, ManualPassportConfig } from '../../core/types'
+import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, ManualCookieConfig, ManualPassportConfig, PassportQrLoginPublicStatus } from '../../core/types'
 import { reactive, ref } from 'vue'
 import { DEFAULT_COOKIE_CLOUD_SYNC_CRON } from '../../core/task-defaults'
 import { useCronPreview } from './composables/use-cron-preview'
@@ -8,6 +8,8 @@ export const cookieCheck = ref<CookieDiagnostics | null>(null)
 export const mainCookie = ref('')
 export const yubaCookie = ref('')
 export const passportCookie = ref('')
+export const passportQrLogin = ref<PassportQrLoginPublicStatus | null>(null)
+export const passportQrLoginBusy = ref(false)
 export const cookieCloud = reactive({
   active: false,
   endpoint: '',

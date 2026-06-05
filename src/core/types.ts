@@ -109,6 +109,31 @@ export interface EffectiveCookiePreview {
   passportLtp0Present?: boolean
 }
 
+export type PassportQrLoginStatus
+  = | 'waiting'
+    | 'scanned'
+    | 'passport_confirmed'
+    | 'main_saved'
+    | 'yuba_saved'
+    | 'yuba_failed'
+    | 'expired'
+    | 'cancelled'
+    | 'failed'
+
+export interface PassportQrLoginPublicStatus {
+  sessionId: string
+  status: PassportQrLoginStatus
+  message: string
+  expiresAt: number
+  qrImageDataUrl?: string
+  passportSaved: boolean
+  mainSaved: boolean
+  yubaSaved: boolean
+  canRetryYuba: boolean
+  finished: boolean
+  error?: string
+}
+
 export interface YubaFollowedGroup {
   groupId: number
   name: string

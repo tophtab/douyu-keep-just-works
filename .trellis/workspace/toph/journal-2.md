@@ -104,3 +104,36 @@ Replaced remaining task page uses of TaskTableSection with the shared TableSecti
 ### Next Steps
 
 - None - task complete
+
+
+## Session 63: Swap run log button order
+
+**Date**: 2026-06-06
+**Task**: Swap run log button order
+**Branch**: `master`
+
+### Summary
+
+Swapped the run log page action buttons so clear logs appears before manual refresh, then verified lint and WebUI type-check.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6484acc` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

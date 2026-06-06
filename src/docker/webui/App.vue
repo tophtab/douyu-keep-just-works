@@ -81,7 +81,7 @@ watch([authenticated, activeTab], ([nextAuthenticated, nextTab]) => {
   />
 
   <AppShell
-    v-show="authenticated"
+    v-if="authenticated"
     :active-page-meta="activePageMeta"
     :active-tab="activeTab"
     :app-name="bootstrap.appName"

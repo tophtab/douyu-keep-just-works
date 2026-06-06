@@ -54,6 +54,12 @@ interface ResourceRequest {
 
 When adding a new server resource, keep the API call in a Vue-owned composable or shared resource helper. If the resource is shared across pages, create or extend a focused `resource-*` module and import that owner directly from page modules. Do not introduce `window.DOUYU_KEEP_WEBUI_*` bridge state.
 
+### Protected Shell Mounting
+
+Protected WebUI pages must not mount before authentication succeeds. Use `v-if="authenticated"` for the authenticated shell, not `v-show`, because hidden Vue components still run setup/watch logic and can issue protected API requests such as `/api/cron-preview` before the session is ready.
+
+When a protected helper can be called before authentication due to future composition changes, unauthorized responses should be ignored or treated as session state, not persisted as field validation errors.
+
 ---
 
 ## Scenario: Manual Force Refresh Of Cache-Backed Resources

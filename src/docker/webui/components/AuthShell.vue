@@ -60,7 +60,7 @@ function updatePassword(event: Event): void {
               @input="updatePassword"
             >
           </div>
-          <div v-show="loginError" id="login-error" class="auth-error" role="alert">
+          <div v-if="loginError" id="login-error" class="auth-error" role="alert">
             {{ loginError }}
           </div>
           <div class="actions auth-actions">

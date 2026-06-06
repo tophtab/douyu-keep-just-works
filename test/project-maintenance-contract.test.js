@@ -2,6 +2,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { test } = require('node:test')
+const { loadTypeScriptModule } = require('./helpers/typescript-module-loader')
 
 const repoRoot = path.resolve(__dirname, '..')
 
@@ -188,7 +189,7 @@ test('Docker WebUI remains Vue-only without legacy bridge files', () => {
   assert.match(appVue, /useThemeMode\(\)/)
   assert.match(appVue, /useToastRegion\(\)/)
   assert.match(appVue, /<AuthShell[\s\S]*v-show="!authenticated"/)
-  assert.match(appVue, /<AppShell[\s\S]*v-show="authenticated"/)
+  assert.match(appVue, /<AppShell[\s\S]*v-if="authenticated"/)
   assert.match(appVue, /id="toast-live"[\s\S]*role="status"[\s\S]*aria-live="polite"/)
 
   assert.doesNotMatch(componentSurface, /data-action=|data-trigger=|id="app-shell" style="display:none"/)
@@ -373,6 +374,25 @@ test('Docker WebUI resource and page ownership stays in focused Vue modules', ()
   assert.match(expiring, /triggerFansBackedTask\('expiringGift', applyResourceState\)/)
   assert.match(yuba, /watch\(\[sharedRawConfig, sharedOverview, sharedYubaStatus/)
   assert.match(yuba, /refreshOverviewSurface\('yuba', false\)/)
+})
+
+test('Docker WebUI cron preview ignores unauthorized pre-auth responses', async () => {
+  const unauthorizedError = new Error('请先登录')
+  unauthorizedError.status = 401
+
+  const { useCronPreview } = loadTypeScriptModule('src/docker/webui/composables/use-cron-preview.ts', {
+    '../request': {
+      requestJson: async () => {
+        throw unauthorizedError
+      },
+    },
+  })
+
+  const preview = useCronPreview(() => '0 5 0 * * *')
+  await preview.loadCronPreview()
+
+  assert.equal(preview.cronPreview.value.error, '')
+  assert.doesNotMatch(preview.cronPreviewText.value, /请先登录|cron 校验失败/)
 })
 
 test('Docker task scheduling uses shared task metadata for inventory facts', () => {

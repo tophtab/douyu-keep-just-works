@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { formatDate } from '../datetime'
+import type { WebUiRequestError } from '../request'
 import { requestJson } from '../request'
 import { getErrorMessage } from '../task-shared'
 
@@ -18,6 +19,10 @@ export function useCronPreview(getRawValue: () => string) {
     loading: false,
   })
   let requestSeq = 0
+
+  function isUnauthorizedError(error: unknown): error is WebUiRequestError {
+    return Boolean(error && typeof error === 'object' && 'status' in error && error.status === 401)
+  }
 
   async function loadCronPreview(): Promise<void> {
     const value = getRawValue().trim()
@@ -38,6 +43,10 @@ export function useCronPreview(getRawValue: () => string) {
       cronPreview.value = { value, runs: data.runs || [], error: '', loading: false }
     } catch (error) {
       if (requestSeq !== currentRequestSeq) {
+        return
+      }
+      if (isUnauthorizedError(error)) {
+        cronPreview.value = { value, runs: [], error: '', loading: false }
         return
       }
       cronPreview.value = { value, runs: [], error: getErrorMessage(error), loading: false }

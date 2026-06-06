@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 40
+- **Total Sessions**: 41
 - **Last Active**: 2026-06-06
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1356 | Active |
+| `journal-1.md` | ~1389 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 41 | 2026-06-06 | Contract test behavior modernization | `c2a60c8` | `master` |
 | 40 | 2026-06-06 | Contract test taxonomy | `5b74733` | `master` |
 | 39 | 2026-06-06 | Recover Yuba cookie from passport | `6667455` | `master` |
 | 38 | 2026-06-06 | Record Douyu passport cookie lifecycle | `4a459dc` | `master` |

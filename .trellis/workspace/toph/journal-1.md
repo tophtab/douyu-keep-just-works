@@ -1354,3 +1354,36 @@ Documented contract-test taxonomy, added backend testing guidelines, and labeled
 ### Next Steps
 
 - None - task complete
+
+
+## Session 41: Contract test behavior modernization
+
+**Date**: 2026-06-06
+**Task**: Contract test behavior modernization
+**Branch**: `master`
+
+### Summary
+
+Added route-level behavior coverage for config and CookieCloud routes, removed redundant source-shape checks, and split the broad WebUI maintenance contract into focused guardrail and ownership blocks.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c2a60c8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

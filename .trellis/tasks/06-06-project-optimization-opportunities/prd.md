@@ -234,14 +234,53 @@ Risk:
 
 Focus: make dependency freshness/audit checks more repeatable.
 
-Evidence:
+Read-only assessment on 2026-06-06:
 
-* Read-only verification on 2026-06-06 passed the current quality gate: lint, type-check, 41 contract tests, and `npm test` including Docker/WebUI build. The full build gate was run in a temporary copy so `build/docker` in the working tree was not modified.
-* `npm audit --omit=dev --audit-level=moderate` and full `npm audit --audit-level=moderate` both reported 0 vulnerabilities.
-* `npm outdated --depth=0` now completes and reports outdated direct dependencies:
-  * Production: `axios` `1.16.0` -> `1.17.0`.
-  * Development/tooling: `@types/node` `24.12.3` -> `24.13.1` (latest `25.9.2`, outside the project's Node 24 line), `@vitejs/plugin-vue` `6.0.6` -> `6.0.7`, `eslint` `10.3.0` -> `10.4.1`, `vite` `8.0.12` -> `8.0.16`, `vue` `3.5.34` -> `3.5.35`, and `vue-tsc` `3.2.8` -> `3.3.3`.
-* Dockerfile and GitHub workflow already use Node 24 and `npm ci`; release workflow is solid.
+* Commands run: `node -v`, `npm -v`, `npm audit --omit=dev --audit-level=moderate --json`, `npm audit --audit-level=moderate --json`, `npm outdated --depth=0 --json`, and `npm ls --depth=0 --json`.
+* Local toolchain observed: Node `v24.14.1`, npm `11.15.0`.
+* Project runtime constraint is Node `>=24 <25` in `package.json`; the package-lock root entry carries the same Node engine constraint.
+* This assessment did not upgrade dependencies and must not modify `package.json`, `package-lock.json`, or source files.
+* `npm outdated --depth=0 --json` exits with code 1 because direct outdated packages exist; the JSON output completed normally.
+
+Audit result:
+
+* Production audit: `npm audit --omit=dev --audit-level=moderate --json` reported 0 vulnerabilities.
+* Full audit including dev/tooling dependencies: `npm audit --audit-level=moderate --json` reported 0 vulnerabilities.
+* Audit metadata counted 117 production dependencies, 380 dev dependencies, 33 optional dependencies, 2 peer dependencies, and 496 total dependencies.
+
+Outdated direct dependencies:
+
+| Area | Package | Current | Wanted | Latest | Assessment |
+| --- | --- | ---: | ---: | ---: | --- |
+| Production | `axios` | `1.16.0` | `1.17.0` | `1.17.0` | Minor production update; reasonable but should be isolated and validated against auth/API HTTP flows. |
+| Dev/tooling | `@types/node` | `24.12.3` | `24.13.1` | `25.9.2` | Safe only within Node 24 line: update to `24.13.1`, do not move to Node 25 typings. |
+| Dev/tooling | `@vitejs/plugin-vue` | `6.0.6` | `6.0.7` | `6.0.7` | Safe patch candidate; verify WebUI type-check/build. |
+| Dev/tooling | `eslint` | `10.3.0` | `10.4.1` | `10.4.1` | Safe same-major tooling candidate; verify lint because rules/parser behavior can still shift. |
+| Dev/tooling | `vite` | `8.0.12` | `8.0.16` | `8.0.16` | Safe patch candidate; verify WebUI build and Docker build. |
+| Dev/tooling | `vue` | `3.5.34` | `3.5.35` | `3.5.35` | Safe patch candidate; declared as dev dependency but affects the bundled WebUI output. |
+| Dev/tooling | `vue-tsc` | `3.2.8` | `3.3.3` | `3.3.3` | Cautious tooling update; type checker changes can surface new diagnostics. |
+
+Packages not reported outdated at direct depth include `cron`, `cron-parser`, `express`, `qrcode`, `ws`, `typescript`, `@antfu/eslint-config`, `@types/express`, `@types/qrcode`, and `@types/ws`; no maintenance action is needed for those from this scan alone.
+
+Safe patch/minor candidates:
+
+* `@types/node` `24.12.3` -> `24.13.1`, explicitly staying on the Node 24 typings line.
+* `@vitejs/plugin-vue` `6.0.6` -> `6.0.7`.
+* `eslint` `10.3.0` -> `10.4.1`, with lint verification.
+* `vite` `8.0.12` -> `8.0.16`, with WebUI and Docker build verification.
+* `vue` `3.5.34` -> `3.5.35`, with WebUI type-check/build verification.
+
+Cautious candidates:
+
+* `axios` `1.16.0` -> `1.17.0`: same major and likely acceptable, but it is a production HTTP dependency used by runtime/auth/API paths. Update separately from tooling churn and verify with contract tests plus a focused auth/API smoke if possible.
+* `vue-tsc` `3.2.8` -> `3.3.3`: dev-only, but compiler tooling can change diagnostics. Update in the tooling batch only if the current tree is otherwise clean and failures can be attributed clearly.
+
+Not recommended now:
+
+* Do not upgrade `@types/node` to latest `25.9.2` or any Node 25 line while the project engine remains Node `>=24 <25`.
+* Do not run `npm audit fix --force`; there are currently no audit findings and force can introduce unrelated major changes.
+* Do not run a broad, unreviewed dependency sweep that mixes production and tooling updates in one task.
+* Do not update direct dependencies that `npm outdated --depth=0` did not report unless a specific bug, security advisory, or compatibility issue requires it.
 
 Expected benefit:
 
@@ -249,7 +288,10 @@ Expected benefit:
 
 Likely scope:
 
-* Periodic dependency-maintenance task: run `npm outdated`, update safe patch/minor direct dependencies in an isolated maintenance branch/task, keep `@types/node` aligned to Node 24, then run lint/type-check/contract tests/full `npm test`.
+* Periodic dependency-maintenance task: run prod-only audit, full audit, and direct-depth outdated checks; classify results into production vs dev/tooling before touching dependencies.
+* First batch: safe dev/tooling patch/minor candidates, keeping `@types/node` on Node 24.
+* Separate batch: `axios` production minor update, if desired, with HTTP/auth-oriented verification.
+* Verification for any actual update: `npm run lint`, `npm run type-check`, `npm run test:contracts`, and `npm test`.
 * Optionally add a documented command/checklist, not necessarily CI automation.
 * Keep dependency updates out of auth/runtime/refactor commits unless a specific bug fix requires a single package change.
 
@@ -257,6 +299,7 @@ Risk:
 
 * Blind dependency upgrades can disturb Vite/Vue/TypeScript tooling. Keep patch/minor updates separated from auth/runtime changes.
 * Node-major-adjacent packages need extra care: the repo targets Node 24, so `@types/node` should not jump to the Node 25 line without a separate runtime-version decision.
+* Production dependency updates, even same-major ones, can change HTTP behavior in ways that contract tests may not fully cover without a small runtime/auth smoke.
 
 ### I. Frontend resource-state simplification
 

@@ -403,6 +403,7 @@ test('Docker task scheduling uses shared task metadata for inventory facts', () 
   const runners = readRepoFile('src/docker/runtime-task-runners.ts')
 
   assert.match(taskMetadata, /export function getTaskConfig/)
+  assert.match(taskMetadata, /export function getTriggerableTaskConfig/)
   assert.match(taskMetadata, /export function getTaskCron/)
   assert.match(taskMetadata, /export function getTaskScheduleSummary/)
   assert.match(taskMetadata, /export function hasActiveTaskConfig/)
@@ -412,7 +413,7 @@ test('Docker task scheduling uses shared task metadata for inventory facts', () 
   assert.match(scheduler, /runRuntimeTask\(type, taskConfig, this\.createTaskRunnerDeps\(\)\)/)
   assert.match(runners, /export async function triggerRuntimeTask/)
   assert.match(runners, /export async function runRuntimeTask/)
-  assert.match(runners, /const taskConfigResolvers/)
+  assert.match(runners, /getTriggerableTaskConfig\(config, type, hasSendRooms\)/)
   assert.match(runners, /const runtimeTaskRunners/)
   assert.doesNotMatch(scheduler, /private startCollectGiftTask/)
   assert.doesNotMatch(scheduler, /private startKeepaliveTask/)
@@ -426,17 +427,21 @@ test('CookieCloud sync-and-check persists first, then checks the local snapshot 
   // sequencing and UI copy can move toward behavior tests.
   const cookieSourceActions = readRepoFile('src/docker/webui/cookie-source-actions.ts')
   const cookieSource = readRepoFile('src/docker/runtime-cookie-source.ts')
+  const effectiveCookies = readRepoFile('src/docker/runtime-effective-cookies.ts')
+  const snapshotStore = readRepoFile('src/docker/runtime-cookie-snapshot-store.ts')
   const cookieRoutes = readRepoFile('src/docker/server-cookie-source-routes.ts')
 
-  assert.match(cookieSource, /shouldUseSourceCookie\(cloudMainCookie, mainCookie, COMPLETE_MAIN_COOKIE_KEYS\)/)
-  assert.match(cookieSource, /shouldUseSourceCookie\(cloudYubaCookie, yubaCookie, COMPLETE_YUBA_COOKIE_KEYS\)/)
-  assert.match(cookieSource, /yubaCookie = yubaCookie \|\| mainCookie/)
-  assert.match(cookieSource, /getCookieCloudPassportCookie\(snapshot\.cookies\)\.trim\(\)/)
-  assert.match(cookieSource, /buildCookieHeaderForUrl\(snapshot\.cookies, MAIN_DOUYU_URL\)/)
-  assert.match(cookieSource, /buildCookieHeaderForUrl\(snapshot\.cookies, YUBA_DOUYU_URL\)/)
-  assert.match(cookieSource, /manualPassport:\s*\{\s*cookie: manualPassportCookie\s*\}/)
-  assert.doesNotMatch(cookieSource, /manualCookies:\s*snapshot\.cookies/)
-  assert.doesNotMatch(cookieSource, /manualPassport:\s*\{\s*cookie:\s*JSON\.stringify/)
+  assert.match(cookieSource, /new DockerEffectiveCookieResolver/)
+  assert.match(cookieSource, /new DockerCookieSnapshotStore/)
+  assert.match(effectiveCookies, /shouldUseSourceCookie\(cloudMainCookie, mainCookie, COMPLETE_MAIN_COOKIE_KEYS\)/)
+  assert.match(effectiveCookies, /shouldUseSourceCookie\(cloudYubaCookie, yubaCookie, COMPLETE_YUBA_COOKIE_KEYS\)/)
+  assert.match(effectiveCookies, /yubaCookie = yubaCookie \|\| mainCookie/)
+  assert.match(effectiveCookies, /getCookieCloudPassportCookie\(snapshot\.cookies\)\.trim\(\)/)
+  assert.match(effectiveCookies, /buildCookieHeaderForUrl\(snapshot\.cookies, MAIN_DOUYU_URL\)/)
+  assert.match(effectiveCookies, /buildCookieHeaderForUrl\(snapshot\.cookies, YUBA_DOUYU_URL\)/)
+  assert.match(snapshotStore, /manualPassport:\s*\{\s*cookie: manualPassportCookie\s*\}/)
+  assert.doesNotMatch(snapshotStore, /manualCookies:\s*snapshot\.cookies/)
+  assert.doesNotMatch(snapshotStore, /manualPassport:\s*\{\s*cookie:\s*JSON\.stringify/)
   assert.match(cookieSource, /async inspectCookieSource\(\): Promise<CookieDiagnostics>/)
   const inspectStart = cookieSource.indexOf('async inspectCookieSource()')
   const inspectEnd = cookieSource.indexOf('private async loadCookieCloudSnapshot')
@@ -475,6 +480,12 @@ test('Docker runtime retries cookie-backed work once after centralized credentia
   const taskRunnerDirectSource = [
     readRepoFile('src/docker/runtime-task-runners.ts'),
     readRepoFile('src/core/job.ts'),
+    readRepoFile('src/core/collect-gift-job.ts'),
+    readRepoFile('src/core/keepalive-job.ts'),
+    readRepoFile('src/core/double-card-job.ts'),
+    readRepoFile('src/core/expiring-gift-job.ts'),
+    readRepoFile('src/core/yuba-check-in-job.ts'),
+    readRepoFile('src/core/job-gift-utils.ts'),
     readRepoFile('src/core/collect-gift.ts'),
     readRepoFile('src/core/gift-task.ts'),
     readRepoFile('src/core/double-card.ts'),

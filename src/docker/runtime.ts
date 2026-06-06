@@ -1,4 +1,5 @@
 import process from 'node:process'
+import { errorMessage } from '../core/errors'
 import { createDefaultDockerConfig } from '../core/medal-sync'
 import type { DockerConfig } from '../core/types'
 import { loadConfigFromDisk, saveConfigToDisk } from './config-store'
@@ -15,10 +16,6 @@ import { DockerRuntimeFansSyncService } from './runtime-fans-sync'
 import { DockerTaskScheduler } from './runtime-scheduler'
 import { createTaskRecord, TASK_LOG_CATEGORIES } from './task-metadata'
 import type { TaskType } from './task-metadata'
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 let currentConfig: DockerConfig | null = null
 let activeConfigPath = ''

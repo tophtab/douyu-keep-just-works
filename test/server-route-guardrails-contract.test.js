@@ -336,11 +336,6 @@ test('createServer config mutations validate before save and return JSON envelop
       },
       manualPassport: undefined,
       cookieCloud: undefined,
-      collectGift: undefined,
-      keepalive: undefined,
-      doubleCard: undefined,
-      expiringGift: undefined,
-      yubaCheckIn: undefined,
       ui: {
         theme: 'dark',
       },

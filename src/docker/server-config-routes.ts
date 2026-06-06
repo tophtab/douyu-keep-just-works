@@ -2,10 +2,10 @@ import type express from 'express'
 import { isCookieCloudReady } from '../core/cookie-cloud'
 import type { CookieCloudConfig, DockerConfig, ManualCookieConfig, ManualPassportConfig } from '../core/types'
 import { getNextCronRuns, validateCronExpression } from './cron'
-import { validateCookieCloudConfig, validateCronConfig, validateDoubleCardConfig, validateExpiringGiftConfig, validateJobConfig, validateYubaCheckInConfig } from './config-validation'
+import { validateCookieCloudConfig } from './config-validation'
 import { sendJsonOk } from './server-route-utils'
 import type { AppContext } from './server-types'
-import { hasActiveTaskConfig, isTaskActive } from './task-metadata'
+import { collectTaskUpdatePayload, getTaskOverviewSummary, hasActiveTaskConfig, TASK_TYPES, validateTaskConfig } from './task-metadata'
 
 function hasConfiguredCookieSource(config: DockerConfig | null | undefined): boolean {
   return Boolean(
@@ -90,44 +90,17 @@ function summarizeConfig(config: DockerConfig | null) {
     cookieSource: summarizeCookieSource(config),
     cookieCloudConfigured: isCookieCloudReady(config?.cookieCloud),
     manualPassportConfigured: Boolean(config?.manualPassport?.cookie?.trim()),
-    collectGiftConfigured: isTaskActive(config?.collectGift),
-    keepaliveConfigured: isTaskActive(config?.keepalive),
-    doubleCardConfigured: isTaskActive(config?.doubleCard),
-    expiringGiftConfigured: isTaskActive(config?.expiringGift),
-    yubaCheckInConfigured: isTaskActive(config?.yubaCheckIn),
-    keepaliveRooms: Object.keys(config?.keepalive?.send || {}).length,
-    doubleCardRooms: Object.keys(config?.doubleCard?.send || {}).length,
-    expiringGiftRooms: Object.keys(config?.expiringGift?.send || {}).length,
+    ...getTaskOverviewSummary(config),
   }
 }
 
 function validateConfigPayload(payload: Partial<DockerConfig>): string | null {
-  if (payload.collectGift) {
-    const error = validateCronConfig('collectGift', payload.collectGift)
-    if (error) {
-      return error
+  for (const type of TASK_TYPES) {
+    const taskConfig = payload[type]
+    if (!taskConfig) {
+      continue
     }
-  }
-  if (payload.keepalive) {
-    const error = validateJobConfig('keepalive', payload.keepalive)
-    if (error) {
-      return error
-    }
-  }
-  if (payload.doubleCard) {
-    const error = validateDoubleCardConfig(payload.doubleCard)
-    if (error) {
-      return error
-    }
-  }
-  if (payload.expiringGift) {
-    const error = validateExpiringGiftConfig(payload.expiringGift)
-    if (error) {
-      return error
-    }
-  }
-  if (payload.yubaCheckIn) {
-    const error = validateYubaCheckInConfig(payload.yubaCheckIn)
+    const error = validateTaskConfig(type, taskConfig)
     if (error) {
       return error
     }
@@ -216,11 +189,7 @@ export function registerConfigRoutes(app: express.Express, ctx: AppContext): voi
         manualCookies: payload.manualCookies,
         manualPassport: payload.manualPassport,
         cookieCloud: payload.cookieCloud,
-        collectGift: payload.collectGift,
-        keepalive: payload.keepalive,
-        doubleCard: payload.doubleCard,
-        expiringGift: payload.expiringGift,
-        yubaCheckIn: payload.yubaCheckIn,
+        ...collectTaskUpdatePayload(payload),
         ui: payload.ui,
       })),
       resolveConfigRouteErrorStatus,

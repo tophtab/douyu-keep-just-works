@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { errorMessage } from './errors'
 import type { DoubleCardInfo } from './types'
 
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.188'
@@ -11,10 +12,6 @@ interface DoubleCardApiItem {
 interface ActiveDoubleCardApiItem {
   expireTime: number
   type: 1
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 function isActiveDoubleCard(item: DoubleCardApiItem, now: number): item is ActiveDoubleCardApiItem {

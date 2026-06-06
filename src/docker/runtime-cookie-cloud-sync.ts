@@ -1,13 +1,10 @@
 import { CronJob } from 'cron'
+import { errorMessage } from '../core/errors'
 import { DEFAULT_COOKIE_CLOUD_SYNC_CRON } from '../core/task-defaults'
 import type { DockerConfig } from '../core/types'
 import { jsonEquals } from './config-equality'
 import { DOCKER_TIMEZONE } from './runtime-constants'
 import { formatScheduleForLog } from './runtime-time'
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 interface CookieCloudSyncDeps {
   hasCookieCloudSource: (config?: DockerConfig | null) => boolean

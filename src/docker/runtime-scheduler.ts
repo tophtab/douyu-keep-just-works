@@ -1,4 +1,5 @@
 import { CronJob } from 'cron'
+import { errorMessage } from '../core/errors'
 import type { DockerConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig } from '../core/types'
 import type { JobStatus } from './server'
 import { jsonEquals } from './config-equality'
@@ -12,10 +13,6 @@ import {
   runRuntimeTask,
 } from './runtime-task-runners'
 import type { RuntimeTaskRunnerDeps } from './runtime-task-runners'
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 function createIdleStatus(): JobStatus {
   return { running: false, lastRun: null, nextRun: null }

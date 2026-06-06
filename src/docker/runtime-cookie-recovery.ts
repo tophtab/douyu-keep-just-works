@@ -2,6 +2,7 @@ import { getCookieValue } from '../core/api'
 import { getCookieCloudPassportCookie } from '../core/cookie-cloud'
 import type { CookieCloudSnapshot } from '../core/cookie-cloud'
 import { fetchDouyuYubaCookiesWithPassport, refreshDouyuMainCookiesWithSafeAuth } from '../core/douyu-passport'
+import { errorMessage } from '../core/errors'
 import type { DockerConfig } from '../core/types'
 import { isCookieCredentialMessage } from './server-errors'
 
@@ -59,10 +60,6 @@ interface PassportRecoveryMaterial {
   ltp0: string
   dyDid?: string
   source: 'cookieCloud' | 'manual'
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 function shouldRecoverYubaCookie(message: string, context: string): boolean {

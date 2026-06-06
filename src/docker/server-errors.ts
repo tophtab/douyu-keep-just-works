@@ -1,6 +1,4 @@
-export function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
+export { errorMessage } from '../core/errors'
 
 export function isMissingCookieMessage(message: string): boolean {
   return message === '请先配置 cookie'

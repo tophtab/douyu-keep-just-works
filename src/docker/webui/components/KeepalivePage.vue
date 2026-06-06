@@ -1,16 +1,22 @@
 <script setup lang="ts">
+import type { FieldValue } from '../ui-types'
 import { useKeepaliveTaskPage } from '../keepalive'
 import ActionBar from './ActionBar.vue'
 import AllocationTable from './AllocationTable.vue'
 import CronField from './CronField.vue'
 import DataContent from './DataContent.vue'
-import FormField from './FormField.vue'
+import SelectField from './SelectField.vue'
 import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
 
 interface AllocationValueRow {
   value: number
 }
+
+const allocationModelOptions = [
+  { label: '按权重', value: 1 },
+  { label: '按固定数量', value: 2 },
+]
 
 const {
   fanRows,
@@ -35,6 +41,11 @@ function handleAction(id: string): void {
     return
   }
   void triggerKeepaliveTask()
+}
+
+function updateKeepaliveModel(value: FieldValue): void {
+  keepaliveModel.value = String(value) === '2' ? 2 : 1
+  handleKeepaliveModelChange()
 }
 
 function updateRowValue(row: AllocationValueRow, value: number): void {
@@ -69,16 +80,14 @@ function updateRowValue(row: AllocationValueRow, value: number): void {
           :preview-text="keepaliveCronPreviewText"
           @input="loadKeepaliveCronPreview"
         />
-        <FormField input-id="keepalive-model" label="分配模式">
-          <select id="keepalive-model" v-model.number="keepaliveModel" name="keepalive-model" @change="handleKeepaliveModelChange">
-            <option value="1">
-              按权重
-            </option>
-            <option value="2">
-              按固定数量
-            </option>
-          </select>
-        </FormField>
+        <SelectField
+          input-id="keepalive-model"
+          :model-value="keepaliveModel"
+          name="keepalive-model"
+          label="分配模式"
+          :options="allocationModelOptions"
+          @update:model-value="updateKeepaliveModel"
+        />
       </template>
       <template #actions>
         <ActionBar

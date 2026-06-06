@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import type { FieldValue } from '../ui-types'
 import { useDoubleTaskPage } from '../double'
 import ActionBar from './ActionBar.vue'
 import AllocationTable from './AllocationTable.vue'
 import CronField from './CronField.vue'
 import DataContent from './DataContent.vue'
-import FormField from './FormField.vue'
 import InlineFeedback from './InlineFeedback.vue'
+import SelectField from './SelectField.vue'
 import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
 
@@ -13,6 +14,16 @@ interface DoubleAllocationRow {
   enabled?: boolean
   value: number
 }
+
+const allocationModelOptions = [
+  { label: '按权重', value: 1 },
+  { label: '按固定数量', value: 2 },
+]
+
+const doubleGiftScopeOptions = [
+  { label: '全部荧光棒', value: 'glowStick' },
+  { label: '限时礼物', value: 'limitedTime' },
+]
 
 const {
   applyDoubleRatioPreset,
@@ -41,6 +52,14 @@ function handleAction(id: string): void {
     return
   }
   void triggerDoubleTask()
+}
+
+function updateDoubleGiftScope(value: FieldValue): void {
+  doubleGiftScope.value = value === 'limitedTime' ? 'limitedTime' : 'glowStick'
+}
+
+function updateDoubleModel(value: FieldValue): void {
+  doubleModel.value = String(value) === '2' ? 2 : 1
 }
 
 function updateRowEnabled(row: DoubleAllocationRow, value: boolean): void {
@@ -79,26 +98,22 @@ function updateRowValue(row: DoubleAllocationRow, value: number): void {
           :preview-text="doubleCronPreviewText"
           @input="loadDoubleCronPreview"
         />
-        <FormField input-id="double-gift-scope" label="礼物范围">
-          <select id="double-gift-scope" v-model="doubleGiftScope" name="double-gift-scope">
-            <option value="glowStick">
-              全部荧光棒
-            </option>
-            <option value="limitedTime">
-              限时礼物
-            </option>
-          </select>
-        </FormField>
-        <FormField input-id="double-model" label="分配模式">
-          <select id="double-model" v-model.number="doubleModel" name="double-model">
-            <option value="1">
-              按权重
-            </option>
-            <option value="2">
-              按固定数量
-            </option>
-          </select>
-        </FormField>
+        <SelectField
+          input-id="double-gift-scope"
+          :model-value="doubleGiftScope"
+          name="double-gift-scope"
+          label="礼物范围"
+          :options="doubleGiftScopeOptions"
+          @update:model-value="updateDoubleGiftScope"
+        />
+        <SelectField
+          input-id="double-model"
+          :model-value="doubleModel"
+          name="double-model"
+          label="分配模式"
+          :options="allocationModelOptions"
+          @update:model-value="updateDoubleModel"
+        />
       </template>
       <template #actions>
         <ActionBar

@@ -5,9 +5,10 @@ import { useCookieLoginPage } from '../cookie'
 import ActionBar from './ActionBar.vue'
 import CronField from './CronField.vue'
 import EnableSwitch from './EnableSwitch.vue'
-import FormField from './FormField.vue'
 import PageSection from './PageSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
+import TextareaField from './TextareaField.vue'
+import TextField from './TextField.vue'
 
 const {
   cancelPassportLogin,
@@ -85,15 +86,37 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
 
     <PageSection title="登录 Cookie">
       <div class="grid cols-3 section-form-grid">
-        <FormField input-id="main-cookie-input" label="斗鱼直播的 Cookie">
-          <textarea id="main-cookie-input" v-model="mainCookie" name="main-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 www.douyu.com / douyu.com 登录 Cookie" />
-        </FormField>
-        <FormField input-id="yuba-cookie-input" label="斗鱼鱼吧的 Cookie">
-          <textarea id="yuba-cookie-input" v-model="yubaCookie" name="yuba-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 yuba.douyu.com 登录 Cookie" />
-        </FormField>
-        <FormField input-id="manual-passport-cookie" label="passport.douyu.com Cookie">
-          <textarea id="manual-passport-cookie" v-model="passportCookie" name="manual-passport-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="dy_did=...; LTP0=..." rows="4" />
-        </FormField>
+        <TextareaField
+          v-model="mainCookie"
+          input-id="main-cookie-input"
+          name="main-cookie"
+          label="斗鱼直播的 Cookie"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="粘贴 www.douyu.com / douyu.com 登录 Cookie"
+        />
+        <TextareaField
+          v-model="yubaCookie"
+          input-id="yuba-cookie-input"
+          name="yuba-cookie"
+          label="斗鱼鱼吧的 Cookie"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="粘贴 yuba.douyu.com 登录 Cookie"
+        />
+        <TextareaField
+          v-model="passportCookie"
+          input-id="manual-passport-cookie"
+          name="manual-passport-cookie"
+          label="passport.douyu.com Cookie"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="dy_did=...; LTP0=..."
+          rows="4"
+        />
       </div>
       <ActionBar
         class="section-actions"
@@ -144,12 +167,27 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
         />
       </template>
       <div class="grid cols-2 section-form-grid">
-        <FormField input-id="cookie-cloud-endpoint" label="服务器地址">
-          <input id="cookie-cloud-endpoint" v-model="cookieCloud.endpoint" name="cookie-cloud-endpoint" type="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="https://cookiecloud.example.com">
-        </FormField>
-        <FormField input-id="cookie-cloud-uuid" label="UUID">
-          <input id="cookie-cloud-uuid" v-model="cookieCloud.uuid" name="cookie-cloud-uuid" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="CookieCloud UUID">
-        </FormField>
+        <TextField
+          v-model="cookieCloud.endpoint"
+          input-id="cookie-cloud-endpoint"
+          name="cookie-cloud-endpoint"
+          label="服务器地址"
+          type="url"
+          autocomplete="url"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="https://cookiecloud.example.com"
+        />
+        <TextField
+          v-model="cookieCloud.uuid"
+          input-id="cookie-cloud-uuid"
+          name="cookie-cloud-uuid"
+          label="UUID"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="CookieCloud UUID"
+        />
         <CronField
           v-model="cookieCloud.cron"
           input-id="cookie-cloud-cron"
@@ -158,9 +196,16 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
           :preview-text="cronPreviewText"
           @input="loadCookieCloudCronPreview"
         />
-        <FormField input-id="cookie-cloud-password" label="密码">
-          <input id="cookie-cloud-password" v-model="cookieCloud.password" name="cookie-cloud-password" type="password" autocomplete="current-password" spellcheck="false" placeholder="CookieCloud Password">
-        </FormField>
+        <TextField
+          v-model="cookieCloud.password"
+          input-id="cookie-cloud-password"
+          name="cookie-cloud-password"
+          label="密码"
+          type="password"
+          autocomplete="current-password"
+          spellcheck="false"
+          placeholder="CookieCloud Password"
+        />
       </div>
       <ActionBar
         class="cookie-cloud-actions section-actions"

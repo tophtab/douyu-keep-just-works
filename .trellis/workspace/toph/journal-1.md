@@ -1558,3 +1558,36 @@ Aligned WebUI resource error feedback so overview fans-status and logs load fail
 ### Next Steps
 
 - None - task complete
+
+
+## Session 47: Share WebUI resource and cookie helpers
+
+**Date**: 2026-06-06
+**Task**: Share WebUI resource and cookie helpers
+**Branch**: `master`
+
+### Summary
+
+Refactored repeated WebUI resource request lifecycle, fan-backed task config plumbing, and Docker cookie-source summary/masking helpers; updated contracts and specs; quality gates passed.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ba8839a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -1,5 +1,6 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import type { ThemeMode } from '../core/types'
 
 export const DOCKER_WEBUI_PAGE_ROUTES = {
   'overview': '/',
@@ -17,6 +18,10 @@ const APP_VERSION = readPackageVersion()
 const APP_VERSION_LABEL = `V${APP_VERSION}`
 export const WEBUI_ASSET_ROOT = path.join(__dirname, 'webui')
 const WEBUI_TEMPLATE_PATH = path.join(WEBUI_ASSET_ROOT, 'index.html')
+const THEME_COLOR_BY_MODE: Record<'light' | 'dark', string> = {
+  dark: '#000000',
+  light: '#f4ede4',
+}
 
 let cachedTemplate: string | null = null
 
@@ -44,6 +49,14 @@ function replaceToken(source: string, token: string, value: string): string {
   return source.split(token).join(value)
 }
 
+function resolveThemeMode(value: unknown): ThemeMode {
+  return value === 'light' || value === 'dark' || value === 'system' ? value : 'system'
+}
+
+function resolveInitialTheme(themeMode: ThemeMode): 'light' | 'dark' {
+  return themeMode === 'light' ? 'light' : 'dark'
+}
+
 function readTextFile(filePath: string): string {
   return fs.readFileSync(filePath, 'utf8')
 }
@@ -55,10 +68,15 @@ function readTemplate(): string {
   return cachedTemplate
 }
 
-export function getHtml(): string {
+export function getHtml(themeMode: unknown = 'system'): string {
+  const initialThemeMode = resolveThemeMode(themeMode)
+  const initialTheme = resolveInitialTheme(initialThemeMode)
   let html = readTemplate()
   html = replaceToken(html, '__APP_NAME__', escapeHtml(APP_NAME))
   html = replaceToken(html, '__APP_VERSION_LABEL__', escapeHtml(APP_VERSION_LABEL))
   html = replaceToken(html, '__DOCKER_WEBUI_PAGE_ROUTES_JSON__', JSON.stringify(DOCKER_WEBUI_PAGE_ROUTES))
+  html = replaceToken(html, '__INITIAL_THEME_MODE__', escapeHtml(initialThemeMode))
+  html = replaceToken(html, '__INITIAL_THEME__', escapeHtml(initialTheme))
+  html = replaceToken(html, '__INITIAL_THEME_COLOR__', escapeHtml(THEME_COLOR_BY_MODE[initialTheme]))
   return html
 }

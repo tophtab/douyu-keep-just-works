@@ -39,8 +39,8 @@ function setThemeMeta(resolvedTheme: ResolvedThemeMode): void {
   colorScheme?.setAttribute('content', resolvedTheme)
 }
 
-export function useThemeMode() {
-  const themeMode = ref<ThemeMode>('system')
+export function useThemeMode(initialThemeMode: unknown = 'system') {
+  const themeMode = ref<ThemeMode>(isThemeMode(initialThemeMode) ? initialThemeMode : 'system')
   const savingThemeMode = ref<ThemeMode | null>(null)
   const systemPrefersDark = ref(getSystemPrefersDark())
 
@@ -103,6 +103,9 @@ export function useThemeMode() {
 
   watch(resolvedTheme, applyResolvedTheme, { immediate: true })
   watch(rawConfig, (nextConfig) => {
+    if (!nextConfig) {
+      return
+    }
     applyThemeMode(nextConfig?.ui?.themeMode)
   }, { immediate: true })
 

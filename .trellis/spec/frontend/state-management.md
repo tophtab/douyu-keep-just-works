@@ -39,6 +39,60 @@ There is no global store. Promote state upward only when multiple shell/page sur
 
 ---
 
+## Scenario: Server-Injected Initial WebUI Theme
+
+### 1. Scope / Trigger
+- Trigger: changing WebUI theme initialization, `src/docker/webui/index.html` bootstrap fields, or Docker WebUI HTML serving in `src/docker/webui.ts` / `src/docker/server-webui-routes.ts`.
+- Scope: first-paint theme only. Authenticated raw config remains the source of truth after `/api/config` loads.
+
+### 2. Signatures
+- Backend HTML helper: `getHtml(themeMode?: unknown): string`.
+- Route registration: `registerWebUiRoutes(app, ctx)` passes `ctx.getConfig()?.ui?.themeMode` into `getHtml`.
+- Bootstrap shape: `window.DOUYU_KEEP_WEBUI_BOOTSTRAP.initialThemeMode?: ThemeMode`.
+- Frontend composable: `useThemeMode(initialThemeMode?: unknown)`.
+
+### 3. Contracts
+- Valid bootstrap values are the shared `ThemeMode` values from `src/core/types.ts`: `light`, `dark`, and `system`.
+- Unknown, missing, or invalid values fall back to `system` at both the backend HTML boundary and the frontend composable boundary.
+- Server-rendered HTML must replace `__INITIAL_THEME_MODE__`, `__INITIAL_THEME__`, and `__INITIAL_THEME_COLOR__`; placeholders must not leak to the browser.
+- `system` has no browser media-query knowledge on the server, so the first paint may use the safe dark initial body theme; `useThemeMode` updates to the actual media-query result after Vue mounts.
+- `watch(rawConfig, ...)` must ignore empty/null config so it does not immediately reset the bootstrap theme before authenticated config loads.
+
+### 4. Validation & Error Matrix
+- `config.ui.themeMode = 'light'` -> served HTML has `initialThemeMode: 'light'`, body `data-theme="light"`, and the light theme color.
+- `config.ui.themeMode = 'dark'` -> served HTML has `initialThemeMode: 'dark'`, body `data-theme="dark"`, and the dark theme color.
+- Missing or invalid `config.ui.themeMode` -> served HTML has `initialThemeMode: 'system'` and a valid initial body/meta theme.
+- Missing bootstrap object -> `App.vue` fallback keeps `initialThemeMode: 'system'`.
+
+### 5. Good/Base/Bad Cases
+- Good: `/` is requested before login, the route reads current config and serves HTML whose body/meta theme matches a valid configured mode.
+- Base: authenticated config later loads and `rawConfig.ui.themeMode` updates the same `useThemeMode` state.
+- Bad: `useThemeMode()` always starts at `system`, causing a first-paint flash for users who saved `light` or `dark`.
+- Bad: null `rawConfig` applies `system` immediately and overwrites a valid bootstrap theme before the API response arrives.
+
+### 6. Tests Required
+- Contract tests should request WebUI HTML through `createServer(ctx)` and assert valid configured theme modes are injected.
+- Contract tests should assert invalid theme values fall back safely and no initial-theme placeholders leak.
+- Maintenance tests should assert `App.vue` passes `bootstrap.initialThemeMode` into `useThemeMode`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+res.type('html').send(getHtml())
+const { themeMode } = useThemeMode()
+```
+
+#### Correct
+
+```typescript
+res.type('html').send(getHtml(ctx.getConfig()?.ui?.themeMode))
+const { themeMode } = useThemeMode(bootstrap.initialThemeMode)
+```
+
+---
+
 ## Server State
 
 Use the API as the source of truth. After saves or task triggers, refresh the relevant resources through existing refresh callbacks.

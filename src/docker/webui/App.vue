@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ThemeMode } from '../../core/types'
 import AppShell from './components/AppShell.vue'
 import AuthShell from './components/AuthShell.vue'
 import { watch } from 'vue'
@@ -12,6 +13,7 @@ import { useToastRegion } from './toast'
 interface WebUiBootstrap {
   appName: string
   appVersionLabel: string
+  initialThemeMode?: ThemeMode
   pageRoutes: Record<string, string>
 }
 
@@ -24,6 +26,7 @@ declare global {
 const bootstrap: WebUiBootstrap = window.DOUYU_KEEP_WEBUI_BOOTSTRAP ?? {
   appName: 'douyu-keep',
   appVersionLabel: 'V0.0.0',
+  initialThemeMode: 'system',
   pageRoutes: { overview: '/' },
 }
 
@@ -53,7 +56,7 @@ const {
   themeMode,
   themeModes,
   themeNote,
-} = useThemeMode()
+} = useThemeMode(bootstrap.initialThemeMode)
 
 const {
   toastLiveMessage,

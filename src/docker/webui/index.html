@@ -3,17 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark" id="color-scheme-meta">
-<meta name="theme-color" content="#f4ede4" id="theme-color-meta">
+<meta name="color-scheme" content="__INITIAL_THEME__" id="color-scheme-meta">
+<meta name="theme-color" content="__INITIAL_THEME_COLOR__" id="theme-color-meta">
 <title>__APP_NAME__</title>
 <link rel="icon" type="image/png" href="/icon.png">
 </head>
-<body data-theme="dark" data-auth="login">
+<body data-theme="__INITIAL_THEME__" data-auth="login">
 <div id="app"></div>
 <script>
 window.DOUYU_KEEP_WEBUI_BOOTSTRAP = {
   appName: '__APP_NAME__',
   appVersionLabel: '__APP_VERSION_LABEL__',
+  initialThemeMode: '__INITIAL_THEME_MODE__',
   pageRoutes: __DOCKER_WEBUI_PAGE_ROUTES_JSON__
 }
 </script>

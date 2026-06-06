@@ -6,12 +6,8 @@
   align-items:center;
   justify-content:center;
   padding:28px;
-  color:#f5f1ec;
-  background:
-    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px),
-    #08090d;
-  background-size:28px 28px;
+  color:var(--text);
+  background:transparent;
 }
 .auth-card{
   width:min(440px,100%);
@@ -19,9 +15,10 @@
 .auth-panel{
   padding:34px;
   border-radius:8px;
-  border:1px solid rgba(255,255,255,.16);
-  background:rgba(9,11,18,.9);
-  box-shadow:0 26px 70px rgba(0,0,0,.36);
+  border:1px solid var(--line);
+  background:var(--surface);
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(18px);
 }
 .auth-brand{
   display:flex;
@@ -36,14 +33,15 @@
   width:50px;
   height:50px;
   border-radius:8px;
-  object-fit:cover;
-  background:#050607;
-  box-shadow:0 16px 32px rgba(216,106,24,.28);
+  object-fit:contain;
+  background:transparent;
+  filter:drop-shadow(0 12px 22px rgba(216,106,24,.22));
 }
 .auth-title{
   min-width:0;
   margin:0;
-  color:#f7f3ff;
+  color:var(--accent);
+  text-align:center;
   font-size:34px;
   font-weight:800;
   line-height:1.1;
@@ -67,19 +65,19 @@
 }
 .auth-field input{
   min-height:56px;
-  border-color:rgba(216,222,236,.32);
+  border-color:var(--line-strong);
   border-radius:8px;
-  background:#0b0e16;
-  color:#f7f3ff;
+  background:var(--surface-strong);
+  color:var(--text);
   font-size:16px;
 }
 .auth-field input::placeholder{
-  color:rgba(247,243,255,.58);
+  color:var(--muted);
 }
 .auth-field input:focus{
   border-color:var(--accent);
-  background:#0d111b;
-  box-shadow:0 0 0 4px rgba(216,106,24,.2);
+  background:var(--surface-strong);
+  box-shadow:var(--focus-ring);
 }
 .auth-error{
   margin-top:12px;
@@ -128,9 +126,9 @@
   width:34px;
   height:34px;
   border-radius:8px;
-  object-fit:cover;
-  background:#050607;
-  box-shadow:0 10px 22px rgba(216,106,24,.18);
+  object-fit:contain;
+  background:transparent;
+  filter:drop-shadow(0 8px 16px rgba(216,106,24,.18));
 }
 .brand-title{
   margin:0;

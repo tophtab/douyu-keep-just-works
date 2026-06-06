@@ -15,7 +15,7 @@ export function createServer(ctx: AppContext): express.Express {
 
   app.use(express.json())
 
-  registerWebUiRoutes(app)
+  registerWebUiRoutes(app, ctx)
   auth.registerAuthRoutes(app)
   auth.registerProtectedBoundary(app, isDockerWebUiPagePath)
   registerConfigRoutes(app, ctx)

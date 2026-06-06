@@ -173,6 +173,38 @@ function getSessionCookie(response) {
   return cookieHeader.split(';')[0]
 }
 
+test('createServer injects configured WebUI theme into served HTML', async () => {
+  const { context, setConfig } = createRouteTestContext()
+  setConfig({
+    ...createInitialConfig(),
+    ui: { themeMode: 'light' },
+  })
+
+  await withServer(createServer(context), async (baseUrl) => {
+    const lightResponse = await fetch(`${baseUrl}/`)
+    const lightHtml = await lightResponse.text()
+
+    assert.equal(lightResponse.status, 200)
+    assert.match(lightHtml, /initialThemeMode: 'light'/)
+    assert.match(lightHtml, /<body data-theme="light" data-auth="login">/)
+    assert.match(lightHtml, /<meta name="theme-color" content="#f4ede4" id="theme-color-meta">/)
+    assert.doesNotMatch(lightHtml, /__INITIAL_THEME/)
+
+    setConfig({
+      ...createInitialConfig(),
+      ui: { themeMode: 'neon' },
+    })
+
+    const fallbackResponse = await fetch(`${baseUrl}/`)
+    const fallbackHtml = await fallbackResponse.text()
+
+    assert.equal(fallbackResponse.status, 200)
+    assert.match(fallbackHtml, /initialThemeMode: 'system'/)
+    assert.match(fallbackHtml, /<body data-theme="dark" data-auth="login">/)
+    assert.match(fallbackHtml, /<meta name="theme-color" content="#000000" id="theme-color-meta">/)
+  })
+})
+
 test('createServer protects config routes and masks public config secrets', async () => {
   const { context } = createRouteTestContext()
   await withServer(createServer(context), async (baseUrl) => {

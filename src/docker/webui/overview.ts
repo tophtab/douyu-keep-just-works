@@ -161,9 +161,6 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
     if (fansStatusError.value && fansStatusLoaded.value) {
       return `本次刷新失败：${fansStatusError.value}`
     }
-    if (fansStatus.value.length && hasGiftStatusError(giftStatus.value)) {
-      return `背包明细暂不可用：${giftStatus.value.error}`
-    }
     return ''
   })
 

@@ -100,6 +100,14 @@ function buildDoublePayload(): DoubleCardConfig {
   }
 }
 
+function formatDoubleRoomCount(currentOverview: DoubleOverview | null, rows: DoubleFanRow[]): string {
+  if (!rows.length) {
+    return String(currentOverview?.doubleCardRooms ?? 0)
+  }
+  const selectedRooms = rows.filter(row => row.enabled).length
+  return `${selectedRooms}/${rows.length}`
+}
+
 async function refreshDoubleSurfaces(): Promise<void> {
   await refreshTaskSurface('double-card')
 }
@@ -162,7 +170,7 @@ export function useDoubleTaskPage() {
       pendingThirdLabel: '房间数',
       configured,
       status,
-      thirdCell: { label: '房间数', value: configured ? String(currentOverview?.doubleCardRooms ?? 0) : '0' },
+      thirdCell: { label: '房间数', value: configured ? formatDoubleRoomCount(currentOverview, fanRows.value) : '0' },
     })
   })
 

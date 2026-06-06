@@ -2,7 +2,7 @@
 import { useCollectTaskPage } from '../collect'
 import ActionBar from './ActionBar.vue'
 import CronField from './CronField.vue'
-import EnableSwitch from './EnableSwitch.vue'
+import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
 
 const {
@@ -26,44 +26,42 @@ function handleAction(index: number): void {
 </script>
 
 <template>
-  <TaskStatusCard
-    card-id="collect-task-card"
-    title="领取"
-    :pills="collectTaskCard.pills"
-    :cells="collectTaskCard.cells"
-    style="margin-bottom:16px"
-  />
+  <div class="page-stack">
+    <TaskStatusCard
+      card-id="collect-task-card"
+      title="领取"
+      :pills="collectTaskCard.pills"
+      :cells="collectTaskCard.cells"
+    />
 
-  <div class="panel">
-    <div class="panel-head">
-      <div>
-        <h3 class="section-title" style="margin-top:0">
-          领取任务开关
-        </h3>
-      </div>
-      <EnableSwitch
-        v-model="collectEnabled"
-        input-id="collect-enable"
-        name="collect-enable"
-        label="领取任务开关"
-        style="margin:0"
-        @change="handleCollectToggle"
-      />
-    </div>
-    <CronField
-      v-model="collectCron"
-      input-id="collect-cron"
-      name="collect-cron"
-      preview-id="collect-cron-preview"
-      :preview-text="collectCronPreviewText"
-      @input="loadCollectCronPreview"
-    />
-    <ActionBar
-      :actions="[
-        { label: '保存并启用', kind: 'success' },
-        { label: '立即领取', kind: 'secondary' },
-      ]"
-      @action="handleAction"
-    />
+    <TaskSettingsSection
+      v-model="collectEnabled"
+      input-id="collect-enable"
+      name="collect-enable"
+      label="领取任务开关"
+      title="领取任务开关"
+      @change="handleCollectToggle"
+    >
+      <template #controls>
+        <CronField
+          v-model="collectCron"
+          input-id="collect-cron"
+          name="collect-cron"
+          preview-id="collect-cron-preview"
+          :preview-text="collectCronPreviewText"
+          @input="loadCollectCronPreview"
+        />
+      </template>
+      <template #actions>
+        <ActionBar
+          class="section-actions"
+          :actions="[
+            { label: '保存并启用', kind: 'success' },
+            { label: '立即领取', kind: 'secondary' },
+          ]"
+          @action="handleAction"
+        />
+      </template>
+    </TaskSettingsSection>
   </div>
 </template>

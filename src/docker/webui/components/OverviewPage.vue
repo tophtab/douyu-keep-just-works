@@ -2,6 +2,7 @@
 import type { useOverviewPage } from '../overview'
 import type { WebUiPageTab } from '../navigation'
 import FansStatusTable from './FansStatusTable.vue'
+import PageSection from './PageSection.vue'
 
 const props = defineProps<{
   selectTab: (tab: WebUiPageTab) => void
@@ -21,14 +22,8 @@ const {
 
 <template>
   <div class="overview-stack">
-    <div class="panel">
-      <div class="section-kicker">
-        基础状态
-      </div>
-      <h3 class="section-title">
-        概况
-      </h3>
-      <div class="summary-grid quad" style="margin-top:16px">
+    <PageSection kicker="基础状态" title="概况">
+      <div class="summary-grid quad">
         <div v-for="cell in overviewStatusCells" :key="cell.label" class="strip-metric">
           <div class="mini-label">
             {{ cell.label }}
@@ -38,18 +33,10 @@ const {
           </div>
         </div>
       </div>
-    </div>
+    </PageSection>
 
-    <div class="panel">
-      <div class="panel-head">
-        <div>
-          <div class="section-kicker">
-            粉丝牌
-          </div>
-          <h3 class="section-title">
-            粉丝牌列表
-          </h3>
-        </div>
+    <PageSection title="粉丝牌列表">
+      <template #actions>
         <div class="strip-metrics compact overview-gift-summary">
           <div v-for="metric in overviewGiftMetrics" :key="metric.label" class="strip-metric">
             <div class="mini-label">
@@ -60,26 +47,24 @@ const {
             </div>
           </div>
         </div>
-      </div>
-      <div v-if="overviewFansFeedbackText" class="status-box" role="status" aria-live="polite" style="margin-top:16px">
+      </template>
+      <div v-if="overviewFansFeedbackText" class="status-box" role="status" aria-live="polite">
         {{ overviewFansFeedbackText }}
       </div>
-      <div style="margin-top:16px">
-        <div v-if="showOverviewLoginAction" class="empty empty-with-action">
-          保存 Cookie 或启用 CookieCloud 后再点击顶部“刷新”，这里会直接展示粉丝牌与双倍状态。
-          <div class="empty-action">
-            <button class="btn btn-primary" type="button" @click="selectTab('login')">
-              前往登录
-            </button>
-          </div>
-        </div>
-        <div v-else-if="showOverviewFansTable" class="table-shell">
-          <FansStatusTable :rows="overviewFansRows" show-double-status />
-        </div>
-        <div v-else class="empty">
-          {{ overviewFansEmptyText }}
+      <div v-if="showOverviewLoginAction" class="empty empty-with-action">
+        保存 Cookie 或启用 CookieCloud 后再点击顶部“刷新”，这里会直接展示粉丝牌与双倍状态。
+        <div class="empty-action">
+          <button class="btn btn-primary" type="button" @click="selectTab('login')">
+            前往登录
+          </button>
         </div>
       </div>
-    </div>
+      <div v-else-if="showOverviewFansTable" class="table-shell">
+        <FansStatusTable :rows="overviewFansRows" show-double-status />
+      </div>
+      <div v-else class="empty">
+        {{ overviewFansEmptyText }}
+      </div>
+    </PageSection>
   </div>
 </template>

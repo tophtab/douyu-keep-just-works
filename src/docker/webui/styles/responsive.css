@@ -124,6 +124,9 @@
   .summary-grid{
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
+  .summary-grid.quad{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
 }
 @media (max-width: 960px){
   .auth-shell{
@@ -169,6 +172,13 @@
     width:100%;
   }
   .split-inline{
+    grid-template-columns:1fr;
+  }
+  .section-panel-head{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .summary-grid.quad{
     grid-template-columns:1fr;
   }
   .split-inline-actions{

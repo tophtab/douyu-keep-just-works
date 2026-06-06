@@ -3,7 +3,7 @@ import { useDoubleTaskPage } from '../double'
 import ActionBar from './ActionBar.vue'
 import AllocationTable from './AllocationTable.vue'
 import CronField from './CronField.vue'
-import EnableSwitch from './EnableSwitch.vue'
+import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
 
 interface DoubleAllocationRow {
@@ -50,104 +50,109 @@ function updateRowValue(row: DoubleAllocationRow, value: number): void {
 </script>
 
 <template>
-  <TaskStatusCard
-    card-id="double-task-card"
-    title="双倍"
-    :pills="doubleTaskCard.pills"
-    :cells="doubleTaskCard.cells"
-  />
+  <div class="page-stack">
+    <TaskStatusCard
+      card-id="double-task-card"
+      title="双倍"
+      :pills="doubleTaskCard.pills"
+      :cells="doubleTaskCard.cells"
+    />
 
-  <div class="panel" style="margin-top:16px">
-    <EnableSwitch
+    <TaskSettingsSection
       v-model="doubleEnabled"
       input-id="double-enable"
       name="double-enable"
       label="双倍任务开关"
       title="双倍任务开关"
+      :control-columns="3"
       @change="handleDoubleToggle"
-    />
-    <div class="grid cols-3">
-      <CronField
-        v-model="doubleCron"
-        input-id="double-cron"
-        name="double-cron"
-        preview-id="double-cron-preview"
-        :preview-text="doubleCronPreviewText"
-        @input="loadDoubleCronPreview"
-      />
-      <div class="field-block">
-        <label class="field-label" for="double-gift-scope">礼物范围</label>
-        <select id="double-gift-scope" v-model="doubleGiftScope" name="double-gift-scope">
-          <option value="glowStick">
-            全部荧光棒
-          </option>
-          <option value="limitedTime">
-            限时礼物
-          </option>
-        </select>
-      </div>
-      <div class="field-block">
-        <label class="field-label" for="double-model">分配模式</label>
-        <select id="double-model" v-model.number="doubleModel" name="double-model">
-          <option value="1">
-            按权重
-          </option>
-          <option value="2">
-            按固定数量
-          </option>
-        </select>
-      </div>
-    </div>
-    <ActionBar
-      :actions="[
-        { label: '保存并启用', kind: 'success' },
-        { label: '立即检测', kind: 'secondary' },
-      ]"
-      @action="handleAction"
-    />
-    <div class="status-box task-section">
-      <div class="split-inline">
-        <div class="split-inline-copy">
-          <div class="section-kicker">
-            分配说明
-          </div>
-          <p id="double-mode-help" class="subtle double-help">
-            {{ doubleModeHelp }}
-          </p>
-          <div id="double-ratio-preview" class="helper double-ratio-preview" role="status" aria-live="polite">
-            {{ doubleRatioPreview }}
-          </div>
-        </div>
-        <div v-show="showDoubleRatioTools" id="double-ratio-tools" class="split-inline-actions">
-          <button class="btn btn-secondary" type="button" @click="applyDoubleRatioPreset('equal')">
-            平均权重
-          </button>
-          <button class="btn btn-secondary" type="button" @click="applyDoubleRatioPreset('level')">
-            等级权重
-          </button>
-        </div>
-      </div>
-    </div>
-    <div id="double-table-wrap" style="margin-top:16px">
-      <div v-if="!showDoubleTable" class="empty">
-        {{ doubleEmptyText }}
-      </div>
-      <div v-else class="table-shell">
-        <AllocationTable
-          table-class="double-table"
-          input-class="double-value"
-          input-name-prefix="double-value"
-          enabled-class="double-enabled"
-          enabled-name-prefix="double-enabled"
-          task-label="双倍"
-          show-enabled
-          :show-index="false"
-          :rows="doubleFanRows"
-          :value-label="doubleValueLabel"
-          @enabled-change="updateRowEnabled"
-          @value-change="updateRowValue"
+    >
+      <template #controls>
+        <CronField
+          v-model="doubleCron"
+          input-id="double-cron"
+          name="double-cron"
+          preview-id="double-cron-preview"
+          :preview-text="doubleCronPreviewText"
+          @input="loadDoubleCronPreview"
         />
+        <div class="field-block">
+          <label class="field-label" for="double-gift-scope">礼物范围</label>
+          <select id="double-gift-scope" v-model="doubleGiftScope" name="double-gift-scope">
+            <option value="glowStick">
+              全部荧光棒
+            </option>
+            <option value="limitedTime">
+              限时礼物
+            </option>
+          </select>
+        </div>
+        <div class="field-block">
+          <label class="field-label" for="double-model">分配模式</label>
+          <select id="double-model" v-model.number="doubleModel" name="double-model">
+            <option value="1">
+              按权重
+            </option>
+            <option value="2">
+              按固定数量
+            </option>
+          </select>
+        </div>
+      </template>
+      <template #actions>
+        <ActionBar
+          class="section-actions"
+          :actions="[
+            { label: '保存并启用', kind: 'success' },
+            { label: '立即检测', kind: 'secondary' },
+          ]"
+          @action="handleAction"
+        />
+      </template>
+      <div class="status-box">
+        <div class="split-inline">
+          <div class="split-inline-copy">
+            <h3 class="section-title">
+              分配说明
+            </h3>
+            <p id="double-mode-help" class="subtle double-help">
+              {{ doubleModeHelp }}
+            </p>
+            <div id="double-ratio-preview" class="helper double-ratio-preview" role="status" aria-live="polite">
+              {{ doubleRatioPreview }}
+            </div>
+          </div>
+          <div v-show="showDoubleRatioTools" id="double-ratio-tools" class="split-inline-actions">
+            <button class="btn btn-secondary" type="button" @click="applyDoubleRatioPreset('equal')">
+              平均权重
+            </button>
+            <button class="btn btn-secondary" type="button" @click="applyDoubleRatioPreset('level')">
+              等级权重
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+      <div id="double-table-wrap" class="section-block">
+        <div v-if="!showDoubleTable" class="empty">
+          {{ doubleEmptyText }}
+        </div>
+        <div v-else class="table-shell">
+          <AllocationTable
+            table-class="double-table"
+            input-class="double-value"
+            input-name-prefix="double-value"
+            enabled-class="double-enabled"
+            enabled-name-prefix="double-enabled"
+            task-label="双倍"
+            show-enabled
+            :show-index="false"
+            :rows="doubleFanRows"
+            :value-label="doubleValueLabel"
+            @enabled-change="updateRowEnabled"
+            @value-change="updateRowValue"
+          />
+        </div>
+      </div>
+    </TaskSettingsSection>
   </div>
 </template>

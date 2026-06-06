@@ -6,7 +6,7 @@ import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationMode
 import { useCronPreview } from './composables/use-cron-preview'
 import { createFansBackedTaskPageState } from './fans-backed-task-page'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
-import { createFanListMessages, getAllocationValueLabel, hasFanTaskTableRows, isTaskActive, resolveCurrentTaskConfig } from './task-shared'
+import { createDisabledAllocationTaskConfig, createFanListMessages, createTaskConfigAccessor, getAllocationValueLabel, hasFanTaskTableRows, isTaskActive } from './task-shared'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface KeepaliveOverview {
@@ -31,23 +31,23 @@ const keepaliveModel = ref<1 | 2>(DEFAULT_KEEPALIVE_MODEL)
 const fanRows = ref<KeepaliveFanRow[]>([])
 const { cronPreviewText: keepaliveCronPreviewText, ensureCronPreview, loadCronPreview: loadKeepaliveCronPreview } = useCronPreview(() => keepaliveCron.value)
 
+const KEEPALIVE_CONFIG_FALLBACK: JobConfig = {
+  active: true,
+  cron: DEFAULT_KEEPALIVE_CRON,
+  model: DEFAULT_KEEPALIVE_MODEL,
+  send: {},
+}
+
 function normalizeModel(model: unknown): 1 | 2 {
   return normalizeAllocationModel(model, DEFAULT_KEEPALIVE_MODEL)
 }
 
-function getKeepaliveConfig(): JobConfig {
-  return resolveCurrentTaskConfig({
-    configKey: 'keepalive',
-    managedConfig: managedConfig.value,
-    rawConfig: rawConfig.value,
-    fallback: {
-      active: true,
-      cron: DEFAULT_KEEPALIVE_CRON,
-      model: DEFAULT_KEEPALIVE_MODEL,
-      send: {},
-    },
-  })
-}
+const getKeepaliveConfig = createTaskConfigAccessor<JobConfig, RawKeepaliveConfig>({
+  configKey: 'keepalive',
+  fallback: KEEPALIVE_CONFIG_FALLBACK,
+  getManagedConfig: () => managedConfig.value,
+  getRawConfig: () => rawConfig.value,
+})
 
 function buildFanRows(nextFans: Fans[], config: JobConfig): KeepaliveFanRow[] {
   const model = normalizeModel(config.model)
@@ -93,29 +93,13 @@ async function saveKeepaliveConfig(options?: { revertCheckboxOnError?: boolean }
 }
 
 async function disableKeepaliveConfig(): Promise<void> {
-  const currentConfig = resolveCurrentTaskConfig({
-    configKey: 'keepalive',
-    managedConfig: managedConfig.value,
-    rawConfig: rawConfig.value,
-    fallback: {
-      active: true,
-      cron: DEFAULT_KEEPALIVE_CRON,
-      model: DEFAULT_KEEPALIVE_MODEL,
-      send: {},
-    },
-  })
-  await saveDisabledKeepaliveConfig(currentConfig)
-}
-
-async function saveDisabledKeepaliveConfig(currentConfig: JobConfig): Promise<void> {
+  const currentConfig = getKeepaliveConfig()
   await disableEnabledTask({
     payload: {
-      keepalive: {
-        active: false,
-        cron: currentConfig.cron || DEFAULT_KEEPALIVE_CRON,
-        model: normalizeModel(currentConfig.model),
-        send: currentConfig.send || {},
-      },
+      keepalive: createDisabledAllocationTaskConfig(currentConfig, {
+        defaultCron: DEFAULT_KEEPALIVE_CRON,
+        normalizeModel,
+      }),
     },
     successMessage: '保活任务已停用',
     failurePrefix: '停用保活任务失败：',

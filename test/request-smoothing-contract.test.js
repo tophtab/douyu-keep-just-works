@@ -69,20 +69,22 @@ test('Docker WebUI coalesces duplicate local Douyu-backed reads without client c
   assert.match(getFunctionBody(resourceRequest, 'createResourceRequest'), /pending:\s*null/)
   assert.match(getFunctionBody(resourceRequest, 'createResourceRequest'), /fetchedAt:\s*0/)
   assert.match(getFunctionBody(resourceRequest, 'createResourceRequest'), /requestSeq:\s*0/)
+  const runResourceRequestBody = getFunctionBody(resourceRequest, 'runResourceRequest')
+  assert.match(runResourceRequestBody, /if\s*\(\s*resource\.pending\s*\)/, 'runResourceRequest must reuse an in-flight request')
+  assert.match(runResourceRequestBody, /return\s+resource\.pending/, 'runResourceRequest must return the in-flight request')
+  assert.match(runResourceRequestBody, /const requestSeq = resource\.requestSeq \+ 1/, 'runResourceRequest must start a new request sequence')
+  assert.match(runResourceRequestBody, /isResourceRequestStale\(resource,\s*requestSeq\)/, 'runResourceRequest must expose stale-response checks')
+  assert.match(runResourceRequestBody, /trackResourceRequest\(resource,\s*requestSeq,\s*pending\)/, 'runResourceRequest must track request sequence')
 
   for (const functionName of ['syncFans', 'loadFansList', 'loadFansStatus']) {
     const body = getFunctionBody(resourceFans, functionName)
-    assert.match(body, /if\s*\(\s*resource\.pending\s*\)/, `${functionName} must reuse an in-flight request`)
-    assert.match(body, /return\s+resource\.pending/, `${functionName} must return the in-flight request`)
-    assert.match(body, /trackResourceRequest\(resource,\s*requestSeq,\s*pending\)/, `${functionName} must track request sequence`)
-    assert.match(body, /resource\.requestSeq\s*!==\s*requestSeq/, `${functionName} must ignore stale responses`)
+    assert.match(body, /return runResourceRequest\(resource,\s*async \(\{ isStale \}\)/, `${functionName} must use the shared request lifecycle helper`)
+    assert.match(body, /if\s*\(\s*isStale\(\)\s*\)/, `${functionName} must ignore stale responses`)
   }
 
   const yubaBody = getFunctionBody(resourceYuba, 'loadYubaStatus')
-  assert.match(yubaBody, /if\s*\(\s*yubaStatusRequest\.pending\s*\)/, 'loadYubaStatus must reuse an in-flight request')
-  assert.match(yubaBody, /return\s+yubaStatusRequest\.pending/, 'loadYubaStatus must return the in-flight request')
-  assert.match(yubaBody, /trackResourceRequest\(yubaStatusRequest,\s*requestSeq,\s*pending\)/, 'loadYubaStatus must track request sequence')
-  assert.match(yubaBody, /yubaStatusRequest\.requestSeq\s*!==\s*requestSeq/, 'loadYubaStatus must ignore stale responses')
+  assert.match(yubaBody, /return runResourceRequest\(yubaStatusRequest,\s*async \(\{ isStale \}\)/, 'loadYubaStatus must use the shared request lifecycle helper')
+  assert.match(yubaBody, /if\s*\(\s*isStale\(\)\s*\)/, 'loadYubaStatus must ignore stale responses')
 
   const webuiResources = [resourceRequest, resourceFans, resourceYuba].join('\n')
   assert.doesNotMatch(webuiResources, /\b(cooldown|nextAllowed|minInterval|lastRequest|lastRequested|rateLimit|throttle|debounce)\b/i)

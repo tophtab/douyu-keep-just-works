@@ -4,6 +4,11 @@ export interface ResourceRequest {
   requestSeq: number
 }
 
+export interface ResourceRequestContext {
+  requestSeq: number
+  isStale: () => boolean
+}
+
 export function createResourceRequest(): ResourceRequest {
   return {
     pending: null,
@@ -29,6 +34,10 @@ export function withForceRefresh(url: string, forceRefresh = false): string {
   return `${url}${url.includes('?') ? '&' : '?'}force=1`
 }
 
+export function isResourceRequestStale(resource: ResourceRequest, requestSeq: number): boolean {
+  return resource.requestSeq !== requestSeq
+}
+
 export function trackResourceRequest<T>(resource: ResourceRequest, requestSeq: number, pending: Promise<T>): Promise<T> {
   const tracked = pending.then(
     (value) => {
@@ -46,4 +55,29 @@ export function trackResourceRequest<T>(resource: ResourceRequest, requestSeq: n
   )
   resource.pending = tracked
   return tracked
+}
+
+export function runResourceRequest<T>(
+  resource: ResourceRequest,
+  run: (context: ResourceRequestContext) => Promise<T>,
+): Promise<T> {
+  if (resource.pending) {
+    return resource.pending as Promise<T>
+  }
+
+  const requestSeq = resource.requestSeq + 1
+  resource.requestSeq = requestSeq
+  const context: ResourceRequestContext = {
+    requestSeq,
+    isStale: () => isResourceRequestStale(resource, requestSeq),
+  }
+
+  let pending: Promise<T>
+  try {
+    pending = Promise.resolve(run(context))
+  } catch (error: unknown) {
+    pending = Promise.reject(error)
+  }
+
+  return trackResourceRequest(resource, requestSeq, pending)
 }

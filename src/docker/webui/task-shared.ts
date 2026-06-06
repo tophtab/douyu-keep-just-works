@@ -1,4 +1,4 @@
-import type { DockerConfig, Fans } from '../../core/types'
+import type { DockerConfig, Fans, JobConfig, sendConfig } from '../../core/types'
 import { formatDate } from './datetime'
 import { requestJson } from './request'
 import { showToast } from './toast'
@@ -94,6 +94,18 @@ export interface FanListMessages {
 }
 
 export type WebUiTaskType = 'collectGift' | 'keepalive' | 'doubleCard' | 'expiringGift' | 'yubaCheckIn'
+
+interface TaskConfigAccessorOptions<TConfig, RawConfig extends object> {
+  configKey: keyof RawConfig
+  fallback: TConfig
+  getManagedConfig: () => RawConfig | null
+  getRawConfig: () => RawConfig | null
+}
+
+interface DisabledAllocationTaskOptions {
+  defaultCron: string
+  normalizeModel: (model: unknown) => 1 | 2
+}
 
 const WEBUI_TASK_TYPES: WebUiTaskType[] = ['collectGift', 'keepalive', 'doubleCard', 'expiringGift', 'yubaCheckIn']
 
@@ -207,6 +219,29 @@ export function resolveCurrentTaskConfig<TConfig, RawConfig extends object>(opti
   ) || (
     options.getRawConfig?.()[key] as TConfig | undefined
   ) || options.fallback
+}
+
+export function createTaskConfigAccessor<TConfig, RawConfig extends object>(
+  options: TaskConfigAccessorOptions<TConfig, RawConfig>,
+): () => TConfig {
+  return () => resolveCurrentTaskConfig({
+    configKey: options.configKey,
+    managedConfig: options.getManagedConfig(),
+    rawConfig: options.getRawConfig(),
+    fallback: options.fallback,
+  })
+}
+
+export function createDisabledAllocationTaskConfig<TConfig extends { cron?: string; model?: unknown; send?: sendConfig }>(
+  config: TConfig,
+  options: DisabledAllocationTaskOptions,
+): JobConfig {
+  return {
+    active: false,
+    cron: config.cron || options.defaultCron,
+    model: options.normalizeModel(config.model),
+    send: config.send || {},
+  }
 }
 
 export function createScheduledTaskCard(configured: boolean, status: TaskRunStatus, thirdCell: TaskCardCell): TaskStatusCardState {

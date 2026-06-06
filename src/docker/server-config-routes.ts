@@ -1,78 +1,12 @@
 import type express from 'express'
 import { isCookieCloudReady } from '../core/cookie-cloud'
-import type { CookieCloudConfig, DockerConfig, ManualCookieConfig, ManualPassportConfig } from '../core/types'
+import type { DockerConfig } from '../core/types'
+import { hasConfiguredCookieSource, maskCookie, maskCookieCloud, maskManualCookies, maskManualPassport, summarizeCookieSource } from './cookie-source-summary'
 import { getNextCronRuns, validateCronExpression } from './cron'
 import { validateCookieCloudConfig, validateCronConfig, validateDoubleCardConfig, validateExpiringGiftConfig, validateJobConfig, validateYubaCheckInConfig } from './config-validation'
 import { sendJsonOk } from './server-route-utils'
 import type { AppContext } from './server-types'
 import { hasActiveTaskConfig, isTaskActive } from './task-metadata'
-
-function hasConfiguredCookieSource(config: DockerConfig | null | undefined): boolean {
-  return Boolean(
-    config?.manualCookies?.main?.trim()
-    || config?.manualCookies?.yuba?.trim()
-    || config?.cookie?.trim(),
-  ) || isCookieCloudReady(config?.cookieCloud)
-}
-
-function summarizeCookieSource(config: DockerConfig | null | undefined): string {
-  const hasManualCookie = Boolean(
-    config?.manualCookies?.main?.trim()
-    || config?.manualCookies?.yuba?.trim()
-    || config?.cookie?.trim(),
-  )
-  const hasCookieCloud = isCookieCloudReady(config?.cookieCloud)
-
-  if (hasManualCookie && hasCookieCloud) {
-    return 'hybrid'
-  }
-  if (hasCookieCloud) {
-    return 'cookieCloud'
-  }
-  if (hasManualCookie) {
-    return 'manual'
-  }
-  return 'none'
-}
-
-function maskCookie(cookie: string): string {
-  if (cookie.length <= 20) {
-    return '***'
-  }
-  return `${cookie.substring(0, 10)}...${cookie.substring(cookie.length - 10)}`
-}
-
-function maskCookieCloud(config: CookieCloudConfig | undefined): CookieCloudConfig | undefined {
-  if (!config) {
-    return undefined
-  }
-
-  return {
-    ...config,
-    password: config.password ? maskCookie(config.password) : '',
-  }
-}
-
-function maskManualCookies(config: ManualCookieConfig | undefined): ManualCookieConfig | undefined {
-  if (!config) {
-    return undefined
-  }
-
-  return {
-    main: config.main ? maskCookie(config.main) : '',
-    yuba: config.yuba ? maskCookie(config.yuba) : '',
-  }
-}
-
-function maskManualPassport(config: ManualPassportConfig | undefined): ManualPassportConfig | undefined {
-  if (!config) {
-    return undefined
-  }
-
-  return {
-    cookie: config.cookie ? maskCookie(config.cookie) : '',
-  }
-}
 
 function maskConfigManualPassport<T extends { config: DockerConfig }>(result: T): T {
   return {

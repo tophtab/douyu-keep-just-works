@@ -54,6 +54,59 @@ interface ResourceRequest {
 
 When adding a new server resource, keep the API call in a Vue-owned composable or shared resource helper. If the resource is shared across pages, create or extend a focused `resource-*` module and import that owner directly from page modules. Do not introduce `window.DOUYU_KEEP_WEBUI_*` bridge state.
 
+### Shared Resource Request Lifecycle
+
+Use `runResourceRequest(resource, async ({ isStale }) => { ... })` from `resource-request.ts` for shared WebUI resources that need in-flight request coalescing, stale-response suppression, or protected-state invalidation.
+
+The helper owns only the mechanical lifecycle:
+
+- return an existing `resource.pending` promise when the same resource is already loading.
+- increment `resource.requestSeq` before starting a new request.
+- expose `isStale()` so the caller can skip state updates after invalidation or a newer request.
+- clear `resource.pending` through `trackResourceRequest` only when the tracked request still owns the current sequence.
+
+The resource owner still owns domain behavior: loading refs, page error refs, toast copy, unauthorized handling, `markResourceRequestLoaded`, `withForceRefresh`, and the `true` / `false` / `undefined` result contract documented below.
+
+Good:
+
+```typescript
+return runResourceRequest(yubaStatusRequest, async ({ isStale }) => {
+  yubaStatusLoading.value = true
+  yubaStatusError.value = ''
+
+  try {
+    const data = await requestJson<YubaStatusResponse>(withForceRefresh('/api/yuba/status', forceRefresh))
+    if (isStale()) {
+      return undefined
+    }
+    yubaStatus.value = data?.groups || []
+    markResourceRequestLoaded(yubaStatusRequest)
+    return true
+  } catch (error: unknown) {
+    if (isStale() || isHttpUnauthorized(error)) {
+      return undefined
+    }
+    yubaStatusError.value = getErrorMessage(error)
+    return false
+  } finally {
+    if (!isStale()) {
+      yubaStatusLoading.value = false
+    }
+  }
+})
+```
+
+Bad:
+
+```typescript
+const requestSeq = yubaStatusRequest.requestSeq + 1
+yubaStatusRequest.requestSeq = requestSeq
+const pending = requestJson('/api/yuba/status').then(...)
+return trackResourceRequest(yubaStatusRequest, requestSeq, pending)
+```
+
+Contract tests that guard request smoothing should assert the helper boundary and caller use of `isStale()`, not duplicate each loader's old inline pending/request-sequence implementation.
+
 ### Protected Shell Mounting
 
 Protected WebUI pages must not mount before authentication succeeds. Use `v-if="authenticated"` for the authenticated shell, not `v-show`, because hidden Vue components still run setup/watch logic and can issue protected API requests such as `/api/cron-preview` before the session is ready.

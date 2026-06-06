@@ -6,7 +6,7 @@ import { buildAllocationFanRows, buildAllocationSendMap, buildEnabledRoomMap, fo
 import { useCronPreview } from './composables/use-cron-preview'
 import { createFansBackedTaskPageState } from './fans-backed-task-page'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
-import { createFanListMessages, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isTaskActive, resolveCurrentTaskConfig } from './task-shared'
+import { createDisabledAllocationTaskConfig, createFanListMessages, createTaskConfigAccessor, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isTaskActive } from './task-shared'
 import { showToast } from './toast'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
@@ -38,6 +38,15 @@ const doubleGiftScope = ref<DoubleCardGiftScope>(DEFAULT_DOUBLE_CARD_GIFT_SCOPE)
 const fanRows = ref<DoubleFanRow[]>([])
 const { cronPreviewText: doubleCronPreviewText, ensureCronPreview, loadCronPreview: loadDoubleCronPreview } = useCronPreview(() => doubleCron.value)
 
+const DOUBLE_CONFIG_FALLBACK: DoubleCardConfig = {
+  active: true,
+  cron: DEFAULT_DOUBLE_CARD_CRON,
+  model: DEFAULT_DOUBLE_CARD_MODEL,
+  giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
+  send: {},
+  enabled: {},
+}
+
 function normalizeModel(model: unknown): 1 | 2 {
   return normalizeAllocationModel(model, DEFAULT_DOUBLE_CARD_MODEL)
 }
@@ -46,21 +55,12 @@ function normalizeGiftScope(scope: unknown): DoubleCardGiftScope {
   return scope === 'limitedTime' ? 'limitedTime' : DEFAULT_DOUBLE_CARD_GIFT_SCOPE
 }
 
-function getDoubleConfig(): DoubleCardConfig {
-  return resolveCurrentTaskConfig({
-    configKey: 'doubleCard',
-    managedConfig: managedConfig.value,
-    rawConfig: rawConfig.value,
-    fallback: {
-      active: true,
-      cron: DEFAULT_DOUBLE_CARD_CRON,
-      model: DEFAULT_DOUBLE_CARD_MODEL,
-      giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
-      send: {},
-      enabled: {},
-    },
-  })
-}
+const getDoubleConfig = createTaskConfigAccessor<DoubleCardConfig, RawDoubleConfig>({
+  configKey: 'doubleCard',
+  fallback: DOUBLE_CONFIG_FALLBACK,
+  getManagedConfig: () => managedConfig.value,
+  getRawConfig: () => rawConfig.value,
+})
 
 function buildFanRows(nextFans: DoubleFan[], config: DoubleCardConfig): DoubleFanRow[] {
   const model = normalizeModel(config.model)
@@ -127,27 +127,15 @@ async function saveDoubleConfig(options?: { revertCheckboxOnError?: boolean }): 
 }
 
 async function disableDoubleConfig(): Promise<void> {
-  const currentConfig = resolveCurrentTaskConfig({
-    configKey: 'doubleCard',
-    managedConfig: managedConfig.value,
-    rawConfig: rawConfig.value,
-    fallback: {
-      active: true,
-      cron: DEFAULT_DOUBLE_CARD_CRON,
-      model: DEFAULT_DOUBLE_CARD_MODEL,
-      giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
-      send: {},
-      enabled: {},
-    },
-  })
+  const currentConfig = getDoubleConfig()
   await disableEnabledTask({
     payload: {
       doubleCard: {
-        active: false,
-        cron: currentConfig.cron || DEFAULT_DOUBLE_CARD_CRON,
-        model: normalizeModel(currentConfig.model),
+        ...createDisabledAllocationTaskConfig(currentConfig, {
+          defaultCron: DEFAULT_DOUBLE_CARD_CRON,
+          normalizeModel,
+        }),
         giftScope: normalizeGiftScope(currentConfig.giftScope),
-        send: currentConfig.send || {},
         enabled: currentConfig.enabled || {},
       },
     },

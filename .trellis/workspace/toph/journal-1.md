@@ -1545,7 +1545,7 @@ Aligned WebUI resource error feedback so overview fans-status and logs load fail
 
 | Hash | Message |
 |------|---------|
-| `4a14fda` | (see git log) |
+| `316d2b1` | (see git log) |
 
 ### Testing
 

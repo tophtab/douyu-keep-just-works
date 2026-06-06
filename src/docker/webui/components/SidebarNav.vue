@@ -37,7 +37,7 @@ const PROJECT_URL = 'https://github.com/tophtab/douyu-keep-just-works'
       <span class="version-label">{{ versionLabel }}</span>
     </div>
     <p class="brand-copy">
-      <span>斗鱼自动赠送荧光棒续粉丝牌|检测双倍|鱼吧签到</span>
+      <span>斗鱼荧光棒|续粉丝牌|检测双倍|鱼吧签到</span>
       <span class="brand-source">基于Curtion/douyu-keep vibe coding</span>
     </p>
 

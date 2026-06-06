@@ -469,7 +469,7 @@ test('Docker WebUI sidebar project copy stays concise and split across lines', (
   const sidebarNav = readRepoFile('src/docker/webui/components/SidebarNav.vue')
   const shellCss = readRepoFile('src/docker/webui/styles/shell.css')
 
-  assert.match(sidebarNav, /斗鱼自动赠送荧光棒续粉丝牌\|检测双倍\|鱼吧签到/)
+  assert.match(sidebarNav, /斗鱼荧光棒\|续粉丝牌\|检测双倍\|鱼吧签到/)
   assert.match(sidebarNav, /<span class="brand-source">基于Curtion\/douyu-keep vibe coding<\/span>/)
   assert.doesNotMatch(sidebarNav, /docker版/)
   assert.match(shellCss, /\.brand-source\{[\s\S]*?display:block/)

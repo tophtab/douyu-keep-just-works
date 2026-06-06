@@ -1,15 +1,13 @@
 <script setup lang="ts">
+import { updateAllocationRowValue } from '../allocation-task'
 import { useExpiringGiftTaskPage } from '../expiring'
-import ActionBar from './ActionBar.vue'
 import AllocationTable from './AllocationTable.vue'
 import CronField from './CronField.vue'
 import ExpiringBackpackTable from './ExpiringBackpackTable.vue'
+import TaskActionBar from './TaskActionBar.vue'
 import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
-
-interface AllocationValueRow {
-  value: number
-}
+import TaskTableSection from './TaskTableSection.vue'
 
 const {
   expiringBackpackEmptyText,
@@ -31,18 +29,6 @@ const {
   showExpiringTable,
   triggerExpiringTask,
 } = useExpiringGiftTaskPage()
-
-function handleAction(index: number): void {
-  if (index === 0) {
-    void saveExpiringGiftConfig()
-    return
-  }
-  void triggerExpiringTask()
-}
-
-function updateRowValue(row: AllocationValueRow, value: number): void {
-  row.value = value
-}
 </script>
 
 <template>
@@ -89,39 +75,34 @@ function updateRowValue(row: AllocationValueRow, value: number): void {
         </div>
       </template>
       <template #actions>
-        <ActionBar
-          class="section-actions"
-          :actions="[
-            { label: '保存并启用', kind: 'success' },
-            { label: '立即执行', kind: 'secondary' },
-          ]"
-          @action="handleAction"
+        <TaskActionBar
+          secondary-label="立即执行"
+          @save="saveExpiringGiftConfig"
+          @trigger="triggerExpiringTask"
         />
       </template>
-      <div id="expiring-backpack-wrap" class="section-block">
-        <div v-if="!showExpiringBackpackTable" class="empty">
-          {{ expiringBackpackEmptyText }}
-        </div>
-        <div v-else class="table-shell">
-          <ExpiringBackpackTable :rows="expiringBackpackRows" />
-        </div>
-      </div>
-      <div id="expiring-table-wrap" class="section-block">
-        <div v-if="!showExpiringTable" class="empty">
-          {{ expiringTableEmptyText }}
-        </div>
-        <div v-else class="table-shell">
-          <AllocationTable
-            table-class="expiring-table"
-            input-class="expiring-value"
-            input-name-prefix="expiring-value"
-            task-label="临期"
-            :rows="expiringFanRows"
-            :value-label="expiringValueLabel"
-            @value-change="updateRowValue"
-          />
-        </div>
-      </div>
+      <TaskTableSection
+        id="expiring-backpack-wrap"
+        :show-table="showExpiringBackpackTable"
+        :empty-text="expiringBackpackEmptyText"
+      >
+        <ExpiringBackpackTable :rows="expiringBackpackRows" />
+      </TaskTableSection>
+      <TaskTableSection
+        id="expiring-table-wrap"
+        :show-table="showExpiringTable"
+        :empty-text="expiringTableEmptyText"
+      >
+        <AllocationTable
+          table-class="expiring-table"
+          input-class="expiring-value"
+          input-name-prefix="expiring-value"
+          task-label="临期"
+          :rows="expiringFanRows"
+          :value-label="expiringValueLabel"
+          @value-change="updateAllocationRowValue"
+        />
+      </TaskTableSection>
     </TaskSettingsSection>
   </div>
 </template>

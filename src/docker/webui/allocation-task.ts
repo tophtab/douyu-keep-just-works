@@ -75,6 +75,14 @@ export function buildEnabledRoomMap(rows: Array<AllocationFanRow & { enabled?: b
   return enabled
 }
 
+export function updateAllocationRowEnabled<T extends { enabled?: boolean }>(row: T, value: boolean): void {
+  row.enabled = value
+}
+
+export function updateAllocationRowValue<T extends { value: number }>(row: T, value: number): void {
+  row.value = value
+}
+
 export function formatRatioPercent(value: number): string {
   const rounded = Math.round(value * 10) / 10
   return `${rounded.toFixed(1).replace(/\.0$/, '')}%`

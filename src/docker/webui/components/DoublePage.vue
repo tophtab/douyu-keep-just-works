@@ -1,15 +1,12 @@
 <script setup lang="ts">
+import { updateAllocationRowEnabled, updateAllocationRowValue } from '../allocation-task'
 import { useDoubleTaskPage } from '../double'
-import ActionBar from './ActionBar.vue'
 import AllocationTable from './AllocationTable.vue'
 import CronField from './CronField.vue'
+import TaskActionBar from './TaskActionBar.vue'
 import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
-
-interface DoubleAllocationRow {
-  enabled?: boolean
-  value: number
-}
+import TaskTableSection from './TaskTableSection.vue'
 
 const {
   applyDoubleRatioPreset,
@@ -31,22 +28,6 @@ const {
   showDoubleTable,
   triggerDoubleTask,
 } = useDoubleTaskPage()
-
-function handleAction(index: number): void {
-  if (index === 0) {
-    void saveDoubleConfig()
-    return
-  }
-  void triggerDoubleTask()
-}
-
-function updateRowEnabled(row: DoubleAllocationRow, value: boolean): void {
-  row.enabled = value
-}
-
-function updateRowValue(row: DoubleAllocationRow, value: number): void {
-  row.value = value
-}
 </script>
 
 <template>
@@ -100,13 +81,10 @@ function updateRowValue(row: DoubleAllocationRow, value: number): void {
         </div>
       </template>
       <template #actions>
-        <ActionBar
-          class="section-actions"
-          :actions="[
-            { label: '保存并启用', kind: 'success' },
-            { label: '立即检测', kind: 'secondary' },
-          ]"
-          @action="handleAction"
+        <TaskActionBar
+          secondary-label="立即检测"
+          @save="saveDoubleConfig"
+          @trigger="triggerDoubleTask"
         />
       </template>
       <div class="status-box">
@@ -132,27 +110,26 @@ function updateRowValue(row: DoubleAllocationRow, value: number): void {
           </div>
         </div>
       </div>
-      <div id="double-table-wrap" class="section-block">
-        <div v-if="!showDoubleTable" class="empty">
-          {{ doubleEmptyText }}
-        </div>
-        <div v-else class="table-shell">
-          <AllocationTable
-            table-class="double-table"
-            input-class="double-value"
-            input-name-prefix="double-value"
-            enabled-class="double-enabled"
-            enabled-name-prefix="double-enabled"
-            task-label="双倍"
-            show-enabled
-            :show-index="false"
-            :rows="doubleFanRows"
-            :value-label="doubleValueLabel"
-            @enabled-change="updateRowEnabled"
-            @value-change="updateRowValue"
-          />
-        </div>
-      </div>
+      <TaskTableSection
+        id="double-table-wrap"
+        :show-table="showDoubleTable"
+        :empty-text="doubleEmptyText"
+      >
+        <AllocationTable
+          table-class="double-table"
+          input-class="double-value"
+          input-name-prefix="double-value"
+          enabled-class="double-enabled"
+          enabled-name-prefix="double-enabled"
+          task-label="双倍"
+          show-enabled
+          :show-index="false"
+          :rows="doubleFanRows"
+          :value-label="doubleValueLabel"
+          @enabled-change="updateAllocationRowEnabled"
+          @value-change="updateAllocationRowValue"
+        />
+      </TaskTableSection>
     </TaskSettingsSection>
   </div>
 </template>

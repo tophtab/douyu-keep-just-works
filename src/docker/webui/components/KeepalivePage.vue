@@ -1,14 +1,12 @@
 <script setup lang="ts">
+import { updateAllocationRowValue } from '../allocation-task'
 import { useKeepaliveTaskPage } from '../keepalive'
-import ActionBar from './ActionBar.vue'
 import AllocationTable from './AllocationTable.vue'
 import CronField from './CronField.vue'
+import TaskActionBar from './TaskActionBar.vue'
 import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
-
-interface AllocationValueRow {
-  value: number
-}
+import TaskTableSection from './TaskTableSection.vue'
 
 const {
   fanRows,
@@ -26,18 +24,6 @@ const {
   showKeepaliveTable,
   triggerKeepaliveTask,
 } = useKeepaliveTaskPage()
-
-function handleAction(index: number): void {
-  if (index === 0) {
-    void saveKeepaliveConfig()
-    return
-  }
-  void triggerKeepaliveTask()
-}
-
-function updateRowValue(row: AllocationValueRow, value: number): void {
-  row.value = value
-}
 </script>
 
 <template>
@@ -80,31 +66,27 @@ function updateRowValue(row: AllocationValueRow, value: number): void {
         </div>
       </template>
       <template #actions>
-        <ActionBar
-          class="section-actions"
-          :actions="[
-            { label: '保存并启用', kind: 'success' },
-            { label: '立即保活', kind: 'secondary' },
-          ]"
-          @action="handleAction"
+        <TaskActionBar
+          secondary-label="立即保活"
+          @save="saveKeepaliveConfig"
+          @trigger="triggerKeepaliveTask"
         />
       </template>
-      <div id="keepalive-table-wrap" class="section-block">
-        <div v-if="!showKeepaliveTable" class="empty">
-          {{ keepaliveEmptyText }}
-        </div>
-        <div v-else class="table-shell">
-          <AllocationTable
-            table-class="keepalive-table"
-            input-class="keepalive-value"
-            input-name-prefix="keepalive-value"
-            task-label="保活"
-            :rows="fanRows"
-            :value-label="keepaliveValueLabel"
-            @value-change="updateRowValue"
-          />
-        </div>
-      </div>
+      <TaskTableSection
+        id="keepalive-table-wrap"
+        :show-table="showKeepaliveTable"
+        :empty-text="keepaliveEmptyText"
+      >
+        <AllocationTable
+          table-class="keepalive-table"
+          input-class="keepalive-value"
+          input-name-prefix="keepalive-value"
+          task-label="保活"
+          :rows="fanRows"
+          :value-label="keepaliveValueLabel"
+          @value-change="updateAllocationRowValue"
+        />
+      </TaskTableSection>
     </TaskSettingsSection>
   </div>
 </template>

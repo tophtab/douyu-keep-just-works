@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useCollectTaskPage } from '../collect'
-import ActionBar from './ActionBar.vue'
 import CronField from './CronField.vue'
+import TaskActionBar from './TaskActionBar.vue'
 import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
 
@@ -15,14 +15,6 @@ const {
   saveCollectConfig,
   triggerCollectTask,
 } = useCollectTaskPage()
-
-function handleAction(index: number): void {
-  if (index === 0) {
-    void saveCollectConfig()
-    return
-  }
-  void triggerCollectTask()
-}
 </script>
 
 <template>
@@ -53,13 +45,10 @@ function handleAction(index: number): void {
         />
       </template>
       <template #actions>
-        <ActionBar
-          class="section-actions"
-          :actions="[
-            { label: '保存并启用', kind: 'success' },
-            { label: '立即领取', kind: 'secondary' },
-          ]"
-          @action="handleAction"
+        <TaskActionBar
+          secondary-label="立即领取"
+          @save="saveCollectConfig"
+          @trigger="triggerCollectTask"
         />
       </template>
     </TaskSettingsSection>

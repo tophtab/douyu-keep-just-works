@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { useYubaTaskPage } from '../yuba'
-import ActionBar from './ActionBar.vue'
 import CronField from './CronField.vue'
+import TaskActionBar from './TaskActionBar.vue'
 import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
+import TaskTableSection from './TaskTableSection.vue'
 import YubaStatusTable from './YubaStatusTable.vue'
 
 const {
@@ -20,14 +21,6 @@ const {
   yubaTableRows,
   yubaTaskCard,
 } = useYubaTaskPage()
-
-function handleAction(index: number): void {
-  if (index === 0) {
-    void saveYubaConfig()
-    return
-  }
-  void triggerYubaTask()
-}
 </script>
 
 <template>
@@ -67,23 +60,19 @@ function handleAction(index: number): void {
         </div>
       </template>
       <template #actions>
-        <ActionBar
-          class="section-actions"
-          :actions="[
-            { label: '保存并启用', kind: 'success' },
-            { label: '立即签到', kind: 'secondary' },
-          ]"
-          @action="handleAction"
+        <TaskActionBar
+          secondary-label="立即签到"
+          @save="saveYubaConfig"
+          @trigger="triggerYubaTask"
         />
       </template>
-      <div id="yuba-table-wrap" class="section-block">
-        <div v-if="!showYubaTable" class="empty">
-          {{ yubaEmptyText }}
-        </div>
-        <div v-else class="table-shell">
-          <YubaStatusTable :rows="yubaTableRows" />
-        </div>
-      </div>
+      <TaskTableSection
+        id="yuba-table-wrap"
+        :show-table="showYubaTable"
+        :empty-text="yubaEmptyText"
+      >
+        <YubaStatusTable :rows="yubaTableRows" />
+      </TaskTableSection>
     </TaskSettingsSection>
   </div>
 </template>

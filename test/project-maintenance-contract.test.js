@@ -401,6 +401,46 @@ test('Docker WebUI cron preview ignores unauthorized pre-auth responses', async 
   assert.doesNotMatch(preview.cronPreviewText.value, /请先登录|cron 校验失败/)
 })
 
+test('Docker WebUI cron preview does not render future run lists', async () => {
+  const { useCronPreview } = loadTypeScriptModule('src/docker/webui/composables/use-cron-preview.ts', {
+    '../request': {
+      requestJson: async () => ({
+        runs: [
+          '2026-06-08T08:31:00.000+08:00',
+          '2026-06-15T08:31:00.000+08:00',
+          '2026-06-22T08:31:00.000+08:00',
+        ],
+      }),
+    },
+  })
+
+  const preview = useCronPreview(() => '0 31 8 */7 * *')
+  await preview.loadCronPreview()
+
+  assert.equal(preview.cronPreview.value.runs.length, 3)
+  assert.equal(preview.cronPreviewText.value, '')
+})
+
+test('Docker WebUI cron preview hides empty success text without fit plumbing', () => {
+  const cronField = readRepoFile('src/docker/webui/components/CronField.vue')
+  const componentsCss = readRepoFile('src/docker/webui/styles/components.css')
+
+  assert.match(cronField, /v-if="previewText"/)
+  assert.doesNotMatch(cronField, /ResizeObserver|fitCronPreviewText|scaleX/)
+  assert.doesNotMatch(componentsCss, /\.cron-preview\{[\s\S]*?overflow-x:auto/)
+  assert.doesNotMatch(componentsCss, /\.cron-preview\{[\s\S]*?white-space:nowrap/)
+})
+
+test('Docker WebUI sidebar project copy stays concise and split across lines', () => {
+  const sidebarNav = readRepoFile('src/docker/webui/components/SidebarNav.vue')
+  const shellCss = readRepoFile('src/docker/webui/styles/shell.css')
+
+  assert.match(sidebarNav, /斗鱼自动赠送荧光棒续粉丝牌\|检测双倍\|鱼吧签到/)
+  assert.match(sidebarNav, /<span class="brand-source">基于Curtion\/douyu-keep vibe coding<\/span>/)
+  assert.doesNotMatch(sidebarNav, /docker版/)
+  assert.match(shellCss, /\.brand-source\{[\s\S]*?display:block/)
+})
+
 test('Docker task scheduling uses shared task metadata for inventory facts', () => {
   // Contract label: Mixed. Centralized task metadata is a guardrail; exact
   // scheduler/runner calls are shape checks.

@@ -29,7 +29,7 @@ const emit = defineEmits<{
         emit('input')
       }"
     >
-    <div :id="previewId" class="helper cron-preview" role="status" aria-live="polite">
+    <div v-if="previewText" :id="previewId" class="helper cron-preview" role="status" aria-live="polite">
       {{ previewText }}
     </div>
   </div>

@@ -1,5 +1,4 @@
 import { computed, ref } from 'vue'
-import { formatDate } from '../datetime'
 import type { WebUiRequestError } from '../request'
 import { requestJson } from '../request'
 import { getErrorMessage } from '../task-shared'
@@ -65,10 +64,10 @@ export function useCronPreview(getRawValue: () => string) {
   const cronPreviewText = computed(() => {
     const preview = cronPreview.value
     if (!preview.value) {
-      return '填写 cron 后显示未来三次执行时间。'
+      return '填写 cron 后可校验表达式。'
     }
     if (preview.loading) {
-      return '正在计算未来执行时间…'
+      return '正在校验 cron 表达式…'
     }
     if (preview.error) {
       return `cron 校验失败：${preview.error}`
@@ -76,7 +75,7 @@ export function useCronPreview(getRawValue: () => string) {
     if (!preview.runs.length) {
       return '暂未生成未来执行时间。'
     }
-    return `未来三次：${preview.runs.map(item => formatDate(item)).join(' / ')}`
+    return ''
   })
 
   return {

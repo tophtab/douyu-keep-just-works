@@ -278,9 +278,9 @@ textarea{
 .cron-preview{
   margin-top:8px;
   max-width:100%;
-  overflow-x:auto;
   padding-bottom:2px;
-  white-space:nowrap;
+  overflow-wrap:anywhere;
+  white-space:normal;
 }
 .btn{
   border:1px solid transparent;

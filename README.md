@@ -17,8 +17,7 @@
 - 双倍任务检测与分配
 - 临期荧光棒自动赠送
 - 鱼吧签到
-- WebUI 斗鱼扫码登录，生成本项目自己的 passport / 主站 / 鱼吧本地登录快照
-- CookieCloud 同步斗鱼相关 Cookie，并在主站登录态失效时尝试通过本地保存的 passport Cookie 刷新本地主站 Cookie
+- 手填cookie|扫码cookie|cookiecloud同步
 
 ## Docker 部署
 

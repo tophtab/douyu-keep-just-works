@@ -68,14 +68,58 @@ test('config example cron defaults stay aligned with core defaults', () => {
   assert.match(taskDefaults, /doubleCard:\s*\{[\s\S]*?active: false/)
 })
 
-test('Docker WebUI is Vue-only and served as Vite static Docker assets', () => {
-  // Contract label: Mixed. Durable WebUI guardrails sit beside refactor-sensitive
-  // ownership and module-shape checks.
+test('Docker WebUI build is Vite-backed and served as Docker static assets', () => {
+  // Contract label: Guardrail. Docker WebUI build and serving paths must stay static.
   const packageJson = JSON.parse(readRepoFile('package.json'))
   const viteConfig = readRepoFile('vite.config.ts')
   const webui = readRepoFile('src/docker/webui.ts')
   const webuiRoutes = readRepoFile('src/docker/server-webui-routes.ts')
   const viteIndex = readRepoFile('src/docker/webui/index.html')
+  const main = readRepoFile('src/docker/webui/main.ts')
+  const styles = readRepoFile('src/docker/webui/styles/base.css')
+  const shellStyles = readRepoFile('src/docker/webui/styles/shell.css')
+  const componentStyles = readRepoFile('src/docker/webui/styles/components.css')
+  const tableStyles = readRepoFile('src/docker/webui/styles/tables.css')
+  const responsiveStyles = readRepoFile('src/docker/webui/styles/responsive.css')
+
+  assert.equal(packageJson.scripts?.['build:webui'], 'npm run type-check:webui && vite build')
+  assert.equal(packageJson.scripts?.['type-check:webui'], 'vue-tsc -p tsconfig.webui.json --noEmit')
+  assert.match(packageJson.scripts?.['build:docker'], /npm run build:webui/)
+  assert.doesNotMatch(packageJson.scripts?.['build:docker'], /cp -R src\/docker\/webui/)
+  assert.equal(packageJson.dependencies?.vue, undefined)
+  assert.match(packageJson.devDependencies?.vue, /^\^3\./)
+  assert.match(packageJson.devDependencies?.vite, /^\^/)
+  assert.match(packageJson.devDependencies?.['@vitejs/plugin-vue'], /^\^/)
+
+  assert.match(viteConfig, /@vitejs\/plugin-vue/)
+  assert.match(viteConfig, /outDir: '\.\.\/\.\.\/\.\.\/build\/docker\/docker\/webui'/)
+  assert.match(viteConfig, /input: 'index\.html'/)
+  assert.match(viteConfig, /root: 'src\/docker\/webui'/)
+  assert.match(webui, /WEBUI_ASSET_ROOT = path\.join\(__dirname, 'webui'\)/)
+  assert.match(webui, /WEBUI_TEMPLATE_PATH = path\.join\(WEBUI_ASSET_ROOT, 'index\.html'\)/)
+  assert.match(webui, /replaceToken\(html, '__DOCKER_WEBUI_PAGE_ROUTES_JSON__', JSON\.stringify\(DOCKER_WEBUI_PAGE_ROUTES\)\)/)
+  assert.match(webuiRoutes, /express\.static\(WEBUI_ASSET_ROOT/)
+
+  assert.match(viteIndex, /<div id="app"><\/div>/)
+  assert.match(viteIndex, /DOUYU_KEEP_WEBUI_BOOTSTRAP/)
+  assert.match(viteIndex, /__DOCKER_WEBUI_PAGE_ROUTES_JSON__/)
+  assert.match(viteIndex, /src="\/main\.ts"/)
+  assert.match(main, /createApp\(App\)\.mount\('#app'\)/)
+  assert.match(main, /import '\.\/styles\/base\.css'/)
+  assert.match(main, /import '\.\/styles\/shell\.css'/)
+  assert.match(main, /import '\.\/styles\/components\.css'/)
+  assert.match(main, /import '\.\/styles\/tables\.css'/)
+  assert.match(main, /import '\.\/styles\/responsive\.css'/)
+
+  assert.match(styles, /:root\{/)
+  assert.match(shellStyles, /\.shell\{/)
+  assert.match(componentStyles, /\.grid\{/)
+  assert.match(tableStyles, /\.table-shell\{/)
+  assert.match(responsiveStyles, /@media \(prefers-reduced-motion: reduce\)/)
+})
+
+test('Docker WebUI remains Vue-only without legacy bridge files', () => {
+  // Contract label: Guardrail. Legacy imperative WebUI runtime must stay deleted.
   const main = readRepoFile('src/docker/webui/main.ts')
   const appVue = readRepoFile('src/docker/webui/App.vue')
   const appEvents = readRepoFile('src/docker/webui/app-events.ts')
@@ -102,33 +146,7 @@ test('Docker WebUI is Vue-only and served as Vite static Docker assets', () => {
   const auth = readRepoFile('src/docker/webui/auth.ts')
   const navigation = readRepoFile('src/docker/webui/navigation.ts')
   const request = readRepoFile('src/docker/webui/request.ts')
-  const resources = readRepoFile('src/docker/webui/resource-state.ts')
-  const resourceConfig = readRepoFile('src/docker/webui/resource-config.ts')
-  const resourceFans = readRepoFile('src/docker/webui/resource-fans.ts')
-  const resourceRequest = readRepoFile('src/docker/webui/resource-request.ts')
-  const resourceYuba = readRepoFile('src/docker/webui/resource-yuba.ts')
-  const logsResource = readRepoFile('src/docker/webui/logs-resource.ts')
-  const cronPreview = readRepoFile('src/docker/webui/composables/use-cron-preview.ts')
-  const taskPageActions = readRepoFile('src/docker/webui/task-page-actions.ts')
-  const taskShared = readRepoFile('src/docker/webui/task-shared.ts')
-  const fansBackedTaskPage = readRepoFile('src/docker/webui/fans-backed-task-page.ts')
-  const overview = readRepoFile('src/docker/webui/overview.ts')
-  const collect = readRepoFile('src/docker/webui/collect.ts')
-  const keepalive = readRepoFile('src/docker/webui/keepalive.ts')
-  const double = readRepoFile('src/docker/webui/double.ts')
-  const expiring = readRepoFile('src/docker/webui/expiring.ts')
-  const cookie = readRepoFile('src/docker/webui/cookie.ts')
-  const cookieSourceActions = readRepoFile('src/docker/webui/cookie-source-actions.ts')
-  const cookieSourceCopy = readRepoFile('src/docker/webui/cookie-source-copy.ts')
-  const cookieSourceState = readRepoFile('src/docker/webui/cookie-source-state.ts')
-  const yuba = readRepoFile('src/docker/webui/yuba.ts')
-  const theme = readRepoFile('src/docker/webui/theme.ts')
   const toast = readRepoFile('src/docker/webui/toast.ts')
-  const styles = readRepoFile('src/docker/webui/styles/base.css')
-  const shellStyles = readRepoFile('src/docker/webui/styles/shell.css')
-  const componentStyles = readRepoFile('src/docker/webui/styles/components.css')
-  const tableStyles = readRepoFile('src/docker/webui/styles/tables.css')
-  const responsiveStyles = readRepoFile('src/docker/webui/styles/responsive.css')
   const componentSurface = [
     appVue,
     appShell,
@@ -157,35 +175,7 @@ test('Docker WebUI is Vue-only and served as Vite static Docker assets', () => {
   const webuiModuleSource = webuiModuleFiles.map(readRepoFile).join('\n')
   const webuiWithoutBootstrap = webuiModuleSource.replace(/DOUYU_KEEP_WEBUI_BOOTSTRAP/g, '')
 
-  assert.equal(packageJson.scripts?.['build:webui'], 'npm run type-check:webui && vite build')
-  assert.equal(packageJson.scripts?.['type-check:webui'], 'vue-tsc -p tsconfig.webui.json --noEmit')
-  assert.match(packageJson.scripts?.['build:docker'], /npm run build:webui/)
-  assert.doesNotMatch(packageJson.scripts?.['build:docker'], /cp -R src\/docker\/webui/)
-  assert.equal(packageJson.dependencies?.vue, undefined)
-  assert.match(packageJson.devDependencies?.vue, /^\^3\./)
-  assert.match(packageJson.devDependencies?.vite, /^\^/)
-  assert.match(packageJson.devDependencies?.['@vitejs/plugin-vue'], /^\^/)
-
-  assert.match(viteConfig, /@vitejs\/plugin-vue/)
-  assert.match(viteConfig, /outDir: '\.\.\/\.\.\/\.\.\/build\/docker\/docker\/webui'/)
-  assert.match(viteConfig, /input: 'index\.html'/)
-  assert.match(viteConfig, /root: 'src\/docker\/webui'/)
-  assert.match(webui, /WEBUI_ASSET_ROOT = path\.join\(__dirname, 'webui'\)/)
-  assert.match(webui, /WEBUI_TEMPLATE_PATH = path\.join\(WEBUI_ASSET_ROOT, 'index\.html'\)/)
-  assert.match(webui, /replaceToken\(html, '__DOCKER_WEBUI_PAGE_ROUTES_JSON__', JSON\.stringify\(DOCKER_WEBUI_PAGE_ROUTES\)\)/)
-  assert.match(webuiRoutes, /express\.static\(WEBUI_ASSET_ROOT/)
-
-  assert.match(viteIndex, /<div id="app"><\/div>/)
-  assert.match(viteIndex, /DOUYU_KEEP_WEBUI_BOOTSTRAP/)
-  assert.match(viteIndex, /__DOCKER_WEBUI_PAGE_ROUTES_JSON__/)
-  assert.match(viteIndex, /src="\/main\.ts"/)
-  assert.match(main, /createApp\(App\)\.mount\('#app'\)/)
   assert.doesNotMatch(main, /installLegacy|startLegacyApp|DOUYU_KEEP_WEBUI_|await import\('\.\.\/webui\/app|await import\('\.\/app/)
-  assert.match(main, /import '\.\/styles\/base\.css'/)
-  assert.match(main, /import '\.\/styles\/shell\.css'/)
-  assert.match(main, /import '\.\/styles\/components\.css'/)
-  assert.match(main, /import '\.\/styles\/tables\.css'/)
-  assert.match(main, /import '\.\/styles\/responsive\.css'/)
 
   assert.match(appVue, /<script setup lang="ts">/)
   assert.match(appVue, /usePageNavigation\(bootstrap\.pageRoutes\)/)
@@ -200,6 +190,78 @@ test('Docker WebUI is Vue-only and served as Vite static Docker assets', () => {
   assert.match(appVue, /<AuthShell[\s\S]*v-show="!authenticated"/)
   assert.match(appVue, /<AppShell[\s\S]*v-show="authenticated"/)
   assert.match(appVue, /id="toast-live"[\s\S]*role="status"[\s\S]*aria-live="polite"/)
+
+  assert.doesNotMatch(componentSurface, /data-action=|data-trigger=|id="app-shell" style="display:none"/)
+
+  assert.match(appEvents, /WEBUI_APP_EVENTS/)
+  assert.match(appEvents, /douyu-keep-webui:auth-state/)
+  assert.match(appEvents, /douyu-keep-webui:toast/)
+  assert.match(appEvents, /douyu-keep-webui:unauthorized/)
+  assert.match(auth, /WEBUI_APP_EVENTS\.authState/)
+  assert.match(request, /WEBUI_APP_EVENTS\.unauthorized/)
+  assert.match(toast, /WEBUI_APP_EVENTS\.toast/)
+  assert.match(navigation, /export function usePageNavigation/)
+  assert.doesNotMatch(navigation, /data-action|WEBUI_BRIDGE_EVENTS/)
+  assert.doesNotMatch(auth + request + toast, /WEBUI_BRIDGE_EVENTS|bridge-contract/)
+
+  assert.doesNotMatch(webuiWithoutBootstrap, /installLegacy|startLegacyApp|WEBUI_BRIDGE_EVENTS|bridge-contract|useLegacyPageEvents|DOUYU_KEEP_WEBUI_/)
+  for (const deletedFile of [
+    'src/docker/webui/actions.ts',
+    'src/docker/webui/bridge-contract.ts',
+    'src/docker/webui/legacy-app.ts',
+    'src/docker/webui/legacy-core.ts',
+    'src/docker/webui/legacy-state.ts',
+    'src/docker/webui/pages.ts',
+    'src/docker/webui/resources.ts',
+    'src/docker/webui/task-actions.ts',
+    'src/docker/webui/task-pages.ts',
+    'src/docker/webui/app.js',
+    'src/docker/webui/app-actions.js',
+    'src/docker/webui/app-pages.js',
+    'src/docker/webui/app-task-pages.js',
+  ]) {
+    assert.equal(fs.existsSync(repoPath(deletedFile)), false, `${deletedFile} should stay deleted`)
+  }
+})
+
+test('Docker WebUI resource and page ownership stays in focused Vue modules', () => {
+  // Contract label: Shape. Focused ownership checks guide future WebUI refactors.
+  const appShell = readRepoFile('src/docker/webui/components/AppShell.vue')
+  const sidebarNav = readRepoFile('src/docker/webui/components/SidebarNav.vue')
+  const topToolbar = readRepoFile('src/docker/webui/components/TopToolbar.vue')
+  const authShell = readRepoFile('src/docker/webui/components/AuthShell.vue')
+  const overviewPage = readRepoFile('src/docker/webui/components/OverviewPage.vue')
+  const loginConfigPage = readRepoFile('src/docker/webui/components/LoginConfigPage.vue')
+  const collectPage = readRepoFile('src/docker/webui/components/CollectPage.vue')
+  const yubaPage = readRepoFile('src/docker/webui/components/YubaPage.vue')
+  const keepalivePage = readRepoFile('src/docker/webui/components/KeepalivePage.vue')
+  const expiringPage = readRepoFile('src/docker/webui/components/ExpiringPage.vue')
+  const logsPage = readRepoFile('src/docker/webui/components/LogsPage.vue')
+  const fansStatusTable = readRepoFile('src/docker/webui/components/FansStatusTable.vue')
+  const yubaStatusTable = readRepoFile('src/docker/webui/components/YubaStatusTable.vue')
+  const allocationTable = readRepoFile('src/docker/webui/components/AllocationTable.vue')
+  const expiringBackpackTable = readRepoFile('src/docker/webui/components/ExpiringBackpackTable.vue')
+  const resources = readRepoFile('src/docker/webui/resource-state.ts')
+  const resourceConfig = readRepoFile('src/docker/webui/resource-config.ts')
+  const resourceFans = readRepoFile('src/docker/webui/resource-fans.ts')
+  const resourceRequest = readRepoFile('src/docker/webui/resource-request.ts')
+  const resourceYuba = readRepoFile('src/docker/webui/resource-yuba.ts')
+  const logsResource = readRepoFile('src/docker/webui/logs-resource.ts')
+  const cronPreview = readRepoFile('src/docker/webui/composables/use-cron-preview.ts')
+  const taskPageActions = readRepoFile('src/docker/webui/task-page-actions.ts')
+  const taskShared = readRepoFile('src/docker/webui/task-shared.ts')
+  const fansBackedTaskPage = readRepoFile('src/docker/webui/fans-backed-task-page.ts')
+  const overview = readRepoFile('src/docker/webui/overview.ts')
+  const collect = readRepoFile('src/docker/webui/collect.ts')
+  const keepalive = readRepoFile('src/docker/webui/keepalive.ts')
+  const double = readRepoFile('src/docker/webui/double.ts')
+  const expiring = readRepoFile('src/docker/webui/expiring.ts')
+  const cookie = readRepoFile('src/docker/webui/cookie.ts')
+  const cookieSourceActions = readRepoFile('src/docker/webui/cookie-source-actions.ts')
+  const cookieSourceCopy = readRepoFile('src/docker/webui/cookie-source-copy.ts')
+  const cookieSourceState = readRepoFile('src/docker/webui/cookie-source-state.ts')
+  const yuba = readRepoFile('src/docker/webui/yuba.ts')
+  const theme = readRepoFile('src/docker/webui/theme.ts')
 
   assert.match(appShell, /<SidebarNav/)
   assert.match(appShell, /<TopToolbar/)
@@ -219,18 +281,6 @@ test('Docker WebUI is Vue-only and served as Vite static Docker assets', () => {
   assert.match(yubaStatusTable, /v-for="row in rows"/)
   assert.match(allocationTable, /@change="emit\('enabledChange'/)
   assert.match(expiringBackpackTable, /v-for="row in rows"/)
-  assert.doesNotMatch(componentSurface, /data-action=|data-trigger=|id="app-shell" style="display:none"/)
-
-  assert.match(appEvents, /WEBUI_APP_EVENTS/)
-  assert.match(appEvents, /douyu-keep-webui:auth-state/)
-  assert.match(appEvents, /douyu-keep-webui:toast/)
-  assert.match(appEvents, /douyu-keep-webui:unauthorized/)
-  assert.match(auth, /WEBUI_APP_EVENTS\.authState/)
-  assert.match(request, /WEBUI_APP_EVENTS\.unauthorized/)
-  assert.match(toast, /WEBUI_APP_EVENTS\.toast/)
-  assert.match(navigation, /export function usePageNavigation/)
-  assert.doesNotMatch(navigation, /data-action|WEBUI_BRIDGE_EVENTS/)
-  assert.doesNotMatch(auth + request + toast, /WEBUI_BRIDGE_EVENTS|bridge-contract/)
 
   assert.match(resources, /export async function loadProtectedData/)
   assert.doesNotMatch(resources, /syncCookieCloud/)
@@ -323,31 +373,6 @@ test('Docker WebUI is Vue-only and served as Vite static Docker assets', () => {
   assert.match(expiring, /triggerFansBackedTask\('expiringGift', applyResourceState\)/)
   assert.match(yuba, /watch\(\[sharedRawConfig, sharedOverview, sharedYubaStatus/)
   assert.match(yuba, /refreshOverviewSurface\('yuba', false\)/)
-
-  assert.doesNotMatch(webuiWithoutBootstrap, /installLegacy|startLegacyApp|WEBUI_BRIDGE_EVENTS|bridge-contract|useLegacyPageEvents|DOUYU_KEEP_WEBUI_/)
-  for (const deletedFile of [
-    'src/docker/webui/actions.ts',
-    'src/docker/webui/bridge-contract.ts',
-    'src/docker/webui/legacy-app.ts',
-    'src/docker/webui/legacy-core.ts',
-    'src/docker/webui/legacy-state.ts',
-    'src/docker/webui/pages.ts',
-    'src/docker/webui/resources.ts',
-    'src/docker/webui/task-actions.ts',
-    'src/docker/webui/task-pages.ts',
-    'src/docker/webui/app.js',
-    'src/docker/webui/app-actions.js',
-    'src/docker/webui/app-pages.js',
-    'src/docker/webui/app-task-pages.js',
-  ]) {
-    assert.equal(fs.existsSync(repoPath(deletedFile)), false, `${deletedFile} should stay deleted`)
-  }
-
-  assert.match(styles, /:root\{/)
-  assert.match(shellStyles, /\.shell\{/)
-  assert.match(componentStyles, /\.grid\{/)
-  assert.match(tableStyles, /\.table-shell\{/)
-  assert.match(responsiveStyles, /@media \(prefers-reduced-motion: reduce\)/)
 })
 
 test('Docker task scheduling uses shared task metadata for inventory facts', () => {
@@ -376,22 +401,6 @@ test('Docker task scheduling uses shared task metadata for inventory facts', () 
   assert.doesNotMatch(scheduler, /private startYubaCheckInTask/)
 })
 
-test('Docker config mutation routes use shared JSON error helpers', () => {
-  // Contract label: Shape. Helper/import checks are candidates for future route
-  // behavior coverage.
-  const configRoutes = readRepoFile('src/docker/server-config-routes.ts')
-  const routeUtils = readRepoFile('src/docker/server-route-utils.ts')
-
-  assert.match(routeUtils, /export async function sendJsonOk/)
-  assert.match(configRoutes, /import \{ sendJsonOk \} from '\.\/server-route-utils'/)
-  assert.match(configRoutes, /app\.post\('\/api\/cookie', async \(req, res\)/)
-  assert.match(configRoutes, /app\.post\('\/api\/config', async \(req, res\)/)
-  assert.match(configRoutes, /sendJsonOk\(\s*res,\s*\(\) => ctx\.saveCookie/)
-  assert.match(configRoutes, /sendJsonOk\(\s*res,\s*async \(\) => [\s\S]*ctx\.saveTaskConfig/)
-  assert.doesNotMatch(configRoutes, /\.then\(\(result\)/)
-  assert.doesNotMatch(configRoutes, /\.catch\(\(e: unknown\)/)
-})
-
 test('CookieCloud sync-and-check persists first, then checks the local snapshot only', () => {
   // Contract label: Mixed. Local-only diagnostics are a guardrail, while route
   // sequencing and UI copy can move toward behavior tests.
@@ -399,8 +408,6 @@ test('CookieCloud sync-and-check persists first, then checks the local snapshot 
   const cookieSource = readRepoFile('src/docker/runtime-cookie-source.ts')
   const cookieRoutes = readRepoFile('src/docker/server-cookie-source-routes.ts')
 
-  assert.match(cookieRoutes, /ctx\.inspectCookieSource\(\)/)
-  assert.doesNotMatch(cookieRoutes, /ctx\.inspectCookieSource\(true\)/)
   assert.match(cookieSource, /shouldUseSourceCookie\(cloudMainCookie, mainCookie, COMPLETE_MAIN_COOKIE_KEYS\)/)
   assert.match(cookieSource, /shouldUseSourceCookie\(cloudYubaCookie, yubaCookie, COMPLETE_YUBA_COOKIE_KEYS\)/)
   assert.match(cookieSource, /yubaCookie = yubaCookie \|\| mainCookie/)

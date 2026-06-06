@@ -3,6 +3,9 @@ const { test } = require('node:test')
 const { loadTypeScriptModule } = require('./helpers/typescript-module-loader')
 
 const {
+  createDefaultDoubleCardConfig,
+  createDefaultExpiringGiftConfig,
+  createDefaultKeepaliveConfig,
   normalizeDockerConfig,
   reconcileDockerConfig,
 } = loadTypeScriptModule('src/core/medal-sync.ts')
@@ -26,7 +29,50 @@ function createFan(roomId, name) {
   }
 }
 
+test('Fan-backed task defaults create send maps with task-specific defaults', () => {
+  // Behavior: keepalive, double-card, and expiring-gift share fan-backed send
+  // normalization but keep distinct default activation, models, and weights.
+  const fans = [
+    createFan(100, 'first-room'),
+    createFan(200, 'second-room'),
+  ]
+
+  const keepalive = createDefaultKeepaliveConfig(fans)
+  const doubleCard = createDefaultDoubleCardConfig(fans)
+  const expiringGift = createDefaultExpiringGiftConfig(fans)
+
+  assert.deepEqual(Object.keys(keepalive.send).sort(), ['100', '200'])
+  assert.equal(keepalive.active, true)
+  assert.equal(keepalive.cron, DEFAULT_KEEPALIVE_CRON)
+  assert.equal(keepalive.send['100'].number, 1)
+  assert.equal(keepalive.send['100'].weight, 0)
+  assert.equal(keepalive.send['200'].number, 1)
+  assert.equal(keepalive.send['200'].weight, 0)
+
+  assert.deepEqual(Object.keys(doubleCard.send).sort(), ['100', '200'])
+  assert.equal(doubleCard.active, false)
+  assert.equal(doubleCard.cron, DEFAULT_DOUBLE_CARD_CRON)
+  assert.equal(doubleCard.giftScope, DEFAULT_DOUBLE_CARD_GIFT_SCOPE)
+  assert.deepEqual(JSON.parse(JSON.stringify(doubleCard.enabled)), {
+    100: false,
+    200: false,
+  })
+  assert.equal(doubleCard.send['100'].number, 0)
+  assert.equal(doubleCard.send['100'].weight, 1)
+
+  assert.deepEqual(Object.keys(expiringGift.send).sort(), ['100', '200'])
+  assert.equal(expiringGift.active, false)
+  assert.equal(expiringGift.cron, DEFAULT_EXPIRING_GIFT_CRON)
+  assert.equal(expiringGift.thresholdHours, DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS)
+  assert.equal(expiringGift.send['100'].number, 0)
+  assert.equal(expiringGift.send['100'].weight, 1)
+  assert.equal(expiringGift.send['200'].number, 0)
+  assert.equal(expiringGift.send['200'].weight, 0)
+})
+
 test('Docker config normalization fills task defaults and migrates legacy send fields', () => {
+  // Behavior: persisted task config may be sparse or legacy-shaped; normalize it
+  // without changing task-specific send semantics.
   const normalized = normalizeDockerConfig({
     cookie: ' legacy-main ',
     manualCookies: {
@@ -103,6 +149,8 @@ test('Docker config normalization fills task defaults and migrates legacy send f
 })
 
 test('Docker config reconciliation follows fans and preserves migration behavior', () => {
+  // Behavior: fan reconciliation owns the send-room set while preserving
+  // task-specific migration rules and room defaults.
   const fans = [
     createFan(100, 'first-room'),
     createFan(200, 'second-room'),

@@ -36,6 +36,32 @@ interface SendRoomRef {
   roomId: number
 }
 
+interface FanBackedTaskDefaults {
+  active: boolean
+  cron: string
+  model: 1 | 2
+  resolveMissingWeight?: (index: number) => number
+}
+
+const KEEPALIVE_TASK_DEFAULTS: FanBackedTaskDefaults = {
+  active: true,
+  cron: DEFAULT_KEEPALIVE_CRON,
+  model: DEFAULT_KEEPALIVE_MODEL,
+}
+
+const DOUBLE_CARD_TASK_DEFAULTS: FanBackedTaskDefaults = {
+  active: false,
+  cron: DEFAULT_DOUBLE_CARD_CRON,
+  model: DEFAULT_DOUBLE_CARD_MODEL,
+}
+
+const EXPIRING_GIFT_TASK_DEFAULTS: FanBackedTaskDefaults = {
+  active: false,
+  cron: DEFAULT_EXPIRING_GIFT_CRON,
+  model: DEFAULT_EXPIRING_GIFT_MODEL,
+  resolveMissingWeight: index => (index === 0 ? 1 : 0),
+}
+
 function createSendRoomRefsFromFans(fans: Fans[]): SendRoomRef[] {
   return fans.map(fan => ({
     key: String(fan.roomId),
@@ -77,6 +103,39 @@ function normalizeSendMap(
   })
 
   return next
+}
+
+function normalizeTaskModel(config: JobConfig): 1 | 2 {
+  return config.model === 2 ? 2 : 1
+}
+
+function createDefaultFanBackedTaskConfig(fans: Fans[], defaults: FanBackedTaskDefaults): JobConfig {
+  return {
+    active: defaults.active,
+    cron: defaults.cron,
+    model: defaults.model,
+    send: normalizeSendMap(undefined, createSendRoomRefsFromFans(fans), defaults.model, defaults.resolveMissingWeight),
+  }
+}
+
+function normalizeFanBackedTaskConfig(config: JobConfig, defaults: FanBackedTaskDefaults): JobConfig {
+  const model = normalizeTaskModel(config)
+  return {
+    active: resolveTaskActive(config.active),
+    cron: config.cron || defaults.cron,
+    model,
+    send: normalizeSendMap(config.send, createSendRoomRefsFromConfig(config.send), model),
+  }
+}
+
+function reconcileFanBackedTaskConfig(config: JobConfig, fans: Fans[], defaults: FanBackedTaskDefaults): JobConfig {
+  const model = normalizeTaskModel(config)
+  return {
+    active: resolveTaskActive(config.active),
+    cron: config.cron || defaults.cron,
+    model,
+    send: normalizeSendMap(config.send, createSendRoomRefsFromFans(fans), model, defaults.resolveMissingWeight),
+  }
 }
 
 export function createDefaultCollectGiftConfig(): CollectGiftConfig {
@@ -154,12 +213,7 @@ function normalizeManualPassport(config: DockerConfig): ManualPassportConfig | u
 }
 
 export function createDefaultKeepaliveConfig(fans: Fans[]): JobConfig {
-  return {
-    active: true,
-    cron: DEFAULT_KEEPALIVE_CRON,
-    model: DEFAULT_KEEPALIVE_MODEL,
-    send: normalizeSendMap(undefined, createSendRoomRefsFromFans(fans), DEFAULT_KEEPALIVE_MODEL),
-  }
+  return createDefaultFanBackedTaskConfig(fans, KEEPALIVE_TASK_DEFAULTS)
 }
 
 export function reconcileKeepaliveConfig(config: JobConfig | undefined, fans: Fans[]): JobConfig | undefined {
@@ -167,13 +221,7 @@ export function reconcileKeepaliveConfig(config: JobConfig | undefined, fans: Fa
     return undefined
   }
 
-  const model = config.model === 2 ? 2 : 1
-  return {
-    active: resolveTaskActive(config.active),
-    cron: config.cron || DEFAULT_KEEPALIVE_CRON,
-    model,
-    send: normalizeSendMap(config.send, createSendRoomRefsFromFans(fans), model),
-  }
+  return reconcileFanBackedTaskConfig(config, fans, KEEPALIVE_TASK_DEFAULTS)
 }
 
 function buildEnabledMap(roomKeys: string[], config: DoubleCardConfig | undefined): Record<string, boolean> {
@@ -197,12 +245,11 @@ function normalizeDoubleCardGiftScope(value: DoubleCardGiftScope | undefined): D
 }
 
 export function createDefaultDoubleCardConfig(fans: Fans[]): DoubleCardConfig {
+  const base = createDefaultFanBackedTaskConfig(fans, DOUBLE_CARD_TASK_DEFAULTS)
   return {
+    ...base,
     active: false,
-    cron: DEFAULT_DOUBLE_CARD_CRON,
-    model: DEFAULT_DOUBLE_CARD_MODEL,
     giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
-    send: normalizeSendMap(undefined, createSendRoomRefsFromFans(fans), DEFAULT_DOUBLE_CARD_MODEL),
     enabled: buildEnabledMap(fans.map(fan => String(fan.roomId)), undefined),
   }
 }
@@ -212,24 +259,19 @@ export function reconcileDoubleCardConfig(config: DoubleCardConfig | undefined, 
     return undefined
   }
 
-  const model = config.model === 2 ? 2 : 1
+  const base = reconcileFanBackedTaskConfig(config, fans, DOUBLE_CARD_TASK_DEFAULTS)
   return {
-    active: resolveTaskActive(config.active),
-    cron: config.cron || DEFAULT_DOUBLE_CARD_CRON,
-    model,
+    ...base,
     giftScope: normalizeDoubleCardGiftScope(config.giftScope),
-    send: normalizeSendMap(config.send, createSendRoomRefsFromFans(fans), model),
     enabled: buildEnabledMap(fans.map(fan => String(fan.roomId)), config),
   }
 }
 
 export function createDefaultExpiringGiftConfig(fans: Fans[]): ExpiringGiftConfig {
+  const base = createDefaultFanBackedTaskConfig(fans, EXPIRING_GIFT_TASK_DEFAULTS)
   return {
-    active: false,
-    cron: DEFAULT_EXPIRING_GIFT_CRON,
+    ...base,
     thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
-    model: DEFAULT_EXPIRING_GIFT_MODEL,
-    send: normalizeSendMap(undefined, createSendRoomRefsFromFans(fans), DEFAULT_EXPIRING_GIFT_MODEL, index => (index === 0 ? 1 : 0)),
   }
 }
 
@@ -238,13 +280,10 @@ export function reconcileExpiringGiftConfig(config: ExpiringGiftConfig | undefin
     return undefined
   }
 
-  const model = config.model === 2 ? 2 : 1
+  const base = reconcileFanBackedTaskConfig(config, fans, EXPIRING_GIFT_TASK_DEFAULTS)
   return {
-    active: resolveTaskActive(config.active),
-    cron: config.cron || DEFAULT_EXPIRING_GIFT_CRON,
+    ...base,
     thresholdHours: normalizeThresholdHours(config.thresholdHours),
-    model,
-    send: normalizeSendMap(config.send, createSendRoomRefsFromFans(fans), model, index => (index === 0 ? 1 : 0)),
   }
 }
 
@@ -259,12 +298,7 @@ function normalizeKeepaliveConfig(config: JobConfig | undefined): JobConfig | un
     return undefined
   }
 
-  return {
-    active: resolveTaskActive(config.active),
-    cron: config.cron || DEFAULT_KEEPALIVE_CRON,
-    model: config.model === 2 ? 2 : 1,
-    send: normalizeSendMap(config.send, createSendRoomRefsFromConfig(config.send), config.model === 2 ? 2 : 1),
-  }
+  return normalizeFanBackedTaskConfig(config, KEEPALIVE_TASK_DEFAULTS)
 }
 
 function normalizeDoubleCardConfig(config: DoubleCardConfig | undefined): DoubleCardConfig | undefined {
@@ -272,15 +306,11 @@ function normalizeDoubleCardConfig(config: DoubleCardConfig | undefined): Double
     return undefined
   }
 
-  const model = config.model === 2 ? 2 : 1
-  const send = normalizeSendMap(config.send, createSendRoomRefsFromConfig(config.send), model)
+  const base = normalizeFanBackedTaskConfig(config, DOUBLE_CARD_TASK_DEFAULTS)
   return {
-    active: resolveTaskActive(config.active),
-    cron: config.cron || DEFAULT_DOUBLE_CARD_CRON,
-    model,
+    ...base,
     giftScope: normalizeDoubleCardGiftScope(config.giftScope),
-    send,
-    enabled: buildEnabledMap(Object.keys(send), config),
+    enabled: buildEnabledMap(Object.keys(base.send), config),
   }
 }
 
@@ -289,13 +319,10 @@ function normalizeExpiringGiftConfig(config: ExpiringGiftConfig | undefined): Ex
     return undefined
   }
 
-  const model = config.model === 2 ? 2 : 1
+  const base = normalizeFanBackedTaskConfig(config, EXPIRING_GIFT_TASK_DEFAULTS)
   return {
-    active: resolveTaskActive(config.active),
-    cron: config.cron || DEFAULT_EXPIRING_GIFT_CRON,
+    ...base,
     thresholdHours: normalizeThresholdHours(config.thresholdHours),
-    model,
-    send: normalizeSendMap(config.send, createSendRoomRefsFromConfig(config.send), model),
   }
 }
 

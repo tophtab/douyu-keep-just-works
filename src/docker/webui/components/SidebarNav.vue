@@ -22,6 +22,7 @@ const PROJECT_URL = 'https://github.com/tophtab/douyu-keep-just-works'
 <template>
   <aside class="sidebar">
     <div class="brand-row">
+      <img class="brand-logo" src="/icon.png" alt="" aria-hidden="true">
       <h1 class="brand-title">
         <a
           class="brand-link"

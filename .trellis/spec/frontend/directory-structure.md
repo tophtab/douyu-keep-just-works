@@ -18,6 +18,7 @@ src/docker/webui/
   main.ts                    CSS imports and Vue mount.
   components/                Vue single-file components for shell and pages.
   composables/               Reusable Vue composables.
+  public/                    Static WebUI runtime assets copied by Vite.
   styles/                    Global CSS split by base, shell, components, tables, responsive.
   *.ts                       Page composables, request helpers, resource state, utilities.
   index.html                 Vite HTML entry with Docker bootstrap tokens.
@@ -26,6 +27,7 @@ src/docker/webui/
 Current examples:
 
 - `components/AppShell.vue` composes navigation, toolbar, and tab panels.
+- `public/icon.png` is the Docker WebUI favicon and visible brand/login icon asset; `index.html` and Vue components should reference it as `/icon.png`.
 - `components/LoginConfigPage.vue`, `CollectPage.vue`, `YubaPage.vue`, `KeepalivePage.vue`, `DoublePage.vue`, `ExpiringPage.vue`, and `LogsPage.vue` are page components.
 - `composables/use-cron-preview.ts` is a reusable composable.
 - `request.ts`, `resource-state.ts`, `resource-config.ts`, `resource-fans.ts`, `resource-yuba.ts`, `resource-request.ts`, `logs-resource.ts`, `task-shared.ts`, `theme.ts`, and `toast.ts` hold shared frontend logic.

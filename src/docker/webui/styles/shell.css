@@ -32,28 +32,13 @@
   margin-bottom:34px;
 }
 .auth-logo{
-  position:relative;
   flex:0 0 auto;
   width:50px;
   height:50px;
   border-radius:8px;
-  background:var(--accent-gradient);
+  object-fit:cover;
+  background:#050607;
   box-shadow:0 16px 32px rgba(216,106,24,.28);
-}
-.auth-logo::before{
-  content:"";
-  position:absolute;
-  inset:12px 13px 12px 17px;
-  clip-path:polygon(0 0, 100% 50%, 0 100%);
-  background:#08090d;
-}
-.auth-logo::after{
-  content:"";
-  position:absolute;
-  inset:7px;
-  border:2px solid rgba(8,9,13,.46);
-  border-left-color:transparent;
-  border-radius:6px;
 }
 .auth-title{
   min-width:0;
@@ -137,6 +122,15 @@
   flex-wrap:wrap;
   gap:8px;
   margin-bottom:10px;
+}
+.brand-logo{
+  flex:0 0 auto;
+  width:34px;
+  height:34px;
+  border-radius:8px;
+  object-fit:cover;
+  background:#050607;
+  box-shadow:0 10px 22px rgba(216,106,24,.18);
 }
 .brand-title{
   margin:0;

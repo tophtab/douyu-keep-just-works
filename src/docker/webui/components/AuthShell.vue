@@ -21,7 +21,7 @@ function updatePassword(event: Event): void {
     <div class="auth-card">
       <section class="auth-panel" aria-labelledby="auth-title">
         <div class="auth-brand">
-          <span class="auth-logo" aria-hidden="true" />
+          <img class="auth-logo" src="/icon.png" alt="" aria-hidden="true">
           <h1 id="auth-title" class="auth-title">
             {{ appName }}
           </h1>

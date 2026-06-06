@@ -1453,3 +1453,36 @@ Updated safe dev/tooling dependencies, kept axios/vue-tsc and Node 25 typings ou
 ### Next Steps
 
 - None - task complete
+
+
+## Session 44: Focused WebUI smoke-finding fixes
+
+**Date**: 2026-06-06
+**Task**: Focused WebUI smoke-finding fixes
+**Branch**: `master`
+
+### Summary
+
+Fixed two focused WebUI smoke findings: wrong-password feedback is visible in the login shell, and protected WebUI pages no longer mount before authentication so pre-auth cron-preview 401s cannot poison CookieCloud cron preview state. Added a 401 guard and contract coverage, updated the frontend state-management spec, and verified lint, type-check, contract tests, build, and focused WebUI smoke.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f7427f2` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

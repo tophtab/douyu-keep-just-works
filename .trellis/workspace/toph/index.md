@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 43
+- **Total Sessions**: 44
 - **Last Active**: 2026-06-06
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1455 | Active |
+| `journal-1.md` | ~1488 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 44 | 2026-06-06 | Focused WebUI smoke-finding fixes | `f7427f2` | `master` |
 | 43 | 2026-06-06 | Dependency maintenance workflow | `0f506a6` | `master` |
 | 42 | 2026-06-06 | Medal sync config normalization cleanup | `c2a60c8` | `master` |
 | 41 | 2026-06-06 | Contract test behavior modernization | `c2a60c8` | `master` |

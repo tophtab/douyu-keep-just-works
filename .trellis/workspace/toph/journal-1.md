@@ -1723,3 +1723,36 @@ Implemented WebUI task copy cleanup: removed generic page subtitles, unified tas
 ### Next Steps
 
 - None - task complete
+
+
+## Session 52: Simplify WebUI login page
+
+**Date**: 2026-06-06
+**Task**: Simplify WebUI login page
+**Branch**: `master`
+
+### Summary
+
+Simplified the Docker WebUI login page to a centered password-only panel with project branding, preserving auth behavior and verifying lint, type-check, build, contract tests, and full npm test.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b35d813` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

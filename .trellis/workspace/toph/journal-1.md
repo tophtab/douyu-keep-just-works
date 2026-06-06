@@ -1657,3 +1657,36 @@ Removed low-value explanatory copy from Docker WebUI pages while preserving cont
 ### Next Steps
 
 - None - task complete
+
+
+## Session 50: Clean confirmed dead code
+
+**Date**: 2026-06-06
+**Task**: Clean confirmed dead code
+**Branch**: `master`
+
+### Summary
+
+Removed confirmed dead CSS, helpers, stale types, and old CookieCloud LTP0 helper; updated tests and specs.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `00d1471` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

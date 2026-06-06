@@ -1958,3 +1958,36 @@ Added narrow task action/table wrappers, reused allocation row mutation helpers,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 59: Overview backpack list reuse
+
+**Date**: 2026-06-06
+**Task**: Overview backpack list reuse
+**Branch**: `master`
+
+### Summary
+
+Replaced overview glow-stick summary with reusable backpack display, kept the fans table, extracted shared backpack and fan row builders, and verified frontend checks.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `981aad3` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

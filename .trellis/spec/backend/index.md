@@ -25,6 +25,7 @@ These guidelines document current project reality, not an aspirational rewrite.
 | [Douyu Auth Cookie Lifecycle](./auth-cookie-lifecycle.md) | Passport/main-site/Yuba cookie authority and lifetime contracts | Filled |
 | [Error Handling](./error-handling.md) | Error types, handling strategies | Filled |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | Filled |
+| [Testing Guidelines](./testing-guidelines.md) | Contract-test taxonomy and modernization rules | Filled |
 | [Logging Guidelines](./logging-guidelines.md) | Runtime logging conventions | Filled |
 
 ---
@@ -39,6 +40,7 @@ Before backend changes:
 - Read [Douyu Auth Cookie Lifecycle](./auth-cookie-lifecycle.md) before touching Passport QR login, CookieCloud cookie authority, credential recovery, or Yuba SSO.
 - Read [Error Handling](./error-handling.md) before touching routes, task runners, cookie handling, or Douyu API calls.
 - Read [Logging Guidelines](./logging-guidelines.md) before adding runtime messages.
+- Read [Testing Guidelines](./testing-guidelines.md) before adding, removing, or modernizing contract tests.
 - Read [Quality Guidelines](./quality-guidelines.md) before finishing any backend change.
 
 ---

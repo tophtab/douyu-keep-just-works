@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend checklist and required guideline entry point for Docker WebUI work."}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Confirms Vue/Vite WebUI file organization and component/composable placement."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Defines shared component, global CSS, task section, UI copy, and accessibility conventions."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Covers task page action helpers and composable boundaries to avoid duplicating behavior."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "TypeScript and component prop typing rules for any new helper/component APIs."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Required frontend lint/type-check/build expectations and forbidden runtime patterns."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Guides whether repeated structures merit narrow abstraction."}

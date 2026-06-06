@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend checklist and required guideline entry point for verification."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Verify the implementation uses narrow shared components, preserves copy, and keeps accessibility patterns."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Verify task actions and composable boundaries are not duplicated or changed incorrectly."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Verify new component/helper APIs stay typed without broad assertions."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Verify lint, type-check, build expectations, and forbidden WebUI runtime patterns."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Verify abstractions are justified by repeated code and do not add more complexity than they remove."}

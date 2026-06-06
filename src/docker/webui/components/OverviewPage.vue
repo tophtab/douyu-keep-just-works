@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { useOverviewPage } from '../overview'
 import type { WebUiPageTab } from '../navigation'
+import ExpiringBackpackTable from './ExpiringBackpackTable.vue'
 import FansStatusTable from './FansStatusTable.vue'
 import PageSection from './PageSection.vue'
 
@@ -10,11 +11,13 @@ const props = defineProps<{
 }>()
 
 const {
+  overviewBackpackEmptyText,
+  overviewBackpackRows,
   overviewFansEmptyText,
   overviewFansFeedbackText,
   overviewFansRows,
-  overviewGiftMetrics,
   overviewStatusCells,
+  showOverviewBackpackTable,
   showOverviewFansTable,
   showOverviewLoginAction,
 } = props.state
@@ -35,19 +38,16 @@ const {
       </div>
     </PageSection>
 
-    <PageSection title="粉丝牌列表">
-      <template #actions>
-        <div class="strip-metrics compact overview-gift-summary">
-          <div v-for="metric in overviewGiftMetrics" :key="metric.label" class="strip-metric">
-            <div class="mini-label">
-              {{ metric.label }}
-            </div>
-            <div class="mini-value">
-              {{ metric.value }}
-            </div>
-          </div>
-        </div>
-      </template>
+    <PageSection>
+      <div v-if="showOverviewBackpackTable" class="table-shell">
+        <ExpiringBackpackTable :rows="overviewBackpackRows" />
+      </div>
+      <div v-else class="empty">
+        {{ overviewBackpackEmptyText }}
+      </div>
+    </PageSection>
+
+    <PageSection>
       <div v-if="overviewFansFeedbackText" class="status-box" role="status" aria-live="polite">
         {{ overviewFansFeedbackText }}
       </div>

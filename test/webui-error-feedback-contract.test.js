@@ -65,7 +65,8 @@ test('overview fans-status failures use durable page feedback with short explici
   assert.doesNotMatch(loadFansStatusBody, /showToast\(`加载粉丝牌状态失败：\$\{getErrorMessage\(error\)\}`/)
 
   assert.match(overview, /fansStatusError/)
-  assert.match(overview, /value: '加载失败'/)
+  assert.match(overview, /overviewBackpackEmptyText/)
+  assert.match(overview, /加载背包明细失败：\$\{fansStatusError\.value\}。请点击顶部“刷新”重试。/)
   assert.match(overview, /overviewFansFeedbackText/)
   assert.match(overview, /本次刷新失败：\$\{fansStatusError\.value\}/)
   assert.doesNotMatch(overview, /当前显示上次结果/)

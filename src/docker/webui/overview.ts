@@ -1,9 +1,11 @@
 import type { FanStatus, GiftStatus } from '../../core/types'
 import type { Ref } from 'vue'
 import { computed } from 'vue'
-import { formatDate } from './datetime'
+import { buildBackpackDisplayRows, normalizeExpiringThresholdHours } from './backpack-display'
+import type { FanDisplayRow } from './fan-display'
+import { buildFanDisplayRows } from './fan-display'
 import { fansStatus, fansStatusDetailsLoaded, fansStatusDetailsLoading, fansStatusError, fansStatusLoaded, fansStatusLoading, giftStatus, managedLoading } from './resource-fans'
-import { hasCookieSourceConfigured } from './resource-config'
+import { getRawConfig, hasCookieSourceConfigured } from './resource-config'
 import { isActiveRefreshLoading, overview, refreshOverviewSurface } from './resource-state'
 import type { WebUiPageTab } from './navigation'
 import type { WebUiOverview } from './resource-state'
@@ -15,33 +17,13 @@ interface OverviewStatusCell {
   label: string
 }
 
-interface OverviewGiftMetric {
-  label: string
-  value: string
-}
-
-interface OverviewFansRow {
+interface OverviewFansRow extends FanDisplayRow {
   doubleLabel: string
   doubleKind: string
-  index: number
-  intimacy: string
-  level: number | string
-  name: string
-  rank: number | string
-  roomId: number
-  today: number | string
 }
 
 function hasGiftStatusError(status: GiftStatus | null): status is GiftStatus & { error: string } {
   return Boolean(status?.error)
-}
-
-function formatOverviewDate(value: number): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return String(value)
-  }
-  return formatDate(date.toISOString())
 }
 
 function buildOverviewStatusCell(
@@ -84,61 +66,40 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
     ]
   })
 
-  const overviewGiftMetrics = computed<OverviewGiftMetric[]>(() => {
+  const overviewBackpackEmptyText = computed(() => {
     if (!overview.value) {
-      return [
-        { label: '当前荧光棒', value: '-' },
-        { label: '过期时间', value: '-' },
-      ]
+      return '请稍候…'
     }
 
     if (!hasCookieSource.value) {
-      return [
-        { label: '当前荧光棒', value: '未配置' },
-        { label: '过期时间', value: '未配置' },
-      ]
+      return '保存 Cookie 或启用 CookieCloud 后再点击顶部“刷新”，这里会展示背包礼物明细。'
     }
 
     if ((managedLoading.value || fansStatusLoading.value) && !fansStatusLoaded.value) {
-      return [
-        { label: '当前荧光棒', value: '同步中' },
-        { label: '过期时间', value: '同步中' },
-      ]
+      return '请稍候，背包明细正在更新。'
     }
 
     if (fansStatusError.value && !fansStatusLoaded.value) {
-      return [
-        { label: '当前荧光棒', value: '加载失败' },
-        { label: '过期时间', value: '加载失败' },
-      ]
+      return `加载背包明细失败：${fansStatusError.value}。请点击顶部“刷新”重试。`
     }
 
     if (!fansStatusLoaded.value) {
-      return [
-        { label: '当前荧光棒', value: '待刷新' },
-        { label: '过期时间', value: '待刷新' },
-      ]
+      return '尚未加载背包明细。点击顶部“刷新”后会展示可见礼物行。'
     }
 
     const detailsUpdating = fansStatusDetailsLoading.value && !fansStatusDetailsLoaded.value
     if (detailsUpdating && !giftStatus.value) {
-      return [
-        { label: '当前荧光棒', value: '检测中' },
-        { label: '过期时间', value: '检测中' },
-      ]
+      return '正在加载背包明细…'
     }
 
     if (hasGiftStatusError(giftStatus.value)) {
-      return [
-        { label: '当前荧光棒', value: '未知' },
-        { label: '过期时间', value: '未知' },
-      ]
+      return `背包明细暂不可用：${giftStatus.value.error}`
     }
 
-    return [
-      { label: '当前荧光棒', value: `${typeof giftStatus.value?.count === 'number' ? giftStatus.value.count : 0} 个` },
-      { label: '过期时间', value: giftStatus.value?.expireTime ? formatOverviewDate(giftStatus.value.expireTime) : '无' },
-    ]
+    if (!(giftStatus.value?.rows || []).length) {
+      return '当前背包没有可展示的礼物行。'
+    }
+    return ''
   })
 
   const overviewFansEmptyText = computed(() => {
@@ -164,21 +125,20 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
     return ''
   })
 
+  const overviewBackpackRows = computed(() => {
+    const thresholdHours = normalizeExpiringThresholdHours(getRawConfig().expiringGift?.thresholdHours)
+    return buildBackpackDisplayRows(giftStatus.value?.rows || [], thresholdHours)
+  })
+
   const showOverviewLoginAction = computed(() => Boolean(overview.value && !hasCookieSource.value))
+  const showOverviewBackpackTable = computed(() => Boolean(giftStatus.value && !giftStatus.value.error && overviewBackpackRows.value.length))
   const showOverviewFansTable = computed(() => Boolean(
     overview.value
     && hasCookieSource.value
     && fansStatusLoaded.value
     && fansStatus.value.length,
   ))
-  const overviewFansRows = computed<OverviewFansRow[]>(() => fansStatus.value.map((item, index) => ({
-    index: index + 1,
-    name: item.name || '未知主播',
-    roomId: item.roomId,
-    level: item.level ?? '-',
-    rank: item.rank ?? '-',
-    today: item.today ?? '-',
-    intimacy: item.intimacy ?? '-',
+  const overviewFansRows = computed<OverviewFansRow[]>(() => buildFanDisplayRows(fansStatus.value, item => ({
     doubleLabel: typeof item.doubleActive === 'boolean'
       ? (item.doubleActive ? '双倍中' : '未开启')
       : '检测中',
@@ -233,14 +193,16 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
     getGiftStatus,
     getManagedLoading,
     getOverview,
+    overviewBackpackEmptyText,
+    overviewBackpackRows,
     overviewFansEmptyText,
     overviewFansFeedbackText,
     overviewFansRows,
-    overviewGiftMetrics,
     overviewStatusCells,
     refreshLoading,
     refreshOverview,
     refreshOverviewTitle,
+    showOverviewBackpackTable,
     showOverviewFansTable,
     showOverviewLoginAction,
   }

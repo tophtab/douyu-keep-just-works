@@ -31,6 +31,24 @@ const emit = defineEmits<{
 
 Keep templates declarative. Prefer passing callback props or emitting events over querying DOM nodes for Vue-owned controls.
 
+### Shared Table Row Builders
+
+When multiple WebUI tables show the same domain columns, keep the table component presentational and extract the repeated data-to-row mapping into a shared row builder under `src/docker/webui/`.
+
+Good:
+
+```typescript
+export function buildFanDisplayRows(fans: Fans[]) {
+  return fans.map((fan, index) => ({
+    index: index + 1,
+    name: fan.name || '未知主播',
+    roomId: fan.roomId,
+  }))
+}
+```
+
+Page composables should call the shared builder and add only page-specific columns, such as task values, enabled flags, or double-card status. Avoid copying the same `name` / `roomId` / `level` / `rank` / `today` / `intimacy` mapping across overview and task pages.
+
 ---
 
 ## Props Conventions

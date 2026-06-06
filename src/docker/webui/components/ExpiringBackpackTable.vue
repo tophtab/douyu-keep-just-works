@@ -1,17 +1,8 @@
 <script setup lang="ts">
-interface ExpiringBackpackRow {
-  count: number
-  expireText: string
-  giftId: number | string
-  inThreshold: boolean
-  index: number
-  intimacy: number
-  name: string
-  remainingText: string
-}
+import type { BackpackDisplayRow } from '../backpack-display'
 
 defineProps<{
-  rows: ExpiringBackpackRow[]
+  rows: BackpackDisplayRow[]
 }>()
 </script>
 

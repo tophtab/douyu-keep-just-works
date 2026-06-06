@@ -1,17 +1,11 @@
 import type { Fans, SendGift } from '../../core/types'
 import { DEFAULT_GIFT_ID } from '../../core/task-defaults'
-import { formatOptionalNumber } from './task-shared'
+import type { FanDisplayRow } from './fan-display'
+import { buildFanDisplayRows } from './fan-display'
 
 export type AllocationTaskModel = 1 | 2
 
-export interface AllocationFanRow {
-  index: number
-  intimacy: string
-  level: number | string
-  name: string
-  rank: number | string
-  roomId: number
-  today: number | string
+export interface AllocationFanRow extends FanDisplayRow {
   value: number
 }
 
@@ -31,7 +25,7 @@ export function buildAllocationFanRows<TFan extends Fans, TExtra extends object 
   fans: TFan[],
   options: BuildAllocationFanRowsOptions<TFan, TExtra>,
 ): Array<AllocationFanRow & TExtra> {
-  return fans.map((fan, index) => {
+  return buildFanDisplayRows<TFan, { value: number } & TExtra>(fans, (fan, index) => {
     const key = String(fan.roomId)
     const sendItem = options.send?.[key]
     const value = sendItem
@@ -39,13 +33,6 @@ export function buildAllocationFanRows<TFan extends Fans, TExtra extends object 
       : options.defaultValue(fan, index, options.model)
 
     return {
-      index: index + 1,
-      intimacy: fan.intimacy || '-',
-      level: formatOptionalNumber(fan.level),
-      name: fan.name || '未知主播',
-      rank: formatOptionalNumber(fan.rank),
-      roomId: fan.roomId,
-      today: formatOptionalNumber(fan.today),
       value,
       ...(options.extra?.(fan, index, options.model) || {} as TExtra),
     }

@@ -348,6 +348,7 @@ export class DockerCookieSourceManager {
   async recoverCredentialSnapshot(options: {
     validateMainCookie: CookieSnapshotValidator
     log: CookieRecoveryLogger
+    recoverYubaCookie?: boolean
   }): Promise<CredentialSnapshotRecoveryResult> {
     return await recoverCredentialSnapshotWithDeps({
       ...options,

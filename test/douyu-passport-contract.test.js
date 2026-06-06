@@ -418,8 +418,9 @@ test('manual passport cookie is masked by public config while raw config stays r
   })
 })
 
-test('credential recovery uses manual passport cookie dy_did and LTP0 when CookieCloud is inactive', async () => {
+test('credential recovery uses manual passport cookie to refresh main and Yuba cookies when CookieCloud is inactive', async () => {
   let safeAuthArgs
+  let yubaSsoArgs
   const { recoverCredentialSnapshot } = loadTypeScriptModule('src/docker/runtime-cookie-recovery.ts', {
     '../core/douyu-passport': {
       refreshDouyuMainCookiesWithSafeAuth: async (args) => {
@@ -436,6 +437,13 @@ test('credential recovery uses manual passport cookie dy_did and LTP0 when Cooki
             'acf_ct=ct-redacted',
           ].join('; '),
           returnedKeys: ['acf_auth', 'acf_uid'],
+        }
+      },
+      fetchDouyuYubaCookiesWithPassport: async (args) => {
+        yubaSsoArgs = args
+        return {
+          yubaCookie: 'acf_yb_auth=yb-auth-redacted; acf_yb_uid=yb-uid-redacted; acf_yb_t=yb-t-redacted',
+          returnedKeys: ['acf_yb_auth', 'acf_yb_uid', 'acf_yb_t'],
         }
       },
     },
@@ -463,17 +471,86 @@ test('credential recovery uses manual passport cookie dy_did and LTP0 when Cooki
       }
     },
     log: () => {},
+    recoverYubaCookie: true,
   })
 
   assert.equal(result.recovered, true)
   assert.equal(result.refreshedBy, 'safeAuth')
+  assert.match(result.reason, /鱼吧 SSO 已刷新鱼吧 Cookie/)
   assert.deepEqual(JSON.parse(JSON.stringify(safeAuthArgs)), {
     mainCookie: 'dy_did=did-from-passport; acf_uid=uid-old; acf_auth=auth-old; acf_stk=stk-old; acf_ltkid=ltk-old; acf_username=user-old; acf_biz=biz-old; acf_ct=ct-old',
     dyDid: 'did-from-passport',
     ltp0: 'manual-ltp0-redacted',
   })
+  assert.deepEqual(JSON.parse(JSON.stringify(yubaSsoArgs)), {
+    passportCookie: 'dy_did=did-from-passport; LTP0=manual-ltp0-redacted',
+    mainCookie: [
+      'dy_did=did-redacted',
+      'acf_uid=uid-redacted',
+      'acf_auth=auth-redacted',
+      'acf_stk=stk-redacted',
+      'acf_ltkid=ltk-redacted',
+      'acf_username=user-redacted',
+      'acf_biz=biz-redacted',
+      'acf_ct=ct-redacted',
+    ].join('; '),
+  })
   assert.equal(persisted.length, 1)
-  assert.equal(persisted[0].yubaCookie, 'yuba=kept')
+  assert.equal(persisted[0].yubaCookie, 'acf_yb_auth=yb-auth-redacted; acf_yb_uid=yb-uid-redacted; acf_yb_t=yb-t-redacted')
+})
+
+test('credential recovery keeps existing Yuba cookie when Yuba SSO fails after main recovery', async () => {
+  const { recoverCredentialSnapshot } = loadTypeScriptModule('src/docker/runtime-cookie-recovery.ts', {
+    '../core/douyu-passport': {
+      refreshDouyuMainCookiesWithSafeAuth: async () => ({
+        refreshedCookie: [
+          'dy_did=did-redacted',
+          'acf_uid=uid-redacted',
+          'acf_auth=auth-redacted',
+          'acf_stk=stk-redacted',
+          'acf_ltkid=ltk-redacted',
+          'acf_username=user-redacted',
+          'acf_biz=biz-redacted',
+          'acf_ct=ct-redacted',
+        ].join('; '),
+        returnedKeys: ['acf_auth', 'acf_uid'],
+      }),
+      fetchDouyuYubaCookiesWithPassport: async () => {
+        throw new Error('鱼吧 SSO 未返回 authlogin 跳转地址')
+      },
+    },
+  })
+  const persisted = []
+
+  const result = await recoverCredentialSnapshot({
+    hasCookieCloudSource: () => false,
+    persistEffectiveCookies: async () => {
+      throw new Error('CookieCloud should not be used')
+    },
+    loadCookieCloudSnapshot: async () => {
+      throw new Error('CookieCloud should not be loaded')
+    },
+    getCurrentMainCookie: () => 'dy_did=did-redacted; acf_uid=uid-old; acf_auth=auth-old; acf_stk=stk-old; acf_ltkid=ltk-old; acf_username=user-old; acf_biz=biz-old; acf_ct=ct-old',
+    getCurrentYubaCookie: () => 'acf_yb_auth=old-yuba; acf_yb_uid=old-uid; acf_yb_t=old-t',
+    getManualPassportCookie: () => 'dy_did=did-redacted; LTP0=manual-ltp0-redacted',
+    persistManualCookieSnapshot: (mainCookie, yubaCookie) => {
+      persisted.push({ mainCookie, yubaCookie })
+      return { cookie: mainCookie, manualCookies: { main: mainCookie, yuba: yubaCookie } }
+    },
+    validateMainCookie: async (mainCookie) => {
+      if (mainCookie.includes('uid-old')) {
+        throw new Error('请检查主站 Cookie')
+      }
+    },
+    log: () => {},
+    recoverYubaCookie: true,
+  })
+
+  assert.equal(result.recovered, true)
+  assert.equal(result.refreshedBy, 'safeAuth')
+  assert.match(result.reason, /鱼吧 SSO 恢复失败/)
+  assert.equal(persisted.length, 1)
+  assert.equal(persisted[0].yubaCookie, 'acf_yb_auth=old-yuba; acf_yb_uid=old-uid; acf_yb_t=old-t')
 })
 
 test('credential recovery uses CookieCloud passport dy_did when synced main cookie lacks dy_did', async () => {

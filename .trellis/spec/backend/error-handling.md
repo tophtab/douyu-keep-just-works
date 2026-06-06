@@ -113,11 +113,13 @@ Keep messages stable when frontend code or tests rely on them.
 - `DockerRuntimeCookieRecoveryService.runWithCookieSourceRetry(context, run)` wraps WebUI-facing Douyu reads and retries the original operation once after successful recovery.
 - `RuntimeTaskRunnerDeps.refreshCookieSourceAfterFailure(error, context)` lets scheduled and manual tasks share the same recovery path.
 - `DockerCookieSourceManager.hasPassportRecoveryMaterial(config?): boolean` is true when CookieCloud is ready or manual `passport.douyu.com` cookie material is saved.
-- `DockerCookieSourceManager.recoverCredentialSnapshot({ validateMainCookie, log }): Promise<{ recovered: boolean; refreshedBy: 'cookieCloud' | 'safeAuth' | null; reason: string }>` owns current-cookie validation, optional CookieCloud sync, optional passport refresh, and persistence.
+- `DockerCookieSourceManager.recoverCredentialSnapshot({ validateMainCookie, log, recoverYubaCookie? }): Promise<{ recovered: boolean; refreshedBy: 'cookieCloud' | 'safeAuth' | null; reason: string }>` owns current-cookie validation, optional CookieCloud sync, optional passport main-site refresh, optional Yuba SSO refresh, and persistence.
 - `src/docker/runtime-cookie-recovery.ts` contains the centralized runtime retry service and recovery pipeline. Individual task runners must call the shared retry hook, not call `safeAuth` or `LTP0` handling directly.
 - `CredentialSnapshotRecoveryDeps.getCurrentMainCookie()` supplies the current local main-site cookie for manual-mode recovery.
+- `CredentialSnapshotRecoveryDeps.getCurrentYubaCookie()` supplies the current local Yuba cookie so recovery can preserve it if Yuba SSO fails.
 - `CredentialSnapshotRecoveryDeps.getManualPassportCookie()` supplies the saved manual `passport.douyu.com` cookie string.
 - `refreshDouyuMainCookiesWithSafeAuth({ mainCookie, dyDid, ltp0 }): Promise<{ refreshedCookie: string; returnedKeys: string[] }>` performs the pure HTTP `passport.douyu.com` refresh and returns a merged local main-cookie header.
+- `fetchDouyuYubaCookiesWithPassport({ passportCookie, mainCookie, yubaCookie? }): Promise<{ yubaCookie: string; returnedKeys: string[] }>` performs the Passport -> Yuba SSO exchange used by QR login and centralized recovery.
 
 ### 3. Contracts
 - First failure is inspected by message only; there is no custom error class hierarchy.
@@ -127,8 +129,11 @@ Keep messages stable when frontend code or tests rely on them.
 - If the synced/current main cookie is still invalid, recovery may call passport `safeAuth` only when `LTP0` is available from the `passport.douyu.com` CookieCloud cookie header or manual `manualPassport.cookie`, and `dy_did` is available from that passport cookie header or the local main cookie.
 - CookieCloud passport-domain cookie material is preferred when CookieCloud has `LTP0`; manual passport cookie material is a fallback for CookieCloud gaps and the primary source in manual-cookie mode.
 - `safeAuth` may update only the local main-cookie snapshot after its merged cookie passes the same validation gate; it must not write cookies back to the browser or CookieCloud.
+- When the original failure or retry context is Yuba-related, recovery passes `recoverYubaCookie: true`. After the main cookie validates, recovery uses the same Passport material to call Yuba SSO and persist the refreshed Yuba snapshot with the validated main snapshot.
+- Yuba SSO recovery must reuse `fetchDouyuYubaCookiesWithPassport`; individual task runners must not implement Passport bridge, `LTP0`, or `acf_yb_*` refresh logic.
+- If Yuba SSO fails after main-cookie recovery succeeds, keep the existing Yuba cookie and report the Yuba SSO failure in the recovery reason. If the main cookie was already valid and Yuba SSO fails, recovery should not claim that Yuba credentials were refreshed.
 - The original operation is retried exactly once.
-- Recovery does not run a browser, simulate Douyu login pages, refresh fishbar `acf_yb_*`, or store standalone long-lived Douyu login tokens.
+- Recovery does not run a browser, simulate Douyu login pages, write refreshed cookies to CookieCloud/browser storage, or store standalone long-lived Douyu login tokens.
 - Logs may include cookie field names and high-level reasons, but must not include raw cookies, `LTP0`, CookieCloud passwords, or returned auth token values.
 
 ### 4. Validation & Error Matrix
@@ -140,7 +145,10 @@ Keep messages stable when frontend code or tests rely on them.
 - Manual passport cookie has `LTP0` but neither it nor the local main cookie has `dy_did` -> do not call `safeAuth`; log/return a non-secret missing-`dy_did` reason.
 - `safeAuth` returns no usable main-site auth fields -> log the recovery failure and rethrow the original error.
 - `safeAuth` returns fields but post-refresh `getFansList()` validation fails -> do not persist the refreshed cookie; log the non-secret reason and rethrow the original error.
-- `safeAuth` returns fields and validation passes -> persist the merged local main cookie, keep the current yuba cookie, invalidate local caches, and retry the original operation once.
+- `safeAuth` returns fields and validation passes for a non-Yuba failure -> persist the merged local main cookie, keep the current Yuba cookie, invalidate local caches, and retry the original operation once.
+- Yuba-related failure with current or newly recovered main cookie valid and Passport material available -> call Yuba SSO, persist the validated main cookie with the returned Yuba cookie, invalidate local caches, and retry the original operation once.
+- Yuba SSO fails after main-cookie recovery succeeds -> persist the validated main cookie with the existing Yuba cookie, log/report the Yuba SSO failure, and retry once because the main snapshot changed.
+- Yuba SSO fails while the current main cookie was already valid and no cookie snapshot changed -> return `recovered: false` and surface the original error.
 - Retry fails -> surface the retry error through the existing route or scheduler path.
 - Missing config, not-configured task, or ordinary Douyu business failure -> no recovery retry.
 
@@ -152,13 +160,13 @@ Keep messages stable when frontend code or tests rely on them.
 - Bad: `/api/cookie-source/check` fetches CookieCloud remotely or task execution loops on repeated login failure.
 - Bad: persisting a `safeAuth` response before post-refresh validation passes.
 - Bad: adding task-specific `LTP0` refresh branches inside collect/keepalive/double-card/expiring-gift/yuba task runners.
-- Bad: claiming fishbar `acf_yb_*` recovery without a verified HTTP cookie-refresh flow.
+- Bad: claiming fishbar `acf_yb_*` recovery without the shared Passport Yuba SSO helper returning complete Yuba fields.
 
 ### 6. Tests Required
 - Contract tests must assert `refreshCookieSourceAfterFailure`, `runWithCookieSourceRetry`, and `RuntimeTaskRunnerDeps.refreshCookieSourceAfterFailure` exist.
 - Contract tests must assert credential recovery uses `recoverCredentialSnapshot`, which validates the current local cookie, calls `persistEffectiveCookies(true)` for CookieCloud mode, validates with `getFansList()`, optionally calls `safeAuth`, and validates again before persisting the passport refresh.
 - Unit-style tests must cover `LTP0` detection without exposing the value and `safeAuth` cookie merge behavior with mocked response headers.
-- Unit-style tests must cover manual passport cookie normalization, public config masking, manual-mode recovery, and missing-`dy_did` behavior.
+- Unit-style tests must cover manual passport cookie normalization, public config masking, manual-mode main recovery, Yuba SSO recovery, Yuba SSO failure fallback, and missing-`dy_did` behavior.
 - Contract tests must assert task runner modules do not directly reference `safeAuth`, `LTP0`, `ltp0`, `getCookieCloudPassportLtp0`, or `refreshDouyuMainCookiesWithSafeAuth`.
 - Contract tests must assert fan reconcile preserves the side-effecting config write and merges the latest local cookie snapshot before `reconcileDockerConfig`.
 

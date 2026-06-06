@@ -1925,3 +1925,36 @@ Completed targeted Docker WebUI slimming: server-injected initial theme bootstra
 ### Next Steps
 
 - None - task complete
+
+
+## Session 58: Targeted WebUI slimming
+
+**Date**: 2026-06-06
+**Task**: Targeted WebUI slimming
+**Branch**: `master`
+
+### Summary
+
+Added narrow task action/table wrappers, reused allocation row mutation helpers, updated scheduled task pages, and captured the component convention in frontend specs.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7a20cf5` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

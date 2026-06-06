@@ -1420,3 +1420,36 @@ Refactored fan-backed medal task config normalization through shared helpers and
 ### Next Steps
 
 - None - task complete
+
+
+## Session 43: Dependency maintenance workflow
+
+**Date**: 2026-06-06
+**Task**: Dependency maintenance workflow
+**Branch**: `master`
+
+### Summary
+
+Updated safe dev/tooling dependencies, kept axios/vue-tsc and Node 25 typings out of scope, verified lint/type-check/contracts/npm test, and recorded remaining dependency decisions.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0f506a6` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

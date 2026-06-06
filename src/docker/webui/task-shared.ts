@@ -80,17 +80,9 @@ export interface FanListMessageOptions {
   emptyMissingCredentialText: string
   fansListError: string
   fansListLoaded: boolean
-  loadingText: string
   managedLoading: boolean
-  missingCredentialText: string
   rawConfig: CookieSourceConfig | null
-  readyText: string
   rowCount: number
-}
-
-export interface FanListMessages {
-  emptyText: string
-  note: string
 }
 
 export type WebUiTaskType = 'collectGift' | 'keepalive' | 'doubleCard' | 'expiringGift' | 'yubaCheckIn'
@@ -135,22 +127,6 @@ export function hasCookieSourceConfigured(config: CookieSourceConfig | null): bo
   )
 }
 
-export function createFanListNote(options: FanListMessageOptions): string {
-  if (!hasCookieSourceConfigured(options.rawConfig)) {
-    return options.missingCredentialText
-  }
-  if (options.managedLoading && !options.rowCount) {
-    return options.loadingText
-  }
-  if (!options.rowCount) {
-    if (options.fansListError) {
-      return '粉丝牌列表加载失败。'
-    }
-    return options.fansListLoaded ? '当前没有可用粉丝牌。' : '粉丝牌列表尚未加载。'
-  }
-  return options.readyText
-}
-
 export function createFanListEmptyText(options: FanListMessageOptions): string {
   if (!hasCookieSourceConfigured(options.rawConfig)) {
     return options.emptyMissingCredentialText
@@ -165,13 +141,6 @@ export function createFanListEmptyText(options: FanListMessageOptions): string {
     return '已同步，但当前账号没有可用粉丝牌数据。'
   }
   return '正在准备加载粉丝牌列表，也可以点击刷新手动加载。'
-}
-
-export function createFanListMessages(options: FanListMessageOptions): FanListMessages {
-  return {
-    note: createFanListNote(options),
-    emptyText: createFanListEmptyText(options),
-  }
 }
 
 export function formatOptionalNumber(value: unknown): number | string {

@@ -40,9 +40,6 @@ function handleAction(index: number): void {
         <h3 class="section-title" style="margin-top:0">
           启动领取任务
         </h3>
-        <p class="subtle">
-          领取任务独立成栏，包含任务状态、启停控制、Cron 设置和手动触发。
-        </p>
       </div>
       <EnableSwitch
         v-model="collectEnabled"

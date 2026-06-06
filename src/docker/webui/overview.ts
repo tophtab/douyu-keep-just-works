@@ -141,45 +141,6 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
     ]
   })
 
-  const overviewFansNote = computed(() => {
-    if (!overview.value) {
-      return '正在加载粉丝牌状态…'
-    }
-
-    if (!hasCookieSource.value) {
-      return '请先保存 Cookie 或启用 CookieCloud，概况页才会显示粉丝牌列表。'
-    }
-
-    if ((managedLoading.value || fansStatusLoading.value) && !fansStatusLoaded.value) {
-      return '正在同步粉丝牌状态…'
-    }
-
-    if (fansStatusError.value) {
-      return fansStatusLoaded.value
-        ? `本次刷新失败：${fansStatusError.value}。当前显示上次结果。`
-        : `加载粉丝牌状态失败：${fansStatusError.value}。请点击顶部“刷新”重试。`
-    }
-
-    if (!fansStatusLoaded.value) {
-      return '点击顶部“刷新”可重新加载粉丝牌状态。'
-    }
-
-    if (!fansStatus.value.length) {
-      return hasGiftStatusError(giftStatus.value)
-        ? `当前没有可展示的粉丝牌数据。背包明细暂不可用：${giftStatus.value.error}`
-        : '当前没有可展示的粉丝牌数据。'
-    }
-
-    const statusPrefix = managedLoading.value || fansStatusLoading.value ? '正在后台更新，当前显示上次结果。' : ''
-    const detailText = fansStatusDetailsLoading.value && !fansStatusDetailsLoaded.value
-      ? '背包与双倍状态正在补齐。'
-      : '右侧已显示荧光棒库存与过期时间。'
-
-    return statusPrefix + (hasGiftStatusError(giftStatus.value)
-      ? `当前共 ${fansStatus.value.length} 个粉丝牌房间。背包明细暂不可用：${giftStatus.value.error}`
-      : `当前共 ${fansStatus.value.length} 个粉丝牌房间，${detailText}`)
-  })
-
   const overviewFansEmptyText = computed(() => {
     if (!overview.value) {
       return '请稍候…'
@@ -194,6 +155,16 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
       return '尚未加载粉丝牌状态。'
     }
     return '当前没有可展示的粉丝牌数据。'
+  })
+
+  const overviewFansFeedbackText = computed(() => {
+    if (fansStatusError.value && fansStatusLoaded.value) {
+      return `本次刷新失败：${fansStatusError.value}`
+    }
+    if (fansStatus.value.length && hasGiftStatusError(giftStatus.value)) {
+      return `背包明细暂不可用：${giftStatus.value.error}`
+    }
+    return ''
   })
 
   const showOverviewLoginAction = computed(() => Boolean(overview.value && !hasCookieSource.value))
@@ -266,7 +237,7 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
     getManagedLoading,
     getOverview,
     overviewFansEmptyText,
-    overviewFansNote,
+    overviewFansFeedbackText,
     overviewFansRows,
     overviewGiftMetrics,
     overviewStatusCells,

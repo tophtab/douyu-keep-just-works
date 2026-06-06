@@ -7,7 +7,6 @@ import { showToast } from './toast'
 import {
   applyManualPassportSaveResponse,
   applyRawConfig,
-  cookieCheck,
   cookieCloud,
   getCookieCloudConfig,
   mainCookie,
@@ -52,7 +51,6 @@ async function applyPassportQrLoginStatus(status: PassportQrLoginPublicStatus | 
   await loadRawConfig()
   applyRawConfig(rawConfig.value)
   clearCookieBackedData()
-  cookieCheck.value = null
   await refreshOverviewAfterCookieChange(false)
 }
 
@@ -132,7 +130,6 @@ export async function saveCookie(): Promise<void> {
       applyManualPassportSaveResponse(data.data.config, nextPassportCookie)
     }
     clearCookieBackedData()
-    cookieCheck.value = null
     showToast('手填 Cookie 已保存', true)
     await refreshOverviewAfterCookieChange(false)
   } catch (error) {
@@ -183,7 +180,6 @@ export async function checkCookieSource(showSuccessToast = true): Promise<Cookie
     const data = await requestJson<CookieDiagnostics>('/api/cookie-source/check', {
       method: 'POST',
     })
-    cookieCheck.value = data
     if (showSuccessToast !== false) {
       const readyForDyTokenYuba = data.mainCookieReady && data.yubaDyTokenReady
       showToast(readyForDyTokenYuba ? '登录凭证已同步，dy-token 鱼吧请求已就绪' : '登录凭证已同步并校验，请查看缺失项', readyForDyTokenYuba)
@@ -193,7 +189,6 @@ export async function checkCookieSource(showSuccessToast = true): Promise<Cookie
     if (isHttpUnauthorized(error)) {
       return undefined
     }
-    cookieCheck.value = null
     showToast(`同步并校验登录凭证失败：${getErrorMessage(error)}`, false)
     return undefined
   }
@@ -224,7 +219,6 @@ async function saveCookieCloud(options: SaveCookieCloudOptions = {}): Promise<vo
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    cookieCheck.value = null
     if (data.data?.config) {
       setRawConfig(data.data.config)
       applyRawConfig(data.data.config)

@@ -19,7 +19,6 @@ const {
   expiringEnabled,
   expiringFanRows,
   expiringModel,
-  expiringNote,
   expiringTableEmptyText,
   expiringTaskCard,
   expiringThresholdHours,
@@ -53,9 +52,6 @@ function updateRowValue(row: AllocationValueRow, value: number): void {
     :pills="expiringTaskCard.pills"
     :cells="expiringTaskCard.cells"
   />
-  <div id="expiring-note" class="status-box" role="status" aria-live="polite" style="margin-top:16px">
-    {{ expiringNote }}
-  </div>
 
   <div class="panel" style="margin-top:16px">
     <EnableSwitch
@@ -64,7 +60,6 @@ function updateRowValue(row: AllocationValueRow, value: number): void {
       name="expiring-enable"
       label="启用临期任务"
       title="启用临期任务"
-      note="达到临期阈值后，按房间配置释放有明确过期时间的临期背包礼物。"
       @change="handleExpiringToggle"
     />
     <div class="grid cols-3">

@@ -134,29 +134,6 @@ export function useYubaTaskPage() {
     return createScheduledTaskCard(configured, status, { label: '模式', value: yubaMode.value === 'followed' ? '签到全部已关注鱼吧' : String(yubaMode.value || '-') })
   })
 
-  const yubaNote = computed(() => {
-    const config = rawConfig.value
-    if (!hasCookieSourceConfigured(config)) {
-      return '请先保存 Cookie 或启用 CookieCloud。鱼吧签到依赖当前账号的鱼吧登录态，以及主站 Cookie 中可组成 dy-token 的 acf 字段。'
-    }
-    if (yubaMode.value !== 'followed') {
-      return '当前模式无效，请重新保存鱼吧签到配置。'
-    }
-    if (yubaStatusLoading.value && !yubaStatusLoaded.value) {
-      return '正在加载已关注鱼吧列表…'
-    }
-    if (yubaStatusError.value && !yubaStatusLoaded.value) {
-      return '鱼吧列表加载失败。'
-    }
-    if (!yubaStatusLoaded.value) {
-      return '当前会通过 HTTP 接口拉取全部已关注鱼吧，再逐个检测签到状态并执行签到。'
-    }
-    if (!yubaStatus.value.length) {
-      return '当前没有可展示的已关注鱼吧。'
-    }
-    return `${yubaStatusLoading.value ? '正在后台更新，当前显示上次结果。' : ''}当前已加载 ${yubaStatus.value.length} 个已关注鱼吧，可直接查看等级、经验、排名和今日签到状态。`
-  })
-
   const yubaEmptyText = computed(() => {
     const config = rawConfig.value
     if (!hasCookieSourceConfigured(config)) {
@@ -214,7 +191,6 @@ export function useYubaTaskPage() {
     yubaEmptyText,
     yubaEnabled,
     yubaMode,
-    yubaNote,
     yubaTableRows,
     yubaTaskCard,
   }

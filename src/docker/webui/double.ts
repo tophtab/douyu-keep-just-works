@@ -2,11 +2,11 @@ import type { DoubleCardConfig, DoubleCardGiftScope, Fans, FanStatus } from '../
 import { computed, ref } from 'vue'
 import { DEFAULT_DOUBLE_CARD_CRON, DEFAULT_DOUBLE_CARD_GIFT_SCOPE, DEFAULT_DOUBLE_CARD_MODEL } from '../../core/task-defaults'
 import type { AllocationFanRow } from './allocation-task'
-import { buildAllocationFanRows, buildAllocationSendMap, buildEnabledRoomMap, formatRatioPercent, normalizeAllocationModel } from './allocation-task'
+import { buildAllocationFanRows, buildAllocationSendMap, buildEnabledRoomMap, normalizeAllocationModel } from './allocation-task'
 import { useCronPreview } from './composables/use-cron-preview'
 import { createFansBackedTaskPageState } from './fans-backed-task-page'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
-import { createDisabledAllocationTaskConfig, createFanListMessages, createTaskConfigAccessor, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isTaskActive } from './task-shared'
+import { createDisabledAllocationTaskConfig, createFanListEmptyText, createTaskConfigAccessor, getAllocationValueLabel, hasFanTaskTableRows, isTaskActive } from './task-shared'
 import { showToast } from './toast'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
@@ -166,76 +166,20 @@ export function useDoubleTaskPage() {
     })
   })
 
-  const enabledCount = computed(() => fanRows.value.filter(row => row.enabled).length)
-
-  const doubleMessages = computed(() => {
-    return createFanListMessages({
+  const doubleEmptyText = computed(() => {
+    return createFanListEmptyText({
       rawConfig: rawConfig.value,
       managedLoading: managedLoading.value,
       rowCount: fanRows.value.length,
       fansListError: fansListError.value,
       fansListLoaded: fansListLoaded.value,
-      missingCredentialText: '请先保存 Cookie 或启用 CookieCloud。没有登录凭证时无法同步粉丝牌，也不会生成双倍房间列表。',
       emptyMissingCredentialText: '保存 Cookie 或启用 CookieCloud 后再同步粉丝牌，这里才会出现房间列表。',
-      loadingText: '正在同步粉丝牌与双倍配置…',
-      readyText: `${managedLoading.value ? '正在后台同步，当前显示上次结果。' : ''}当前已勾选 ${enabledCount.value} / ${fanRows.value.length} 个房间参与双倍。`,
     })
   })
-
-  const doubleNote = computed(() => doubleMessages.value.note)
-  const doubleEmptyText = computed(() => doubleMessages.value.emptyText)
 
   const showDoubleTable = computed(() => hasFanTaskTableRows(rawConfig.value, fanRows.value.length))
   const doubleValueLabel = computed(() => getAllocationValueLabel(doubleModel.value))
   const showDoubleRatioTools = computed(() => doubleModel.value === 1)
-  const doubleModeHelp = computed(() => {
-    if (!hasCookieSourceConfigured(rawConfig.value)) {
-      return '按权重模式会在当前开双倍的房间之间重新分配。'
-    }
-    if (managedLoading.value && !fanRows.value.length) {
-      return '正在同步双倍任务配置。'
-    }
-    if (!fanRows.value.length) {
-      return '按权重模式会在当前开双倍的房间之间重新分配。'
-    }
-    if (doubleModel.value === 2) {
-      return '按固定数量时，会只在当前开双倍的房间里使用你填写的数量。没有房间开双倍时本次不送；只有 1 个房间开双倍时本次全部送给它。'
-    }
-    return '按权重模式不要求总和等于 100。多个房间同时开双倍时，只会在这些房间里按权重值重新分配。'
-  })
-
-  const doubleRatioPreview = computed(() => {
-    if (!hasCookieSourceConfigured(rawConfig.value)) {
-      return '保存登录凭证并同步粉丝牌后，这里会显示当前权重预览。'
-    }
-    if (managedLoading.value && !fanRows.value.length) {
-      return '同步完成后，这里会显示当前权重预览。'
-    }
-    if (!fanRows.value.length) {
-      if (fansListError.value) {
-        return '粉丝牌列表加载失败，刷新成功后会显示当前权重预览。'
-      }
-      return fansListLoaded.value ? '当前没有可用于预览的粉丝牌房间。' : '粉丝牌列表加载后，这里会显示当前权重预览。'
-    }
-    if (doubleModel.value === 2) {
-      return '固定数量模式保留现有行为。如果你想平均分配，切回“按权重”后点击“参与房间全部设为 1”即可。'
-    }
-
-    const enabledEntries = fanRows.value.filter(row => row.enabled)
-    if (!enabledEntries.length) {
-      return '当前还没有勾选参与双倍的房间。'
-    }
-
-    const positiveEntries = enabledEntries.filter(row => row.value > 0)
-    if (!positiveEntries.length) {
-      return '当前已勾选房间的权重值全是 0。至少给一个已勾选房间填写大于 0 的权重值。'
-    }
-
-    const totalWeight = positiveEntries.reduce((sum, row) => sum + row.value, 0)
-    const ratioText = positiveEntries.map(row => `${row.name}(${row.value})`).join(' / ')
-    const percentText = positiveEntries.map(row => `${row.name} ${formatRatioPercent((row.value / totalWeight) * 100)}`).join(' / ')
-    return `当前权重：${ratioText}\n折算占比：${percentText}`
-  })
 
   function handleDoubleToggle(): void {
     toggleEnabledTask(doubleEnabled, saveDoubleConfig, disableDoubleConfig)
@@ -279,10 +223,7 @@ export function useDoubleTaskPage() {
     doubleEnabled,
     doubleFanRows: fanRows,
     doubleGiftScope,
-    doubleModeHelp,
     doubleModel,
-    doubleNote,
-    doubleRatioPreview,
     doubleTaskCard,
     doubleValueLabel,
     handleDoubleToggle,

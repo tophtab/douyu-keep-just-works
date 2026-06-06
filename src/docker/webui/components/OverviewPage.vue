@@ -10,7 +10,7 @@ const props = defineProps<{
 
 const {
   overviewFansEmptyText,
-  overviewFansNote,
+  overviewFansFeedbackText,
   overviewFansRows,
   overviewGiftMetrics,
   overviewStatusCells,
@@ -28,9 +28,6 @@ const {
       <h3 class="section-title">
         概况
       </h3>
-      <p class="subtle">
-        这里只保留登录与任务开关概览，详细状态请进入对应功能页查看。
-      </p>
       <div class="summary-grid quad" style="margin-top:16px">
         <div v-for="cell in overviewStatusCells" :key="cell.label" class="strip-metric">
           <div class="mini-label">
@@ -52,9 +49,6 @@ const {
           <h3 class="section-title">
             粉丝牌列表
           </h3>
-          <p class="subtle">
-            概况页直接展示当前粉丝牌与双倍状态。
-          </p>
         </div>
         <div class="strip-metrics compact overview-gift-summary">
           <div v-for="metric in overviewGiftMetrics" :key="metric.label" class="strip-metric">
@@ -67,8 +61,8 @@ const {
           </div>
         </div>
       </div>
-      <div class="subtle overview-table-note" role="status" aria-live="polite">
-        {{ overviewFansNote }}
+      <div v-if="overviewFansFeedbackText" class="status-box" role="status" aria-live="polite" style="margin-top:16px">
+        {{ overviewFansFeedbackText }}
       </div>
       <div style="margin-top:16px">
         <div v-if="showOverviewLoginAction" class="empty empty-with-action">

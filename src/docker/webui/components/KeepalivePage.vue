@@ -19,7 +19,6 @@ const {
   keepaliveEmptyText,
   keepaliveEnabled,
   keepaliveModel,
-  keepaliveNote,
   keepaliveTaskCard,
   keepaliveValueLabel,
   loadKeepaliveCronPreview,
@@ -48,9 +47,6 @@ function updateRowValue(row: AllocationValueRow, value: number): void {
     :pills="keepaliveTaskCard.pills"
     :cells="keepaliveTaskCard.cells"
   />
-  <div id="keepalive-note" class="status-box" role="status" aria-live="polite" style="margin-top:16px">
-    {{ keepaliveNote }}
-  </div>
 
   <div class="panel" style="margin-top:16px">
     <EnableSwitch
@@ -59,7 +55,6 @@ function updateRowValue(row: AllocationValueRow, value: number): void {
       name="keepalive-enable"
       label="启用保活任务"
       title="启用保活任务"
-      note="关闭后保留配置，但不执行保活调度。"
       @change="handleKeepaliveToggle"
     />
     <div class="grid cols-2">

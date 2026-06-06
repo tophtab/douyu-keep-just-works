@@ -66,7 +66,9 @@ test('overview fans-status failures use durable page feedback with short explici
 
   assert.match(overview, /fansStatusError/)
   assert.match(overview, /value: '加载失败'/)
-  assert.match(overview, /本次刷新失败：\$\{fansStatusError\.value\}。当前显示上次结果。/)
+  assert.match(overview, /overviewFansFeedbackText/)
+  assert.match(overview, /本次刷新失败：\$\{fansStatusError\.value\}/)
+  assert.doesNotMatch(overview, /当前显示上次结果/)
   assert.match(overview, /加载粉丝牌状态失败：\$\{fansStatusError\.value\}。请点击顶部“刷新”重试。/)
 
   assert.match(resourceState, /fansStatusError/)

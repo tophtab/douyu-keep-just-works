@@ -19,10 +19,7 @@ const {
   doubleEnabled,
   doubleFanRows,
   doubleGiftScope,
-  doubleModeHelp,
   doubleModel,
-  doubleNote,
-  doubleRatioPreview,
   doubleTaskCard,
   doubleValueLabel,
   handleDoubleToggle,
@@ -57,9 +54,6 @@ function updateRowValue(row: DoubleAllocationRow, value: number): void {
     :pills="doubleTaskCard.pills"
     :cells="doubleTaskCard.cells"
   />
-  <div id="double-note" class="status-box" role="status" aria-live="polite" style="margin-top:16px">
-    {{ doubleNote }}
-  </div>
 
   <div class="panel" style="margin-top:16px">
     <EnableSwitch
@@ -68,7 +62,6 @@ function updateRowValue(row: DoubleAllocationRow, value: number): void {
       name="double-enable"
       label="启用双倍任务"
       title="启用双倍任务"
-      note="关闭后不执行双倍检测与赠送，但保留当前分配设置。"
       @change="handleDoubleToggle"
     />
     <div class="grid cols-3">
@@ -111,28 +104,13 @@ function updateRowValue(row: DoubleAllocationRow, value: number): void {
       ]"
       @action="handleAction"
     />
-    <div class="status-box" style="margin-top:16px">
-      <div class="split-inline">
-        <div class="split-inline-copy">
-          <div class="section-kicker">
-            分配说明
-          </div>
-          <p id="double-mode-help" class="subtle" style="margin-top:8px">
-            {{ doubleModeHelp }}
-          </p>
-          <div id="double-ratio-preview" class="helper" role="status" aria-live="polite" style="margin-top:10px; white-space:pre-line">
-            {{ doubleRatioPreview }}
-          </div>
-        </div>
-        <div v-show="showDoubleRatioTools" id="double-ratio-tools" class="split-inline-actions">
-          <button class="btn btn-secondary" type="button" @click="applyDoubleRatioPreset('equal')">
-            参与房间全部设为 1
-          </button>
-          <button class="btn btn-secondary" type="button" @click="applyDoubleRatioPreset('level')">
-            按粉丝牌等级填入
-          </button>
-        </div>
-      </div>
+    <div v-show="showDoubleRatioTools" id="double-ratio-tools" class="actions" style="margin-top:16px">
+      <button class="btn btn-secondary" type="button" @click="applyDoubleRatioPreset('equal')">
+        参与房间全部设为 1
+      </button>
+      <button class="btn btn-secondary" type="button" @click="applyDoubleRatioPreset('level')">
+        按粉丝牌等级填入
+      </button>
     </div>
     <div id="double-table-wrap" style="margin-top:16px">
       <div v-if="!showDoubleTable" class="empty">

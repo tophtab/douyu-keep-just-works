@@ -9,7 +9,6 @@ import TaskStatusCard from './TaskStatusCard.vue'
 const {
   cancelPassportLogin,
   checkCookieSource,
-  cookieCheckText,
   cookieCloud,
   cronPreviewText,
   handleCookieCloudToggle,
@@ -66,9 +65,6 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
     <h3 class="section-title">
       登录 Cookie
     </h3>
-    <p class="subtle">
-      运行时只使用本地登录 Cookie 快照。直播、鱼吧和 passport 的 Cookie 分开保存，避免同名字段互相覆盖。启用 CookieCloud 后，系统会先同步到这里，再由各任务读取本地值。
-    </p>
     <div class="grid cols-3" style="margin-top:16px">
       <div class="field-block" style="margin-top:0">
         <label class="field-label" for="main-cookie-input">斗鱼直播的 Cookie</label>
@@ -83,9 +79,6 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
         <textarea id="manual-passport-cookie" v-model="passportCookie" name="manual-passport-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="dy_did=...; LTP0=..." rows="4" />
       </div>
     </div>
-    <p class="subtle" style="margin-top:4px">
-      passport Cookie 可选。主站 Cookie 失效后，系统会使用这里保存的 LTP0 和 dy_did 进行一次 safeAuth 恢复。
-    </p>
     <ActionBar
       :actions="[
         { label: passportQrLoginBusy ? '扫码中' : '扫码登录', kind: 'primary' },
@@ -141,9 +134,6 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
         <h3 class="section-title" style="margin-top:0">
           CookieCloud 同步
         </h3>
-        <p class="subtle">
-          从浏览器同步斗鱼相关域完整 Cookie，自动覆盖主站与鱼吧，避免手动复制两份 Cookie。
-        </p>
       </div>
       <EnableSwitch
         v-model="cookieCloud.active"
@@ -175,9 +165,6 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
         <label class="field-label" for="cookie-cloud-password">密码</label>
         <input id="cookie-cloud-password" v-model="cookieCloud.password" name="cookie-cloud-password" type="password" autocomplete="current-password" spellcheck="false" placeholder="CookieCloud Password">
       </div>
-    </div>
-    <div id="cookie-cloud-note" class="status-box" role="status" aria-live="polite" style="margin-top:16px">
-      {{ cookieCheckText }}
     </div>
     <ActionBar
       class="cookie-cloud-actions"

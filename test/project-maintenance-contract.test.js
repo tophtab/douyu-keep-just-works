@@ -568,7 +568,7 @@ test('manual passport cookie stays masked outside raw config and is saved from l
   assert.match(cookieSourceActions, /applyManualPassportSaveResponse\(data\.data\.config, nextPassportCookie\)/)
   assert.doesNotMatch(cookieSourceActions, /saveManualPassport/)
   assert.match(cookieSourceCopy, /passport Cookie', value: hasManualPassport\(config\) \? '已配置' : '未配置'/)
-  assert.match(cookieSourceCopy, /服务器地址 \/ UUID \/ 密码/)
+  assert.doesNotMatch(cookieSourceCopy, /服务器地址 \/ UUID \/ 密码/)
   assert.doesNotMatch(cookieWebUi + cookieSourceActions + cookieSourceCopy + cookieSourceState, /ltp0[^'\n]*redacted-secret-value/)
   assert.match(loginConfigPage, /登录 Cookie[\s\S]*<div class="grid cols-3"[\s\S]*v-model="mainCookie"[\s\S]*v-model="yubaCookie"[\s\S]*v-model="passportCookie"/)
   assert.match(loginConfigPage, /<textarea[\s\S]*v-model="passportCookie"/)

@@ -1,5 +1,5 @@
 import { computed, onBeforeUnmount, watch } from 'vue'
-import { buildCookieCheckText, buildLoginStatus, buildPassportQrLoginText } from './cookie-source-copy'
+import { buildLoginStatus, buildPassportQrLoginText } from './cookie-source-copy'
 import {
   cancelPassportQrLogin,
   checkCookieSource,
@@ -13,7 +13,6 @@ import {
 } from './cookie-source-actions'
 import {
   applyRawConfig,
-  cookieCheck,
   cookieCloud,
   cronPreviewText,
   loadCookieCloudCronPreview,
@@ -29,7 +28,6 @@ export { syncCookieCloudToLoginCookies } from './cookie-source-actions'
 
 export function useCookieLoginPage() {
   let passportQrPollingTimer: ReturnType<typeof window.setInterval> | null = null
-  const cookieCheckText = computed(() => buildCookieCheckText(cookieCheck.value))
   const loginStatus = computed(() => buildLoginStatus())
   const passportQrLoginText = computed(() => buildPassportQrLoginText(passportQrLogin.value))
 
@@ -87,7 +85,6 @@ export function useCookieLoginPage() {
   return {
     cancelPassportLogin,
     checkCookieSource,
-    cookieCheckText,
     cookieCloud,
     cronPreviewText,
     handleCookieCloudToggle,

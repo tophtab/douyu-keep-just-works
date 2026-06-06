@@ -5,9 +5,9 @@ import type { AllocationFanRow } from './allocation-task'
 import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationModel } from './allocation-task'
 import { useCronPreview } from './composables/use-cron-preview'
 import { createFansBackedTaskPageState } from './fans-backed-task-page'
-import { fansStatusDetailsLoading as sharedFansStatusDetailsLoading, fansStatusLoaded as sharedFansStatusLoaded, fansStatusLoading as sharedFansStatusLoading, giftStatus as sharedGiftStatus } from './resource-fans'
+import { fansStatusDetailsLoading as sharedFansStatusDetailsLoading, fansStatusLoaded as sharedFansStatusLoaded, giftStatus as sharedGiftStatus } from './resource-fans'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
-import { createDisabledAllocationTaskConfig, createFanListMessages, createTaskConfigAccessor, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isTaskActive } from './task-shared'
+import { createDisabledAllocationTaskConfig, createFanListEmptyText, createTaskConfigAccessor, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isTaskActive } from './task-shared'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface ExpiringOverview {
@@ -38,7 +38,6 @@ interface ExpiringBackpackRow {
 const taskPage = createFansBackedTaskPageState<ExpiringOverview, RawExpiringConfig, Fans>()
 const { fans, fansListError, fansListLoaded, managedConfig, managedLoading, overview, rawConfig } = taskPage
 const fansStatusLoaded = ref(false)
-const fansStatusLoading = ref(false)
 const fansStatusDetailsLoading = ref(false)
 const giftStatus = ref<GiftStatus | null>(null)
 const expiringEnabled = ref(false)
@@ -93,7 +92,6 @@ function applyExpiringConfig(config: ExpiringGiftConfig): void {
 function applyResourceState(): void {
   taskPage.syncResourceState()
   fansStatusLoaded.value = sharedFansStatusLoaded.value
-  fansStatusLoading.value = sharedFansStatusLoading.value
   fansStatusDetailsLoading.value = sharedFansStatusDetailsLoading.value
   giftStatus.value = sharedGiftStatus.value
   applyExpiringConfig(getExpiringConfig())
@@ -212,22 +210,16 @@ export function useExpiringGiftTaskPage() {
     })
   })
 
-  const expiringMessages = computed(() => {
-    return createFanListMessages({
+  const expiringTableEmptyText = computed(() => {
+    return createFanListEmptyText({
       rawConfig: rawConfig.value,
       managedLoading: managedLoading.value,
       rowCount: fanRows.value.length,
       fansListError: fansListError.value,
       fansListLoaded: fansStatusLoaded.value || fansListLoaded.value,
-      missingCredentialText: '请先保存 Cookie 或启用 CookieCloud。没有登录凭证时无法同步粉丝牌，也无法读取背包礼物和过期时间。',
       emptyMissingCredentialText: '保存 Cookie 或启用 CookieCloud 后再同步粉丝牌，这里才会出现临期赠送房间列表。',
-      loadingText: '正在同步粉丝牌与临期配置…',
-      readyText: `${managedLoading.value || fansStatusLoading.value ? '正在后台更新，当前显示上次结果。' : ''}当前已同步 ${fanRows.value.length} 个粉丝牌房间。临期任务会按背包行筛选进入阈值且有明确过期时间的礼物，并按房间配置释放。`,
     })
   })
-
-  const expiringNote = computed(() => expiringMessages.value.note)
-  const expiringTableEmptyText = computed(() => expiringMessages.value.emptyText)
 
   const expiringBackpackEmptyText = computed(() => {
     if (!hasCookieSourceConfigured(rawConfig.value)) {
@@ -282,7 +274,6 @@ export function useExpiringGiftTaskPage() {
 
   taskPage.watchResourceState(applyResourceState, [
     sharedFansStatusLoaded,
-    sharedFansStatusLoading,
     sharedFansStatusDetailsLoading,
     sharedGiftStatus,
   ])
@@ -295,7 +286,6 @@ export function useExpiringGiftTaskPage() {
     expiringEnabled,
     expiringFanRows: fanRows,
     expiringModel,
-    expiringNote,
     expiringTableEmptyText,
     expiringTaskCard,
     expiringThresholdHours,

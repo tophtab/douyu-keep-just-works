@@ -6,7 +6,7 @@ import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationMode
 import { useCronPreview } from './composables/use-cron-preview'
 import { createFansBackedTaskPageState } from './fans-backed-task-page'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
-import { createDisabledAllocationTaskConfig, createFanListMessages, createTaskConfigAccessor, getAllocationValueLabel, hasFanTaskTableRows, isTaskActive } from './task-shared'
+import { createDisabledAllocationTaskConfig, createFanListEmptyText, createTaskConfigAccessor, getAllocationValueLabel, hasFanTaskTableRows, isTaskActive } from './task-shared'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface KeepaliveOverview {
@@ -128,22 +128,16 @@ export function useKeepaliveTaskPage() {
     })
   })
 
-  const keepaliveMessages = computed(() => {
-    return createFanListMessages({
+  const keepaliveEmptyText = computed(() => {
+    return createFanListEmptyText({
       rawConfig: rawConfig.value,
       managedLoading: managedLoading.value,
       rowCount: fanRows.value.length,
       fansListError: fansListError.value,
       fansListLoaded: fansListLoaded.value,
-      missingCredentialText: '请先保存 Cookie 或启用 CookieCloud。没有登录凭证时无法同步粉丝牌，也不会生成保活房间列表。',
       emptyMissingCredentialText: '保存 Cookie 或启用 CookieCloud 后再同步粉丝牌，这里才会出现房间列表。',
-      loadingText: '正在同步粉丝牌与保活配置…',
-      readyText: `${managedLoading.value ? '正在后台同步，当前显示上次结果。' : ''}当前已同步 ${fanRows.value.length} 个粉丝牌房间。`,
     })
   })
-
-  const keepaliveNote = computed(() => keepaliveMessages.value.note)
-  const keepaliveEmptyText = computed(() => keepaliveMessages.value.emptyText)
 
   const showKeepaliveTable = computed(() => hasFanTaskTableRows(rawConfig.value, fanRows.value.length))
   const keepaliveValueLabel = computed(() => getAllocationValueLabel(keepaliveModel.value))
@@ -170,7 +164,6 @@ export function useKeepaliveTaskPage() {
     keepaliveEmptyText,
     keepaliveEnabled,
     keepaliveModel,
-    keepaliveNote,
     keepaliveTaskCard,
     keepaliveValueLabel,
     loadKeepaliveCronPreview,

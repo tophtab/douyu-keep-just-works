@@ -17,7 +17,6 @@ const {
   yubaEmptyText,
   yubaEnabled,
   yubaMode,
-  yubaNote,
   yubaTableRows,
   yubaTaskCard,
 } = useYubaTaskPage()
@@ -38,9 +37,6 @@ function handleAction(index: number): void {
     :pills="yubaTaskCard.pills"
     :cells="yubaTaskCard.cells"
   />
-  <div id="yuba-note" class="status-box" role="status" aria-live="polite" style="margin-top:16px">
-    {{ yubaNote }}
-  </div>
 
   <div class="panel" style="margin-top:16px">
     <EnableSwitch
@@ -49,7 +45,6 @@ function handleAction(index: number): void {
       name="yuba-enable"
       label="启用鱼吧签到任务"
       title="启用鱼吧签到任务"
-      note="通过当前鱼吧 HTTP 接口签到全部已关注鱼吧，不使用浏览器自动化。"
       @change="handleYubaToggle"
     />
     <div class="grid cols-2">

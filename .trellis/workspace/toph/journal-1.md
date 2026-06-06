@@ -1790,3 +1790,38 @@ Centralized Docker task metadata, extracted shared backend helpers, split cookie
 ### Next Steps
 
 - None - task complete
+
+
+## Session 54: Unify WebUI section styles
+
+**Date**: 2026-06-06
+**Task**: Unify WebUI section styles
+**Branch**: `master`
+
+### Summary
+
+Unified Docker WebUI section layout across task, overview, login, and logs pages; documented shared section components and updated the Trellis task.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bc7bea3` | (see git log) |
+| `ae460a9` | (see git log) |
+| `a3e3415` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 38
+- **Total Sessions**: 39
 - **Last Active**: 2026-06-06
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1290 | Active |
+| `journal-1.md` | ~1323 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 39 | 2026-06-06 | Recover Yuba cookie from passport | `6667455` | `master` |
 | 38 | 2026-06-06 | Record Douyu passport cookie lifecycle | `4a459dc` | `master` |
 | 37 | 2026-06-06 | Align manual save button style | `42690ba` | `master` |
 | 36 | 2026-06-06 | Force refresh status caches | `753497e`, `4e54368`, `ce50a16` | `master` |

@@ -1288,3 +1288,36 @@ Documented verified Passport, main-site, and Yuba cookie lifecycle contracts, in
 ### Next Steps
 
 - None - task complete
+
+
+## Session 39: Recover Yuba cookie from passport
+
+**Date**: 2026-06-06
+**Task**: Recover Yuba cookie from passport
+**Branch**: `master`
+
+### Summary
+
+Added centralized Yuba cookie recovery through the existing Passport SSO path after main-cookie validation or recovery, with regression tests and updated backend recovery specs.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6667455` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

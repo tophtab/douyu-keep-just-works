@@ -4,6 +4,7 @@ import {
   clearFansCookieBackedData,
   fansListError,
   fansListLoaded,
+  fansStatusError,
   fansStatusLoaded,
   fansStatusLoading,
   getManagedFans,
@@ -56,6 +57,7 @@ interface RawLogEntry {
 
 export const overview = ref<WebUiOverview | null>(null)
 export const logs = ref<LogEntry[]>([])
+export const logsError = ref('')
 export const logsRefreshedAt = ref<string | null>(null)
 export const logsLoading = ref(false)
 export const logsClearing = ref(false)
@@ -90,6 +92,7 @@ export function clearProtectedState(): void {
   rawConfig.value = null
   overview.value = null
   logs.value = []
+  logsError.value = ''
   logsRefreshedAt.value = null
 }
 
@@ -116,16 +119,23 @@ export async function loadOverview(): Promise<void> {
   overview.value = await requestJson<WebUiOverview>('/api/overview')
 }
 
-export async function loadLogs(): Promise<void> {
+export async function loadLogs(showSuccessToast = false): Promise<boolean | undefined> {
   logsLoading.value = true
+  logsError.value = ''
 
   try {
     logs.value = normalizeLogs(await requestJson<RawLogEntry[]>('/api/logs'))
     logsRefreshedAt.value = new Date().toISOString()
+    return true
   } catch (error) {
     if (!isUnauthorizedError(error)) {
-      showToast(`加载日志失败：${getErrorMessage(error)}`, false)
+      logsError.value = getErrorMessage(error)
+      if (showSuccessToast) {
+        showToast('加载日志失败，请查看页面提示', false)
+      }
+      return false
     }
+    return undefined
   } finally {
     logsLoading.value = false
   }
@@ -154,7 +164,7 @@ export async function loadActiveTabData(activeTab: WebUiPageTab): Promise<void> 
     return
   }
 
-  if ((activeTab === 'overview' || activeTab === 'expiring-gift') && !fansStatusLoaded.value) {
+  if ((activeTab === 'overview' || activeTab === 'expiring-gift') && !fansStatusLoaded.value && !fansStatusError.value) {
     await loadFansStatus(false)
   }
   if ((activeTab === 'keepalive' || activeTab === 'double-card') && !getManagedFans().length && !fansListLoaded.value && !fansListError.value && !managedLoading.value) {
@@ -191,9 +201,10 @@ async function runRefreshOverviewSurface(activeTab: WebUiPageTab, showSuccessToa
     reloads.push(loadLogs())
   }
 
-  await Promise.all(reloads)
+  const results = await Promise.all(reloads)
   if (showSuccessToast) {
-    showToast('状态已刷新', true)
+    const refreshFailed = results.includes(false)
+    showToast(refreshFailed ? '刷新失败，请查看页面提示' : '状态已刷新', !refreshFailed)
   }
 }
 

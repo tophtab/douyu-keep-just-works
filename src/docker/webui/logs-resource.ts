@@ -1,7 +1,7 @@
 import type { Ref } from 'vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { formatDate } from './datetime'
-import { clearLogs, loadLogs, logs, logsAutoRefresh, logsClearing, logsLoading, logsRefreshedAt } from './resource-state'
+import { clearLogs, loadLogs, logs, logsAutoRefresh, logsClearing, logsError, logsLoading, logsRefreshedAt } from './resource-state'
 
 export function useLogsPage(activeTab: Readonly<Ref<string>>, authenticated: Readonly<Ref<boolean>>) {
   const logBoxRef = ref<HTMLElement | null>(null)
@@ -13,6 +13,11 @@ export function useLogsPage(activeTab: Readonly<Ref<string>>, authenticated: Rea
     }
 
     const refreshedAt = logsRefreshedAt.value ? formatDate(logsRefreshedAt.value) : '尚未刷新'
+    if (logsError.value) {
+      return logsRefreshedAt.value
+        ? `加载日志失败：${logsError.value}。当前显示上次结果。最近刷新：${refreshedAt}`
+        : `加载日志失败：${logsError.value}。请稍后重试。`
+    }
     return `当前 ${logs.value.length} 条日志，仅保留最近 500 条。最近刷新：${refreshedAt}`
   })
   const formattedLogs = computed(() => logs.value.map(log => ({
@@ -56,6 +61,6 @@ export function useLogsPage(activeTab: Readonly<Ref<string>>, authenticated: Rea
     logsLoading,
     logsSummary,
     logBoxRef,
-    refreshLogs: loadLogs,
+    refreshLogs: () => loadLogs(true),
   }
 }

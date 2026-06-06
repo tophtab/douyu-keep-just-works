@@ -2,7 +2,7 @@ import type { FanStatus, GiftStatus } from '../../core/types'
 import type { Ref } from 'vue'
 import { computed } from 'vue'
 import { formatDate } from './datetime'
-import { fansStatus, fansStatusDetailsLoaded, fansStatusDetailsLoading, fansStatusLoaded, fansStatusLoading, giftStatus, managedLoading } from './resource-fans'
+import { fansStatus, fansStatusDetailsLoaded, fansStatusDetailsLoading, fansStatusError, fansStatusLoaded, fansStatusLoading, giftStatus, managedLoading } from './resource-fans'
 import { hasCookieSourceConfigured } from './resource-config'
 import { isActiveRefreshLoading, overview, refreshOverviewSurface } from './resource-state'
 import type { WebUiPageTab } from './navigation'
@@ -106,6 +106,13 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
       ]
     }
 
+    if (fansStatusError.value && !fansStatusLoaded.value) {
+      return [
+        { label: '当前荧光棒', value: '加载失败' },
+        { label: '过期时间', value: '加载失败' },
+      ]
+    }
+
     if (!fansStatusLoaded.value) {
       return [
         { label: '当前荧光棒', value: '待刷新' },
@@ -147,6 +154,12 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
       return '正在同步粉丝牌状态…'
     }
 
+    if (fansStatusError.value) {
+      return fansStatusLoaded.value
+        ? `本次刷新失败：${fansStatusError.value}。当前显示上次结果。`
+        : `加载粉丝牌状态失败：${fansStatusError.value}。请点击顶部“刷新”重试。`
+    }
+
     if (!fansStatusLoaded.value) {
       return '点击顶部“刷新”可重新加载粉丝牌状态。'
     }
@@ -173,6 +186,9 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
     }
     if ((managedLoading.value || fansStatusLoading.value) && !fansStatusLoaded.value) {
       return '请稍候，列表正在更新。'
+    }
+    if (fansStatusError.value && !fansStatusLoaded.value) {
+      return `加载粉丝牌状态失败：${fansStatusError.value}。请点击顶部“刷新”重试。`
     }
     if (!fansStatusLoaded.value) {
       return '尚未加载粉丝牌状态。'

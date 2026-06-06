@@ -60,6 +60,81 @@ Protected WebUI pages must not mount before authentication succeeds. Use `v-if="
 
 When a protected helper can be called before authentication due to future composition changes, unauthorized responses should be ignored or treated as session state, not persisted as field validation errors.
 
+## Scenario: WebUI Resource Error Feedback Surfaces
+
+### 1. Scope / Trigger
+- Trigger: changing Docker WebUI resource loaders, page-local resource error state, top-right refresh behavior, logs-page refresh behavior, or toast copy for resource requests.
+- Scope: frontend-owned page/resource feedback only. Backend runtime logs remain an operational timeline and must not become a sink for frontend request-display failures.
+
+### 2. Signatures
+- Resource loaders that can leave a page missing, stale, or ambiguous accept `showSuccessToast = false`; cache-backed loaders may also accept `forceRefresh = false`.
+- `loadLogs(showSuccessToast = false): Promise<boolean | undefined>` owns logs-page load feedback.
+- Coalesced resource loaders such as `loadFansStatus(showSuccessToast?, forceRefresh?)`, `loadFansList(showSuccessToast?, forceRefresh?)`, and `loadYubaStatus(showSuccessToast?, forceRefresh?)` must resolve with these values even when their TypeScript return type is widened by shared pending-request storage:
+  - `true`: current request succeeded and page resource state was updated.
+  - `false`: current request hit a handled non-401 failure or explicit precondition failure.
+  - `undefined`: stale request result or 401/session path; the auth/session owner handles it.
+
+### 3. Contracts
+- Page/resource load failures are authoritative in inline/page state when the current page data would otherwise be missing, stale, or ambiguous.
+- Inline resource errors must clear on a new relevant request, a successful reload, protected-state reset, or credential/config invalidation that clears the resource.
+- Automatic loads, tab-switch loads, and background refreshes pass `showSuccessToast = false` and must not toast resource failures.
+- Explicit user actions may toast. When the same failure also has inline/page feedback, the toast is only a short pointer such as `刷新失败，请查看页面提示`, not a duplicate full error.
+- 401 responses stay in the auth/session path: do not toast them and do not persist them as page resource errors.
+- Runtime logs are for backend/runtime facts. Do not add runtime log entries for pure frontend page request failures such as logs-page load failure, cron preview validation, or page-local resource display state.
+
+### 4. Validation & Error Matrix
+- Non-401 resource load failure with no usable prior data -> set the resource error ref, keep empty/current resource data safe, and show inline copy that names the failed resource and retry path.
+- Non-401 resource load failure with prior loaded data -> keep previous data visible, set the resource error ref, and show stale-data copy such as `本次刷新失败：<error>。当前显示上次结果。`
+- Explicit manual refresh where any resource loader resolves `false` -> top-level toast `刷新失败，请查看页面提示` with `ok=false`.
+- Automatic load where a resource loader resolves `false` -> update inline/page state only, no toast.
+- Logs-page load failure -> set `logsError` and render logs-page summary text; do not append a runtime log entry.
+- Clear-logs failure -> toast-only is acceptable because the existing log list remains visible and the page is not ambiguous.
+- 401/session failure -> return `undefined` after unauthorized handling; do not set field/resource errors.
+
+### 5. Good/Base/Bad Cases
+- Good: overview fans-status failure sets `fansStatusError`, shows missing-data or stale-data copy in the overview fans area, and only short-toasts on explicit refresh.
+- Good: logs manual refresh calls `loadLogs(true)`; auto-refresh calls `loadLogs()` and never interrupts the user with a toast.
+- Base: task execution failure can still toast immediate command failure while backend runtime logs preserve the execution sequence.
+- Bad: showing only a full failure toast such as `加载粉丝牌状态失败：<error>` for a page resource failure.
+- Bad: appending frontend request failures to runtime logs to make them durable.
+- Bad: retrying automatic tab-load failures forever while a durable page error is already visible; follow existing resource-error guards until the user refreshes or state is invalidated.
+
+### 6. Tests Required
+- Contract tests should assert durable resource error refs exist and are cleared on success/reset paths for page-owned resources.
+- Contract tests should assert explicit failure toasts are short pointers and are gated by `showSuccessToast`.
+- Contract tests should assert automatic loaders call resource helpers with `showSuccessToast = false`.
+- Contract tests should assert logs-page load failures use `logsError` inline summary text and clear-log failures remain toast-only.
+- Contract tests should assert top-level refresh derives failure toast state from loader results including `false`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+showToast(`加载日志失败：${getErrorMessage(error)}`, false)
+```
+
+#### Correct
+
+```typescript
+logsError.value = getErrorMessage(error)
+if (showSuccessToast) {
+  showToast('加载日志失败，请查看页面提示', false)
+}
+```
+
+#### Wrong
+
+```typescript
+await loadFansStatus(true)
+```
+
+#### Correct
+
+```typescript
+await loadFansStatus(false)
+```
+
 ---
 
 ## Scenario: Manual Force Refresh Of Cache-Backed Resources

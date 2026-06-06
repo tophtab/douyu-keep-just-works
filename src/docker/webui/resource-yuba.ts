@@ -33,7 +33,7 @@ export async function loadYubaStatus(showSuccessToast = false, forceRefresh = fa
     if (showSuccessToast) {
       showToast('请先保存 Cookie 或启用 CookieCloud', false)
     }
-    return undefined
+    return false
   }
 
   if (yubaStatusRequest.pending) {
@@ -57,7 +57,7 @@ export async function loadYubaStatus(showSuccessToast = false, forceRefresh = fa
     if (showSuccessToast) {
       showToast('鱼吧状态已刷新', true)
     }
-    return data
+    return true
   }).catch((error: unknown) => {
     if (yubaStatusRequest.requestSeq !== requestSeq) {
       return undefined
@@ -68,8 +68,10 @@ export async function loadYubaStatus(showSuccessToast = false, forceRefresh = fa
     yubaStatus.value = yubaStatusLoaded.value ? yubaStatus.value : []
     yubaStatusError.value = getErrorMessage(error)
     yubaStatusLoading.value = false
-    showToast(`加载鱼吧状态失败：${getErrorMessage(error)}`, false)
-    return undefined
+    if (showSuccessToast) {
+      showToast('加载鱼吧状态失败，请查看页面提示', false)
+    }
+    return false
   })
 
   return trackResourceRequest(yubaStatusRequest, requestSeq, pending)

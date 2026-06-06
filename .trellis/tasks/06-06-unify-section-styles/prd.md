@@ -33,6 +33,7 @@ Research whether the Docker WebUI page section styles can be unified and reused 
 - Use the task pages ("领取任务", "保活任务", and "双倍任务") as the visual standard for section title size, spacing, and rhythm.
 - Remove unnecessary section descriptors such as the "粉丝牌" kicker above the overview fan badge list.
 - Ensure helper sections such as double-task "分配说明" use the same title scale as task switches instead of a separate small-caption style.
+- Show the double-task status card room count as selected/total rooms once the double-task fan rows are loaded, based on the current "参与" checkbox state.
 
 ## Proposed Implementation Plan
 

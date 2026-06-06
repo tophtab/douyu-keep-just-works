@@ -38,14 +38,14 @@ function handleAction(index: number): void {
     <div class="panel-head">
       <div>
         <h3 class="section-title" style="margin-top:0">
-          启动领取任务
+          领取任务开关
         </h3>
       </div>
       <EnableSwitch
         v-model="collectEnabled"
         input-id="collect-enable"
         name="collect-enable"
-        label="启用领取任务"
+        label="领取任务开关"
         style="margin:0"
         @change="handleCollectToggle"
       />

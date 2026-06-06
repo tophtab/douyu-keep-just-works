@@ -43,8 +43,8 @@ function handleAction(index: number): void {
       v-model="yubaEnabled"
       input-id="yuba-enable"
       name="yuba-enable"
-      label="启用鱼吧签到任务"
-      title="启用鱼吧签到任务"
+      label="鱼吧任务开关"
+      title="鱼吧任务开关"
       @change="handleYubaToggle"
     />
     <div class="grid cols-2">
@@ -66,7 +66,6 @@ function handleAction(index: number): void {
       </div>
     </div>
     <ActionBar
-      style="margin-top:16px"
       :actions="[
         { label: '保存并启用', kind: 'success' },
         { label: '立即签到', kind: 'secondary' },

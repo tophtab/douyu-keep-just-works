@@ -8,7 +8,7 @@ export const TASK_TYPES: TaskType[] = ['collectGift', 'keepalive', 'doubleCard',
 export const TASK_LABELS: Record<TaskType, string> = {
   collectGift: '领取任务',
   keepalive: '保活任务',
-  doubleCard: '双倍卡任务',
+  doubleCard: '双倍任务',
   expiringGift: '临期任务',
   yubaCheckIn: '鱼吧签到任务',
 }
@@ -24,7 +24,7 @@ export const TASK_LOG_CATEGORIES: Record<TaskType, string> = {
 export const TASK_NOT_CONFIGURED_MESSAGES: Record<TaskType, string> = {
   collectGift: '领取任务未配置',
   keepalive: '保活任务未配置',
-  doubleCard: '双倍卡任务未配置',
+  doubleCard: '双倍任务未配置',
   expiringGift: '临期任务未配置',
   yubaCheckIn: '鱼吧签到任务未配置',
 }

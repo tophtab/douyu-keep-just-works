@@ -13,8 +13,8 @@ export type WebUiPageTab
 export interface WebUiPageMeta {
   key: WebUiPageTab
   label: string
+  subtitle?: string
   title: string
-  subtitle: string
 }
 
 interface NavigationOptions {
@@ -42,49 +42,41 @@ export const WEBUI_PAGE_TABS: WebUiPageMeta[] = [
     key: 'overview',
     label: '概况',
     title: '概况',
-    subtitle: '先看基础状态，再确认当前粉丝牌列表。',
   },
   {
     key: 'login',
     label: '登录',
     title: '登录',
-    subtitle: '管理登录状态、手填 Cookie 和 CookieCloud 同步。',
   },
   {
     key: 'collect',
     label: '领取任务',
     title: '领取任务',
-    subtitle: '查看领取任务状态，并维护领取任务的启停和调度。',
   },
   {
     key: 'keepalive',
     label: '保活任务',
     title: '保活任务',
-    subtitle: '查看保活状态，并维护随粉丝牌同步的房间配置。',
   },
   {
     key: 'double-card',
     label: '双倍任务',
     title: '双倍任务',
-    subtitle: '查看双倍状态，并维护参与勾选与分配值。',
   },
   {
     key: 'expiring-gift',
     label: '临期任务',
     title: '临期任务',
-    subtitle: '在礼物接近过期时，只按临期候选数量释放背包礼物。',
   },
   {
     key: 'yuba',
     label: '鱼吧签到',
     title: '鱼吧签到',
-    subtitle: '通过纯 HTTP 请求签到全部已关注鱼吧，并查看任务状态。',
   },
   {
     key: 'logs',
     label: '运行日志',
     title: '运行日志',
-    subtitle: '查看系统、领取、鱼吧签到、保活、双倍和临期任务的执行记录。',
   },
 ]
 

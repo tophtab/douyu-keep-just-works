@@ -58,6 +58,18 @@ Use existing classes such as `btn`, `actions`, `page`, `field-block`, and table 
 
 ---
 
+## UI Copy Conventions
+
+Task enable switch titles and labels should use the concise `某某任务开关` pattern for scheduled task pages, such as `领取任务开关`, `保活任务开关`, `双倍任务开关`, `临期任务开关`, and `鱼吧任务开关`.
+
+Do not use `启动...` or `启用...` as static switch section titles. The switch state and save action already communicate whether a task is enabled. Keep action buttons verb-based, such as `保存并启用`, `立即领取`, `立即保活`, `立即检测`, `立即执行`, and `立即签到`.
+
+Generic page header subtitles should stay absent unless they add task-specific, actionable information. Do not reintroduce broad explanatory subtitles such as "manage login/status/task settings" under every page title. Task-specific guidance belongs near the relevant controls, as with the double-task `分配说明` block.
+
+Operation-result toast copy is a separate surface. Do not change save/disable/trigger toast wording as part of static UI copy cleanup unless the task explicitly includes toast operation-result copy.
+
+---
+
 ## Accessibility
 
 Current patterns to preserve:

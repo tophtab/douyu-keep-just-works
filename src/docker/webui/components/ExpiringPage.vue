@@ -58,8 +58,8 @@ function updateRowValue(row: AllocationValueRow, value: number): void {
       v-model="expiringEnabled"
       input-id="expiring-enable"
       name="expiring-enable"
-      label="启用临期任务"
-      title="启用临期任务"
+      label="临期任务开关"
+      title="临期任务开关"
       @change="handleExpiringToggle"
     />
     <div class="grid cols-3">
@@ -88,7 +88,6 @@ function updateRowValue(row: AllocationValueRow, value: number): void {
       </div>
     </div>
     <ActionBar
-      style="margin-top:16px"
       :actions="[
         { label: '保存并启用', kind: 'success' },
         { label: '立即执行', kind: 'secondary' },

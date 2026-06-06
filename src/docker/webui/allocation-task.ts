@@ -75,6 +75,11 @@ export function buildEnabledRoomMap(rows: Array<AllocationFanRow & { enabled?: b
   return enabled
 }
 
+export function formatRatioPercent(value: number): string {
+  const rounded = Math.round(value * 10) / 10
+  return `${rounded.toFixed(1).replace(/\.0$/, '')}%`
+}
+
 function getSendValue(sendItem: SendGift, model: AllocationTaskModel): number {
   return model === 2 ? Number(sendItem.number || 0) : Number(sendItem.weight || 0)
 }

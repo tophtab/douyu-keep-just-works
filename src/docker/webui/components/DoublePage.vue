@@ -19,7 +19,9 @@ const {
   doubleEnabled,
   doubleFanRows,
   doubleGiftScope,
+  doubleModeHelp,
   doubleModel,
+  doubleRatioPreview,
   doubleTaskCard,
   doubleValueLabel,
   handleDoubleToggle,
@@ -60,8 +62,8 @@ function updateRowValue(row: DoubleAllocationRow, value: number): void {
       v-model="doubleEnabled"
       input-id="double-enable"
       name="double-enable"
-      label="启用双倍任务"
-      title="启用双倍任务"
+      label="双倍任务开关"
+      title="双倍任务开关"
       @change="handleDoubleToggle"
     />
     <div class="grid cols-3">
@@ -97,20 +99,34 @@ function updateRowValue(row: DoubleAllocationRow, value: number): void {
       </div>
     </div>
     <ActionBar
-      style="margin-top:16px"
       :actions="[
         { label: '保存并启用', kind: 'success' },
         { label: '立即检测', kind: 'secondary' },
       ]"
       @action="handleAction"
     />
-    <div v-show="showDoubleRatioTools" id="double-ratio-tools" class="actions" style="margin-top:16px">
-      <button class="btn btn-secondary" type="button" @click="applyDoubleRatioPreset('equal')">
-        参与房间全部设为 1
-      </button>
-      <button class="btn btn-secondary" type="button" @click="applyDoubleRatioPreset('level')">
-        按粉丝牌等级填入
-      </button>
+    <div class="status-box task-section">
+      <div class="split-inline">
+        <div class="split-inline-copy">
+          <div class="section-kicker">
+            分配说明
+          </div>
+          <p id="double-mode-help" class="subtle double-help">
+            {{ doubleModeHelp }}
+          </p>
+          <div id="double-ratio-preview" class="helper double-ratio-preview" role="status" aria-live="polite">
+            {{ doubleRatioPreview }}
+          </div>
+        </div>
+        <div v-show="showDoubleRatioTools" id="double-ratio-tools" class="split-inline-actions">
+          <button class="btn btn-secondary" type="button" @click="applyDoubleRatioPreset('equal')">
+            平均权重
+          </button>
+          <button class="btn btn-secondary" type="button" @click="applyDoubleRatioPreset('level')">
+            等级权重
+          </button>
+        </div>
+      </div>
     </div>
     <div id="double-table-wrap" style="margin-top:16px">
       <div v-if="!showDoubleTable" class="empty">

@@ -36,7 +36,7 @@ const PROJECT_URL = 'https://github.com/tophtab/douyu-keep-just-works'
       <span class="version-label">{{ versionLabel }}</span>
     </div>
     <p class="brand-copy">
-      更聚焦的 Docker 管理台。先看概况，再分别管理登录、领取、保活、双倍、临期和鱼吧签到任务。
+      斗鱼自动赠送荧光棒续粉丝牌|检测双倍|鱼吧签到，docker版，基于Curtion/douyu-keep vibe coding
     </p>
 
     <div class="tab-list" role="tablist" aria-label="管理台页面" aria-orientation="vertical">

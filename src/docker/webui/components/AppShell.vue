@@ -58,7 +58,7 @@ const emit = defineEmits<{
           <h2 id="page-title" class="page-title">
             {{ activePageMeta.title }}
           </h2>
-          <p id="page-subtitle" class="page-subtitle">
+          <p v-if="activePageMeta.subtitle" id="page-subtitle" class="page-subtitle">
             {{ activePageMeta.subtitle }}
           </p>
         </div>

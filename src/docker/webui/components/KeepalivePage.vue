@@ -53,8 +53,8 @@ function updateRowValue(row: AllocationValueRow, value: number): void {
       v-model="keepaliveEnabled"
       input-id="keepalive-enable"
       name="keepalive-enable"
-      label="启用保活任务"
-      title="启用保活任务"
+      label="保活任务开关"
+      title="保活任务开关"
       @change="handleKeepaliveToggle"
     />
     <div class="grid cols-2">
@@ -79,7 +79,6 @@ function updateRowValue(row: AllocationValueRow, value: number): void {
       </div>
     </div>
     <ActionBar
-      style="margin-top:16px"
       :actions="[
         { label: '保存并启用', kind: 'success' },
         { label: '立即保活', kind: 'secondary' },

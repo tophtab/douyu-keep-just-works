@@ -159,6 +159,15 @@
     min-width:0;
     width:100%;
   }
+  .split-inline{
+    grid-template-columns:1fr;
+  }
+  .split-inline-actions{
+    width:100%;
+  }
+  .split-inline-actions .btn{
+    width:100%;
+  }
   .overview-gift-summary .strip-metric{
     min-height:auto;
   }

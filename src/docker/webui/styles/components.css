@@ -248,6 +248,10 @@ textarea{
 }
 .cron-preview{
   margin-top:8px;
+  max-width:100%;
+  overflow-x:auto;
+  padding-bottom:2px;
+  white-space:nowrap;
 }
 .btn{
   border:1px solid transparent;
@@ -287,6 +291,31 @@ textarea{
   display:flex;
   flex-wrap:wrap;
   gap:10px;
+}
+.task-section{
+  margin-top:16px;
+}
+.split-inline{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:16px;
+  align-items:start;
+}
+.split-inline-copy{
+  min-width:0;
+}
+.split-inline-actions{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  min-width:128px;
+}
+.double-help{
+  margin-top:8px;
+}
+.double-ratio-preview{
+  margin-top:10px;
+  white-space:pre-line;
 }
 .passport-qr-panel{
   margin-top:14px;

@@ -1858,3 +1858,37 @@ Generated and installed the fish-with-fishing-rod icon as the project icon, wire
 ### Next Steps
 
 - None - task complete
+
+
+## Session 56: Cron preview and sidebar copy cleanup
+
+**Date**: 2026-06-06
+**Task**: Cron preview and sidebar copy cleanup
+**Branch**: `master`
+
+### Summary
+
+Removed Docker WebUI cron future-run helper output, cleaned sidebar project copy, and added contract coverage for hidden cron helper states.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9284e47` | (see git log) |
+| `4046c54` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

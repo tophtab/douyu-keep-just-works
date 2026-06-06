@@ -38,3 +38,36 @@ Updated the Docker WebUI sidebar project description copy and matching maintenan
 ### Next Steps
 
 - None - task complete
+
+
+## Session 61: Align overview empty table sections
+
+**Date**: 2026-06-06
+**Task**: Align overview empty table sections
+**Branch**: `master`
+
+### Summary
+
+Updated the overview page backpack and fans empty states to use the same table-or-empty structure as task tables without showing the login button, added a neutral TableSection wrapper, and verified lint, contract tests, and Docker build.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ffe1b44` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

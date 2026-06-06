@@ -4,7 +4,7 @@ import { assertDockerConfigCrons } from './cron'
 import { jsonEquals } from './config-equality'
 import type { StatusCacheScope } from './runtime-cache'
 import type { TaskReloadSummary } from './runtime-scheduler'
-import { hasActiveTaskConfig } from './task-metadata'
+import { getTaskConfig, getTaskConfigChangeScope, hasActiveTaskConfig, TASK_TYPES } from './task-metadata'
 
 export type DockerRuntimeConfigApplyReason = 'startup' | 'cookie_saved' | 'tasks_saved' | 'ui_saved' | 'medal_synced'
 
@@ -18,15 +18,17 @@ export function analyzeDockerRuntimeConfigChange(
   prevConfig: DockerConfig | null,
   nextConfig: DockerConfig,
 ): DockerRuntimeConfigChange {
+  const changedTaskScopes = TASK_TYPES
+    .filter(type => !jsonEquals(getTaskConfig(prevConfig, type) || null, getTaskConfig(nextConfig, type) || null))
+    .map(getTaskConfigChangeScope)
+
   return {
     cookieSourceChanged: prevConfig?.cookie !== nextConfig.cookie
       || !jsonEquals(prevConfig?.manualCookies || null, nextConfig.manualCookies || null)
       || !jsonEquals(prevConfig?.manualPassport || null, nextConfig.manualPassport || null)
       || !jsonEquals(prevConfig?.cookieCloud || null, nextConfig.cookieCloud || null),
-    fansTaskConfigChanged: !jsonEquals(prevConfig?.keepalive || null, nextConfig.keepalive || null)
-      || !jsonEquals(prevConfig?.doubleCard || null, nextConfig.doubleCard || null)
-      || !jsonEquals(prevConfig?.expiringGift || null, nextConfig.expiringGift || null),
-    yubaTaskConfigChanged: !jsonEquals(prevConfig?.yubaCheckIn || null, nextConfig.yubaCheckIn || null),
+    fansTaskConfigChanged: changedTaskScopes.includes('fans'),
+    yubaTaskConfigChanged: changedTaskScopes.includes('yuba'),
   }
 }
 

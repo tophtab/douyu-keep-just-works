@@ -1,11 +1,9 @@
 import { getFansList, getGiftStatus } from '../core/api'
+import { mapWithConcurrency } from '../core/async'
 import { checkDoubleCard } from '../core/double-card'
+import { errorMessage } from '../core/errors'
 import type { FanStatus, Fans, FansStatusResponse, GiftStatus, YubaStatusResponse } from '../core/types'
 import { isCookieCredentialMessage } from './server-errors'
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 const FANS_LIST_CACHE_TTL_MS = 60 * 1000
 const FANS_STATUS_CACHE_TTL_MS = 5 * 60 * 1000
@@ -88,22 +86,6 @@ function getFreshStatusSnapshot<T>(cache: StatusCacheEntry<T>, ttlMs: number): T
     return null
   }
   return (Date.now() - cache.fetchedAt) < ttlMs ? cache.snapshot : null
-}
-
-async function mapWithConcurrency<T, R>(items: T[], concurrency: number, mapper: (item: T, index: number) => Promise<R>): Promise<R[]> {
-  const results = Array.from<R>({ length: items.length })
-  const size = Math.max(1, Math.min(concurrency, items.length))
-  let nextIndex = 0
-
-  await Promise.all(Array.from({ length: size }, async () => {
-    while (nextIndex < items.length) {
-      const index = nextIndex
-      nextIndex += 1
-      results[index] = await mapper(items[index], index)
-    }
-  }))
-
-  return results
 }
 
 function createFansListStatusResponse(fans: Fans[]): FansStatusResponse {

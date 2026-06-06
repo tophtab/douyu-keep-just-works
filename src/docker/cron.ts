@@ -1,12 +1,9 @@
 import { CronJob } from 'cron'
 import { CronExpressionParser } from 'cron-parser'
+import { errorMessage } from '../core/errors'
 import type { DockerConfig } from '../core/types'
 
 const DOCKER_TIMEZONE = 'Asia/Shanghai'
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 export function validateCronExpression(name: string, cron: string): string | null {
   if (!cron) {

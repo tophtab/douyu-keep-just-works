@@ -1,5 +1,8 @@
 import { getCookieValue, makeHeaders } from './api'
 
+export { mapWithConcurrency } from './async'
+export { errorMessage } from './errors'
+
 export const YUBA_HOST = 'https://yuba.douyu.com'
 export const YUBA_MAPI_HOST = 'https://mapi-yuba.douyu.com'
 
@@ -7,10 +10,6 @@ const MULTIPART_BOUNDARY_PREFIX = '----DouyuKeepBoundary'
 const DOUYU_DY_TOKEN_COOKIE_KEYS = ['acf_uid', 'acf_biz', 'acf_stk', 'acf_ct', 'acf_ltkid']
 
 export type YubaBody = Record<string, unknown>
-
-export function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 export function readNumber(value: unknown, fallback = 0): number {
   const parsed = typeof value === 'number' ? value : Number(value)
@@ -108,24 +107,4 @@ export function getYubaCsrfToken(cookie: string): string {
     throw new Error('Cookie中没有找到acf_yb_t，鱼吧签到需要包含鱼吧登录态')
   }
   return token
-}
-
-export async function mapWithConcurrency<T, R>(items: T[], concurrency: number, mapper: (item: T, index: number) => Promise<R>): Promise<R[]> {
-  if (items.length === 0) {
-    return []
-  }
-
-  const size = Math.max(1, Math.min(concurrency, items.length))
-  const results = Array<R>(items.length)
-  let nextIndex = 0
-
-  await Promise.all(Array.from({ length: size }, async () => {
-    while (nextIndex < items.length) {
-      const currentIndex = nextIndex
-      nextIndex += 1
-      results[currentIndex] = await mapper(items[currentIndex], currentIndex)
-    }
-  }))
-
-  return results
 }

@@ -3,6 +3,7 @@ import * as path from 'node:path'
 import { normalizeDockerConfig } from '../core/medal-sync'
 import type { CollectGiftConfig, DockerConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig, ManualCookieConfig, ManualPassportConfig, YubaCheckInConfig } from '../core/types'
 import { jsonEquals } from './config-equality'
+import { collectTaskConfigUpdates } from './task-metadata'
 
 export interface DockerConfigUpdate {
   manualCookies?: ManualCookieConfig
@@ -54,21 +55,7 @@ export function buildConfigWithPartialUpdate(current: DockerConfig | null, updat
       ? (updates.cookieCloud ? { cookieCloud: updates.cookieCloud } : {})
       : (current?.cookieCloud ? { cookieCloud: current.cookieCloud } : {})),
     ui: updates.ui || current?.ui,
-    ...(updates.collectGift !== undefined
-      ? (updates.collectGift ? { collectGift: updates.collectGift } : {})
-      : (current?.collectGift ? { collectGift: current.collectGift } : {})),
-    ...(updates.keepalive !== undefined
-      ? (updates.keepalive ? { keepalive: updates.keepalive } : {})
-      : (current?.keepalive ? { keepalive: current.keepalive } : {})),
-    ...(updates.doubleCard !== undefined
-      ? (updates.doubleCard ? { doubleCard: updates.doubleCard } : {})
-      : (current?.doubleCard ? { doubleCard: current.doubleCard } : {})),
-    ...(updates.expiringGift !== undefined
-      ? (updates.expiringGift ? { expiringGift: updates.expiringGift } : {})
-      : (current?.expiringGift ? { expiringGift: current.expiringGift } : {})),
-    ...(updates.yubaCheckIn !== undefined
-      ? (updates.yubaCheckIn ? { yubaCheckIn: updates.yubaCheckIn } : {})
-      : (current?.yubaCheckIn ? { yubaCheckIn: current.yubaCheckIn } : {})),
+    ...collectTaskConfigUpdates(current, updates),
   }
   return normalizeDockerConfig(nextConfig)
 }

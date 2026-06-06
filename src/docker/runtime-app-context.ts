@@ -9,6 +9,7 @@ import type { DockerRuntimeConfigApplyReason } from './runtime-config-service'
 import type { DockerRuntimeFansSyncReason } from './runtime-fans-sync'
 import type { JobStatus } from './server'
 import type { AppContext, CacheRefreshOptions } from './server-types'
+import { hasTaskUpdatePayload, needsFansSyncForTaskUpdate } from './task-metadata'
 import type { TaskType } from './task-metadata'
 
 type TaskStatusMap = Record<TaskType, JobStatus>
@@ -58,15 +59,11 @@ function hasCookieSourcePayload(config: DockerConfigUpdate): boolean {
 }
 
 function hasTaskPayload(config: DockerConfigUpdate): boolean {
-  return config.collectGift !== undefined
-    || config.keepalive !== undefined
-    || config.doubleCard !== undefined
-    || config.expiringGift !== undefined
-    || config.yubaCheckIn !== undefined
+  return hasTaskUpdatePayload(config)
 }
 
 function needsFansSync(config: DockerConfigUpdate): boolean {
-  return config.keepalive !== undefined || config.doubleCard !== undefined || config.expiringGift !== undefined
+  return needsFansSyncForTaskUpdate(config)
 }
 
 export function createRuntimeAppContext(deps: DockerRuntimeAppContextDeps): AppContext {

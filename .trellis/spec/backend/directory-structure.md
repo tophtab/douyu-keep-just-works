@@ -28,6 +28,7 @@ Current examples:
 - `src/core/gift-task.ts` owns pure gift-task helpers used by task execution, such as enabled-room filtering and gift send-job preparation.
 - `src/docker/runtime.ts` wires config loading, runtime services, scheduler dependencies, and Express app startup.
 - `src/docker/runtime-app-context.ts` builds the WebUI `AppContext` from runtime services.
+- `src/docker/runtime-cookie-source.ts` is the cookie-source facade; focused cookie-source responsibilities live in sibling modules such as `runtime-cookie-cloud-cache.ts`, `runtime-effective-cookies.ts`, `runtime-cookie-snapshot-store.ts`, and `runtime-passport-qr-login.ts`.
 - `src/docker/runtime-cookie-recovery.ts` owns credential-recovery retry orchestration and the lower-level CookieCloud/passport recovery pipeline.
 - `src/docker/runtime-fans-sync.ts` owns fan-medal synchronization, config reconcile, and latest cookie snapshot merging.
 - `src/docker/runtime-cookie-cloud-sync.ts` owns CookieCloud scheduled sync lifecycle.
@@ -58,6 +59,7 @@ Runtime orchestration should stay in `src/docker/runtime.ts` as the composition 
 
 - WebUI `AppContext` construction belongs in `runtime-app-context.ts`;
 - credential-recovery retry orchestration and low-level CookieCloud/passport recovery belong in `runtime-cookie-recovery.ts`;
+- cookie-source facade methods stay in `runtime-cookie-source.ts`, while CookieCloud fetch caching, effective cookie resolution, local snapshot persistence, and Passport QR login sessions belong in focused sibling modules;
 - fan-medal synchronization, config reconcile, and local cookie snapshot merging belong in `runtime-fans-sync.ts`;
 - scheduled CookieCloud sync lifecycle belongs in `runtime-cookie-cloud-sync.ts`;
 - config application and cache/scheduler side effects belong in `runtime-config-service.ts`;

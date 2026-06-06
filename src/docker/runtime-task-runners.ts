@@ -2,7 +2,7 @@ import { executeCollectGiftJob, executeDoubleCardJob, executeExpiringGiftJob, ex
 import type { DockerConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig, YubaCheckInConfig } from '../core/types'
 import type { StatusCacheScope } from './runtime-cache'
 import { MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
-import { getTaskLabel, getTaskNotConfiguredMessage, createTaskRecord } from './task-metadata'
+import { getTaskLabel, getTaskNotConfiguredMessage, createTaskRecord, getTriggerableTaskConfig } from './task-metadata'
 import type { TaskType } from './task-metadata'
 
 type TaskLoggerMap = Record<TaskType, (message: string) => void>
@@ -29,20 +29,7 @@ const manualTriggerOptions = {
   busyMessage: '任务正在执行中，请稍后再试',
 }
 
-type TaskConfigResolver = (
-  config: DockerConfig | null,
-  hasSendRooms: (config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined) => boolean,
-) => DockerConfig[TaskType] | null | undefined
-
 type RuntimeTaskRunner = (config: DockerConfig[TaskType], deps: RuntimeTaskRunnerDeps) => Promise<void>
-
-const taskConfigResolvers: Record<TaskType, TaskConfigResolver> = {
-  collectGift: config => config?.collectGift,
-  keepalive: config => config?.keepalive,
-  doubleCard: config => config?.doubleCard,
-  expiringGift: (config, hasSendRooms) => hasSendRooms(config?.expiringGift) ? config?.expiringGift : null,
-  yubaCheckIn: config => config?.yubaCheckIn,
-}
 
 const runtimeTaskRunners: Record<TaskType, RuntimeTaskRunner> = createTaskRecord(type => async (config, deps) => {
   switch (type) {
@@ -99,7 +86,7 @@ export async function triggerRuntimeTask(
   hasSendRooms: (config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined) => boolean,
   deps: RuntimeTaskRunnerDeps,
 ): Promise<void> {
-  const taskConfig = taskConfigResolvers[type](config, hasSendRooms)
+  const taskConfig = getTriggerableTaskConfig(config, type, hasSendRooms)
   await triggerConfiguredTask({
     config: taskConfig,
     deps,

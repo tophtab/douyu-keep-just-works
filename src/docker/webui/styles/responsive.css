@@ -117,7 +117,6 @@
   }
 }
 @media (max-width: 1100px){
-  .task-grid,
   .grid.cols-3{
     grid-template-columns:1fr;
   }
@@ -155,14 +154,6 @@
   .grid.cols-2,
   .summary-grid{
     grid-template-columns:1fr;
-  }
-  .split-inline{
-    display:block;
-  }
-  .split-inline-actions{
-    justify-content:flex-start;
-    margin-top:16px;
-    width:100%;
   }
   .strip-metrics{
     min-width:0;

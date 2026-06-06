@@ -99,12 +99,6 @@ interface DisabledAllocationTaskOptions {
   normalizeModel: (model: unknown) => 1 | 2
 }
 
-const WEBUI_TASK_TYPES: WebUiTaskType[] = ['collectGift', 'keepalive', 'doubleCard', 'expiringGift', 'yubaCheckIn']
-
-export function isWebUiTaskType(value: string | null): value is WebUiTaskType {
-  return Boolean(value && (WEBUI_TASK_TYPES as string[]).includes(value))
-}
-
 export function getTaskTriggerEndpoint(type: WebUiTaskType): string {
   return `/api/trigger/${type}`
 }

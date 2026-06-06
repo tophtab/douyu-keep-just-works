@@ -124,9 +124,6 @@
   justify-content:center;
   min-width:72px;
 }
-.overview-table-note{
-  margin-top:8px;
-}
 .empty{
   color:var(--muted);
   font-size:13px;
@@ -186,9 +183,6 @@
   min-width:0;
   white-space:pre-wrap;
   word-break:break-word;
-}
-.muted{
-  color:var(--muted);
 }
 .sr-only{
   position:absolute;

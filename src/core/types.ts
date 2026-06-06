@@ -197,18 +197,6 @@ export type ThemeMode = 'light' | 'dark' | 'system'
 export type YubaCheckInMode = 'followed'
 export type DoubleCardGiftScope = 'glowStick' | 'limitedTime'
 
-export interface Config {
-  boot: boolean
-  close: boolean
-  type: '自动执行' | '定时执行' | '手动执行'
-  time: '跟随执行模式' | '自定义'
-  timeValue: (1 | 2 | 3 | 4 | 5 | 6 | 0)[]
-  cron: string
-  model: 1 | 2
-  send: sendConfig
-  doubleCardEnabled?: boolean
-}
-
 export interface sendArgs {
   sid?: string
   dy?: string

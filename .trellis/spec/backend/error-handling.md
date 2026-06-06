@@ -167,7 +167,7 @@ Keep messages stable when frontend code or tests rely on them.
 - Contract tests must assert credential recovery uses `recoverCredentialSnapshot`, which validates the current local cookie, calls `persistEffectiveCookies(true)` for CookieCloud mode, validates with `getFansList()`, optionally calls `safeAuth`, and validates again before persisting the passport refresh.
 - Unit-style tests must cover `LTP0` detection without exposing the value and `safeAuth` cookie merge behavior with mocked response headers.
 - Unit-style tests must cover manual passport cookie normalization, public config masking, manual-mode main recovery, Yuba SSO recovery, Yuba SSO failure fallback, and missing-`dy_did` behavior.
-- Contract tests must assert task runner modules do not directly reference `safeAuth`, `LTP0`, `ltp0`, `getCookieCloudPassportLtp0`, or `refreshDouyuMainCookiesWithSafeAuth`.
+- Contract tests must assert task runner modules do not directly reference `safeAuth`, `LTP0`, `ltp0`, or `refreshDouyuMainCookiesWithSafeAuth`.
 - Contract tests must assert fan reconcile preserves the side-effecting config write and merges the latest local cookie snapshot before `reconcileDockerConfig`.
 
 ### 7. Wrong vs Correct

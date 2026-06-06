@@ -6,20 +6,20 @@ const { test } = require('node:test')
 const { loadTypeScriptModule } = require('./helpers/typescript-module-loader')
 
 test('CookieCloud can build passport cookie material without exposing the value in diagnostics', () => {
-  const { createCookieDiagnostics, getCookieCloudPassportCookie, getCookieCloudPassportLtp0 } = loadTypeScriptModule('src/core/cookie-cloud.ts')
+  const { createCookieDiagnostics, getCookieCloudPassportCookie } = loadTypeScriptModule('src/core/cookie-cloud.ts')
   const cookies = [
     { name: 'LTP0', value: 'redacted-ltp0', domain: '.passport.douyu.com', path: '/', secure: true },
     { name: 'LTP0', value: 'wrong-domain', domain: '.douyu.com', path: '/', secure: true },
     { name: 'dy_did', value: 'did-redacted', domain: '.douyu.com', path: '/', secure: true },
   ]
 
-  assert.equal(getCookieCloudPassportCookie(cookies), 'dy_did=did-redacted; LTP0=redacted-ltp0')
-  assert.equal(getCookieCloudPassportLtp0(cookies), 'redacted-ltp0')
+  const passportCookie = getCookieCloudPassportCookie(cookies)
+  assert.equal(passportCookie, 'dy_did=did-redacted; LTP0=redacted-ltp0')
 
   const diagnostics = createCookieDiagnostics('cookieCloud', 'acf_uid=u; dy_did=d; acf_auth=a; acf_stk=s', '', {
     cookieCount: cookies.length,
     domains: ['passport.douyu.com'],
-    passportLtp0Present: Boolean(getCookieCloudPassportLtp0(cookies)),
+    passportLtp0Present: passportCookie.includes('LTP0='),
   })
 
   assert.equal(diagnostics.passportLtp0Present, true)

@@ -36,7 +36,7 @@ Examples:
 - `request.ts` checks whether an error response contains a string `error`.
 - `theme.ts` uses `isThemeMode(value): value is ThemeMode`.
 - `resource-state.ts` normalizes log entries from `unknown` API data.
-- `task-shared.ts` uses `isHttpUnauthorized` and `isWebUiTaskType` helpers.
+- `task-shared.ts` uses `isHttpUnauthorized` and task-trigger helpers.
 
 ---
 
@@ -49,8 +49,8 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-export function isWebUiTaskType(value: string | null): value is WebUiTaskType {
-  return Boolean(value && (WEBUI_TASK_TYPES as string[]).includes(value))
+function isThemeMode(value: unknown): value is ThemeMode {
+  return value === 'system' || value === 'light' || value === 'dark'
 }
 ```
 

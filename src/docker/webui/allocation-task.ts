@@ -15,11 +15,6 @@ export interface AllocationFanRow {
   value: number
 }
 
-interface AllocationConfig {
-  model?: unknown
-  send?: Record<string, SendGift>
-}
-
 interface BuildAllocationFanRowsOptions<TFan extends Fans, TExtra extends object> {
   defaultValue: (fan: TFan, index: number, model: AllocationTaskModel) => number
   extra?: (fan: TFan, index: number, model: AllocationTaskModel) => TExtra
@@ -30,10 +25,6 @@ interface BuildAllocationFanRowsOptions<TFan extends Fans, TExtra extends object
 export function normalizeAllocationModel(model: unknown, defaultModel: AllocationTaskModel): AllocationTaskModel {
   const parsed = Number(model)
   return parsed === 1 || parsed === 2 ? parsed : defaultModel
-}
-
-export function getAllocationModel(config: AllocationConfig, defaultModel: AllocationTaskModel): AllocationTaskModel {
-  return normalizeAllocationModel(config.model, defaultModel)
 }
 
 export function buildAllocationFanRows<TFan extends Fans, TExtra extends object = Record<string, never>>(
@@ -82,11 +73,6 @@ export function buildEnabledRoomMap(rows: Array<AllocationFanRow & { enabled?: b
     enabled[String(row.roomId)] = Boolean(row.enabled)
   }
   return enabled
-}
-
-export function formatRatioPercent(value: number): string {
-  const rounded = Math.round(value * 10) / 10
-  return `${rounded.toFixed(1).replace(/\.0$/, '')}%`
 }
 
 function getSendValue(sendItem: SendGift, model: AllocationTaskModel): number {

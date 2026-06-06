@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 45
+- **Total Sessions**: 46
 - **Last Active**: 2026-06-06
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1521 | Active |
+| `journal-1.md` | ~1554 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 46 | 2026-06-06 | WebUI error feedback surfaces | `4a14fda` | `master` |
 | 45 | 2026-06-06 | Close optimization roadmap | `766deec` | `master` |
 | 44 | 2026-06-06 | Focused WebUI smoke-finding fixes | `f7427f2` | `master` |
 | 43 | 2026-06-06 | Dependency maintenance workflow | `0f506a6` | `master` |

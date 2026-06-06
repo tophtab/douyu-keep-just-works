@@ -19,7 +19,10 @@ Simplified Docker WebUI task-page shared messaging, centralized Docker task meta
 
 ### Main Changes
 
-(Add details)
+- Implemented persistent inline feedback for overview fans-status failures, with stale-data copy when prior data remains visible.
+- Added logs-page inline load failure state while keeping clear-log failures toast-only.
+- Tightened resource failure toasts so automatic loads stay quiet and explicit failures point users to page details.
+- Captured the feedback-surface contract in the frontend state-management spec and added contract tests.
 
 ### Git Commits
 
@@ -29,7 +32,10 @@ Simplified Docker WebUI task-page shared messaging, centralized Docker task meta
 
 ### Testing
 
-- [OK] (Add test results)
+- [OK] `npm run lint`
+- [OK] `npm run type-check`
+- [OK] `npm run test:contracts`
+- [OK] `npm run build:webui`
 
 ### Status
 
@@ -1507,6 +1513,39 @@ Closed the project optimization roadmap after E was completed. Recorded the fina
 | Hash | Message |
 |------|---------|
 | `766deec` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 46: WebUI error feedback surfaces
+
+**Date**: 2026-06-06
+**Task**: WebUI error feedback surfaces
+**Branch**: `master`
+
+### Summary
+
+Aligned WebUI resource error feedback so overview fans-status and logs load failures persist inline, explicit failure toasts point to page details, and contract tests/spec capture the toast/inline/log boundary.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4a14fda` | (see git log) |
 
 ### Testing
 

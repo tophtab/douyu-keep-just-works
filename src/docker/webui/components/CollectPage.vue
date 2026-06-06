@@ -16,8 +16,8 @@ const {
   triggerCollectTask,
 } = useCollectTaskPage()
 
-function handleAction(id: string): void {
-  if (id === 'save') {
+function handleAction(index: number): void {
+  if (index === 0) {
     void saveCollectConfig()
     return
   }
@@ -56,8 +56,8 @@ function handleAction(id: string): void {
         <ActionBar
           class="section-actions"
           :actions="[
-            { id: 'save', label: '保存并启用', kind: 'success' },
-            { id: 'trigger', label: '立即领取', kind: 'secondary' },
+            { label: '保存并启用', kind: 'success' },
+            { label: '立即领取', kind: 'secondary' },
           ]"
           @action="handleAction"
         />

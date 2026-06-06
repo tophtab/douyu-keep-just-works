@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import type { useOverviewPage } from '../overview'
 import type { WebUiPageTab } from '../navigation'
-import DataContent from './DataContent.vue'
 import FansStatusTable from './FansStatusTable.vue'
-import InlineFeedback from './InlineFeedback.vue'
 import PageSection from './PageSection.vue'
 
 const props = defineProps<{
@@ -20,8 +18,6 @@ const {
   showOverviewFansTable,
   showOverviewLoginAction,
 } = props.state
-
-const overviewLoginPrompt = '保存 Cookie 或启用 CookieCloud 后再点击顶部“刷新”，这里会直接展示粉丝牌与双倍状态。'
 </script>
 
 <template>
@@ -52,18 +48,23 @@ const overviewLoginPrompt = '保存 Cookie 或启用 CookieCloud 后再点击顶
           </div>
         </div>
       </template>
-      <InlineFeedback v-if="overviewFansFeedbackText" :text="overviewFansFeedbackText" />
-      <DataContent
-        :show="showOverviewFansTable"
-        :empty-text="showOverviewLoginAction ? overviewLoginPrompt : overviewFansEmptyText"
-      >
-        <FansStatusTable :rows="overviewFansRows" show-double-status />
-        <template v-if="showOverviewLoginAction" #emptyAction>
+      <div v-if="overviewFansFeedbackText" class="status-box" role="status" aria-live="polite">
+        {{ overviewFansFeedbackText }}
+      </div>
+      <div v-if="showOverviewLoginAction" class="empty empty-with-action">
+        保存 Cookie 或启用 CookieCloud 后再点击顶部“刷新”，这里会直接展示粉丝牌与双倍状态。
+        <div class="empty-action">
           <button class="btn btn-primary" type="button" @click="selectTab('login')">
             前往登录
           </button>
-        </template>
-      </DataContent>
+        </div>
+      </div>
+      <div v-else-if="showOverviewFansTable" class="table-shell">
+        <FansStatusTable :rows="overviewFansRows" show-double-status />
+      </div>
+      <div v-else class="empty">
+        {{ overviewFansEmptyText }}
+      </div>
     </PageSection>
   </div>
 </template>

@@ -1,30 +1,29 @@
 <script setup lang="ts">
-import type { ActionBarAction } from '../ui-types'
+interface ActionButton {
+  kind?: 'danger' | 'primary' | 'secondary' | 'success'
+  label: string
+}
 
 defineProps<{
-  actions: ActionBarAction[]
+  actions: ActionButton[]
 }>()
 
 const emit = defineEmits<{
-  action: [id: string]
+  action: [index: number]
 }>()
 </script>
 
 <template>
   <div class="actions">
     <button
-      v-for="action in actions"
-      :key="action.id"
+      v-for="(action, index) in actions"
+      :key="action.label"
       class="btn"
       :class="`btn-${action.kind || 'secondary'}`"
       type="button"
-      :disabled="action.disabled || action.loading"
-      :aria-busy="(action.ariaBusy || action.loading) ? 'true' : 'false'"
-      :aria-label="action.ariaLabel"
-      @click="emit('action', action.id)"
+      @click="emit('action', index)"
     >
-      {{ action.loading && action.loadingLabel ? action.loadingLabel : action.label }}
+      {{ action.label }}
     </button>
-    <slot name="controls" />
   </div>
 </template>

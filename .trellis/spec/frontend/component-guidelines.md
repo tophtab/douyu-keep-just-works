@@ -56,6 +56,32 @@ import './styles/responsive.css'
 
 Use existing classes such as `btn`, `actions`, `page`, `field-block`, and table classes before inventing new styling primitives. Keep repeated visual structures as components rather than copying large template blocks.
 
+### Shared Section Components
+
+Use `PageSection.vue` for reusable panel sections that need consistent heading, header-action, and body spacing. Use `TaskSettingsSection.vue` for scheduled task settings panels that combine an enable switch, form controls, actions, and optional table/status content.
+
+Good:
+
+```vue
+<TaskSettingsSection
+  v-model="taskEnabled"
+  input-id="task-enable"
+  name="task-enable"
+  label="任务开关"
+  title="任务开关"
+  :control-columns="2"
+>
+  <template #controls>
+    <CronField ... />
+  </template>
+  <template #actions>
+    <ActionBar class="section-actions" ... />
+  </template>
+</TaskSettingsSection>
+```
+
+Avoid hand-written `panel` wrappers, one-off `panel-head` blocks, or inline spacing such as `style="margin-top:16px"` for task and overview sections. If a new page needs the same rhythm, extend the shared section components or shared CSS classes instead of copying local markup.
+
 ---
 
 ## UI Copy Conventions

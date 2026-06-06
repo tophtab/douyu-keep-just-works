@@ -37,12 +37,35 @@ Execute the low-risk dependency maintenance batch identified in the project opti
 
 ## Acceptance Criteria
 
-* [ ] `package.json` and `package-lock.json` reflect only the intended low-risk dev/tooling batch.
-* [ ] `@types/node` resolves to `24.13.1`, not a Node 25 version.
-* [ ] `axios` remains on `1.16.0`.
-* [ ] `vue-tsc` remains on `3.2.8`.
-* [ ] All requested validation commands pass.
-* [ ] The original optimization PRD section H is updated from assessment-only notes to execution record plus remaining decisions.
+* [x] `package.json` and `package-lock.json` reflect only the intended low-risk dev/tooling batch.
+* [x] `@types/node` resolves to `24.13.1`, not a Node 25 version.
+* [x] `axios` remains on `1.16.0`.
+* [x] `vue-tsc` remains on `3.2.8`.
+* [x] All requested validation commands pass.
+* [x] The original optimization PRD section H is updated from assessment-only notes to execution record plus remaining decisions.
+
+## Execution Record
+
+Executed on 2026-06-06:
+
+* `@types/node` `24.12.3` -> `24.13.1`
+* `@vitejs/plugin-vue` `6.0.6` -> `6.0.7`
+* `eslint` `10.3.0` -> `10.4.1`
+* `vite` `8.0.12` -> `8.0.16`
+* `vue` `3.5.34` -> `3.5.35`
+
+Confirmed retained versions:
+
+* `axios` remains `1.16.0`.
+* `vue-tsc` remains `3.2.8`.
+* `@types/node` resolves to `24.13.1`; `npm outdated --depth=0 --json` still reports latest `25.9.2`, but the Node 25 typings line remains out of scope while the engine is `>=24 <25`.
+
+Validation results:
+
+* `npm run lint` passed.
+* `npm run type-check` passed.
+* `npm run test:contracts` passed with 45 tests passing.
+* `npm test` passed with 45 contract tests passing and `npm run build:docker` completing through `vite v8.0.16`.
 
 ## Out of Scope
 

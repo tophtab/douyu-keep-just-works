@@ -282,6 +282,37 @@ Not recommended now:
 * Do not run a broad, unreviewed dependency sweep that mixes production and tooling updates in one task.
 * Do not update direct dependencies that `npm outdated --depth=0` did not report unless a specific bug, security advisory, or compatibility issue requires it.
 
+Execution record on 2026-06-06:
+
+* Created a separate maintenance task: `.trellis/tasks/06-06-dependency-maintenance-workflow/`.
+* Updated only the conservative dev/tooling batch:
+  * `@types/node` `24.12.3` -> `24.13.1`.
+  * `@vitejs/plugin-vue` `6.0.6` -> `6.0.7`.
+  * `eslint` `10.3.0` -> `10.4.1`.
+  * `vite` `8.0.12` -> `8.0.16`.
+  * `vue` `3.5.34` -> `3.5.35`.
+* Updated `package.json` and `package-lock.json`; no runtime source files were changed for this dependency batch.
+* Confirmed retained versions after the update:
+  * `axios` remains `1.16.0`.
+  * `vue-tsc` remains `3.2.8`.
+  * `@types/node` resolves to `24.13.1`; Node 25 typings remain intentionally unselected.
+* `npm outdated --depth=0 --json` now reports only:
+  * `@types/node` current/wanted `24.13.1`, latest `25.9.2`.
+  * `axios` current `1.16.0`, wanted/latest `1.17.0`.
+  * `vue-tsc` current `3.2.8`, wanted/latest `3.3.3`.
+* Validation results:
+  * `npm run lint` passed.
+  * `npm run type-check` passed.
+  * `npm run test:contracts` passed with 45 tests passing.
+  * `npm test` passed with 45 contract tests passing and Docker/WebUI build completing through `vite v8.0.16`.
+* `npm audit fix --force` was not run.
+
+Remaining decisions after execution:
+
+* `axios` `1.16.0` -> `1.17.0` remains a separate cautious production-dependency task. It should be validated against HTTP/auth/API flows rather than mixed into tooling maintenance.
+* `vue-tsc` `3.2.8` -> `3.3.3` remains a separate cautious compiler-tooling task because it can change diagnostics and should be easier to attribute in isolation.
+* Node 25 typings remain not recommended while `package.json` and package-lock root engines target Node `>=24 <25`; a Node 25 typings update should wait for a separate runtime-version decision.
+
 Expected benefit:
 
 * Keeps a long-running local WebUI service current without mixing dependency churn into feature tasks.

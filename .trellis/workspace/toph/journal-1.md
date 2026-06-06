@@ -1591,3 +1591,36 @@ Refactored repeated WebUI resource request lifecycle, fan-backed task config plu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 48: Remove low-value reuse helpers
+
+**Date**: 2026-06-06
+**Task**: Remove low-value reuse helpers
+**Branch**: `master`
+
+### Summary
+
+Removed the added cookie-source summary module, WebUI runResourceRequest helper, and long spec additions after reviewing line-count impact; kept the task-page helper reuse that actually reduces source lines; lint, type-check, and npm test passed.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8ced5d3` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

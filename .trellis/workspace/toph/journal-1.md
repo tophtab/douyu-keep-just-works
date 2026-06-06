@@ -1321,3 +1321,36 @@ Added centralized Yuba cookie recovery through the existing Passport SSO path af
 ### Next Steps
 
 - None - task complete
+
+
+## Session 40: Contract test taxonomy
+
+**Date**: 2026-06-06
+**Task**: Contract test taxonomy
+**Branch**: `master`
+
+### Summary
+
+Documented contract-test taxonomy, added backend testing guidelines, and labeled project-maintenance contract test blocks for future modernization.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5b74733` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

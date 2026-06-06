@@ -16,12 +16,13 @@ Identify the most valuable optimization opportunities in the current project, wi
 * Backend strictness has improved since the older architecture report: `tsconfig.docker.json` now has `strict: true` and `noImplicitAny: true`.
 * The old runtime composition-root concern is mostly reduced: `src/docker/runtime.ts` is now 166 lines, while current auth-related concentration moved to `src/docker/runtime-cookie-source.ts` and `src/core/douyu-passport.ts`.
 * Largest current files include:
-  * `test/douyu-passport-contract.test.js` ~819 lines
+  * `test/douyu-passport-contract.test.js` ~896 lines
   * `test/project-maintenance-contract.test.js` ~552 lines
-  * `src/docker/runtime-cookie-source.ts` ~548 lines
+  * `src/docker/runtime-cookie-source.ts` ~549 lines
   * `src/core/douyu-passport.ts` ~532 lines
+  * `src/docker/runtime-cookie-recovery.ts` ~347 lines
   * `src/core/medal-sync.ts` ~359 lines
-* Recent lifecycle spec says full Passport recovery should rebuild a coherent main + Yuba set, but `src/docker/runtime-cookie-recovery.ts` currently refreshes only main via safeAuth and preserves the current Yuba cookie.
+* `06-06-auto-recover-yuba-cookie` has completed the earlier auth recovery coherence gap in commit `6667455 fix: recover yuba cookie from passport`.
 * WebUI cookie facade is now small (`src/docker/webui/cookie.ts`), because state/actions/copy have already been split into `cookie-source-state.ts`, `cookie-source-actions.ts`, and `cookie-source-copy.ts`.
 * Contract tests are valuable but still include many source-text guardrails, especially in `test/project-maintenance-contract.test.js`; some are true forbidden-pattern checks, while others may make safe refactors noisy.
 
@@ -30,7 +31,7 @@ Identify the most valuable optimization opportunities in the current project, wi
 * "Optimization" may include maintainability, reliability, user-facing workflow robustness, test coverage, performance, and code architecture.
 * The immediate output should be a ranked set of candidate optimization directions plus one recommended MVP direction.
 * No runtime code should be changed until the user chooses a direction.
-* The highest-value future implementation optimization is likely risk reduction around auth/cookie recovery rather than a broad architecture cleanup.
+* The highest-value future implementation optimization is now likely test modernization, auth module boundary cleanup, or safe runtime diagnostics rather than auth recovery coherence, because the main recovery gap has been completed.
 * For this current planning task, the output should remain a roadmap and not flip to `in_progress`.
 
 ## Open Questions
@@ -47,15 +48,16 @@ Identify the most valuable optimization opportunities in the current project, wi
 
 ## Candidate Optimization Directions
 
-### A. Auth recovery coherence (recommended)
+### A. Auth recovery coherence (completed by separate task)
 
 Focus: align runtime credential recovery with the new `auth-cookie-lifecycle.md` contract.
 
 Evidence:
 
 * `auth-cookie-lifecycle.md` says full recovery should refresh main-site cookies first, then run Yuba SSO with the new main cookie, then persist both snapshots after validation.
-* `runtime-cookie-recovery.ts` currently safeAuth-refreshes only `manualCookies.main`, validates main through `getFansList()`, and persists the old/current Yuba cookie.
-* This can leave a stale Yuba snapshot paired with a newly minted main snapshot, which the new spec explicitly calls out as a bad case for full recovery.
+* This used to be a gap: `runtime-cookie-recovery.ts` safeAuth-refreshed only `manualCookies.main`, validated main through `getFansList()`, and preserved the old/current Yuba cookie.
+* Separate task `06-06-auto-recover-yuba-cookie` completed this work in commit `6667455 fix: recover yuba cookie from passport`.
+* Current recovery now supports `recoverYubaCookie`, reuses `fetchDouyuYubaCookiesWithPassport`, keeps the old Yuba cookie only when Yuba SSO fails after main recovery, and does not claim recovery when an already-valid main cookie cannot refresh Yuba.
 
 Expected benefit:
 
@@ -63,15 +65,14 @@ Expected benefit:
 * Less risk of inconsistent local snapshots after Passport-derived refresh.
 * Brings implementation, tests, and specs into alignment.
 
-Likely scope:
+Actual scope:
 
-* Backend only at first: `src/docker/runtime-cookie-recovery.ts`, `src/docker/runtime-cookie-source.ts`, `src/core/douyu-passport.ts` if helper signatures need adjustment, focused contract tests.
-* Optional WebUI copy/status improvements if recovery result needs clearer user-facing messaging.
+* Updated `src/docker/runtime-cookie-recovery.ts`, `src/docker/runtime-cookie-source.ts`, `.trellis/spec/backend/error-handling.md`, and `test/douyu-passport-contract.test.js`.
+* Verified with type-check, lint, contract tests, and Docker build through `npm test`.
 
-Risk:
+Remaining follow-up:
 
-* Touches credential recovery; must keep secret-masking and one-retry behavior strict.
-* Yuba validation may require carefully chosen lightweight API checks to avoid unnecessary Douyu traffic.
+* Treat this as done unless live usage reveals an edge case around Yuba SSO failure, retry messaging, or stale Yuba snapshot retention.
 
 ### B. Auth module boundary cleanup
 
@@ -147,6 +148,26 @@ Evidence:
 
 * Existing tests are contract-heavy; there are no browser-level WebUI smoke tests or full route tests through a live server instance.
 
+Read-only Runtime/WebUI smoke verification on 2026-06-06:
+
+* Method: started the existing `build/docker` runtime locally on port `51419` with `CONFIG_PATH=/dev/null` and `WEB_PASSWORD=smoke-pass`, then used Playwright CLI for manual browser checks. The service and browser were stopped afterward, and generated Playwright CLI artifacts were cleaned up. No source, test, package, or task files were changed during the smoke run.
+* Covered flows: login page, wrong-password path, successful login, navigation, overview refresh, login configuration page, passport QR login panel, QR cancel, manual Cookie save, CookieCloud sync/check, invalid-cookie error paths, logs page, manual log refresh, log clearing, several task configuration pages, and logout.
+* Passed:
+  * Login page rendered normally; correct password entered the app; logout returned to the login shell.
+  * Navigation between overview, login, task configuration pages, Yuba, and logs worked and kept the visible page mostly aligned with the URL.
+  * Manual Cookie save updated login status to ready and passport status to configured.
+  * Cookie check gave useful missing-field diagnostics for incomplete fake cookies.
+  * QR login panel displayed a QR image, progress states, polling, and a cancel action; cancel removed the QR image and cancel button and left a clear cancelled state.
+  * Logs page loaded entries, manual refresh updated the refreshed timestamp, and clear logs showed the empty state.
+* Findings:
+  * Wrong-password feedback is present in the DOM (`登录失败：密码错误`) but invisible because `#login-error` remains `display: none`; `.auth-error { display:none }` appears to conflict with Vue `v-show`.
+  * The unauthenticated login shell still lets hidden configuration components request protected `/api/cron-preview` endpoints. Those 401 results can leave CookieCloud cron preview stuck on `cron 校验失败：请先登录` after a successful login; the top-right refresh did not clear it, but a hard browser reload did.
+  * Overview shows invalid-cookie failures mainly via toast. The page body falls back to `待刷新` / `尚未加载粉丝牌状态`, while pages such as keepalive show a more useful inline error.
+* Follow-up suggestions:
+  * Fix the login error visibility issue first because it blocks the most basic failure feedback.
+  * Prevent protected cron-preview requests before authentication, or reset/reload cron preview state after authentication succeeds.
+  * Add a persistent inline error state to overview's fans-status area so failed refreshes remain understandable after the toast disappears.
+
 Expected benefit:
 
 * Catches UI/auth/navigation regressions that type-check and source contracts miss.
@@ -215,8 +236,11 @@ Focus: make dependency freshness/audit checks more repeatable.
 
 Evidence:
 
-* Current audit passed with 0 vulnerabilities.
-* `npm outdated --depth=0` failed in this session due network `ECONNRESET`, so freshness could not be assessed.
+* Read-only verification on 2026-06-06 passed the current quality gate: lint, type-check, 41 contract tests, and `npm test` including Docker/WebUI build. The full build gate was run in a temporary copy so `build/docker` in the working tree was not modified.
+* `npm audit --omit=dev --audit-level=moderate` and full `npm audit --audit-level=moderate` both reported 0 vulnerabilities.
+* `npm outdated --depth=0` now completes and reports outdated direct dependencies:
+  * Production: `axios` `1.16.0` -> `1.17.0`.
+  * Development/tooling: `@types/node` `24.12.3` -> `24.13.1` (latest `25.9.2`, outside the project's Node 24 line), `@vitejs/plugin-vue` `6.0.6` -> `6.0.7`, `eslint` `10.3.0` -> `10.4.1`, `vite` `8.0.12` -> `8.0.16`, `vue` `3.5.34` -> `3.5.35`, and `vue-tsc` `3.2.8` -> `3.3.3`.
 * Dockerfile and GitHub workflow already use Node 24 and `npm ci`; release workflow is solid.
 
 Expected benefit:
@@ -225,12 +249,14 @@ Expected benefit:
 
 Likely scope:
 
-* Periodic dependency-maintenance task: retry `npm outdated`, patch safe updates, run lint/type-check/build/tests.
+* Periodic dependency-maintenance task: run `npm outdated`, update safe patch/minor direct dependencies in an isolated maintenance branch/task, keep `@types/node` aligned to Node 24, then run lint/type-check/contract tests/full `npm test`.
 * Optionally add a documented command/checklist, not necessarily CI automation.
+* Keep dependency updates out of auth/runtime/refactor commits unless a specific bug fix requires a single package change.
 
 Risk:
 
 * Blind dependency upgrades can disturb Vite/Vue/TypeScript tooling. Keep patch/minor updates separated from auth/runtime changes.
+* Node-major-adjacent packages need extra care: the repo targets Node 24, so `@types/node` should not jump to the Node 25 line without a separate runtime-version decision.
 
 ### I. Frontend resource-state simplification
 
@@ -264,20 +290,33 @@ Evidence:
 * `src/docker/runtime-cache.ts` owns 60s fans list, 5m fans status, and 10m Yuba status caches.
 * Force refresh was recently added and covered by contract tests.
 * TTLs and invalidation scopes are currently constants in code, not surfaced as status metadata.
+* Read-only cache-backed routes support `?force=1` / `?force=true`, but force refresh is intentionally wired only through WebUI's top-right manual refresh path.
+* Backend and WebUI pending-promise coalescing both take priority over force refresh: a force request bypasses a fresh completed snapshot, but it does not cancel or replace an already-running request.
+* Backend invalidation is scoped and mostly coherent: cookie-source changes clear fans list plus all status caches; fans task changes and fans task execution invalidate fans status; Yuba task changes and Yuba task execution invalidate Yuba status.
+* WebUI automatic loading and tab switching use frontend `loaded` flags. Once data is loaded in memory, switching back to a tab may not make a new backend request, so backend TTLs only take effect when some UI action actually requests the endpoint again.
+* Task-save refresh paths are conservative. Fans-backed task saves can apply the returned reconciled fans immediately, then refresh the surface without force; the reconcile/save path itself may reuse the 60s fans-list cache.
 
 Expected benefit:
 
 * Easier to reason about "why did the UI show stale data?" without bypassing caches everywhere.
 * Better support diagnostics for manual refresh vs automatic load behavior.
+* Clearer user expectations around "refresh": current-tab force refresh, automatic lazy load, task-save refresh, and background task invalidation are different paths.
 
 Likely scope:
 
 * Add non-secret cache metadata to logs or internal diagnostics, or document cache policy more explicitly.
 * Keep normal endpoint behavior unchanged.
+* Document the current contract first: TTLs, force semantics, pending coalescing, invalidation scopes, and which WebUI paths use force.
+* Consider exposing per-resource last-refreshed/cache-age metadata in the WebUI so users can distinguish "freshly fetched" from "showing last result".
+* Consider a small tab-switch revalidation policy that asks the backend again after frontend data is older than the backend TTL, while still letting backend cache coalescing protect Douyu from duplicate requests.
+* Decide explicitly whether fans reconcile/task-save should force the fans list when the user expectation is "sync latest fans now"; if changed later, keep it scoped because it increases Douyu-facing requests.
 
 Risk:
 
 * Exposing too much internal cache detail can confuse normal users.
+* Current frontend `loaded` flags can let visible data outlive backend TTLs because TTL is enforced only when the endpoint is requested.
+* A manual force refresh can still wait for an older in-flight non-force request, which may feel stale if the UI presents it as an absolute refresh.
+* Making more paths force refresh by default could increase Douyu request volume and reduce the value of pending coalescing.
 
 ### K. Douyu API adapter contract hardening
 
@@ -289,6 +328,18 @@ Evidence:
 * `src/core/collect-gift.ts` implements the danmu WebSocket collect flow, including packet encoding/decoding and login response interpretation.
 * `src/core/yuba-status.ts` and `src/core/yuba-check-in.ts` support multiple field names and fallbacks, but the current contracts are mostly encoded in code and tests, not a dedicated adapter-contract spec.
 * `isCookieCredentialMessage` and retry eligibility still depend on stable error-message text.
+
+Read-only assumption review on 2026-06-06:
+
+* The current review was static and local only: no live Douyu requests were made, no fixtures/tests were added, and no raw cookie, LTP0, JWT, QR code, login ticket, or other sensitive value was recorded.
+* Highest-risk assumptions found:
+  * Fans badge parsing depends on the main-site HTML table still exposing `fans-badge-list`, row cells, and `data-anchor_name` / `data-fans-room` / `data-fans-level` / `data-fans-rank` attributes.
+  * Gift sending depends on room pages still exposing `owner_uid = ...;` or `owner_uid: ...,` so `getDid()` can derive the owner id.
+  * Backpack status depends on `japi/prop/backpack/web/v5` and `v1` returning `{ error, data: { list } }`, with gift id/count/name/expiry fields close enough to the current normalizer.
+  * Glow-stick collection depends on the danmu WebSocket endpoint, packet framing, `loginreq`, `roomgroup@=1`, and `h5ckres` protocol messages staying compatible.
+  * Yuba status/check-in depends on the current dy-token construction from main-site `acf_*` fields, Yuba follow/head/sign/fastSign/supplement payload shapes, SSO redirect behavior, and several Chinese error-message substrings.
+* Brittle-point priority for future hardening: fans badge HTML parser, danmu WebSocket collect protocol, room owner id parser, Yuba check-in payload/message handling, Yuba dy-token/SSO chain, backpack payload parser, then credential-error classification.
+* Suggested implementation shape: create a separate follow-up task that adds sanitized offline fixtures and parser/protocol contract tests only. Do not use live-network tests in CI, and do not store real authentication material in fixtures or logs.
 
 Expected benefit:
 
@@ -369,34 +420,63 @@ Recommended follow-up process:
 * Each future task should start from this PRD's candidate notes, then create its own PRD with updated code inspection because the project may have changed.
 * Avoid batching unrelated optimization themes into one task. Auth recovery, module boundary cleanup, test modernization, config normalization, and smoke testing should be separate tasks unless a direct dependency forces them together.
 
+Cross-session usage:
+
+* A future session may reference this roadmap PRD directly and choose one or more candidate directions from it.
+* Prefer one new Trellis task per optimization direction so scope, tests, commits, and rollback remain clear.
+* Combining two directions is acceptable only when they are tightly coupled and touch the same implementation surface, for example contract-test modernization immediately followed by one small auth boundary extraction.
+* Avoid running two sessions that edit overlapping files in the same worktree at the same time. If true parallel work is needed, use separate branches/worktrees or finish and commit one direction before starting another overlapping direction.
+* Before starting any future direction, re-check the current code and recent commits because this roadmap is a snapshot, not a frozen source of truth.
+
+Parallelization guidance:
+
+* Best serial sequence: C contract-test modernization -> B auth module boundary cleanup. C reduces friction for B, and both may touch auth contract tests.
+* Safe-ish parallel pair in separate worktrees: B auth module cleanup + D fan-backed config normalization. They are both refactors, but they touch different code surfaces (`src/docker/runtime-cookie-source.ts` / `src/core/douyu-passport.ts` versus `src/core/medal-sync.ts`).
+* Safe-ish parallel pair in separate worktrees: F runtime diagnostics + K Douyu API adapter hardening, as long as F stays in runtime/auth logs and K stays in parser/fixture contracts.
+* Independent maintenance: H dependency maintenance can be done in its own window, but should not be merged into feature/refactor commits.
+* Avoid parallelizing C contract-test modernization with B auth module cleanup in the same worktree. Both can need the same contract files and will conflict conceptually.
+* Avoid parallelizing B auth module cleanup with F diagnostics if F edits the same auth/recovery modules.
+* Avoid combining D fan-backed normalization with I frontend resource-state simplification unless the task explicitly spans config save/apply behavior; otherwise they are separate refactors.
+
+Independent / read-only task guidance:
+
+* Fully independent read-only tasks can run in a separate session because they do not edit source files. Examples: quality verification report, dependency audit/outdated report without upgrading packages, manual/WebUI smoke validation report, cache-policy review, and Douyu API assumption review with sanitized notes only.
+* Read-only validation tasks should produce either a chat/report summary or a docs/task note; they should not silently change code, tests, package files, or lockfiles.
+* Test-writing tasks are not read-only. Adding smoke tests, parser fixture tests, or contract-test replacements is safer than runtime code changes, but still modifies files and should be coordinated like normal implementation work.
+* Dependency maintenance is independent only while it is audit/report-only. Once it updates `package.json` or `package-lock.json`, it becomes a separate implementation task and should not be mixed with feature/refactor work.
+
+Suggested copy-paste prompts for four read-only sessions:
+
+1. Quality and dependency verification report: run the current quality gate and dependency checks, then report findings only. Do not modify files or upgrade packages.
+2. Manual/WebUI smoke validation report: run the app if needed, inspect the WebUI/login/navigation/config/refresh flow, and report findings only. Do not add tests or modify files.
+3. Cache policy review: inspect runtime/WebUI cache TTL, force-refresh, and invalidation behavior, then report whether the current behavior is coherent. Do not modify files.
+4. Douyu API assumption review: inspect current Douyu endpoint, HTML, payload, and protocol assumptions, identify brittle spots, and report suggested future hardening only. Do not add fixtures/tests or modify files.
+
 Suggested sequencing:
 
-1. Auth recovery coherence.
-2. Auth module boundary cleanup, after recovery behavior is aligned and covered.
-3. Contract-test modernization, preferably before or alongside larger refactors.
-4. Frontend resource-state simplification or fan-backed config normalization cleanup, depending on next visible pain point.
-5. Runtime/WebUI smoke integration, when the team wants broader regression coverage.
-6. Douyu API adapter hardening and error classification modernization when external endpoint drift becomes the main pain point.
-7. Dependency maintenance and observability tasks can be scheduled independently because they have low coupling to feature work.
+1. Auth module boundary cleanup, after completed recovery behavior stays covered.
+2. Contract-test modernization, preferably before or alongside larger refactors.
+3. Frontend resource-state simplification or fan-backed config normalization cleanup, depending on next visible pain point.
+4. Runtime/WebUI smoke integration, when the team wants broader regression coverage.
+5. Douyu API adapter hardening and error classification modernization when external endpoint drift becomes the main pain point.
+6. Dependency maintenance and observability tasks can be scheduled independently because they have low coupling to feature work.
 
 ## Prioritization Matrix
 
 ### Highest leverage / near-term
 
-* A. Auth recovery coherence
-  * Why now: spec and implementation currently diverge on full recovery semantics.
-  * Best next task shape: behavior fix plus focused tests.
 * C. Contract-test modernization
   * Why now: it reduces friction for several later cleanup/refactor tasks.
   * Best next task shape: replace a small set of brittle shape checks, not the whole test suite.
 * F. Runtime observability and diagnostics polish
   * Why now: auth/cookie support complexity is rising, and safe non-secret diagnostics will help future debugging.
   * Best next task shape: add high-signal recovery/cache/QR logs or diagnostics only.
+* B. Auth module boundary cleanup
+  * Why now: A is now completed, so the auth code can be split behind existing covered behavior.
+  * Best next task shape: extract one boundary, not a whole-auth rewrite.
 
 ### Medium leverage / sequence after behavior is stable
 
-* B. Auth module boundary cleanup
-  * Depends on A or equivalent behavior tests.
 * I. Frontend resource-state simplification
   * Depends on behavior tests or smoke coverage for save/refresh paths.
 * D. Fan-backed config normalization cleanup

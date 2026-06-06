@@ -1255,3 +1255,36 @@ Changed the LoginConfigPage manual save action to use the secondary ActionBar bu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 38: Record Douyu passport cookie lifecycle
+
+**Date**: 2026-06-06
+**Task**: Record Douyu passport cookie lifecycle
+**Branch**: `master`
+
+### Summary
+
+Documented verified Passport, main-site, and Yuba cookie lifecycle contracts, including LTP0 lifetime observations, main-site single-active behavior, and CookieCloud/Passport authority risks.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4a459dc` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

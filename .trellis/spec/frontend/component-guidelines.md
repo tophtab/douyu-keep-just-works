@@ -86,13 +86,13 @@ Avoid hand-written `panel` wrappers, one-off `panel-head` blocks, or inline spac
 
 Use `ActionBar.vue` for page and section command rows. Actions must have stable `id` values and emit those ids, not array indexes. Use the built-in `disabled`, `loading`, `loadingLabel`, and `ariaBusy` action fields instead of hand-writing button state in page templates.
 
-Use `SelectField.vue`, `NumberField.vue`, `TextField.vue`, and `TextareaField.vue` for repeated labeled controls. These components own the shared label, spacing, input styling, and accessibility shell only. Keep field meaning, option policy, validation, and save behavior in the page component or composable.
+Use `FormField.vue` for repeated labeled controls. It owns only the shared `field-block`, `field-label`, helper text, spacing, and label-to-control shell. Keep the native `input`, `select`, or `textarea` in the page template so field meaning, option policy, validation, and save behavior stay visible in the page component or composable.
 
 Use `EmptyState.vue` for `.empty` and `.empty-with-action` surfaces. Use `DataContent.vue` for repeated table-or-empty blocks, especially the `section-block` + `empty` + `table-shell` pattern. Preserve existing empty-state copy unless the task explicitly includes copy cleanup.
 
 Use `InlineFeedback.vue` for page-internal `status-box` feedback that needs consistent status/note/alert semantics. Do not replace `TaskStatusCard`, toast live regions, QR-login panels, or highly custom task explanations unless the shared shell fits without changing the layout contract.
 
-Shared frontend-only UI shapes belong in `src/docker/webui/ui-types.ts` when multiple components need the same structure, such as action rows, field options, status cells, and status pills. Domain/API shapes still belong in `src/core/types.ts`.
+Shared frontend-only UI shapes belong in `src/docker/webui/ui-types.ts` when multiple components need the same structure, such as action rows, status cells, and status pills. Domain/API shapes still belong in `src/core/types.ts`.
 
 ---
 

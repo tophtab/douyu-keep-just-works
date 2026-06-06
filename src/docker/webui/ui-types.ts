@@ -11,13 +11,6 @@ export interface ActionBarAction {
   loadingLabel?: string
 }
 
-export type FieldValue = number | string
-
-export interface FieldOption {
-  label: string
-  value: FieldValue
-}
-
 export interface StatusCell {
   label: string
   value: string

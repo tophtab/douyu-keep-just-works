@@ -3,14 +3,10 @@ import { useYubaTaskPage } from '../yuba'
 import ActionBar from './ActionBar.vue'
 import CronField from './CronField.vue'
 import DataContent from './DataContent.vue'
-import SelectField from './SelectField.vue'
+import FormField from './FormField.vue'
 import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
 import YubaStatusTable from './YubaStatusTable.vue'
-
-const yubaModeOptions = [
-  { label: '签到全部已关注鱼吧', value: 'followed' },
-]
 
 const {
   handleYubaToggle,
@@ -63,13 +59,13 @@ function handleAction(id: string): void {
           :preview-text="yubaCronPreviewText"
           @input="loadYubaCronPreview"
         />
-        <SelectField
-          v-model="yubaMode"
-          input-id="yuba-mode"
-          name="yuba-mode"
-          label="签到模式"
-          :options="yubaModeOptions"
-        />
+        <FormField input-id="yuba-mode" label="签到模式">
+          <select id="yuba-mode" v-model="yubaMode" name="yuba-mode">
+            <option value="followed">
+              签到全部已关注鱼吧
+            </option>
+          </select>
+        </FormField>
       </template>
       <template #actions>
         <ActionBar

@@ -1,24 +1,17 @@
 <script setup lang="ts">
-import type { FieldValue } from '../ui-types'
 import { useExpiringGiftTaskPage } from '../expiring'
 import ActionBar from './ActionBar.vue'
 import AllocationTable from './AllocationTable.vue'
 import CronField from './CronField.vue'
 import DataContent from './DataContent.vue'
 import ExpiringBackpackTable from './ExpiringBackpackTable.vue'
-import NumberField from './NumberField.vue'
-import SelectField from './SelectField.vue'
+import FormField from './FormField.vue'
 import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
 
 interface AllocationValueRow {
   value: number
 }
-
-const allocationModelOptions = [
-  { label: '按权重', value: 1 },
-  { label: '按固定数量', value: 2 },
-]
 
 const {
   expiringBackpackEmptyText,
@@ -47,15 +40,6 @@ function handleAction(id: string): void {
     return
   }
   void triggerExpiringTask()
-}
-
-function updateExpiringModel(value: FieldValue): void {
-  expiringModel.value = String(value) === '2' ? 2 : 1
-  handleExpiringModelChange()
-}
-
-function updateExpiringThresholdHours(value: FieldValue): void {
-  expiringThresholdHours.value = Number(value)
 }
 
 function updateRowValue(row: AllocationValueRow, value: number): void {
@@ -90,24 +74,19 @@ function updateRowValue(row: AllocationValueRow, value: number): void {
           :preview-text="expiringCronPreviewText"
           @input="loadExpiringCronPreview"
         />
-        <NumberField
-          input-id="expiring-threshold-hours"
-          :model-value="expiringThresholdHours"
-          name="expiring-threshold-hours"
-          label="临期阈值（小时）"
-          min="1"
-          step="1"
-          inputmode="numeric"
-          @update:model-value="updateExpiringThresholdHours"
-        />
-        <SelectField
-          input-id="expiring-model"
-          :model-value="expiringModel"
-          name="expiring-model"
-          label="分配模式"
-          :options="allocationModelOptions"
-          @update:model-value="updateExpiringModel"
-        />
+        <FormField input-id="expiring-threshold-hours" label="临期阈值（小时）">
+          <input id="expiring-threshold-hours" v-model.number="expiringThresholdHours" name="expiring-threshold-hours" type="number" min="1" step="1" inputmode="numeric">
+        </FormField>
+        <FormField input-id="expiring-model" label="分配模式">
+          <select id="expiring-model" v-model.number="expiringModel" name="expiring-model" @change="handleExpiringModelChange">
+            <option value="1">
+              按权重
+            </option>
+            <option value="2">
+              按固定数量
+            </option>
+          </select>
+        </FormField>
       </template>
       <template #actions>
         <ActionBar

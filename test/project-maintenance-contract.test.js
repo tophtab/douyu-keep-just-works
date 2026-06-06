@@ -401,6 +401,28 @@ test('Docker WebUI cron preview ignores unauthorized pre-auth responses', async 
   assert.doesNotMatch(preview.cronPreviewText.value, /请先登录|cron 校验失败/)
 })
 
+test('Docker WebUI cron preview hides empty and loading helper text', async () => {
+  let resolveRequest
+  const requestPromise = new Promise((resolve) => {
+    resolveRequest = resolve
+  })
+  const { useCronPreview } = loadTypeScriptModule('src/docker/webui/composables/use-cron-preview.ts', {
+    '../request': {
+      requestJson: async () => requestPromise,
+    },
+  })
+
+  const preview = useCronPreview(() => '0 31 8 */7 * *')
+  assert.equal(preview.cronPreviewText.value, '')
+
+  const loadPromise = preview.loadCronPreview()
+  assert.equal(preview.cronPreview.value.loading, true)
+  assert.equal(preview.cronPreviewText.value, '')
+
+  resolveRequest({ runs: [] })
+  await loadPromise
+})
+
 test('Docker WebUI cron preview does not render future run lists', async () => {
   const { useCronPreview } = loadTypeScriptModule('src/docker/webui/composables/use-cron-preview.ts', {
     '../request': {

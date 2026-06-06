@@ -64,10 +64,10 @@ export function useCronPreview(getRawValue: () => string) {
   const cronPreviewText = computed(() => {
     const preview = cronPreview.value
     if (!preview.value) {
-      return '填写 cron 后可校验表达式。'
+      return ''
     }
     if (preview.loading) {
-      return '正在校验 cron 表达式…'
+      return ''
     }
     if (preview.error) {
       return `cron 校验失败：${preview.error}`

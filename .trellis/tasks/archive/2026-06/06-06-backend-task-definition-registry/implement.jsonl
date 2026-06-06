@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend pre-development checklist and relevant guideline index."}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Defines backend module ownership and where task metadata belongs."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Config persistence and partial-update contracts must be preserved."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Route and runtime error handling patterns must remain stable."}
+{"file": ".trellis/spec/backend/testing-guidelines.md", "reason": "Contract-test taxonomy for static architecture guardrails and behavior tests."}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Task labels/log categories and user-facing logs must remain stable."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Requires centralizing task-wide facts and preserving Docker quality gates."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Primary goal is reducing duplicated task-key logic."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Task metadata flows through config, scheduler, routes, tests, and WebUI-facing responses."}

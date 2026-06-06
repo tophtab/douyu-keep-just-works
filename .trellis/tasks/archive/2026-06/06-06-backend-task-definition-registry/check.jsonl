@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend quality checklist for final review."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Docker-first quality gate and task metadata ownership requirements."}
+{"file": ".trellis/spec/backend/testing-guidelines.md", "reason": "Choose appropriate contract-test updates without weakening guardrails."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Verify config persistence behavior is unchanged."}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Verify task labels and log messages stay stable."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Check that repeated task logic was actually reduced."}

@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import type { PassportQrLoginPublicStatus } from '../../../core/types'
+import type { ActionBarAction } from '../ui-types'
 import { useCookieLoginPage } from '../cookie'
 import ActionBar from './ActionBar.vue'
 import CronField from './CronField.vue'
 import EnableSwitch from './EnableSwitch.vue'
 import PageSection from './PageSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
+import TextareaField from './TextareaField.vue'
+import TextField from './TextField.vue'
 
 const {
   cancelPassportLogin,
@@ -27,20 +30,39 @@ const {
   yubaCookie,
 } = useCookieLoginPage()
 
-function handleManualCookieAction(index: number): void {
-  if (index === 0) {
+function handleManualCookieAction(id: string): void {
+  if (id === 'passport-login') {
     void startPassportLogin()
     return
   }
   void saveCookie()
 }
 
-function handleCookieCloudAction(index: number): void {
-  if (index === 0) {
+function handleCookieCloudAction(id: string): void {
+  if (id === 'save') {
     void saveAndEnableCookieCloud()
     return
   }
   void checkCookieSource()
+}
+
+function handlePassportQrAction(id: string): void {
+  if (id === 'retry-yuba') {
+    void retryPassportYubaLogin()
+    return
+  }
+  void cancelPassportLogin()
+}
+
+function getPassportQrActions(status: PassportQrLoginPublicStatus): ActionBarAction[] {
+  const actions: ActionBarAction[] = []
+  if (status.canRetryYuba) {
+    actions.push({ id: 'retry-yuba', label: '重试鱼吧', kind: 'secondary' })
+  }
+  if (!status.finished) {
+    actions.push({ id: 'cancel', label: '取消', kind: 'secondary' })
+  }
+  return actions
 }
 
 function isPassportQrScanned(status: PassportQrLoginPublicStatus): boolean {
@@ -64,24 +86,43 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
 
     <PageSection title="登录 Cookie">
       <div class="grid cols-3 section-form-grid">
-        <div class="field-block">
-          <label class="field-label" for="main-cookie-input">斗鱼直播的 Cookie</label>
-          <textarea id="main-cookie-input" v-model="mainCookie" name="main-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 www.douyu.com / douyu.com 登录 Cookie" />
-        </div>
-        <div class="field-block">
-          <label class="field-label" for="yuba-cookie-input">斗鱼鱼吧的 Cookie</label>
-          <textarea id="yuba-cookie-input" v-model="yubaCookie" name="yuba-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 yuba.douyu.com 登录 Cookie" />
-        </div>
-        <div class="field-block">
-          <label class="field-label" for="manual-passport-cookie">passport.douyu.com Cookie</label>
-          <textarea id="manual-passport-cookie" v-model="passportCookie" name="manual-passport-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="dy_did=...; LTP0=..." rows="4" />
-        </div>
+        <TextareaField
+          v-model="mainCookie"
+          input-id="main-cookie-input"
+          name="main-cookie"
+          label="斗鱼直播的 Cookie"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="粘贴 www.douyu.com / douyu.com 登录 Cookie"
+        />
+        <TextareaField
+          v-model="yubaCookie"
+          input-id="yuba-cookie-input"
+          name="yuba-cookie"
+          label="斗鱼鱼吧的 Cookie"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="粘贴 yuba.douyu.com 登录 Cookie"
+        />
+        <TextareaField
+          v-model="passportCookie"
+          input-id="manual-passport-cookie"
+          name="manual-passport-cookie"
+          label="passport.douyu.com Cookie"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="dy_did=...; LTP0=..."
+          rows="4"
+        />
       </div>
       <ActionBar
         class="section-actions"
         :actions="[
-          { label: passportQrLoginBusy ? '扫码中' : '扫码登录', kind: 'primary' },
-          { label: '手填保存', kind: 'secondary' },
+          { id: 'passport-login', label: passportQrLoginBusy ? '扫码中' : '扫码登录', kind: 'primary' },
+          { id: 'save-manual', label: '手填保存', kind: 'secondary' },
         ]"
         @action="handleManualCookieAction"
       />
@@ -105,24 +146,12 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
             <span :class="{ ok: passportQrLogin.mainSaved }">主站</span>
             <span :class="{ ok: passportQrLogin.yubaSaved, warn: passportQrLogin.canRetryYuba }">鱼吧</span>
           </div>
-          <div class="actions passport-qr-actions">
-            <button
-              v-if="passportQrLogin.canRetryYuba"
-              class="btn btn-secondary"
-              type="button"
-              @click="retryPassportYubaLogin"
-            >
-              重试鱼吧
-            </button>
-            <button
-              v-if="!passportQrLogin.finished"
-              class="btn btn-secondary"
-              type="button"
-              @click="cancelPassportLogin"
-            >
-              取消
-            </button>
-          </div>
+          <ActionBar
+            v-if="passportQrLogin.canRetryYuba || !passportQrLogin.finished"
+            class="passport-qr-actions"
+            :actions="getPassportQrActions(passportQrLogin)"
+            @action="handlePassportQrAction"
+          />
         </div>
       </div>
     </PageSection>
@@ -138,14 +167,27 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
         />
       </template>
       <div class="grid cols-2 section-form-grid">
-        <div class="field-block">
-          <label class="field-label" for="cookie-cloud-endpoint">服务器地址</label>
-          <input id="cookie-cloud-endpoint" v-model="cookieCloud.endpoint" name="cookie-cloud-endpoint" type="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="https://cookiecloud.example.com">
-        </div>
-        <div class="field-block">
-          <label class="field-label" for="cookie-cloud-uuid">UUID</label>
-          <input id="cookie-cloud-uuid" v-model="cookieCloud.uuid" name="cookie-cloud-uuid" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="CookieCloud UUID">
-        </div>
+        <TextField
+          v-model="cookieCloud.endpoint"
+          input-id="cookie-cloud-endpoint"
+          name="cookie-cloud-endpoint"
+          label="服务器地址"
+          type="url"
+          autocomplete="url"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="https://cookiecloud.example.com"
+        />
+        <TextField
+          v-model="cookieCloud.uuid"
+          input-id="cookie-cloud-uuid"
+          name="cookie-cloud-uuid"
+          label="UUID"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="CookieCloud UUID"
+        />
         <CronField
           v-model="cookieCloud.cron"
           input-id="cookie-cloud-cron"
@@ -154,16 +196,22 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
           :preview-text="cronPreviewText"
           @input="loadCookieCloudCronPreview"
         />
-        <div class="field-block">
-          <label class="field-label" for="cookie-cloud-password">密码</label>
-          <input id="cookie-cloud-password" v-model="cookieCloud.password" name="cookie-cloud-password" type="password" autocomplete="current-password" spellcheck="false" placeholder="CookieCloud Password">
-        </div>
+        <TextField
+          v-model="cookieCloud.password"
+          input-id="cookie-cloud-password"
+          name="cookie-cloud-password"
+          label="密码"
+          type="password"
+          autocomplete="current-password"
+          spellcheck="false"
+          placeholder="CookieCloud Password"
+        />
       </div>
       <ActionBar
         class="cookie-cloud-actions section-actions"
         :actions="[
-          { label: '保存并启用', kind: 'success' },
-          { label: '同步并校验', kind: 'secondary' },
+          { id: 'save', label: '保存并启用', kind: 'success' },
+          { id: 'check', label: '同步并校验', kind: 'secondary' },
         ]"
         @action="handleCookieCloudAction"
       />

@@ -2,9 +2,15 @@
 import { useYubaTaskPage } from '../yuba'
 import ActionBar from './ActionBar.vue'
 import CronField from './CronField.vue'
+import DataContent from './DataContent.vue'
+import SelectField from './SelectField.vue'
 import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
 import YubaStatusTable from './YubaStatusTable.vue'
+
+const yubaModeOptions = [
+  { label: '签到全部已关注鱼吧', value: 'followed' },
+]
 
 const {
   handleYubaToggle,
@@ -21,8 +27,8 @@ const {
   yubaTaskCard,
 } = useYubaTaskPage()
 
-function handleAction(index: number): void {
-  if (index === 0) {
+function handleAction(id: string): void {
+  if (id === 'save') {
     void saveYubaConfig()
     return
   }
@@ -57,33 +63,27 @@ function handleAction(index: number): void {
           :preview-text="yubaCronPreviewText"
           @input="loadYubaCronPreview"
         />
-        <div class="field-block">
-          <label class="field-label" for="yuba-mode">签到模式</label>
-          <select id="yuba-mode" v-model="yubaMode" name="yuba-mode">
-            <option value="followed">
-              签到全部已关注鱼吧
-            </option>
-          </select>
-        </div>
+        <SelectField
+          v-model="yubaMode"
+          input-id="yuba-mode"
+          name="yuba-mode"
+          label="签到模式"
+          :options="yubaModeOptions"
+        />
       </template>
       <template #actions>
         <ActionBar
           class="section-actions"
           :actions="[
-            { label: '保存并启用', kind: 'success' },
-            { label: '立即签到', kind: 'secondary' },
+            { id: 'save', label: '保存并启用', kind: 'success' },
+            { id: 'trigger', label: '立即签到', kind: 'secondary' },
           ]"
           @action="handleAction"
         />
       </template>
-      <div id="yuba-table-wrap" class="section-block">
-        <div v-if="!showYubaTable" class="empty">
-          {{ yubaEmptyText }}
-        </div>
-        <div v-else class="table-shell">
-          <YubaStatusTable :rows="yubaTableRows" />
-        </div>
-      </div>
+      <DataContent content-id="yuba-table-wrap" :show="showYubaTable" :empty-text="yubaEmptyText">
+        <YubaStatusTable :rows="yubaTableRows" />
+      </DataContent>
     </TaskSettingsSection>
   </div>
 </template>

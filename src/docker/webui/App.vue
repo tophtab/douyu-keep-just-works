@@ -75,6 +75,7 @@ watch([authenticated, activeTab], ([nextAuthenticated, nextTab]) => {
   <AuthShell
     v-show="!authenticated"
     v-model:password="password"
+    :app-name="bootstrap.appName"
     :login-error="loginError"
     :submitting-login="submittingLogin"
     @submit="submitLogin"

@@ -126,8 +126,17 @@
   }
 }
 @media (max-width: 960px){
+  .auth-shell{
+    padding:18px;
+  }
   .auth-card{
-    grid-template-columns:1fr;
+    width:min(420px,100%);
+  }
+  .auth-panel{
+    padding:28px 22px;
+  }
+  .auth-brand{
+    margin-bottom:28px;
   }
   .shell{display:block}
   .sidebar{

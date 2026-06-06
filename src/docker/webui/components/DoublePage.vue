@@ -3,10 +3,10 @@ import { updateAllocationRowEnabled, updateAllocationRowValue } from '../allocat
 import { useDoubleTaskPage } from '../double'
 import AllocationTable from './AllocationTable.vue'
 import CronField from './CronField.vue'
+import TableSection from './TableSection.vue'
 import TaskActionBar from './TaskActionBar.vue'
 import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
-import TaskTableSection from './TaskTableSection.vue'
 
 const {
   applyDoubleRatioPreset,
@@ -110,7 +110,7 @@ const {
           </div>
         </div>
       </div>
-      <TaskTableSection
+      <TableSection
         id="double-table-wrap"
         :show-table="showDoubleTable"
         :empty-text="doubleEmptyText"
@@ -129,7 +129,7 @@ const {
           @enabled-change="updateAllocationRowEnabled"
           @value-change="updateAllocationRowValue"
         />
-      </TaskTableSection>
+      </TableSection>
     </TaskSettingsSection>
   </div>
 </template>

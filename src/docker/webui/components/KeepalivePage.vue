@@ -3,10 +3,10 @@ import { updateAllocationRowValue } from '../allocation-task'
 import { useKeepaliveTaskPage } from '../keepalive'
 import AllocationTable from './AllocationTable.vue'
 import CronField from './CronField.vue'
+import TableSection from './TableSection.vue'
 import TaskActionBar from './TaskActionBar.vue'
 import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
-import TaskTableSection from './TaskTableSection.vue'
 
 const {
   fanRows,
@@ -72,7 +72,7 @@ const {
           @trigger="triggerKeepaliveTask"
         />
       </template>
-      <TaskTableSection
+      <TableSection
         id="keepalive-table-wrap"
         :show-table="showKeepaliveTable"
         :empty-text="keepaliveEmptyText"
@@ -86,7 +86,7 @@ const {
           :value-label="keepaliveValueLabel"
           @value-change="updateAllocationRowValue"
         />
-      </TaskTableSection>
+      </TableSection>
     </TaskSettingsSection>
   </div>
 </template>

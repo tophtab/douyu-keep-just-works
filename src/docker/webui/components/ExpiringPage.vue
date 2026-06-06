@@ -4,10 +4,10 @@ import { useExpiringGiftTaskPage } from '../expiring'
 import AllocationTable from './AllocationTable.vue'
 import CronField from './CronField.vue'
 import ExpiringBackpackTable from './ExpiringBackpackTable.vue'
+import TableSection from './TableSection.vue'
 import TaskActionBar from './TaskActionBar.vue'
 import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
-import TaskTableSection from './TaskTableSection.vue'
 
 const {
   expiringBackpackEmptyText,
@@ -81,14 +81,14 @@ const {
           @trigger="triggerExpiringTask"
         />
       </template>
-      <TaskTableSection
+      <TableSection
         id="expiring-backpack-wrap"
         :show-table="showExpiringBackpackTable"
         :empty-text="expiringBackpackEmptyText"
       >
         <ExpiringBackpackTable :rows="expiringBackpackRows" />
-      </TaskTableSection>
-      <TaskTableSection
+      </TableSection>
+      <TableSection
         id="expiring-table-wrap"
         :show-table="showExpiringTable"
         :empty-text="expiringTableEmptyText"
@@ -102,7 +102,7 @@ const {
           :value-label="expiringValueLabel"
           @value-change="updateAllocationRowValue"
         />
-      </TaskTableSection>
+      </TableSection>
     </TaskSettingsSection>
   </div>
 </template>

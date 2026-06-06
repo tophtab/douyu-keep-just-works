@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { useYubaTaskPage } from '../yuba'
 import CronField from './CronField.vue'
+import TableSection from './TableSection.vue'
 import TaskActionBar from './TaskActionBar.vue'
 import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
-import TaskTableSection from './TaskTableSection.vue'
 import YubaStatusTable from './YubaStatusTable.vue'
 
 const {
@@ -66,13 +66,13 @@ const {
           @trigger="triggerYubaTask"
         />
       </template>
-      <TaskTableSection
+      <TableSection
         id="yuba-table-wrap"
         :show-table="showYubaTable"
         :empty-text="yubaEmptyText"
       >
         <YubaStatusTable :rows="yubaTableRows" />
-      </TaskTableSection>
+      </TableSection>
     </TaskSettingsSection>
   </div>
 </template>

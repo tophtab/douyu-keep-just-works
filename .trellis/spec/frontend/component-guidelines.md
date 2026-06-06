@@ -80,7 +80,7 @@ Use `PageSection.vue` for reusable panel sections that need consistent heading, 
 
 For scheduled task pages that share the same two-button "保存并启用" plus immediate-run action, use `TaskActionBar.vue` instead of rebuilding `ActionBar` arrays and page-local index dispatch functions. The component emits `save` and `trigger`; call the same task composable functions the page already owns.
 
-For optional task tables that use the exact `section-block` + `empty` + `table-shell` structure, use `TaskTableSection.vue`. Keep table rendering in the specific table component passed through the slot, and pass wrapper IDs as normal attributes so they inherit onto the root `section-block`.
+For optional tables that use the exact `section-block` + `empty` + `table-shell` structure, use `TableSection.vue`. Keep table rendering in the specific table component passed through the slot, and pass wrapper IDs as normal attributes so they inherit onto the root `section-block`.
 
 Good:
 
@@ -103,17 +103,17 @@ Good:
       @trigger="triggerKeepaliveTask"
     />
   </template>
-  <TaskTableSection
+  <TableSection
     id="keepalive-table-wrap"
     :show-table="showKeepaliveTable"
     :empty-text="keepaliveEmptyText"
   >
     <AllocationTable ... />
-  </TaskTableSection>
+  </TableSection>
 </TaskSettingsSection>
 ```
 
-Avoid hand-written `panel` wrappers, one-off `panel-head` blocks, or inline spacing such as `style="margin-top:16px"` for task and overview sections. Do not force `TaskActionBar.vue` or `TaskTableSection.vue` onto pages with different action semantics or information structure, such as login, overview, or logs. If a new page needs the same rhythm, extend the shared section components or shared CSS classes instead of copying local markup.
+Avoid hand-written `panel` wrappers, one-off `panel-head` blocks, or inline spacing such as `style="margin-top:16px"` for task and overview sections. Do not force `TaskActionBar.vue` onto pages with different action semantics, such as login, overview, or logs. Use `TableSection.vue` when a page needs the same table-or-empty rhythm.
 
 ---
 

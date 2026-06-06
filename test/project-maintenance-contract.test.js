@@ -227,6 +227,7 @@ test('Docker WebUI remains Vue-only without legacy bridge files', () => {
     'src/docker/webui/resources.ts',
     'src/docker/webui/task-actions.ts',
     'src/docker/webui/task-pages.ts',
+    'src/docker/webui/components/TaskTableSection.vue',
     'src/docker/webui/app.js',
     'src/docker/webui/app-actions.js',
     'src/docker/webui/app-pages.js',
@@ -247,6 +248,7 @@ test('Docker WebUI resource and page ownership stays in focused Vue modules', ()
   const collectPage = readRepoFile('src/docker/webui/components/CollectPage.vue')
   const yubaPage = readRepoFile('src/docker/webui/components/YubaPage.vue')
   const keepalivePage = readRepoFile('src/docker/webui/components/KeepalivePage.vue')
+  const doublePage = readRepoFile('src/docker/webui/components/DoublePage.vue')
   const expiringPage = readRepoFile('src/docker/webui/components/ExpiringPage.vue')
   const logsPage = readRepoFile('src/docker/webui/components/LogsPage.vue')
   const fansStatusTable = readRepoFile('src/docker/webui/components/FansStatusTable.vue')
@@ -285,6 +287,11 @@ test('Docker WebUI resource and page ownership stays in focused Vue modules', ()
   assert.match(keepalivePage, /useKeepaliveTaskPage\(\)/)
   assert.match(expiringPage, /useExpiringGiftTaskPage\(\)/)
   assert.match(yubaPage, /useYubaTaskPage\(\)/)
+  assert.match(keepalivePage, /<TableSection[\s\S]*:empty-text="keepaliveEmptyText"/)
+  assert.match(doublePage, /<TableSection[\s\S]*:empty-text="doubleEmptyText"/)
+  assert.match(expiringPage, /<TableSection[\s\S]*:empty-text="expiringBackpackEmptyText"/)
+  assert.match(expiringPage, /<TableSection[\s\S]*:empty-text="expiringTableEmptyText"/)
+  assert.match(yubaPage, /<TableSection[\s\S]*:empty-text="yubaEmptyText"/)
   assert.match(loginConfigPage, /useCookieLoginPage\(\)/)
   assert.match(sidebarNav, /v-for="tab in tabs"/)
   assert.match(sidebarNav, /v-for="option in themeModes"/)

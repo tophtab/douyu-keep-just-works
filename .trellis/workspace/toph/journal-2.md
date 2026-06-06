@@ -71,3 +71,36 @@ Updated the overview page backpack and fans empty states to use the same table-o
 ### Next Steps
 
 - None - task complete
+
+
+## Session 62: Converge table section component
+
+**Date**: 2026-06-06
+**Task**: Converge table section component
+**Branch**: `master`
+
+### Summary
+
+Replaced remaining task page uses of TaskTableSection with the shared TableSection component, deleted the obsolete wrapper, updated frontend component guidance and maintenance contracts, and verified lint, contract tests, and Docker build.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `36fc67d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

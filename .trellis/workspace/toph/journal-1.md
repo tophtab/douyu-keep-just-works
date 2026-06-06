@@ -1690,3 +1690,36 @@ Removed confirmed dead CSS, helpers, stale types, and old CookieCloud LTP0 helpe
 ### Next Steps
 
 - None - task complete
+
+
+## Session 51: Clean up WebUI task copy
+
+**Date**: 2026-06-06
+**Task**: Clean up WebUI task copy
+**Branch**: `master`
+
+### Summary
+
+Implemented WebUI task copy cleanup: removed generic page subtitles, unified task switch labels, restored double-task allocation explanation and ratio preview, normalized Cron preview/action spacing, updated double task metadata, and recorded the frontend UI copy convention in Trellis specs.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `637cb28` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

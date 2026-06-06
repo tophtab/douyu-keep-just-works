@@ -1,17 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import QRCode from 'qrcode'
 import { parseCookieRecord } from '../core/api'
-import { buildCookieHeaderForUrl, createCookieDiagnostics, fetchCookieCloudSnapshot, getCookieCloudPassportCookie } from '../core/cookie-cloud'
+import { buildCookieHeaderForUrl, createCookieDiagnostics, fetchCookieCloudSnapshot, getCookieCloudPassportCookie, isCookieCloudReady } from '../core/cookie-cloud'
 import { createDouyuPassportDeviceCookie, fetchDouyuMainCookiesFromLoginUrl, fetchDouyuYubaCookiesWithPassport, generateDouyuPassportQrChallenge, pollDouyuPassportQrAuth } from '../core/douyu-passport'
 import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, EffectiveCookiePreview, PassportQrLoginPublicStatus, PassportQrLoginStatus } from '../core/types'
 import { buildConfigWithPartialUpdate, configsEqual, saveConfigToDisk } from './config-store'
-import {
-  hasConfiguredCookieSource as hasConfiguredCookieSourceConfig,
-  hasCookieCloudSource as hasCookieCloudSourceConfig,
-  hasManualCookie as hasManualCookieConfig,
-  hasManualPassport as hasManualPassportConfig,
-  hasPassportRecoveryMaterial as hasPassportRecoveryMaterialConfig,
-} from './cookie-source-summary'
 import { recoverCredentialSnapshot as recoverCredentialSnapshotWithDeps } from './runtime-cookie-recovery'
 import type { CookieRecoveryLogger, CookieSnapshotValidator, CredentialSnapshotRecoveryResult } from './runtime-cookie-recovery'
 import type { StatusCacheScope } from './runtime-cache'
@@ -84,23 +77,27 @@ export class DockerCookieSourceManager {
   ) {}
 
   hasManualCookie(config: DockerConfig | null | undefined = this.getConfig()): boolean {
-    return hasManualCookieConfig(config)
+    return Boolean(
+      config?.manualCookies?.main?.trim()
+      || config?.manualCookies?.yuba?.trim()
+      || config?.cookie?.trim(),
+    )
   }
 
   hasCookieCloudSource(config: DockerConfig | null | undefined = this.getConfig()): boolean {
-    return hasCookieCloudSourceConfig(config)
+    return isCookieCloudReady(config?.cookieCloud)
   }
 
   hasManualPassport(config: DockerConfig | null | undefined = this.getConfig()): boolean {
-    return hasManualPassportConfig(config)
+    return Boolean(config?.manualPassport?.cookie?.trim())
   }
 
   hasPassportRecoveryMaterial(config: DockerConfig | null | undefined = this.getConfig()): boolean {
-    return hasPassportRecoveryMaterialConfig(config)
+    return this.hasCookieCloudSource(config) || this.hasManualPassport(config)
   }
 
   hasConfiguredCookieSource(config: DockerConfig | null | undefined = this.getConfig()): boolean {
-    return hasConfiguredCookieSourceConfig(config)
+    return this.hasManualCookie(config) || this.hasCookieCloudSource(config)
   }
 
   clearCookieCloudCache(): void {

@@ -18,7 +18,6 @@ import {
   loadRawConfig,
   rawConfig,
 } from './resource-config'
-import { createResourceRequest, resetResourceRequest, runResourceRequest } from './resource-request'
 import {
   clearYubaCookieBackedData,
   loadYubaStatus,
@@ -65,7 +64,6 @@ export const logsClearing = ref(false)
 export const logsAutoRefresh = ref(true)
 export const surfaceRefreshLoading = ref(false)
 
-const logsRequest = createResourceRequest()
 let surfaceRefreshPending: Promise<void> | null = null
 
 function normalizeLogs(data: unknown): LogEntry[] {
@@ -91,7 +89,6 @@ export function clearCookieBackedData(): void {
 
 export function clearProtectedState(): void {
   clearCookieBackedData()
-  resetResourceRequest(logsRequest)
   rawConfig.value = null
   overview.value = null
   logs.value = []
@@ -123,36 +120,25 @@ export async function loadOverview(): Promise<void> {
 }
 
 export async function loadLogs(showSuccessToast = false): Promise<boolean | undefined> {
-  return runResourceRequest(logsRequest, async ({ isStale }) => {
-    logsLoading.value = true
-    logsError.value = ''
+  logsLoading.value = true
+  logsError.value = ''
 
-    try {
-      const nextLogs = normalizeLogs(await requestJson<RawLogEntry[]>('/api/logs'))
-      if (isStale()) {
-        return undefined
+  try {
+    logs.value = normalizeLogs(await requestJson<RawLogEntry[]>('/api/logs'))
+    logsRefreshedAt.value = new Date().toISOString()
+    return true
+  } catch (error) {
+    if (!isUnauthorizedError(error)) {
+      logsError.value = getErrorMessage(error)
+      if (showSuccessToast) {
+        showToast('加载日志失败，请查看页面提示', false)
       }
-      logs.value = nextLogs
-      logsRefreshedAt.value = new Date().toISOString()
-      return true
-    } catch (error) {
-      if (isStale()) {
-        return undefined
-      }
-      if (!isUnauthorizedError(error)) {
-        logsError.value = getErrorMessage(error)
-        if (showSuccessToast) {
-          showToast('加载日志失败，请查看页面提示', false)
-        }
-        return false
-      }
-      return undefined
-    } finally {
-      if (!isStale()) {
-        logsLoading.value = false
-      }
+      return false
     }
-  })
+    return undefined
+  } finally {
+    logsLoading.value = false
+  }
 }
 
 export async function clearLogs(): Promise<void> {

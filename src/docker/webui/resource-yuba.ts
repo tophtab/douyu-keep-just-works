@@ -1,7 +1,7 @@
 import type { YubaGroupStatus, YubaStatusResponse } from '../../core/types'
 import { ref } from 'vue'
 import { getRawConfig, hasCookieSourceConfigured } from './resource-config'
-import { createResourceRequest, markResourceRequestLoaded, resetResourceRequest, runResourceRequest, withForceRefresh } from './resource-request'
+import { createResourceRequest, markResourceRequestLoaded, resetResourceRequest, trackResourceRequest, withForceRefresh } from './resource-request'
 import { requestJson } from './request'
 import { getErrorMessage, isHttpUnauthorized } from './task-shared'
 import { showToast } from './toast'
@@ -36,38 +36,43 @@ export async function loadYubaStatus(showSuccessToast = false, forceRefresh = fa
     return false
   }
 
-  return runResourceRequest(yubaStatusRequest, async ({ isStale }) => {
-    yubaStatusError.value = ''
-    yubaStatusLoading.value = true
+  if (yubaStatusRequest.pending) {
+    return yubaStatusRequest.pending
+  }
 
-    try {
-      const data = await requestJson<YubaStatusResponse>(withForceRefresh('/api/yuba/status', forceRefresh))
-      if (isStale()) {
-        return undefined
-      }
-      yubaStatus.value = data?.groups || []
-      yubaStatusError.value = ''
-      yubaStatusLoaded.value = true
-      yubaStatusLoading.value = false
-      markResourceRequestLoaded(yubaStatusRequest)
-      if (showSuccessToast) {
-        showToast('鱼吧状态已刷新', true)
-      }
-      return true
-    } catch (error: unknown) {
-      if (isStale()) {
-        return undefined
-      }
-      if (isHttpUnauthorized(error)) {
-        return undefined
-      }
-      yubaStatus.value = yubaStatusLoaded.value ? yubaStatus.value : []
-      yubaStatusError.value = getErrorMessage(error)
-      yubaStatusLoading.value = false
-      if (showSuccessToast) {
-        showToast('加载鱼吧状态失败，请查看页面提示', false)
-      }
-      return false
+  const requestSeq = yubaStatusRequest.requestSeq + 1
+  yubaStatusRequest.requestSeq = requestSeq
+  yubaStatusError.value = ''
+  yubaStatusLoading.value = true
+
+  const pending = requestJson<YubaStatusResponse>(withForceRefresh('/api/yuba/status', forceRefresh)).then((data) => {
+    if (yubaStatusRequest.requestSeq !== requestSeq) {
+      return undefined
     }
+    yubaStatus.value = data?.groups || []
+    yubaStatusError.value = ''
+    yubaStatusLoaded.value = true
+    yubaStatusLoading.value = false
+    markResourceRequestLoaded(yubaStatusRequest)
+    if (showSuccessToast) {
+      showToast('鱼吧状态已刷新', true)
+    }
+    return true
+  }).catch((error: unknown) => {
+    if (yubaStatusRequest.requestSeq !== requestSeq) {
+      return undefined
+    }
+    if (isHttpUnauthorized(error)) {
+      return undefined
+    }
+    yubaStatus.value = yubaStatusLoaded.value ? yubaStatus.value : []
+    yubaStatusError.value = getErrorMessage(error)
+    yubaStatusLoading.value = false
+    if (showSuccessToast) {
+      showToast('加载鱼吧状态失败，请查看页面提示', false)
+    }
+    return false
   })
+
+  return trackResourceRequest(yubaStatusRequest, requestSeq, pending)
 }

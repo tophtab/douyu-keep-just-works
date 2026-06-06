@@ -29,7 +29,6 @@ Current examples:
 - `src/docker/runtime.ts` wires config loading, runtime services, scheduler dependencies, and Express app startup.
 - `src/docker/runtime-app-context.ts` builds the WebUI `AppContext` from runtime services.
 - `src/docker/runtime-cookie-recovery.ts` owns credential-recovery retry orchestration and the lower-level CookieCloud/passport recovery pipeline.
-- `src/docker/cookie-source-summary.ts` owns cookie-source classification and public masking helpers shared by config routes and Docker cookie-source runtime services.
 - `src/docker/runtime-fans-sync.ts` owns fan-medal synchronization, config reconcile, and latest cookie snapshot merging.
 - `src/docker/runtime-cookie-cloud-sync.ts` owns CookieCloud scheduled sync lifecycle.
 - `src/docker/runtime-config-service.ts` owns config application side effects: normalization, cache invalidation, CookieCloud sync reconciliation, scheduler reconciliation, and user-facing runtime logs.
@@ -59,28 +58,12 @@ Runtime orchestration should stay in `src/docker/runtime.ts` as the composition 
 
 - WebUI `AppContext` construction belongs in `runtime-app-context.ts`;
 - credential-recovery retry orchestration and low-level CookieCloud/passport recovery belong in `runtime-cookie-recovery.ts`;
-- cookie-source classification and public masking belong in `cookie-source-summary.ts`;
 - fan-medal synchronization, config reconcile, and local cookie snapshot merging belong in `runtime-fans-sync.ts`;
 - scheduled CookieCloud sync lifecycle belongs in `runtime-cookie-cloud-sync.ts`;
 - config application and cache/scheduler side effects belong in `runtime-config-service.ts`;
 - task scheduling and task execution details stay in `runtime-scheduler.ts` and `runtime-task-runners.ts`.
 
-`runtime.ts` may know which services exist, how they are constructed, startup order, server listening, and shutdown handling. It should not own rules such as when to retry credential recovery, how to reconcile fan-backed config, how to merge CookieCloud/manual cookie snapshots, how to summarize or mask cookie-source state, or the concrete WebUI route context method bodies.
-
-### Cookie Source Summary Ownership
-
-Cookie-source readiness and public masking rules are shared Docker runtime policy. Keep them in `src/docker/cookie-source-summary.ts` and reuse that module from route handlers and runtime services.
-
-Owned helpers include:
-
-- `hasManualCookie(config)` for `manualCookies.main`, `manualCookies.yuba`, or legacy `cookie`.
-- `hasCookieCloudSource(config)` for `isCookieCloudReady(config.cookieCloud)`.
-- `hasManualPassport(config)` and `hasPassportRecoveryMaterial(config)` for Passport recovery material.
-- `hasConfiguredCookieSource(config)` for task-readiness checks that need manual or CookieCloud login cookies.
-- `summarizeCookieSource(config)` for the public `manual` / `cookieCloud` / `hybrid` / `none` source label.
-- `maskCookie`, `maskCookieCloud`, `maskManualCookies`, and `maskManualPassport` for public config responses.
-
-Do not reimplement equivalent `trim()` chains or masking snippets in `server-config-routes.ts`, `runtime-cookie-source.ts`, or future cookie-source route modules. If a new login source is added, update `cookie-source-summary.ts` first, then update route/runtime tests for readiness, source labels, and secret masking.
+`runtime.ts` may know which services exist, how they are constructed, startup order, server listening, and shutdown handling. It should not own rules such as when to retry credential recovery, how to reconcile fan-backed config, how to merge CookieCloud/manual cookie snapshots, or the concrete WebUI route context method bodies.
 
 ---
 

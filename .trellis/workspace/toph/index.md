@@ -7,8 +7,8 @@
 ## Current Status
 
 <!-- @@@auto:current-status -->
-- **Active File**: `journal-1.md`
-- **Total Sessions**: 59
+- **Active File**: `journal-2.md`
+- **Total Sessions**: 60
 - **Last Active**: 2026-06-06
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,8 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1993 | Active |
+| `journal-2.md` | ~40 | Active |
+| `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 60 | 2026-06-06 | Update WebUI project description | `63883db` | `master` |
 | 59 | 2026-06-06 | Overview backpack list reuse | `981aad3` | `master` |
 | 58 | 2026-06-06 | Targeted WebUI slimming | `7a20cf5` | `master` |
 | 57 | 2026-06-06 | Targeted WebUI slimming | `c4fae1c` | `master` |

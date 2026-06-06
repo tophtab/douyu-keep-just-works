@@ -11,8 +11,8 @@ Identify the most valuable optimization opportunities in the current project, wi
 * The user chose "do not rush implementation; continue expanding the optimization analysis list".
 * Recent work centered on Douyu Passport QR login, CookieCloud/local snapshot authority, Yuba SSO, runtime cache refresh, and auth cookie lifecycle documentation.
 * Current codebase is Docker-first TypeScript backend plus Vue WebUI. Quality scripts include lint, Docker/WebUI type-check, contract tests, and Docker build.
-* `npm audit --omit=dev --audit-level=moderate` currently reports 0 vulnerabilities.
-* `npm outdated --depth=0` could not complete in this session due `ECONNRESET`; dependency freshness is not fully assessed yet.
+* Production and full dependency audits currently report 0 vulnerabilities.
+* Dependency freshness has been assessed. The conservative dev/tooling update batch has been completed; remaining direct-depth decisions are only `axios`, `vue-tsc`, and intentionally deferred Node 25 typings.
 * Backend strictness has improved since the older architecture report: `tsconfig.docker.json` now has `strict: true` and `noImplicitAny: true`.
 * The old runtime composition-root concern is mostly reduced: `src/docker/runtime.ts` is now 166 lines, while current auth-related concentration moved to `src/docker/runtime-cookie-source.ts` and `src/core/douyu-passport.ts`.
 * Largest current files include:
@@ -24,14 +24,15 @@ Identify the most valuable optimization opportunities in the current project, wi
   * `src/core/medal-sync.ts` ~359 lines
 * `06-06-auto-recover-yuba-cookie` has completed the earlier auth recovery coherence gap in commit `6667455 fix: recover yuba cookie from passport`.
 * WebUI cookie facade is now small (`src/docker/webui/cookie.ts`), because state/actions/copy have already been split into `cookie-source-state.ts`, `cookie-source-actions.ts`, and `cookie-source-copy.ts`.
-* Contract tests are valuable but still include many source-text guardrails, especially in `test/project-maintenance-contract.test.js`; some are true forbidden-pattern checks, while others may make safe refactors noisy.
+* Contract-test modernization has already completed a taxonomy pass and a first behavior-replacement pass; remaining work should be treated as optional follow-up, not as a prerequisite for every refactor.
+* Fan-backed config normalization cleanup has completed in the archived `06-06-medal-sync-config-normalization-cleanup` task.
 
 ## Assumptions (temporary)
 
 * "Optimization" may include maintainability, reliability, user-facing workflow robustness, test coverage, performance, and code architecture.
 * The immediate output should be a ranked set of candidate optimization directions plus one recommended MVP direction.
 * No runtime code should be changed until the user chooses a direction.
-* The highest-value future implementation optimization is now likely test modernization, auth module boundary cleanup, or safe runtime diagnostics rather than auth recovery coherence, because the main recovery gap has been completed.
+* The highest-value future implementation optimizations are now likely WebUI smoke-findings cleanup, Douyu adapter contract hardening, auth module boundary cleanup, or safe runtime diagnostics. Auth recovery coherence, initial contract-test modernization, fan-backed config normalization, and the safe dependency-tooling batch are no longer first-order roadmap items.
 * For this current planning task, the output should remain a roadmap and not flip to `in_progress`.
 
 ## Open Questions
@@ -97,7 +98,7 @@ Risk:
 * Refactor-only tasks can burn time and destabilize well-tested working code unless tightly scoped.
 * Should follow or accompany behavior tests, not precede them blindly.
 
-### C. Contract-test modernization
+### C. Contract-test modernization (MVP completed; long-tail optional)
 
 Focus: convert the most brittle source-regex tests into behavior-level tests while preserving true architecture guardrails.
 
@@ -119,7 +120,13 @@ Risk:
 
 * If done too broadly, test refactor may weaken guardrails. Needs surgical selection.
 
-### D. Fan-backed config normalization cleanup
+Execution record on 2026-06-06:
+
+* `5b74733 test: document contract test taxonomy` added the backend testing taxonomy and labels in `test/project-maintenance-contract.test.js`.
+* `c2a60c8 test: modernize contract route coverage` completed the first behavior-replacement slice, including route-level config and CookieCloud coverage plus clearer maintenance-contract grouping.
+* The archived tasks `06-06-contract-test-modernization-rethink` and `06-06-contract-test-behavior-modernization` mean this candidate should not be scheduled again as a generic prerequisite. Future test work should be scoped to a specific feature or brittle assertion.
+
+### D. Fan-backed config normalization cleanup (completed by separate task)
 
 Focus: revisit `src/core/medal-sync.ts` repeated normalization/reconciliation logic.
 
@@ -139,6 +146,12 @@ Likely scope:
 Risk:
 
 * Lower immediate value than auth recovery because the current user-visible churn is in login/cookie reliability.
+
+Execution record on 2026-06-06:
+
+* Archived task `06-06-medal-sync-config-normalization-cleanup` reduced duplicated keepalive, double-card, and expiring-gift normalization/reconciliation logic while preserving behavior.
+* Acceptance coverage included legacy field migration, send-map defaults, stale-room removal, missing-room creation, and expiring-gift first-room weight behavior.
+* Treat this as done unless a future config feature exposes a new duplication pattern.
 
 ### E. Runtime/WebUI smoke integration
 
@@ -230,7 +243,7 @@ Risk:
 * A schema-library migration would be overkill for current project size.
 * Tightening validation can reject previously tolerated malformed user configs if not scoped to API payloads.
 
-### H. Dependency maintenance workflow
+### H. Dependency maintenance workflow (safe batch completed; remaining optional splits)
 
 Focus: make dependency freshness/audit checks more repeatable.
 
@@ -487,30 +500,52 @@ Risk:
 
 This brainstorm task acts as an optimization roadmap and candidate pool. "MVP" means the smallest useful optimization to execute in the current implementation task, not the only optimization worth doing.
 
+Completed optimization work that should not be re-scheduled:
+
+* A. Auth recovery coherence: completed by `06-06-auto-recover-yuba-cookie` / `6667455 fix: recover yuba cookie from passport`.
+* C. Contract-test modernization MVP: taxonomy and first behavior-route modernization completed by `5b74733` and `c2a60c8`; only feature-specific follow-up remains.
+* D. Fan-backed config normalization cleanup: completed by archived `06-06-medal-sync-config-normalization-cleanup`.
+* E. Focused WebUI smoke-finding fixes: completed by `06-06-focused-webui-smoke-finding-fixes` / `f7427f2 fix: prevent pre-auth cron preview state leak`.
+* H. Dependency maintenance safe dev/tooling batch: completed by `06-06-dependency-maintenance-workflow` / `0f506a6 chore: update dev tooling dependencies`; remaining `axios` and `vue-tsc` decisions are separate optional tasks.
+
+Final roadmap decision:
+
+* E was selected as the only follow-up implementation task from this roadmap and has been completed.
+* K/G/M/H and the other remaining candidates are not scheduled now. Keep them as reference notes only, to revisit if a concrete user-visible issue, dependency/security need, or future implementation change makes one relevant.
+* No parallel optimization work is needed after E. This roadmap task can be archived after recording that conclusion.
+
 Recommended follow-up process:
 
-* Pick one candidate direction as the current MVP and keep its scope narrow.
-* Move the other candidates into future Trellis tasks when the user wants to work on them.
+* Do not create additional optimization tasks from this roadmap by default.
+* Move a remaining candidate into a future Trellis task only when the user explicitly selects it or a concrete bug/maintenance need appears.
 * Each future task should start from this PRD's candidate notes, then create its own PRD with updated code inspection because the project may have changed.
-* Avoid batching unrelated optimization themes into one task. Auth recovery, module boundary cleanup, test modernization, config normalization, and smoke testing should be separate tasks unless a direct dependency forces them together.
+* Avoid batching unrelated optimization themes into one task. Auth module boundary cleanup, WebUI smoke-finding fixes, diagnostics, adapter contracts, cache policy, and frontend resource-state work should be separate tasks unless a direct dependency forces them together.
 
 Cross-session usage:
 
 * A future session may reference this roadmap PRD directly and choose one or more candidate directions from it.
 * Prefer one new Trellis task per optimization direction so scope, tests, commits, and rollback remain clear.
-* Combining two directions is acceptable only when they are tightly coupled and touch the same implementation surface, for example contract-test modernization immediately followed by one small auth boundary extraction.
+* Combining two directions is acceptable only when they are tightly coupled and touch the same implementation surface, for example fixing the WebUI login error visibility before adding a tiny Playwright smoke that asserts the same behavior.
 * Avoid running two sessions that edit overlapping files in the same worktree at the same time. If true parallel work is needed, use separate branches/worktrees or finish and commit one direction before starting another overlapping direction.
 * Before starting any future direction, re-check the current code and recent commits because this roadmap is a snapshot, not a frozen source of truth.
 
 Parallelization guidance:
 
-* Best serial sequence: C contract-test modernization -> B auth module boundary cleanup. C reduces friction for B, and both may touch auth contract tests.
-* Safe-ish parallel pair in separate worktrees: B auth module cleanup + D fan-backed config normalization. They are both refactors, but they touch different code surfaces (`src/docker/runtime-cookie-source.ts` / `src/core/douyu-passport.ts` versus `src/core/medal-sync.ts`).
-* Safe-ish parallel pair in separate worktrees: F runtime diagnostics + K Douyu API adapter hardening, as long as F stays in runtime/auth logs and K stays in parser/fixture contracts.
-* Independent maintenance: H dependency maintenance can be done in its own window, but should not be merged into feature/refactor commits.
-* Avoid parallelizing C contract-test modernization with B auth module cleanup in the same worktree. Both can need the same contract files and will conflict conceptually.
-* Avoid parallelizing B auth module cleanup with F diagnostics if F edits the same auth/recovery modules.
-* Avoid combining D fan-backed normalization with I frontend resource-state simplification unless the task explicitly spans config save/apply behavior; otherwise they are separate refactors.
+* Best serial sequence for user-visible polish: fix E's WebUI smoke findings first, then decide whether to add a tiny smoke/integration test around the fixed flow. The bug fix defines the stable behavior the smoke should assert.
+* Best serial sequence for auth maintainability: K Douyu API adapter contract hardening -> L error classification modernization -> B auth module boundary cleanup. Fixture/parser contracts and narrower error classification reduce the risk of later auth refactors.
+* Best serial sequence for cache/resource-state clarity: J cache policy explicitness -> I frontend resource-state simplification. J defines expected refresh/cache semantics before I changes frontend state orchestration.
+* Safe-ish parallel pair in separate worktrees: E WebUI smoke-finding fixes + K Douyu API adapter contract hardening. They touch different surfaces: WebUI/runtime route behavior versus core parser/fixture contracts.
+* Safe-ish parallel pair in separate worktrees: G config validation tightening + M task execution pacing/rate-safety review, if M remains documentation/tests around constants and G stays in config route validation.
+* Safe-ish parallel pair in separate worktrees: H optional dependency splits + any read-only report. Once `axios` or `vue-tsc` is actually updated, keep it isolated from feature/refactor commits.
+* Avoid parallelizing B auth module cleanup with F diagnostics, K adapter contracts, or L error classification in the same worktree; all can touch auth/runtime/core contract files or depend on the same error semantics.
+* Avoid parallelizing J cache policy with I frontend resource-state simplification unless J is documentation-only; otherwise the semantics and frontend implementation may chase each other.
+* Avoid running multiple write sessions in the same worktree. Use separate branches/worktrees for true parallel work, and merge one completed task at a time.
+
+Final sequence after the 2026-06-06 completed work:
+
+1. E focused WebUI smoke-finding fixes were completed in a separate task.
+2. K/G/M/H and the other remaining candidates are deferred. Do not open parallel sessions for them unless the user makes a new explicit selection.
+3. The roadmap has served its purpose and should be archived after this final PRD update.
 
 Independent / read-only task guidance:
 
@@ -519,59 +554,52 @@ Independent / read-only task guidance:
 * Test-writing tasks are not read-only. Adding smoke tests, parser fixture tests, or contract-test replacements is safer than runtime code changes, but still modifies files and should be coordinated like normal implementation work.
 * Dependency maintenance is independent only while it is audit/report-only. Once it updates `package.json` or `package-lock.json`, it becomes a separate implementation task and should not be mixed with feature/refactor work.
 
-Suggested copy-paste prompts for four read-only sessions:
+Optional copy-paste prompts for future read-only sessions, only if the user asks to revisit the topic:
 
 1. Quality and dependency verification report: run the current quality gate and dependency checks, then report findings only. Do not modify files or upgrade packages.
 2. Manual/WebUI smoke validation report: run the app if needed, inspect the WebUI/login/navigation/config/refresh flow, and report findings only. Do not add tests or modify files.
 3. Cache policy review: inspect runtime/WebUI cache TTL, force-refresh, and invalidation behavior, then report whether the current behavior is coherent. Do not modify files.
 4. Douyu API assumption review: inspect current Douyu endpoint, HTML, payload, and protocol assumptions, identify brittle spots, and report suggested future hardening only. Do not add fixtures/tests or modify files.
 
-Suggested sequencing:
+Current scheduling decision:
 
-1. Auth module boundary cleanup, after completed recovery behavior stays covered.
-2. Contract-test modernization, preferably before or alongside larger refactors.
-3. Frontend resource-state simplification or fan-backed config normalization cleanup, depending on next visible pain point.
-4. Runtime/WebUI smoke integration, when the team wants broader regression coverage.
-5. Douyu API adapter hardening and error classification modernization when external endpoint drift becomes the main pain point.
-6. Dependency maintenance and observability tasks can be scheduled independently because they have low coupling to feature work.
+1. E is done.
+2. No further roadmap-derived optimization task is scheduled.
+3. Remaining candidates stay in this PRD as reference material, not as a backlog to execute automatically.
 
 ## Prioritization Matrix
 
-### Highest leverage / near-term
+### Completed / no longer near-term
 
-* C. Contract-test modernization
-  * Why now: it reduces friction for several later cleanup/refactor tasks.
-  * Best next task shape: replace a small set of brittle shape checks, not the whole test suite.
-* F. Runtime observability and diagnostics polish
-  * Why now: auth/cookie support complexity is rising, and safe non-secret diagnostics will help future debugging.
-  * Best next task shape: add high-signal recovery/cache/QR logs or diagnostics only.
-* B. Auth module boundary cleanup
-  * Why now: A is now completed, so the auth code can be split behind existing covered behavior.
-  * Best next task shape: extract one boundary, not a whole-auth rewrite.
+* E. Focused WebUI smoke-finding fixes
+  * Status: completed by `06-06-focused-webui-smoke-finding-fixes`.
+  * Outcome: this was the only selected implementation task after the roadmap review.
 
-### Medium leverage / sequence after behavior is stable
+### Deferred reference candidates
 
-* I. Frontend resource-state simplification
-  * Depends on behavior tests or smoke coverage for save/refresh paths.
-* D. Fan-backed config normalization cleanup
-  * Good maintenance value, but not the current highest user-visible risk.
 * K. Douyu API adapter contract hardening
-  * High value if endpoint drift continues; can be done anytime with sanitized fixtures.
+  * Deferred because there is no current Douyu adapter breakage requiring preemptive fixture work.
+* B. Auth module boundary cleanup
+  * Deferred because no immediate auth refactor is needed after E.
 * L. Error classification modernization
-  * Best after A clarifies the desired recovery decision matrix.
-
-### Lower urgency / independent maintenance
-
-* E. Runtime/WebUI smoke integration
-  * Useful, but adds infrastructure. Keep first pass tiny.
-* G. Config validation and save-path tightening
-  * Good if config shape changes resume.
-* H. Dependency maintenance workflow
-  * Keep independent from feature/auth tasks.
+  * Deferred unless future failures show message-based classification is insufficient.
+* F. Runtime observability and diagnostics polish
+  * Deferred unless support/debugging pain becomes concrete.
 * J. Cache policy explicitness
-  * Useful if users keep asking about stale status.
+  * Deferred unless stale-status confusion becomes a repeated issue.
+* I. Frontend resource-state simplification
+  * Deferred unless new UI state drift appears.
+
+### Not scheduled now
+
+* G. Config validation and save-path tightening
+  * Not needed unless config schema/save behavior changes resume.
 * M. Task execution pacing and rate-safety review
-  * Valuable as documentation/guardrails; avoid premature configurability.
+  * Not needed unless request pacing or concurrency becomes a real issue.
+* H. Optional dependency splits
+  * Not needed now; `axios` and `vue-tsc` can wait for a security, bug, or maintenance-window reason.
+* C/D completed follow-ups
+  * Do not schedule generic contract-test modernization or fan-backed normalization again; only reopen them for a concrete new brittle assertion or new config duplication.
 
 ## Anti-Optimization Notes
 
@@ -579,7 +607,7 @@ Suggested sequencing:
 * Do not add a schema library just to validate the current config shape; start with focused validators/tests.
 * Do not make task pacing user-configurable unless there is a concrete user-facing problem.
 * Do not replace all source-regex contract tests; keep forbidden-pattern guardrails where they protect architecture boundaries.
-* Do not add browser automation to runtime login unless the HTTP-equivalent Passport/Yuba path stops working and a separate PRD scopes the risk.
+* Do not add broad browser automation to runtime login; if smoke coverage is added, keep it narrow and tied to a confirmed WebUI defect or navigation contract.
 * Do not combine dependency upgrades with auth/runtime behavior changes.
 
 ## Acceptance Criteria (evolving)
@@ -629,4 +657,12 @@ Suggested sequencing:
   * `wc -l` hotspot scan
   * `rg` for auth/cache/strictness markers
   * `npm audit --omit=dev --audit-level=moderate` -> 0 vulnerabilities
-  * `npm outdated --depth=0` -> blocked by network `ECONNRESET`
+  * `npm outdated --depth=0 --json` -> later completed; safe dev/tooling batch was executed, leaving only optional `axios`, `vue-tsc`, and Node 25 typings decisions
+* Re-check context on 2026-06-06:
+  * Current git status: clean before this PRD update; `master` was ahead of `origin/master` by 17 commits.
+  * Active Trellis tasks: only `.trellis/tasks/06-06-project-optimization-opportunities/` in planning state.
+  * Recent completed optimization commits include `6667455`, `5b74733`, `c2a60c8`, `0f506a6`, and archived task commits for the corresponding tasks.
+* Final roadmap close-out on 2026-06-06:
+  * E completed in `f7427f2 fix: prevent pre-auth cron preview state leak` and was archived in `2ad3e78`.
+  * User decision: do not schedule K/G/M/H or other parallel optimization tasks now.
+  * This roadmap task is ready to archive after this PRD update is committed.

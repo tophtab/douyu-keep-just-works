@@ -1,0 +1,4 @@
+{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend WebUI guideline index"}
+{"file": ".trellis/tasks/06-06-unify-section-styles/research/webui-section-style-audit.md", "reason": "Audit findings to verify refactor coverage"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Vue component and shared style conventions"}

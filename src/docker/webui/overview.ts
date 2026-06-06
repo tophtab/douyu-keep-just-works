@@ -106,6 +106,9 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
     if (!overview.value) {
       return '请稍候…'
     }
+    if (!hasCookieSource.value) {
+      return '保存 Cookie 或启用 CookieCloud 后再点击顶部“刷新”，这里会直接展示粉丝牌与双倍状态。'
+    }
     if ((managedLoading.value || fansStatusLoading.value) && !fansStatusLoaded.value) {
       return '请稍候，列表正在更新。'
     }
@@ -130,7 +133,6 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
     return buildBackpackDisplayRows(giftStatus.value?.rows || [], thresholdHours)
   })
 
-  const showOverviewLoginAction = computed(() => Boolean(overview.value && !hasCookieSource.value))
   const showOverviewBackpackTable = computed(() => Boolean(giftStatus.value && !giftStatus.value.error && overviewBackpackRows.value.length))
   const showOverviewFansTable = computed(() => Boolean(
     overview.value
@@ -204,6 +206,5 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
     refreshOverviewTitle,
     showOverviewBackpackTable,
     showOverviewFansTable,
-    showOverviewLoginAction,
   }
 }

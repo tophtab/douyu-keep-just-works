@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import TableSection from './TableSection.vue'
+
 defineProps<{
   emptyText: string
   showTable: boolean
@@ -6,12 +8,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="section-block">
-    <div v-if="!showTable" class="empty">
-      {{ emptyText }}
-    </div>
-    <div v-else class="table-shell">
-      <slot />
-    </div>
-  </div>
+  <TableSection :show-table="showTable" :empty-text="emptyText">
+    <slot />
+  </TableSection>
 </template>

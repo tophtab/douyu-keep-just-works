@@ -144,6 +144,7 @@ test('Docker WebUI remains Vue-only without legacy bridge files', () => {
   const taskStatusCard = readRepoFile('src/docker/webui/components/TaskStatusCard.vue')
   const pageSection = readRepoFile('src/docker/webui/components/PageSection.vue')
   const taskSettingsSection = readRepoFile('src/docker/webui/components/TaskSettingsSection.vue')
+  const tableSection = readRepoFile('src/docker/webui/components/TableSection.vue')
   const cronField = readRepoFile('src/docker/webui/components/CronField.vue')
   const enableSwitch = readRepoFile('src/docker/webui/components/EnableSwitch.vue')
   const actionBar = readRepoFile('src/docker/webui/components/ActionBar.vue')
@@ -172,6 +173,7 @@ test('Docker WebUI remains Vue-only without legacy bridge files', () => {
     taskStatusCard,
     pageSection,
     taskSettingsSection,
+    tableSection,
     cronField,
     enableSwitch,
     actionBar,
@@ -251,6 +253,7 @@ test('Docker WebUI resource and page ownership stays in focused Vue modules', ()
   const yubaStatusTable = readRepoFile('src/docker/webui/components/YubaStatusTable.vue')
   const allocationTable = readRepoFile('src/docker/webui/components/AllocationTable.vue')
   const expiringBackpackTable = readRepoFile('src/docker/webui/components/ExpiringBackpackTable.vue')
+  const tableSection = readRepoFile('src/docker/webui/components/TableSection.vue')
   const allocationTask = readRepoFile('src/docker/webui/allocation-task.ts')
   const fanDisplay = readRepoFile('src/docker/webui/fan-display.ts')
   const resources = readRepoFile('src/docker/webui/resource-state.ts')
@@ -288,9 +291,14 @@ test('Docker WebUI resource and page ownership stays in focused Vue modules', ()
   assert.match(topToolbar, /emit\('refresh'\)/)
   assert.match(authShell, /role="alert"/)
   assert.match(overviewPage, /v-for="cell in overviewStatusCells"/)
+  assert.match(overviewPage, /<TableSection[\s\S]*:empty-text="overviewBackpackEmptyText"/)
+  assert.match(overviewPage, /<TableSection[\s\S]*:empty-text="overviewFansEmptyText"/)
   assert.match(overviewPage, /<ExpiringBackpackTable :rows="overviewBackpackRows"/)
   assert.match(overviewPage, /<FansStatusTable :rows="overviewFansRows"/)
   assert.doesNotMatch(overviewPage, /title="背包列表"|title="粉丝牌列表"/)
+  assert.match(tableSection, /class="section-block"/)
+  assert.match(tableSection, /class="empty"/)
+  assert.match(tableSection, /class="table-shell"/)
   assert.match(fansStatusTable, /v-for="row in rows"/)
   assert.match(yubaStatusTable, /v-for="row in rows"/)
   assert.match(allocationTable, /@change="emit\('enabledChange'/)

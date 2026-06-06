@@ -71,7 +71,7 @@ const emit = defineEmits<{
       </div>
 
       <section id="page-overview" class="page" :class="{ active: activeTab === 'overview' }" role="tabpanel" aria-labelledby="tab-overview" tabindex="0" :aria-hidden="activeTab === 'overview' ? 'false' : 'true'" :hidden="activeTab !== 'overview'">
-        <OverviewPage :state="overviewPage" :select-tab="selectTab" />
+        <OverviewPage :state="overviewPage" />
       </section>
 
       <section id="page-login" class="page" :class="{ active: activeTab === 'login' }" role="tabpanel" aria-labelledby="tab-login" tabindex="0" :aria-hidden="activeTab === 'login' ? 'false' : 'true'" :hidden="activeTab !== 'login'">

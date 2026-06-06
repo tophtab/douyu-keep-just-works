@@ -27,11 +27,11 @@ const {
       {{ logsSummary }}
     </p>
     <div class="actions">
-      <button class="btn btn-secondary" type="button" :disabled="logsLoading" :aria-busy="logsLoading ? 'true' : 'false'" @click="refreshLogs">
-        {{ logsLoading ? '刷新中…' : '手动刷新' }}
-      </button>
       <button class="btn btn-danger" type="button" :disabled="clearingLogs" :aria-busy="clearingLogs ? 'true' : 'false'" @click="clearLogs">
         {{ clearingLogs ? '清空中…' : '清空日志' }}
+      </button>
+      <button class="btn btn-secondary" type="button" :disabled="logsLoading" :aria-busy="logsLoading ? 'true' : 'false'" @click="refreshLogs">
+        {{ logsLoading ? '刷新中…' : '手动刷新' }}
       </button>
       <label class="inline">
         <input id="logs-auto-refresh" v-model="logsAutoRefresh" type="checkbox" name="logs-auto-refresh">

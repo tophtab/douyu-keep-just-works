@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 48
+- **Total Sessions**: 49
 - **Last Active**: 2026-06-06
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1626 | Active |
+| `journal-1.md` | ~1659 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 49 | 2026-06-06 | Clean WebUI explanatory copy | `f6b43eb` | `master` |
 | 48 | 2026-06-06 | Remove low-value reuse helpers | `8ced5d3` | `master` |
 | 47 | 2026-06-06 | Share WebUI resource and cookie helpers | `ba8839a` | `master` |
 | 46 | 2026-06-06 | WebUI error feedback surfaces | `316d2b1` | `master` |

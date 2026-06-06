@@ -1624,3 +1624,36 @@ Removed the added cookie-source summary module, WebUI runResourceRequest helper,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 49: Clean WebUI explanatory copy
+
+**Date**: 2026-06-06
+**Task**: Clean WebUI explanatory copy
+**Branch**: `master`
+
+### Summary
+
+Removed low-value explanatory copy from Docker WebUI pages while preserving controls, data tables, empty states, and short error feedback; verified with lint, webui type-check, contract tests, and webui build.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f6b43eb` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

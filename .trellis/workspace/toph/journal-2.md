@@ -137,3 +137,36 @@ Swapped the run log page action buttons so clear logs appears before manual refr
 ### Next Steps
 
 - None - task complete
+
+
+## Session 64: Simplify config API and stabilize WebUI layout
+
+**Date**: 2026-06-07
+**Task**: Simplify config API and stabilize WebUI layout
+**Branch**: `master`
+
+### Summary
+
+Completed resumed session work: authenticated /api/config now returns complete editable config and /api/config/raw is removed; frontend config loading uses /api/config with loadConfig naming; overview remains summary-only; double allocation note removed; desktop scrollbar gutter and cookie textarea scrollbar/resize behavior stabilized; contract tests and Trellis specs updated.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `96d68d1` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

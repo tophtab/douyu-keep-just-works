@@ -337,3 +337,36 @@ Recorded live Douyu anchorPocket/effective card semantics and glow-stick double-
 ### Next Steps
 
 - None - task complete
+
+
+## Session 70: Clean test/spec redundancy
+
+**Date**: 2026-06-07
+**Task**: Clean test/spec redundancy
+**Branch**: `master`
+
+### Summary
+
+Conservative cleanup of contract-test fixture redundancy. Reduced repeated route login setup, WebUI component source surfaces, and Passport cookie-source fixtures while preserving contract guardrails. Verified contract tests, lint, type-check, and local duplicate scan.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `029a489` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

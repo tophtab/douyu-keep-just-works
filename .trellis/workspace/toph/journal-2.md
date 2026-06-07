@@ -404,3 +404,38 @@ Removed nonessential maintenance/source-inspection contract tests. First narrowe
 ### Next Steps
 
 - None - task complete
+
+
+## Session 72: Release 3.5.0
+
+**Date**: 2026-06-07
+**Task**: Release 3.5.0
+**Branch**: `master`
+
+### Summary
+
+Prepared the 3.5.0 changelog, created the release task record, and used npm version to update package metadata and create the local v3.5.0 tag after the release quality gate passed.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6516d65` | (see git log) |
+| `4e8dbac` | (see git log) |
+| `9cece83` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

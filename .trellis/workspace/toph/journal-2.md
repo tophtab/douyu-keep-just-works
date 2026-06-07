@@ -19,7 +19,8 @@ Updated the Docker WebUI sidebar project description copy and matching maintenan
 
 ### Main Changes
 
-(Add details)
+- Added backend code-spec coverage for Douyu `anchorPocket` and `effective` card payload semantics.
+- Captured glow-stick applicability rules: `type: 1` active records count, while `type: 22`, `type: 32`, and `type: 2` do not.
 
 ### Git Commits
 
@@ -29,7 +30,7 @@ Updated the Docker WebUI sidebar project description copy and matching maintenan
 
 ### Testing
 
-- [OK] (Add test results)
+- [OK] Documentation-only update; no runtime tests run.
 
 ### Status
 
@@ -291,6 +292,39 @@ Reduced duplicated test source-inspection helpers, narrowed internal barrel expo
 |------|---------|
 | `74e480a` | (see git log) |
 | `3b71e38` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 69: Record Douyu pocket double-card research
+
+**Date**: 2026-06-07
+**Task**: Record Douyu pocket double-card research
+**Branch**: `master`
+
+### Summary
+
+Recorded live Douyu anchorPocket/effective card semantics and glow-stick double-card detection rules in backend Trellis specs.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3c4b63e` | (see git log) |
 
 ### Testing
 

@@ -170,3 +170,36 @@ Completed resumed session work: authenticated /api/config now returns complete e
 ### Next Steps
 
 - None - task complete
+
+
+## Session 65: Mimic neko scrollbar styling
+
+**Date**: 2026-06-07
+**Task**: Mimic neko scrollbar styling
+**Branch**: `master`
+
+### Summary
+
+Adjusted Docker WebUI scrollbars to use a narrower transparent-track treatment modeled after neko-master while preserving project colors; documented the global scrollbar convention.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9b51cf6` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

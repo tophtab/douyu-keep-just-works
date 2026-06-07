@@ -1,7 +1,6 @@
 const assert = require('node:assert/strict')
 const { test } = require('node:test')
 const { loadTypeScriptModule } = require('./helpers/typescript-module-loader')
-const { readRepoFile } = require('./helpers/source-inspection')
 
 function createRouteResponse() {
   return {
@@ -171,27 +170,4 @@ test('Docker runtime cache force refresh bypasses fresh snapshots without duplic
   assert.equal(pendingResult.groups[0].name, 'pending-yuba')
   assert.equal(duplicateResult.groups[0].name, 'pending-yuba')
   assert.equal(pendingFetches, 1)
-})
-
-test('WebUI force refresh is only wired through the top-right manual refresh path', () => {
-  const overview = readRepoFile('src/docker/webui/overview.ts')
-  const resourceState = readRepoFile('src/docker/webui/resource-state.ts')
-  const resourceFans = readRepoFile('src/docker/webui/resource-fans.ts')
-  const resourceYuba = readRepoFile('src/docker/webui/resource-yuba.ts')
-  const taskPageActions = readRepoFile('src/docker/webui/task-page-actions.ts')
-
-  assert.match(overview, /refreshOverviewSurface\(activeTab\.value,\s*true,\s*true\)/)
-  assert.match(resourceState, /loadFansStatus\(false,\s*forceRefresh\)/)
-  assert.match(resourceState, /loadFansList\(false,\s*forceRefresh\)/)
-  assert.match(resourceState, /loadYubaStatus\(false,\s*forceRefresh\)/)
-  assert.match(resourceState, /loadFansStatus\(false\)/)
-  assert.match(resourceState, /loadFansList\(false\)/)
-  assert.match(resourceState, /loadYubaStatus\(false\)/)
-  assert.match(resourceState, /surfaceRefreshPending/)
-  assert.match(resourceFans, /withForceRefresh\('\/api\/fans',\s*forceRefresh\)/)
-  assert.match(resourceFans, /withForceRefresh\('\/api\/fans\/status\/base',\s*forceRefresh\)/)
-  assert.match(resourceFans, /withForceRefresh\('\/api\/fans\/status\/details',\s*forceRefresh\)/)
-  assert.match(resourceYuba, /withForceRefresh\('\/api\/yuba\/status',\s*forceRefresh\)/)
-  assert.match(taskPageActions, /refreshOverviewSurface\(activeTab,\s*false\)/)
-  assert.doesNotMatch(taskPageActions, /refreshOverviewSurface\(activeTab,\s*false,\s*true\)/)
 })

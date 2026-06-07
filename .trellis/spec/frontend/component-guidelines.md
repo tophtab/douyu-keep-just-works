@@ -74,6 +74,10 @@ import './styles/responsive.css'
 
 Use existing classes such as `btn`, `actions`, `page`, `field-block`, and table classes before inventing new styling primitives. Keep repeated visual structures as components rather than copying large template blocks.
 
+### Custom Scrollbars
+
+Global WebUI scrollbar styling belongs in `src/docker/webui/styles/base.css`. Keep the shape narrow with a transparent track and project-owned thumb color variables. Do not add a visible track background or a track-colored thumb border globally, because those rules apply to page, textarea, table, log, and any other internal scrollbars and can make every scroll surface look like a solid bar.
+
 ### Shared Section Components
 
 Use `PageSection.vue` for reusable panel sections that need consistent heading, header-action, and body spacing. Use `TaskSettingsSection.vue` for scheduled task settings panels that combine an enable switch, form controls, actions, and optional table/status content.

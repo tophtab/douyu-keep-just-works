@@ -23,6 +23,7 @@ These guidelines document current project reality, not an aspirational rewrite.
 | [Directory Structure](./directory-structure.md) | Module organization and file layout | Filled |
 | [Database Guidelines](./database-guidelines.md) | Persistence and config storage patterns | Filled |
 | [Douyu Auth Cookie Lifecycle](./auth-cookie-lifecycle.md) | Passport/main-site/Yuba cookie authority and lifetime contracts | Filled |
+| [Douyu Pocket and Double-Card Contracts](./douyu-pocket-contracts.md) | Anchor pocket/effective API fields and glow-stick multiplier rules | Filled |
 | [Error Handling](./error-handling.md) | Error types, handling strategies | Filled |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | Filled |
 | [Testing Guidelines](./testing-guidelines.md) | Contract-test taxonomy and modernization rules | Filled |
@@ -38,6 +39,7 @@ Before backend changes:
 - Read [Directory Structure](./directory-structure.md) when adding, moving, or splitting modules.
 - Read [Database Guidelines](./database-guidelines.md) before changing config persistence or adding durable state.
 - Read [Douyu Auth Cookie Lifecycle](./auth-cookie-lifecycle.md) before touching Passport QR login, CookieCloud cookie authority, credential recovery, or Yuba SSO.
+- Read [Douyu Pocket and Double-Card Contracts](./douyu-pocket-contracts.md) before changing glow-stick double-card detection, active room filtering, or Douyu pocket card interpretation.
 - Read [Error Handling](./error-handling.md) before touching routes, task runners, cookie handling, or Douyu API calls.
 - Read [Logging Guidelines](./logging-guidelines.md) before adding runtime messages.
 - Read [Testing Guidelines](./testing-guidelines.md) before adding, removing, or modernizing contract tests.

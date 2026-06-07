@@ -8,6 +8,36 @@ const {
 } = require('./helpers/source-inspection')
 const { loadTypeScriptModule } = require('./helpers/typescript-module-loader')
 
+const WEBUI_CORE_COMPONENT_FILES = {
+  actionBar: 'src/docker/webui/components/ActionBar.vue',
+  allocationTable: 'src/docker/webui/components/AllocationTable.vue',
+  appShell: 'src/docker/webui/components/AppShell.vue',
+  authShell: 'src/docker/webui/components/AuthShell.vue',
+  collectPage: 'src/docker/webui/components/CollectPage.vue',
+  cronField: 'src/docker/webui/components/CronField.vue',
+  doublePage: 'src/docker/webui/components/DoublePage.vue',
+  enableSwitch: 'src/docker/webui/components/EnableSwitch.vue',
+  expiringBackpackTable: 'src/docker/webui/components/ExpiringBackpackTable.vue',
+  expiringPage: 'src/docker/webui/components/ExpiringPage.vue',
+  fansStatusTable: 'src/docker/webui/components/FansStatusTable.vue',
+  keepalivePage: 'src/docker/webui/components/KeepalivePage.vue',
+  loginConfigPage: 'src/docker/webui/components/LoginConfigPage.vue',
+  logsPage: 'src/docker/webui/components/LogsPage.vue',
+  overviewPage: 'src/docker/webui/components/OverviewPage.vue',
+  pageSection: 'src/docker/webui/components/PageSection.vue',
+  sidebarNav: 'src/docker/webui/components/SidebarNav.vue',
+  tableSection: 'src/docker/webui/components/TableSection.vue',
+  taskSettingsSection: 'src/docker/webui/components/TaskSettingsSection.vue',
+  taskStatusCard: 'src/docker/webui/components/TaskStatusCard.vue',
+  topToolbar: 'src/docker/webui/components/TopToolbar.vue',
+  yubaPage: 'src/docker/webui/components/YubaPage.vue',
+  yubaStatusTable: 'src/docker/webui/components/YubaStatusTable.vue',
+}
+
+function readNamedRepoFiles(filesByName) {
+  return Object.fromEntries(Object.entries(filesByName).map(([name, file]) => [name, readRepoFile(file)]))
+}
+
 function extractExportedStringConstant(source, name) {
   const match = source.match(new RegExp(`export const ${name} = '([^']+)'`))
   assert.ok(match, `Missing exported constant ${name}`)
@@ -182,29 +212,31 @@ test('Docker WebUI remains Vue-only without legacy bridge files', () => {
   const main = readRepoFile('src/docker/webui/main.ts')
   const appVue = readRepoFile('src/docker/webui/App.vue')
   const appEvents = readRepoFile('src/docker/webui/app-events.ts')
-  const appShell = readRepoFile('src/docker/webui/components/AppShell.vue')
-  const sidebarNav = readRepoFile('src/docker/webui/components/SidebarNav.vue')
-  const topToolbar = readRepoFile('src/docker/webui/components/TopToolbar.vue')
-  const authShell = readRepoFile('src/docker/webui/components/AuthShell.vue')
-  const overviewPage = readRepoFile('src/docker/webui/components/OverviewPage.vue')
-  const loginConfigPage = readRepoFile('src/docker/webui/components/LoginConfigPage.vue')
-  const collectPage = readRepoFile('src/docker/webui/components/CollectPage.vue')
-  const yubaPage = readRepoFile('src/docker/webui/components/YubaPage.vue')
-  const keepalivePage = readRepoFile('src/docker/webui/components/KeepalivePage.vue')
-  const doublePage = readRepoFile('src/docker/webui/components/DoublePage.vue')
-  const expiringPage = readRepoFile('src/docker/webui/components/ExpiringPage.vue')
-  const logsPage = readRepoFile('src/docker/webui/components/LogsPage.vue')
-  const taskStatusCard = readRepoFile('src/docker/webui/components/TaskStatusCard.vue')
-  const pageSection = readRepoFile('src/docker/webui/components/PageSection.vue')
-  const taskSettingsSection = readRepoFile('src/docker/webui/components/TaskSettingsSection.vue')
-  const tableSection = readRepoFile('src/docker/webui/components/TableSection.vue')
-  const cronField = readRepoFile('src/docker/webui/components/CronField.vue')
-  const enableSwitch = readRepoFile('src/docker/webui/components/EnableSwitch.vue')
-  const actionBar = readRepoFile('src/docker/webui/components/ActionBar.vue')
-  const fansStatusTable = readRepoFile('src/docker/webui/components/FansStatusTable.vue')
-  const yubaStatusTable = readRepoFile('src/docker/webui/components/YubaStatusTable.vue')
-  const allocationTable = readRepoFile('src/docker/webui/components/AllocationTable.vue')
-  const expiringBackpackTable = readRepoFile('src/docker/webui/components/ExpiringBackpackTable.vue')
+  const {
+    actionBar,
+    allocationTable,
+    appShell,
+    authShell,
+    collectPage,
+    cronField,
+    doublePage,
+    enableSwitch,
+    expiringBackpackTable,
+    expiringPage,
+    fansStatusTable,
+    keepalivePage,
+    loginConfigPage,
+    logsPage,
+    overviewPage,
+    pageSection,
+    sidebarNav,
+    tableSection,
+    taskSettingsSection,
+    taskStatusCard,
+    topToolbar,
+    yubaPage,
+    yubaStatusTable,
+  } = readNamedRepoFiles(WEBUI_CORE_COMPONENT_FILES)
   const auth = readRepoFile('src/docker/webui/auth.ts')
   const navigation = readRepoFile('src/docker/webui/navigation.ts')
   const request = readRepoFile('src/docker/webui/request.ts')
@@ -292,23 +324,25 @@ test('Docker WebUI remains Vue-only without legacy bridge files', () => {
 
 test('Docker WebUI resource and page ownership stays in focused Vue modules', () => {
   // Contract label: Shape. Focused ownership checks guide future WebUI refactors.
-  const appShell = readRepoFile('src/docker/webui/components/AppShell.vue')
-  const sidebarNav = readRepoFile('src/docker/webui/components/SidebarNav.vue')
-  const topToolbar = readRepoFile('src/docker/webui/components/TopToolbar.vue')
-  const authShell = readRepoFile('src/docker/webui/components/AuthShell.vue')
-  const overviewPage = readRepoFile('src/docker/webui/components/OverviewPage.vue')
-  const loginConfigPage = readRepoFile('src/docker/webui/components/LoginConfigPage.vue')
-  const collectPage = readRepoFile('src/docker/webui/components/CollectPage.vue')
-  const yubaPage = readRepoFile('src/docker/webui/components/YubaPage.vue')
-  const keepalivePage = readRepoFile('src/docker/webui/components/KeepalivePage.vue')
-  const doublePage = readRepoFile('src/docker/webui/components/DoublePage.vue')
-  const expiringPage = readRepoFile('src/docker/webui/components/ExpiringPage.vue')
-  const logsPage = readRepoFile('src/docker/webui/components/LogsPage.vue')
-  const fansStatusTable = readRepoFile('src/docker/webui/components/FansStatusTable.vue')
-  const yubaStatusTable = readRepoFile('src/docker/webui/components/YubaStatusTable.vue')
-  const allocationTable = readRepoFile('src/docker/webui/components/AllocationTable.vue')
-  const expiringBackpackTable = readRepoFile('src/docker/webui/components/ExpiringBackpackTable.vue')
-  const tableSection = readRepoFile('src/docker/webui/components/TableSection.vue')
+  const {
+    allocationTable,
+    appShell,
+    authShell,
+    collectPage,
+    doublePage,
+    expiringBackpackTable,
+    expiringPage,
+    fansStatusTable,
+    keepalivePage,
+    loginConfigPage,
+    logsPage,
+    overviewPage,
+    sidebarNav,
+    tableSection,
+    topToolbar,
+    yubaPage,
+    yubaStatusTable,
+  } = readNamedRepoFiles(WEBUI_CORE_COMPONENT_FILES)
   const allocationTask = readRepoFile('src/docker/webui/allocation-task.ts')
   const fanDisplay = readRepoFile('src/docker/webui/fan-display.ts')
   const resources = readRepoFile('src/docker/webui/resource-state.ts')

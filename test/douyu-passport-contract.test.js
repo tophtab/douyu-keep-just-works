@@ -5,6 +5,76 @@ const path = require('node:path')
 const { test } = require('node:test')
 const { loadTypeScriptModule } = require('./helpers/typescript-module-loader')
 
+const REFRESHED_MAIN_COOKIE = [
+  'dy_did=did-redacted',
+  'acf_uid=uid-redacted',
+  'acf_auth=auth-redacted',
+  'acf_stk=stk-redacted',
+  'acf_ltkid=ltk-redacted',
+  'acf_username=user-redacted',
+  'acf_biz=biz-redacted',
+  'acf_ct=ct-redacted',
+].join('; ')
+
+function createManualRecoveryDeps(overrides) {
+  return {
+    hasCookieCloudSource: () => false,
+    persistEffectiveCookies: async () => {
+      throw new Error('CookieCloud should not be used')
+    },
+    loadCookieCloudSnapshot: async () => {
+      throw new Error('CookieCloud should not be loaded')
+    },
+    getCurrentMainCookie: () => '',
+    getCurrentYubaCookie: () => '',
+    getManualPassportCookie: () => '',
+    persistManualCookieSnapshot: () => {
+      throw new Error('should not persist')
+    },
+    validateMainCookie: async (mainCookie) => {
+      if (mainCookie.includes('uid-old')) {
+        throw new Error('请检查主站 Cookie')
+      }
+    },
+    log: () => {},
+    ...overrides,
+  }
+}
+
+function recordManualCookieSnapshot(persisted) {
+  return (mainCookie, yubaCookie) => {
+    persisted.push({ mainCookie, yubaCookie })
+    return { cookie: mainCookie, manualCookies: { main: mainCookie, yuba: yubaCookie } }
+  }
+}
+
+function createCookieSourceManagerHarness(DockerCookieSourceManager, initialConfig, options = {}) {
+  let config = initialConfig
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), options.prefix ?? 'douyu-cookie-source-'))
+  const configPath = path.join(tempDir, 'config.json')
+  const manager = new DockerCookieSourceManager(
+    () => config,
+    (nextConfig) => {
+      config = nextConfig
+    },
+    () => configPath,
+    (nextConfig) => {
+      config = nextConfig
+    },
+    options.log ?? (() => {}),
+    options.invalidateCache ?? (() => {}),
+  )
+
+  return {
+    cleanup: () => {
+      fs.rmSync(tempDir, { recursive: true, force: true })
+    },
+    configPath,
+    getConfig: () => config,
+    manager,
+  }
+}
+
 test('CookieCloud can build passport cookie material without exposing the value in diagnostics', () => {
   const { createCookieDiagnostics, getCookieCloudPassportCookie } = loadTypeScriptModule('src/core/cookie-cloud.ts')
   const cookies = [
@@ -423,16 +493,7 @@ test('credential recovery uses manual passport cookie to refresh main and Yuba c
       refreshDouyuMainCookiesWithSafeAuth: async (args) => {
         safeAuthArgs = args
         return {
-          refreshedCookie: [
-            'dy_did=did-redacted',
-            'acf_uid=uid-redacted',
-            'acf_auth=auth-redacted',
-            'acf_stk=stk-redacted',
-            'acf_ltkid=ltk-redacted',
-            'acf_username=user-redacted',
-            'acf_biz=biz-redacted',
-            'acf_ct=ct-redacted',
-          ].join('; '),
+          refreshedCookie: REFRESHED_MAIN_COOKIE,
           returnedKeys: ['acf_auth', 'acf_uid'],
         }
       },
@@ -447,29 +508,13 @@ test('credential recovery uses manual passport cookie to refresh main and Yuba c
   })
   const persisted = []
 
-  const result = await recoverCredentialSnapshot({
-    hasCookieCloudSource: () => false,
-    persistEffectiveCookies: async () => {
-      throw new Error('CookieCloud should not be used')
-    },
-    loadCookieCloudSnapshot: async () => {
-      throw new Error('CookieCloud should not be loaded')
-    },
+  const result = await recoverCredentialSnapshot(createManualRecoveryDeps({
     getCurrentMainCookie: () => 'acf_uid=uid-old; acf_auth=auth-old; acf_stk=stk-old; acf_ltkid=ltk-old; acf_username=user-old; acf_biz=biz-old; acf_ct=ct-old',
     getCurrentYubaCookie: () => 'yuba=kept',
     getManualPassportCookie: () => 'dy_did=did-from-passport; LTP0=manual-ltp0-redacted',
-    persistManualCookieSnapshot: (mainCookie, yubaCookie) => {
-      persisted.push({ mainCookie, yubaCookie })
-      return { cookie: mainCookie, manualCookies: { main: mainCookie, yuba: yubaCookie } }
-    },
-    validateMainCookie: async (mainCookie) => {
-      if (mainCookie.includes('uid-old')) {
-        throw new Error('请检查主站 Cookie')
-      }
-    },
-    log: () => {},
+    persistManualCookieSnapshot: recordManualCookieSnapshot(persisted),
     recoverYubaCookie: true,
-  })
+  }))
 
   assert.equal(result.recovered, true)
   assert.equal(result.refreshedBy, 'safeAuth')
@@ -481,16 +526,7 @@ test('credential recovery uses manual passport cookie to refresh main and Yuba c
   })
   assert.deepEqual(JSON.parse(JSON.stringify(yubaSsoArgs)), {
     passportCookie: 'dy_did=did-from-passport; LTP0=manual-ltp0-redacted',
-    mainCookie: [
-      'dy_did=did-redacted',
-      'acf_uid=uid-redacted',
-      'acf_auth=auth-redacted',
-      'acf_stk=stk-redacted',
-      'acf_ltkid=ltk-redacted',
-      'acf_username=user-redacted',
-      'acf_biz=biz-redacted',
-      'acf_ct=ct-redacted',
-    ].join('; '),
+    mainCookie: REFRESHED_MAIN_COOKIE,
   })
   assert.equal(persisted.length, 1)
   assert.equal(persisted[0].yubaCookie, 'acf_yb_auth=yb-auth-redacted; acf_yb_uid=yb-uid-redacted; acf_yb_t=yb-t-redacted')
@@ -500,16 +536,7 @@ test('credential recovery keeps existing Yuba cookie when Yuba SSO fails after m
   const { recoverCredentialSnapshot } = loadTypeScriptModule('src/docker/runtime-cookie-recovery.ts', {
     '../core/douyu-passport': {
       refreshDouyuMainCookiesWithSafeAuth: async () => ({
-        refreshedCookie: [
-          'dy_did=did-redacted',
-          'acf_uid=uid-redacted',
-          'acf_auth=auth-redacted',
-          'acf_stk=stk-redacted',
-          'acf_ltkid=ltk-redacted',
-          'acf_username=user-redacted',
-          'acf_biz=biz-redacted',
-          'acf_ct=ct-redacted',
-        ].join('; '),
+        refreshedCookie: REFRESHED_MAIN_COOKIE,
         returnedKeys: ['acf_auth', 'acf_uid'],
       }),
       fetchDouyuYubaCookiesWithPassport: async () => {
@@ -519,29 +546,13 @@ test('credential recovery keeps existing Yuba cookie when Yuba SSO fails after m
   })
   const persisted = []
 
-  const result = await recoverCredentialSnapshot({
-    hasCookieCloudSource: () => false,
-    persistEffectiveCookies: async () => {
-      throw new Error('CookieCloud should not be used')
-    },
-    loadCookieCloudSnapshot: async () => {
-      throw new Error('CookieCloud should not be loaded')
-    },
+  const result = await recoverCredentialSnapshot(createManualRecoveryDeps({
     getCurrentMainCookie: () => 'dy_did=did-redacted; acf_uid=uid-old; acf_auth=auth-old; acf_stk=stk-old; acf_ltkid=ltk-old; acf_username=user-old; acf_biz=biz-old; acf_ct=ct-old',
     getCurrentYubaCookie: () => 'acf_yb_auth=old-yuba; acf_yb_uid=old-uid; acf_yb_t=old-t',
     getManualPassportCookie: () => 'dy_did=did-redacted; LTP0=manual-ltp0-redacted',
-    persistManualCookieSnapshot: (mainCookie, yubaCookie) => {
-      persisted.push({ mainCookie, yubaCookie })
-      return { cookie: mainCookie, manualCookies: { main: mainCookie, yuba: yubaCookie } }
-    },
-    validateMainCookie: async (mainCookie) => {
-      if (mainCookie.includes('uid-old')) {
-        throw new Error('请检查主站 Cookie')
-      }
-    },
-    log: () => {},
+    persistManualCookieSnapshot: recordManualCookieSnapshot(persisted),
     recoverYubaCookie: true,
-  })
+  }))
 
   assert.equal(result.recovered, true)
   assert.equal(result.refreshedBy, 'safeAuth')
@@ -656,7 +667,7 @@ test('CookieCloud persist stores passport cookie in the local manual passport sn
       isCookieCloudReady: config => Boolean(config?.active && config.endpoint && config.uuid && config.password),
     },
   })
-  let config = {
+  const initialConfig = {
     cookie: '',
     cookieCloud: {
       active: true,
@@ -666,34 +677,22 @@ test('CookieCloud persist stores passport cookie in the local manual passport sn
     },
   }
   const cacheInvalidations = []
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'douyu-cookie-source-'))
-  const configPath = path.join(tempDir, 'config.json')
+  const harness = createCookieSourceManagerHarness(DockerCookieSourceManager, initialConfig, {
+    invalidateCache: (scope) => {
+      cacheInvalidations.push(scope)
+    },
+  })
 
   try {
-    const manager = new DockerCookieSourceManager(
-      () => config,
-      (nextConfig) => {
-        config = nextConfig
-      },
-      () => configPath,
-      (nextConfig) => {
-        config = nextConfig
-      },
-      () => {},
-      (scope) => {
-        cacheInvalidations.push(scope)
-      },
-    )
-
-    const result = await manager.persistEffectiveCookies(true)
-    const savedConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    const result = await harness.manager.persistEffectiveCookies(true)
+    const savedConfig = JSON.parse(fs.readFileSync(harness.configPath, 'utf8'))
 
     assert.equal(result.config.manualPassport.cookie, 'dy_did=did-redacted; LTP0=ltp0-redacted')
     assert.equal(savedConfig.manualPassport.cookie, 'dy_did=did-redacted; LTP0=ltp0-redacted')
     assert.equal(savedConfig.manualCookies.main.includes('acf_auth=auth-redacted'), true)
     assert.deepEqual(cacheInvalidations, ['all'])
   } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true })
+    harness.cleanup()
   }
 })
 
@@ -719,7 +718,7 @@ test('CookieCloud persist keeps complete local snapshots when fresh CookieCloud 
       isCookieCloudReady: config => Boolean(config?.active && config.endpoint && config.uuid && config.password),
     },
   })
-  let config = {
+  const initialConfig = {
     cookie: completeMain,
     manualCookies: {
       main: completeMain,
@@ -732,28 +731,14 @@ test('CookieCloud persist keeps complete local snapshots when fresh CookieCloud 
       password: 'password-redacted',
     },
   }
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'douyu-cookie-source-'))
-  const configPath = path.join(tempDir, 'config.json')
+  const harness = createCookieSourceManagerHarness(DockerCookieSourceManager, initialConfig)
 
   try {
-    const manager = new DockerCookieSourceManager(
-      () => config,
-      (nextConfig) => {
-        config = nextConfig
-      },
-      () => configPath,
-      (nextConfig) => {
-        config = nextConfig
-      },
-      () => {},
-      () => {},
-    )
-
-    const result = await manager.persistEffectiveCookies(true)
+    const result = await harness.manager.persistEffectiveCookies(true)
     assert.equal(result.config.manualCookies.main, completeMain)
     assert.equal(result.config.manualCookies.yuba, completeYuba)
   } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true })
+    harness.cleanup()
   }
 })
 
@@ -765,7 +750,7 @@ test('passport QR login session persists passport and main before retryable Yuba
   const secretYubaAuth = 'yuba-auth-redacted-secret-value'
   let pollAttempts = 0
   let yubaAttempts = 0
-  let config = {
+  const initialConfig = {
     cookie: '',
     manualCookies: {
       main: '',
@@ -830,22 +815,12 @@ test('passport QR login session persists passport and main before retryable Yuba
       },
     },
   })
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'douyu-qr-login-'))
-  const configPath = path.join(tempDir, 'config.json')
+  const harness = createCookieSourceManagerHarness(DockerCookieSourceManager, initialConfig, {
+    prefix: 'douyu-qr-login-',
+  })
 
   try {
-    const manager = new DockerCookieSourceManager(
-      () => config,
-      (nextConfig) => {
-        config = nextConfig
-      },
-      () => configPath,
-      (nextConfig) => {
-        config = nextConfig
-      },
-      () => {},
-      () => {},
-    )
+    const { manager } = harness
 
     const started = await manager.startPassportQrLogin()
     assert.equal(started.status, 'waiting')
@@ -870,6 +845,7 @@ test('passport QR login session persists passport and main before retryable Yuba
     const mainSaved = await manager.pollPassportQrLogin()
     assert.equal(mainSaved.status, 'main_saved')
     assert.equal(mainSaved.mainSaved, true)
+    const config = harness.getConfig()
     assert.equal(config.manualPassport.cookie.includes(secretPassport), true)
     assert.equal(config.manualPassport.cookie.includes('dy_did=did-redacted'), true)
     assert.equal(config.manualCookies.main.includes(secretMainAuth), true)
@@ -885,9 +861,9 @@ test('passport QR login session persists passport and main before retryable Yuba
     const yubaSaved = await manager.retryPassportQrLoginYuba()
     assert.equal(yubaSaved.status, 'yuba_saved')
     assert.equal(yubaSaved.yubaSaved, true)
-    assert.equal(config.manualCookies.yuba.includes(secretYubaAuth), true)
+    assert.equal(harness.getConfig().manualCookies.yuba.includes(secretYubaAuth), true)
     assert.equal(JSON.stringify(yubaSaved).includes(secretYubaAuth), false)
   } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true })
+    harness.cleanup()
   }
 })

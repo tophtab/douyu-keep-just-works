@@ -173,6 +173,16 @@ function getSessionCookie(response) {
   return cookieHeader.split(';')[0]
 }
 
+async function loginAndGetSessionCookie(baseUrl) {
+  const login = await requestJson(`${baseUrl}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: 'secret' }),
+  })
+  assert.equal(login.response.status, 200)
+  return getSessionCookie(login.response)
+}
+
 test('createServer injects configured WebUI theme into served HTML', async () => {
   const { context, setConfig } = createRouteTestContext()
   setConfig({
@@ -218,13 +228,7 @@ test('createServer protects config route and keeps overview summary free of conf
     assert.equal(unauthenticatedConfig.response.status, 401)
     assert.deepEqual(unauthenticatedConfig.body, { error: '请先登录' })
 
-    const login = await requestJson(`${baseUrl}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: 'secret' }),
-    })
-    assert.equal(login.response.status, 200)
-    const sessionCookie = getSessionCookie(login.response)
+    const sessionCookie = await loginAndGetSessionCookie(baseUrl)
 
     const config = await requestJson(`${baseUrl}/api/config`, {
       headers: { Cookie: sessionCookie },
@@ -259,12 +263,7 @@ test('createServer returns complete config in config mutation responses', async 
   const nextPassportCookie = 'dy_did=did-next-redacted; LTP0=next-passport-ltp0-redacted-secret-value'
 
   await withServer(createServer(context), async (baseUrl) => {
-    const login = await requestJson(`${baseUrl}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: 'secret' }),
-    })
-    const sessionCookie = getSessionCookie(login.response)
+    const sessionCookie = await loginAndGetSessionCookie(baseUrl)
 
     const saveResult = await requestJson(`${baseUrl}/api/config`, {
       method: 'POST',
@@ -295,12 +294,7 @@ test('createServer config mutations validate before save and return JSON envelop
   const nextYubaCookie = 'acf_yb_uid=next-yb-redacted; acf_yb_t=next-yuba-redacted-secret-value'
 
   await withServer(createServer(context), async (baseUrl) => {
-    const login = await requestJson(`${baseUrl}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: 'secret' }),
-    })
-    const sessionCookie = getSessionCookie(login.response)
+    const sessionCookie = await loginAndGetSessionCookie(baseUrl)
 
     const missingCookie = await requestJson(`${baseUrl}/api/cookie`, {
       method: 'POST',
@@ -381,12 +375,7 @@ test('createServer cookie-source routes keep diagnostics local and persist with 
   const { calls, context, setConfig } = createRouteTestContext()
 
   await withServer(createServer(context), async (baseUrl) => {
-    const login = await requestJson(`${baseUrl}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: 'secret' }),
-    })
-    const sessionCookie = getSessionCookie(login.response)
+    const sessionCookie = await loginAndGetSessionCookie(baseUrl)
 
     const check = await requestJson(`${baseUrl}/api/cookie-source/check`, {
       method: 'POST',

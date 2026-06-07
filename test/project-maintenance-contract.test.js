@@ -37,7 +37,7 @@ test('Node runtime version is aligned across package metadata, Docker, CI, and d
   const contributing = readRepoFile('CONTRIBUTING.md')
 
   assert.equal(packageJson.engines?.node, '>=24 <25')
-  assert.match(dockerfile, /^FROM node:24-slim AS builder$/m)
+  assert.match(dockerfile, /^FROM node:24-slim AS deps$/m)
   assert.match(dockerfile, /^FROM node:24-slim AS runtime$/m)
   assert.match(workflow, /^\s+node-version: 24$/m)
   assert.match(contributing, /- Node\.js 24/)
@@ -52,6 +52,61 @@ test('npm test remains a contract-test plus Docker-build quality gate', () => {
   assert.equal(packageJson.scripts?.['test:contracts'], 'node --test test/*.test.js')
   assert.equal(packageJson.scripts?.test, 'npm run test:contracts && npm run build:docker')
   assert.match(contributing, /contract tests and then the Docker\s+build/)
+})
+
+test('Docker image build installs dependencies once and prunes for runtime', () => {
+  // Contract label: Guardrail. The runtime image should not repeat network dependency install.
+  const dockerfile = readRepoFile('Dockerfile')
+  const npmCiCommands = dockerfile.match(/^RUN npm ci\b/gm) ?? []
+
+  assert.equal(npmCiCommands.length, 1)
+  assert.match(dockerfile, /FROM deps AS production-deps\n\nRUN npm prune --omit=dev --omit=optional/)
+  assert.match(dockerfile, /FROM deps AS builder\n\nCOPY src \.\/src/)
+  assert.match(dockerfile, /npm prune --omit=dev --omit=optional/)
+  assert.match(dockerfile, /COPY --from=production-deps \/app\/node_modules \.\/node_modules/)
+  assert.doesNotMatch(dockerfile, /FROM node:24-slim AS runtime[\s\S]*RUN npm ci/)
+})
+
+test('Docker context is limited to current image build inputs', () => {
+  // Contract label: Guardrail. Local metadata and docs should not affect Docker cache keys.
+  const dockerignore = readRepoFile('.dockerignore')
+  const activeRules = dockerignore
+    .split(/\r?\n/)
+    .filter(line => line !== '' && !line.startsWith('#'))
+
+  assert.deepEqual(activeRules, [
+    '*',
+    '!Dockerfile',
+    '!.dockerignore',
+    '!package.json',
+    '!package-lock.json',
+    '!tsconfig.docker.json',
+    '!tsconfig.webui.json',
+    '!vite.config.ts',
+    '!src/',
+    '!src/**',
+  ])
+})
+
+test('Docker workflow triggers only for image-affecting paths on branches and PRs', () => {
+  // Contract label: Guardrail. Documentation-only changes should not spend Docker build minutes.
+  const workflow = readRepoFile('.github/workflows/docker.yml')
+
+  assert.match(workflow, /push:\n\s+branches: \[master\]\n\s+tags: \['V\*\.\*\.\*', 'v\*\.\*\.\*'\]\n\s+paths:/)
+  assert.match(workflow, /pull_request:\n\s+branches: \[master\]\n\s+paths:/)
+  for (const imagePath of [
+    '.github/workflows/docker.yml',
+    '.dockerignore',
+    'Dockerfile',
+    'package.json',
+    'package-lock.json',
+    'tsconfig.docker.json',
+    'tsconfig.webui.json',
+    'vite.config.ts',
+    'src/**',
+  ]) {
+    assert.ok(workflow.includes(`- '${imagePath}'`))
+  }
 })
 
 test('config example cron defaults stay aligned with core defaults', () => {

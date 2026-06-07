@@ -5,8 +5,28 @@ on:
   push:
     branches: [master]
     tags: ['V*.*.*', 'v*.*.*']
+    paths:
+      - '.github/workflows/docker.yml'
+      - '.dockerignore'
+      - 'Dockerfile'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.docker.json'
+      - 'tsconfig.webui.json'
+      - 'vite.config.ts'
+      - 'src/**'
   pull_request:
     branches: [master]
+    paths:
+      - '.github/workflows/docker.yml'
+      - '.dockerignore'
+      - 'Dockerfile'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.docker.json'
+      - 'tsconfig.webui.json'
+      - 'vite.config.ts'
+      - 'src/**'
 
 permissions:
   contents: read

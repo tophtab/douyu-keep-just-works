@@ -1,4 +1,4 @@
-FROM node:24-slim AS builder
+FROM node:24-slim AS deps
 
 WORKDIR /app
 
@@ -6,6 +6,12 @@ ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 COPY package.json package-lock.json tsconfig.docker.json tsconfig.webui.json vite.config.ts ./
 RUN npm ci --ignore-scripts --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
+
+FROM deps AS production-deps
+
+RUN npm prune --omit=dev --omit=optional --ignore-scripts --no-audit --no-fund
+
+FROM deps AS builder
 
 COPY src ./src
 RUN npm run build:docker
@@ -19,9 +25,8 @@ ENV TZ=Asia/Shanghai
 ENV WEB_PORT=51417
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --omit=optional --ignore-scripts --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
-
+COPY --from=production-deps /app/package.json /app/package-lock.json ./
+COPY --from=production-deps /app/node_modules ./node_modules
 COPY --from=builder /app/build/docker ./dist/
 
 RUN mkdir -p /app/config

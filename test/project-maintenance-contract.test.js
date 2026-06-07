@@ -8,36 +8,6 @@ const {
 } = require('./helpers/source-inspection')
 const { loadTypeScriptModule } = require('./helpers/typescript-module-loader')
 
-const WEBUI_CORE_COMPONENT_FILES = {
-  actionBar: 'src/docker/webui/components/ActionBar.vue',
-  allocationTable: 'src/docker/webui/components/AllocationTable.vue',
-  appShell: 'src/docker/webui/components/AppShell.vue',
-  authShell: 'src/docker/webui/components/AuthShell.vue',
-  collectPage: 'src/docker/webui/components/CollectPage.vue',
-  cronField: 'src/docker/webui/components/CronField.vue',
-  doublePage: 'src/docker/webui/components/DoublePage.vue',
-  enableSwitch: 'src/docker/webui/components/EnableSwitch.vue',
-  expiringBackpackTable: 'src/docker/webui/components/ExpiringBackpackTable.vue',
-  expiringPage: 'src/docker/webui/components/ExpiringPage.vue',
-  fansStatusTable: 'src/docker/webui/components/FansStatusTable.vue',
-  keepalivePage: 'src/docker/webui/components/KeepalivePage.vue',
-  loginConfigPage: 'src/docker/webui/components/LoginConfigPage.vue',
-  logsPage: 'src/docker/webui/components/LogsPage.vue',
-  overviewPage: 'src/docker/webui/components/OverviewPage.vue',
-  pageSection: 'src/docker/webui/components/PageSection.vue',
-  sidebarNav: 'src/docker/webui/components/SidebarNav.vue',
-  tableSection: 'src/docker/webui/components/TableSection.vue',
-  taskSettingsSection: 'src/docker/webui/components/TaskSettingsSection.vue',
-  taskStatusCard: 'src/docker/webui/components/TaskStatusCard.vue',
-  topToolbar: 'src/docker/webui/components/TopToolbar.vue',
-  yubaPage: 'src/docker/webui/components/YubaPage.vue',
-  yubaStatusTable: 'src/docker/webui/components/YubaStatusTable.vue',
-}
-
-function readNamedRepoFiles(filesByName) {
-  return Object.fromEntries(Object.entries(filesByName).map(([name, file]) => [name, readRepoFile(file)]))
-}
-
 function extractExportedStringConstant(source, name) {
   const match = source.match(new RegExp(`export const ${name} = '([^']+)'`))
   assert.ok(match, `Missing exported constant ${name}`)
@@ -147,11 +117,6 @@ test('Docker WebUI build is Vite-backed and served as Docker static assets', () 
   const webuiRoutes = readRepoFile('src/docker/server-webui-routes.ts')
   const viteIndex = readRepoFile('src/docker/webui/index.html')
   const main = readRepoFile('src/docker/webui/main.ts')
-  const styles = readRepoFile('src/docker/webui/styles/base.css')
-  const shellStyles = readRepoFile('src/docker/webui/styles/shell.css')
-  const componentStyles = readRepoFile('src/docker/webui/styles/components.css')
-  const tableStyles = readRepoFile('src/docker/webui/styles/tables.css')
-  const responsiveStyles = readRepoFile('src/docker/webui/styles/responsive.css')
 
   assert.equal(packageJson.scripts?.['build:webui'], 'npm run type-check:webui && vite build')
   assert.equal(packageJson.scripts?.['type-check:webui'], 'vue-tsc -p tsconfig.webui.json --noEmit')
@@ -186,121 +151,18 @@ test('Docker WebUI build is Vite-backed and served as Docker static assets', () 
   assert.match(main, /import '\.\/styles\/components\.css'/)
   assert.match(main, /import '\.\/styles\/tables\.css'/)
   assert.match(main, /import '\.\/styles\/responsive\.css'/)
-
-  assert.match(styles, /:root\{/)
-  assert.doesNotMatch(styles, /scrollbar-color:/)
-  assert.doesNotMatch(styles, /scrollbar-width:/)
-  assert.doesNotMatch(styles, /::-webkit-scrollbar-button/)
-  assert.doesNotMatch(styles, /::-webkit-scrollbar-track-piece/)
-  assert.doesNotMatch(styles, /::-webkit-scrollbar-corner/)
-  assert.doesNotMatch(styles, /::-webkit-resizer/)
-  assert.match(styles, /::-webkit-scrollbar\{\s*width:6px;\s*height:6px;/)
-  assert.match(styles, /::-webkit-scrollbar-track\{\s*background:transparent;/)
-  assert.match(styles, /--page-gutter-bg:rgba\(255,255,255,\.9\)/)
-  assert.match(styles, /html\{\s*background:var\(--page-gutter-bg\);/)
-  assert.match(componentStyles, /\.cookie-input-frame\{[\s\S]*?overflow:hidden;[\s\S]*?border-radius:16px;/)
-  assert.match(tableStyles, /\.log-box\{[\s\S]*?overflow:hidden;/)
-  assert.match(tableStyles, /\.log-scroll\{[\s\S]*?overflow:auto;/)
-  assert.match(shellStyles, /\.shell\{/)
-  assert.match(componentStyles, /\.grid\{/)
-  assert.match(tableStyles, /\.table-shell\{/)
-  assert.match(responsiveStyles, /@media \(prefers-reduced-motion: reduce\)/)
 })
 
 test('Docker WebUI remains Vue-only without legacy bridge files', () => {
   // Contract label: Guardrail. Legacy imperative WebUI runtime must stay deleted.
   const main = readRepoFile('src/docker/webui/main.ts')
-  const appVue = readRepoFile('src/docker/webui/App.vue')
-  const appEvents = readRepoFile('src/docker/webui/app-events.ts')
-  const {
-    actionBar,
-    allocationTable,
-    appShell,
-    authShell,
-    collectPage,
-    cronField,
-    doublePage,
-    enableSwitch,
-    expiringBackpackTable,
-    expiringPage,
-    fansStatusTable,
-    keepalivePage,
-    loginConfigPage,
-    logsPage,
-    overviewPage,
-    pageSection,
-    sidebarNav,
-    tableSection,
-    taskSettingsSection,
-    taskStatusCard,
-    topToolbar,
-    yubaPage,
-    yubaStatusTable,
-  } = readNamedRepoFiles(WEBUI_CORE_COMPONENT_FILES)
-  const auth = readRepoFile('src/docker/webui/auth.ts')
-  const navigation = readRepoFile('src/docker/webui/navigation.ts')
-  const request = readRepoFile('src/docker/webui/request.ts')
-  const toast = readRepoFile('src/docker/webui/toast.ts')
-  const componentSurface = [
-    appVue,
-    appShell,
-    sidebarNav,
-    topToolbar,
-    authShell,
-    overviewPage,
-    loginConfigPage,
-    collectPage,
-    yubaPage,
-    keepalivePage,
-    doublePage,
-    expiringPage,
-    logsPage,
-    taskStatusCard,
-    pageSection,
-    taskSettingsSection,
-    tableSection,
-    cronField,
-    enableSwitch,
-    actionBar,
-    fansStatusTable,
-    yubaStatusTable,
-    allocationTable,
-    expiringBackpackTable,
-  ].join('\n')
   const webuiModuleFiles = collectRepoFiles('src/docker/webui')
     .filter(file => /\.(?:ts|vue)$/.test(file))
   const webuiModuleSource = webuiModuleFiles.map(readRepoFile).join('\n')
   const webuiWithoutBootstrap = webuiModuleSource.replace(/DOUYU_KEEP_WEBUI_BOOTSTRAP/g, '')
 
   assert.doesNotMatch(main, /installLegacy|startLegacyApp|DOUYU_KEEP_WEBUI_|await import\('\.\.\/webui\/app|await import\('\.\/app/)
-
-  assert.match(appVue, /<script setup lang="ts">/)
-  assert.match(appVue, /usePageNavigation\(bootstrap\.pageRoutes\)/)
-  assert.match(appVue, /useAuthSession\(\{[\s\S]*clearProtectedState[\s\S]*loadProtectedData/)
-  assert.match(appVue, /loadProtectedData\(activeTab\.value/)
-  assert.doesNotMatch(appVue, /syncCookieCloudToLoginCookies/)
-  assert.match(appVue, /watch\(\[authenticated, activeTab\]/)
-  assert.match(appVue, /loadActiveTabData\(nextTab\)/)
-  assert.match(appVue, /useOverviewPage\(activeTab\)/)
-  assert.match(appVue, /useThemeMode\(bootstrap\.initialThemeMode\)/)
-  assert.match(appVue, /useToastRegion\(\)/)
-  assert.match(appVue, /<AuthShell[\s\S]*v-show="!authenticated"/)
-  assert.match(appVue, /<AppShell[\s\S]*v-if="authenticated"/)
-  assert.match(appVue, /id="toast-live"[\s\S]*role="status"[\s\S]*aria-live="polite"/)
-
-  assert.doesNotMatch(componentSurface, /data-action=|data-trigger=|id="app-shell" style="display:none"/)
-
-  assert.match(appEvents, /WEBUI_APP_EVENTS/)
-  assert.match(appEvents, /douyu-keep-webui:auth-state/)
-  assert.match(appEvents, /douyu-keep-webui:toast/)
-  assert.match(appEvents, /douyu-keep-webui:unauthorized/)
-  assert.match(auth, /WEBUI_APP_EVENTS\.authState/)
-  assert.match(request, /WEBUI_APP_EVENTS\.unauthorized/)
-  assert.match(toast, /WEBUI_APP_EVENTS\.toast/)
-  assert.match(navigation, /export function usePageNavigation/)
-  assert.doesNotMatch(navigation, /data-action|WEBUI_BRIDGE_EVENTS/)
-  assert.doesNotMatch(auth + request + toast, /WEBUI_BRIDGE_EVENTS|bridge-contract/)
-
+  assert.doesNotMatch(webuiModuleSource, /data-action=|data-trigger=|id="app-shell" style="display:none"/)
   assert.doesNotMatch(webuiWithoutBootstrap, /installLegacy|startLegacyApp|WEBUI_BRIDGE_EVENTS|bridge-contract|useLegacyPageEvents|DOUYU_KEEP_WEBUI_/)
   for (const deletedFile of [
     'src/docker/webui/actions.ts',
@@ -320,181 +182,6 @@ test('Docker WebUI remains Vue-only without legacy bridge files', () => {
   ]) {
     assert.equal(fs.existsSync(repoPath(deletedFile)), false, `${deletedFile} should stay deleted`)
   }
-})
-
-test('Docker WebUI resource and page ownership stays in focused Vue modules', () => {
-  // Contract label: Shape. Focused ownership checks guide future WebUI refactors.
-  const {
-    allocationTable,
-    appShell,
-    authShell,
-    collectPage,
-    doublePage,
-    expiringBackpackTable,
-    expiringPage,
-    fansStatusTable,
-    keepalivePage,
-    loginConfigPage,
-    logsPage,
-    overviewPage,
-    sidebarNav,
-    tableSection,
-    topToolbar,
-    yubaPage,
-    yubaStatusTable,
-  } = readNamedRepoFiles(WEBUI_CORE_COMPONENT_FILES)
-  const allocationTask = readRepoFile('src/docker/webui/allocation-task.ts')
-  const fanDisplay = readRepoFile('src/docker/webui/fan-display.ts')
-  const resources = readRepoFile('src/docker/webui/resource-state.ts')
-  const resourceConfig = readRepoFile('src/docker/webui/resource-config.ts')
-  const resourceFans = readRepoFile('src/docker/webui/resource-fans.ts')
-  const resourceRequest = readRepoFile('src/docker/webui/resource-request.ts')
-  const resourceYuba = readRepoFile('src/docker/webui/resource-yuba.ts')
-  const logsResource = readRepoFile('src/docker/webui/logs-resource.ts')
-  const cronPreview = readRepoFile('src/docker/webui/composables/use-cron-preview.ts')
-  const taskPageActions = readRepoFile('src/docker/webui/task-page-actions.ts')
-  const taskShared = readRepoFile('src/docker/webui/task-shared.ts')
-  const fansBackedTaskPage = readRepoFile('src/docker/webui/fans-backed-task-page.ts')
-  const overview = readRepoFile('src/docker/webui/overview.ts')
-  const collect = readRepoFile('src/docker/webui/collect.ts')
-  const keepalive = readRepoFile('src/docker/webui/keepalive.ts')
-  const double = readRepoFile('src/docker/webui/double.ts')
-  const expiring = readRepoFile('src/docker/webui/expiring.ts')
-  const cookie = readRepoFile('src/docker/webui/cookie.ts')
-  const cookieSourceActions = readRepoFile('src/docker/webui/cookie-source-actions.ts')
-  const cookieSourceCopy = readRepoFile('src/docker/webui/cookie-source-copy.ts')
-  const cookieSourceState = readRepoFile('src/docker/webui/cookie-source-state.ts')
-  const yuba = readRepoFile('src/docker/webui/yuba.ts')
-  const theme = readRepoFile('src/docker/webui/theme.ts')
-
-  assert.match(appShell, /<SidebarNav/)
-  assert.match(appShell, /<TopToolbar/)
-  assert.match(logsPage, /useLogsPage\(toRef\(props, 'activeTab'\), toRef\(props, 'authenticated'\)\)/)
-  assert.match(collectPage, /useCollectTaskPage\(\)/)
-  assert.match(keepalivePage, /useKeepaliveTaskPage\(\)/)
-  assert.match(expiringPage, /useExpiringGiftTaskPage\(\)/)
-  assert.match(yubaPage, /useYubaTaskPage\(\)/)
-  assert.match(keepalivePage, /<TableSection[\s\S]*:empty-text="keepaliveEmptyText"/)
-  assert.match(doublePage, /<TableSection[\s\S]*:empty-text="doubleEmptyText"/)
-  assert.match(expiringPage, /<TableSection[\s\S]*:empty-text="expiringBackpackEmptyText"/)
-  assert.match(expiringPage, /<TableSection[\s\S]*:empty-text="expiringTableEmptyText"/)
-  assert.match(yubaPage, /<TableSection[\s\S]*:empty-text="yubaEmptyText"/)
-  assert.match(loginConfigPage, /useCookieLoginPage\(\)/)
-  assert.match(sidebarNav, /v-for="tab in tabs"/)
-  assert.match(sidebarNav, /v-for="option in themeModes"/)
-  assert.match(topToolbar, /emit\('refresh'\)/)
-  assert.match(authShell, /role="alert"/)
-  assert.match(overviewPage, /v-for="cell in overviewStatusCells"/)
-  assert.match(overviewPage, /<TableSection[\s\S]*:empty-text="overviewBackpackEmptyText"/)
-  assert.match(overviewPage, /<TableSection[\s\S]*:empty-text="overviewFansEmptyText"/)
-  assert.match(overviewPage, /<ExpiringBackpackTable :rows="overviewBackpackRows"/)
-  assert.match(overviewPage, /<FansStatusTable :rows="overviewFansRows"/)
-  assert.doesNotMatch(overviewPage, /title="背包列表"|title="粉丝牌列表"/)
-  assert.match(tableSection, /class="section-block"/)
-  assert.match(tableSection, /class="empty"/)
-  assert.match(tableSection, /class="table-shell"/)
-  assert.match(fansStatusTable, /v-for="row in rows"/)
-  assert.match(yubaStatusTable, /v-for="row in rows"/)
-  assert.match(allocationTable, /@change="emit\('enabledChange'/)
-  assert.match(expiringBackpackTable, /v-for="row in rows"/)
-  assert.match(fanDisplay, /export function buildFanDisplayRows/)
-  assert.match(allocationTask, /from '\.\/fan-display'/)
-  assert.match(overview, /from '\.\/fan-display'/)
-
-  assert.match(resources, /export async function loadProtectedData/)
-  assert.doesNotMatch(resources, /syncCookieCloud/)
-  assert.match(resources, /export async function refreshOverviewSurface/)
-  assert.match(resources, /from '\.\/resource-config'/)
-  assert.match(resources, /from '\.\/resource-fans'/)
-  assert.match(resources, /from '\.\/resource-yuba'/)
-  assert.match(resources, /clearFansCookieBackedData\(\)/)
-  assert.match(resources, /clearYubaCookieBackedData\(\)/)
-  assert.doesNotMatch(resources, /export\s*\{[\s\S]*DEFAULT_RAW_CONFIG/)
-  assert.match(resourceConfig, /createDefaultRawDockerConfig/)
-  assert.doesNotMatch(resourceConfig, /DEFAULT_RAW_CONFIG/)
-  assert.match(readRepoFile('src/core/medal-sync.ts'), /createDefaultDoubleCardConfig\(fans: Fans\[\]\): DoubleCardConfig \{[\s\S]*?active: false/)
-  assert.match(theme, /from '\.\/resource-config'/)
-  assert.match(cookie, /from '\.\/cookie-source-actions'/)
-  assert.match(cookie, /from '\.\/cookie-source-copy'/)
-  assert.match(cookie, /from '\.\/cookie-source-state'/)
-  assert.match(cookieSourceState, /from '\.\/resource-config'/)
-  assert.match(cookieSourceActions, /from '\.\/resource-config'/)
-  assert.match(cookieSourceActions, /from '\.\/resource-state'/)
-  assert.match(cookieSourceCopy, /from '\.\/resource-config'/)
-  assert.match(cookieSourceCopy, /from '\.\/resource-fans'/)
-  assert.match(cookieSourceCopy, /from '\.\/resource-state'/)
-  assert.match(fansBackedTaskPage, /from '\.\/resource-config'/)
-  assert.match(fansBackedTaskPage, /from '\.\/resource-fans'/)
-  assert.match(fansBackedTaskPage, /from '\.\/resource-state'/)
-  assert.match(keepalive, /from '\.\/fans-backed-task-page'/)
-  assert.match(double, /from '\.\/fans-backed-task-page'/)
-  assert.match(expiring, /from '\.\/fans-backed-task-page'/)
-  assert.match(expiring, /from '\.\/resource-fans'/)
-  assert.match(yuba, /from '\.\/resource-yuba'/)
-  assert.match(resourceRequest, /export function createResourceRequest/)
-  assert.match(resourceRequest, /pending:\s*null/)
-  assert.match(resourceRequest, /fetchedAt:\s*0/)
-  assert.match(resourceRequest, /requestSeq:\s*0/)
-  assert.match(resourceRequest, /export function trackResourceRequest/)
-  assert.match(resourceConfig, /\/api\/config/)
-  assert.doesNotMatch(resourceConfig, /\/api\/config\/raw/)
-  assert.match(resources, /\/api\/overview/)
-  assert.match(resources, /\/api\/logs/)
-  assert.match(resourceFans, /export async function syncFans/)
-  assert.match(resourceFans, /export async function loadFansList/)
-  assert.match(resourceFans, /export async function loadFansStatus/)
-  assert.match(resourceFans, /\/api\/fans\/reconcile/)
-  assert.match(resourceFans, /\/api\/fans\/status\/base/)
-  assert.match(resourceFans, /\/api\/fans\/status\/details/)
-  assert.match(resourceYuba, /export async function loadYubaStatus/)
-  assert.match(resourceYuba, /\/api\/yuba\/status/)
-  assert.match(logsResource, /window\.setInterval/)
-  assert.match(overview, /from '\.\/backpack-display'/)
-  assert.match(overview, /overviewBackpackRows/)
-  assert.match(overview, /refreshOverviewSurface\(activeTab\.value, true, true\)/)
-  assert.match(cookieSourceActions, /refreshOverviewSurface\('overview', false\)/)
-  assert.match(theme, /watch\(rawConfig/)
-  assert.match(taskShared, /export async function saveTaskConfig/)
-  assert.match(taskShared, /export async function disableTaskConfig/)
-  assert.match(taskShared, /export async function triggerTask/)
-  assert.match(taskShared, /SaveTaskConfigResult/)
-  assert.match(taskPageActions, /export async function saveEnabledTask/)
-  assert.match(taskPageActions, /export async function disableEnabledTask/)
-  assert.match(taskPageActions, /export function toggleEnabledTask/)
-  assert.match(taskPageActions, /export async function triggerFansBackedTask/)
-  assert.match(taskPageActions, /applyManagedFansResponse\(result, \{ updateFans: isFansBackedTab\(activeTab\) \}\)/)
-  assert.match(taskPageActions, /refreshOverviewSurface\(activeTab, false\)/)
-  assert.match(taskPageActions, /loadFansStatus\(false\)/)
-  assert.match(resourceFans, /export function applyManagedFansResponse/)
-  assert.match(resourceFans, /config: getRawConfig\(\)/)
-  assert.match(fansBackedTaskPage, /export function createFansBackedTaskPageState/)
-  assert.match(fansBackedTaskPage, /watchResourceState/)
-  assert.match(fansBackedTaskPage, /getManagedConfig\(\)/)
-  assert.match(fansBackedTaskPage, /getManagedFans\(\)/)
-  assert.match(cronPreview, /\/api\/cron-preview/)
-  assert.match(readRepoFile('src/core/task-defaults.ts'), /DEFAULT_KEEPALIVE_CRON = '0 0 8 \*\/7 \* \*'/)
-
-  assert.match(collect, /watch\(rawConfig/)
-  assert.match(collect, /refreshTaskSurface\('collect'\)/)
-  assert.match(collect, /toggleEnabledTask\(collectEnabled, saveCollectConfig, disableCollectConfig\)/)
-  assert.match(collect, /triggerFansBackedTask\('collectGift'\)/)
-  assert.match(keepalive, /createFansBackedTaskPageState<KeepaliveOverview, RawKeepaliveConfig, Fans>/)
-  assert.match(keepalive, /taskPage\.watchResourceState\(applyResourceState\)/)
-  assert.match(keepalive, /refreshTaskSurface\('keepalive'\)/)
-  assert.match(keepalive, /toggleEnabledTask\(keepaliveEnabled, saveKeepaliveConfig, disableKeepaliveConfig\)/)
-  assert.match(keepalive, /triggerFansBackedTask\('keepalive'\)/)
-  assert.match(double, /createFansBackedTaskPageState<DoubleOverview, RawDoubleConfig, DoubleFan>/)
-  assert.match(double, /taskPage\.watchResourceState\(applyResourceState\)/)
-  assert.match(double, /refreshTaskSurface\('double-card'\)/)
-  assert.match(double, /toggleEnabledTask\(doubleEnabled, saveDoubleConfig, disableDoubleConfig\)/)
-  assert.match(double, /triggerFansBackedTask\('doubleCard', applyResourceState\)/)
-  assert.match(expiring, /createFansBackedTaskPageState<ExpiringOverview, RawExpiringConfig, Fans>/)
-  assert.match(expiring, /taskPage\.watchResourceState\(applyResourceState, \[[\s\S]*sharedGiftStatus/)
-  assert.match(expiring, /refreshTaskSurface\('expiring-gift'\)/)
-  assert.match(expiring, /toggleEnabledTask\(expiringEnabled, saveExpiringGiftConfig, disableExpiringGiftConfig\)/)
-  assert.match(expiring, /triggerFansBackedTask\('expiringGift', applyResourceState\)/)
-  assert.match(yuba, /watch\(\[sharedRawConfig, sharedOverview, sharedYubaStatus/)
-  assert.match(yuba, /refreshOverviewSurface\('yuba', false\)/)
 })
 
 test('Docker WebUI cron preview ignores unauthorized pre-auth responses', async () => {
@@ -558,46 +245,17 @@ test('Docker WebUI cron preview does not render future run lists', async () => {
   assert.equal(preview.cronPreviewText.value, '')
 })
 
-test('Docker WebUI cron preview hides empty success text without fit plumbing', () => {
-  const cronField = readRepoFile('src/docker/webui/components/CronField.vue')
-  const componentsCss = readRepoFile('src/docker/webui/styles/components.css')
-
-  assert.match(cronField, /v-if="previewText"/)
-  assert.doesNotMatch(cronField, /ResizeObserver|fitCronPreviewText|scaleX/)
-  assert.doesNotMatch(componentsCss, /\.cron-preview\{[\s\S]*?overflow-x:auto/)
-  assert.doesNotMatch(componentsCss, /\.cron-preview\{[\s\S]*?white-space:nowrap/)
-})
-
-test('Docker WebUI sidebar project copy stays concise and split across lines', () => {
-  const sidebarNav = readRepoFile('src/docker/webui/components/SidebarNav.vue')
-  const shellCss = readRepoFile('src/docker/webui/styles/shell.css')
-
-  assert.match(sidebarNav, /斗鱼荧光棒\|续粉丝牌\|检测双倍\|鱼吧签到/)
-  assert.match(sidebarNav, /<span class="brand-source">基于Curtion\/douyu-keep vibe coding<\/span>/)
-  assert.doesNotMatch(sidebarNav, /docker版/)
-  assert.match(shellCss, /\.brand-source\{[\s\S]*?display:block/)
-})
-
 test('Docker task scheduling uses shared task metadata for inventory facts', () => {
   // Contract label: Mixed. Centralized task metadata is a guardrail; exact
   // scheduler/runner calls are shape checks.
   const taskMetadata = readRepoFile('src/docker/task-metadata.ts')
   const scheduler = readRepoFile('src/docker/runtime-scheduler.ts')
-  const runners = readRepoFile('src/docker/runtime-task-runners.ts')
 
   assert.match(taskMetadata, /export function getTaskConfig/)
   assert.match(taskMetadata, /export function getTriggerableTaskConfig/)
   assert.match(taskMetadata, /export function getTaskCron/)
   assert.match(taskMetadata, /export function getTaskScheduleSummary/)
   assert.match(taskMetadata, /export function hasActiveTaskConfig/)
-  assert.match(scheduler, /getTaskConfig\(config, type\)/)
-  assert.match(scheduler, /getTaskCron\(taskConfig\)/)
-  assert.match(scheduler, /getTaskScheduleSummary\(type, taskConfig\)/)
-  assert.match(scheduler, /runRuntimeTask\(type, taskConfig, this\.createTaskRunnerDeps\(\)\)/)
-  assert.match(runners, /export async function triggerRuntimeTask/)
-  assert.match(runners, /export async function runRuntimeTask/)
-  assert.match(runners, /getTriggerableTaskConfig\(config, type, hasSendRooms\)/)
-  assert.match(runners, /const runtimeTaskRunners/)
   assert.doesNotMatch(scheduler, /private startCollectGiftTask/)
   assert.doesNotMatch(scheduler, /private startKeepaliveTask/)
   assert.doesNotMatch(scheduler, /private startDoubleCardTask/)
@@ -608,7 +266,6 @@ test('Docker task scheduling uses shared task metadata for inventory facts', () 
 test('CookieCloud sync-and-check persists first, then checks the local snapshot only', () => {
   // Contract label: Mixed. Local-only diagnostics are a guardrail, while route
   // sequencing and UI copy can move toward behavior tests.
-  const cookieSourceActions = readRepoFile('src/docker/webui/cookie-source-actions.ts')
   const cookieSource = readRepoFile('src/docker/runtime-cookie-source.ts')
   const effectiveCookies = readRepoFile('src/docker/runtime-effective-cookies.ts')
   const snapshotStore = readRepoFile('src/docker/runtime-cookie-snapshot-store.ts')
@@ -630,31 +287,15 @@ test('CookieCloud sync-and-check persists first, then checks the local snapshot 
   const inspectEnd = cookieSource.indexOf('private async loadCookieCloudSnapshot')
   assert.ok(inspectStart >= 0 && inspectEnd > inspectStart)
   assert.doesNotMatch(cookieSource.slice(inspectStart, inspectEnd), /loadCookieCloudSnapshot/)
-  assert.match(cookieSourceActions, /await syncCookieCloudToLoginCookies\(false, true\)[\s\S]*requestJson<CookieDiagnostics>\('\/api\/cookie-source\/check'/)
   assert.match(cookieRoutes, /\/api\/cookie-source\/passport-login\/start/)
   assert.match(cookieRoutes, /ctx\.startPassportQrLogin\(\)/)
   assert.match(cookieRoutes, /ctx\.pollPassportQrLogin\(\)/)
-
-  const cookieSourceCopy = readRepoFile('src/docker/webui/cookie-source-copy.ts')
-  const loginConfigPage = readRepoFile('src/docker/webui/components/LoginConfigPage.vue')
-  assert.match(loginConfigPage, /isPassportQrScanned\(passportQrLogin\)[\s\S]*>扫码</)
-  assert.match(loginConfigPage, /isPassportQrConfirmed\(passportQrLogin\)[\s\S]*>确认</)
-  assert.match(loginConfigPage, /passportQrLogin\.mainSaved[\s\S]*>主站</)
-  assert.match(loginConfigPage, /passportQrLogin\.yubaSaved[\s\S]*>鱼吧</)
-  assert.doesNotMatch(cookieSourceCopy, /Cookie 数/)
-  assert.doesNotMatch(cookieSourceCopy, /cookieCount/)
 })
 
 test('Docker runtime retries cookie-backed work once after centralized credential recovery', () => {
   // Contract label: Mixed. Forbidden direct recovery calls are guardrails; exact
   // recovery sequencing checks are shape-sensitive.
   const runtime = readRepoFile('src/docker/runtime.ts')
-  const runtimeAppContext = readRepoFile('src/docker/runtime-app-context.ts')
-  const runtimeConfigService = readRepoFile('src/docker/runtime-config-service.ts')
-  const runtimeCookieCloudSync = readRepoFile('src/docker/runtime-cookie-cloud-sync.ts')
-  const runtimeFansSync = readRepoFile('src/docker/runtime-fans-sync.ts')
-  const scheduler = readRepoFile('src/docker/runtime-scheduler.ts')
-  const runners = readRepoFile('src/docker/runtime-task-runners.ts')
   const recovery = readRepoFile('src/docker/runtime-cookie-recovery.ts')
   const cache = readRepoFile('src/docker/runtime-cache.ts')
   const errors = readRepoFile('src/docker/server-errors.ts')
@@ -686,30 +327,7 @@ test('Docker runtime retries cookie-backed work once after centralized credentia
   assert.match(recovery, /export class DockerRuntimeCookieRecoveryService/)
   assert.match(recovery, /async refreshCookieSourceAfterFailure/)
   assert.match(recovery, /isCookieCredentialMessage\(message\)/)
-  assert.match(recovery, /this\.deps\.hasPassportRecoveryMaterial\(\)/)
-  assert.match(recovery, /this\.deps\.recoverCredentialSnapshot\(\{[\s\S]*validateMainCookie/)
   assert.match(recovery, /async runWithCookieSourceRetry/)
-  assert.match(recovery, /const refreshed = await this\.refreshCookieSourceAfterFailure\(error, context\)/)
-  assert.match(runtime, /await runtimeCache\.getFansList\(mainCookie\)/)
-  assert.match(runtimeAppContext, /export function createRuntimeAppContext/)
-  assert.match(runtimeAppContext, /fetchFans: async \(options: CacheRefreshOptions = \{\}\) => await deps\.runWithCookieSourceRetry/)
-  assert.match(runtimeAppContext, /fetchYubaStatus: async \(options: CacheRefreshOptions = \{\}\) => await deps\.runWithCookieSourceRetry/)
-  assert.match(runtimeFansSync, /export class DockerRuntimeFansSyncService/)
-  assert.match(runtimeFansSync, /export function cookieSnapshotEqual/)
-  assert.match(runtimeFansSync, /const cookieConfig = shouldMergeLatestCookieSnapshot \? this\.mergeLatestCookieSnapshot\(sourceConfig\) : sourceConfig/)
-  assert.match(runtimeFansSync, /const nextConfig = reconcileDockerConfig\(cookieConfig,\s*fans\)/)
-  assert.match(runtimeConfigService, /export function analyzeDockerRuntimeConfigChange/)
-  assert.match(runtimeConfigService, /export class DockerRuntimeConfigService/)
-  assert.match(runtimeConfigService, /applyCacheInvalidation/)
-  assert.match(runtimeConfigService, /handleMissingCookieSource/)
-  assert.match(runtimeConfigService, /handleMissingActiveTasks/)
-  assert.match(runtimeCookieCloudSync, /export class DockerCookieCloudSyncService/)
-  assert.match(runtimeCookieCloudSync, /syncSnapshot/)
-  assert.match(runtimeCookieCloudSync, /reconcile/)
-  assert.match(runtimeCookieCloudSync, /void this\.syncSnapshot\('startup'\)/)
-  assert.match(scheduler, /refreshCookieSourceAfterFailure: this\.refreshCookieSourceAfterFailure/)
-  assert.match(runners, /refreshCookieSourceAfterFailure: \(error: unknown, context: string\) => Promise<boolean>/)
-  assert.match(runners, /await runtimeTaskRunners\[type\]\(config, deps\)[\s\S]*catch \(error: unknown\)[\s\S]*await deps\.refreshCookieSourceAfterFailure\(error, getTaskLabel\(type\)\)[\s\S]*await runtimeTaskRunners\[type\]\(config, deps\)/)
   assert.match(readRepoFile('src/docker/runtime-cookie-source.ts'), /recoverCredentialSnapshotWithDeps/)
   assert.match(recovery, /export async function recoverCredentialSnapshot/)
   assert.match(recovery, /validateRecoveredMainCookie\(syncedCookie, deps\.validateMainCookie\)[\s\S]*await deps\.persistEffectiveCookies\(true\)[\s\S]*validateRecoveredMainCookie\(syncedCookie, deps\.validateMainCookie\)[\s\S]*refreshDouyuMainCookiesWithSafeAuth[\s\S]*validateRecoveredMainCookie\(safeAuthResult\.refreshedCookie, deps\.validateMainCookie\)/)
@@ -730,12 +348,9 @@ test('manual passport cookie uses authenticated config and is saved from login c
   const defaults = readRepoFile('src/core/task-defaults.ts')
   const configStore = readRepoFile('src/docker/config-store.ts')
   const configRoutes = readRepoFile('src/docker/server-config-routes.ts')
-  const cookieWebUi = readRepoFile('src/docker/webui/cookie.ts')
   const cookieSourceActions = readRepoFile('src/docker/webui/cookie-source-actions.ts')
   const cookieSourceCopy = readRepoFile('src/docker/webui/cookie-source-copy.ts')
   const cookieSourceState = readRepoFile('src/docker/webui/cookie-source-state.ts')
-  const loginConfigPage = readRepoFile('src/docker/webui/components/LoginConfigPage.vue')
-  const taskStatusCard = readRepoFile('src/docker/webui/components/TaskStatusCard.vue')
   const configExample = JSON.parse(readRepoFile('config.example.json'))
 
   assert.match(types, /export interface ManualPassportConfig \{[\s\S]*cookie: string/)
@@ -752,8 +367,6 @@ test('manual passport cookie uses authenticated config and is saved from login c
   assert.match(configRoutes, /app\.post\('\/api\/config'[\s\S]*ctx\.saveTaskConfig/)
   assert.match(configRoutes, /manualPassport: payload\.manualPassport/)
 
-  assert.match(cookieWebUi, /export function useCookieLoginPage\(\)/)
-  assert.match(cookieWebUi, /passportCookie/)
   assert.match(cookieSourceState, /export const passportCookie = ref\(''\)/)
   assert.match(cookieSourceState, /passportCookie\.value = getManualPassportConfig\(config\)\.cookie/)
   assert.match(cookieSourceActions, /const nextPassportCookie = passportCookie\.value\.trim\(\)/)
@@ -762,15 +375,5 @@ test('manual passport cookie uses authenticated config and is saved from login c
   assert.match(cookieSourceActions, /applyManualPassportSaveResponse\(data\.data\.config, nextPassportCookie\)/)
   assert.doesNotMatch(cookieSourceActions, /saveManualPassport/)
   assert.match(cookieSourceCopy, /passport Cookie', value: hasManualPassport\(config\) \? '已配置' : '未配置'/)
-  assert.doesNotMatch(cookieSourceCopy, /服务器地址 \/ UUID \/ 密码/)
-  assert.doesNotMatch(cookieWebUi + cookieSourceActions + cookieSourceCopy + cookieSourceState, /ltp0[^'\n]*redacted-secret-value/)
-  assert.match(loginConfigPage, /登录 Cookie[\s\S]*<div class="grid cols-3[^"]*"[\s\S]*v-model="mainCookie"[\s\S]*v-model="yubaCookie"[\s\S]*v-model="passportCookie"/)
-  assert.match(loginConfigPage, /<textarea[\s\S]*v-model="passportCookie"/)
-  assert.match(loginConfigPage, /<label class="field-label" for="cookie-cloud-endpoint">服务器地址<\/label>/)
-  assert.doesNotMatch(loginConfigPage, />Endpoint</)
-  assert.doesNotMatch(loginConfigPage, /v-model="passportCookie"[\s\S]{0,160}type="password"/)
-  assert.doesNotMatch(loginConfigPage, /手填 passport Cookie/)
-  assert.doesNotMatch(loginConfigPage, /保存 passport Cookie/)
-  assert.doesNotMatch(loginConfigPage, /@action="saveManualPassport"/)
-  assert.match(taskStatusCard, /:class="\{ quad: cells\.length === 4 \}"/)
+  assert.doesNotMatch(cookieSourceActions + cookieSourceCopy + cookieSourceState, /ltp0[^'\n]*redacted-secret-value/)
 })

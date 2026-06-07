@@ -145,6 +145,9 @@
   padding:11px 16px;
 }
 .log-box{
+  overflow:hidden;
+}
+.log-scroll{
   min-height:260px;
   max-height:62vh;
   overflow:auto;

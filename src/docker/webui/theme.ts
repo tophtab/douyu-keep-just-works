@@ -59,6 +59,7 @@ export function useThemeMode(initialThemeMode: unknown = 'system') {
   })
 
   function applyResolvedTheme(): void {
+    document.documentElement.setAttribute('data-theme', resolvedTheme.value)
     document.body.setAttribute('data-theme', resolvedTheme.value)
     setThemeMeta(resolvedTheme.value)
   }

@@ -186,6 +186,7 @@ test('createServer injects configured WebUI theme into served HTML', async () =>
 
     assert.equal(lightResponse.status, 200)
     assert.match(lightHtml, /initialThemeMode: 'light'/)
+    assert.match(lightHtml, /<html lang="zh-CN" data-theme="light">/)
     assert.match(lightHtml, /<body data-theme="light" data-auth="login">/)
     assert.match(lightHtml, /<meta name="theme-color" content="#f4ede4" id="theme-color-meta">/)
     assert.doesNotMatch(lightHtml, /__INITIAL_THEME/)
@@ -200,6 +201,7 @@ test('createServer injects configured WebUI theme into served HTML', async () =>
 
     assert.equal(fallbackResponse.status, 200)
     assert.match(fallbackHtml, /initialThemeMode: 'system'/)
+    assert.match(fallbackHtml, /<html lang="zh-CN" data-theme="dark">/)
     assert.match(fallbackHtml, /<body data-theme="dark" data-auth="login">/)
     assert.match(fallbackHtml, /<meta name="theme-color" content="#000000" id="theme-color-meta">/)
   })

@@ -38,17 +38,19 @@ const {
         <span>自动刷新</span>
       </label>
     </div>
-    <div id="full-log-box" ref="logBoxRef" class="log-box">
-      <div v-if="!formattedLogs.length" class="empty">
-        暂无日志
-      </div>
-      <template v-else>
-        <div v-for="(log, index) in formattedLogs" :key="`${log.timestamp}-${index}`" class="log-line">
-          <span class="log-stamp">[{{ log.timestamp }}]</span>
-          <span class="log-tag">{{ log.category }}</span>
-          <span class="log-message">{{ log.message }}</span>
+    <div class="log-box">
+      <div id="full-log-box" ref="logBoxRef" class="log-scroll">
+        <div v-if="!formattedLogs.length" class="empty">
+          暂无日志
         </div>
-      </template>
+        <template v-else>
+          <div v-for="(log, index) in formattedLogs" :key="`${log.timestamp}-${index}`" class="log-line">
+            <span class="log-stamp">[{{ log.timestamp }}]</span>
+            <span class="log-tag">{{ log.category }}</span>
+            <span class="log-message">{{ log.message }}</span>
+          </div>
+        </template>
+      </div>
     </div>
   </PageSection>
 </template>

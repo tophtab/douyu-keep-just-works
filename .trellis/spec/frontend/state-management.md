@@ -55,23 +55,27 @@ There is no global store. Promote state upward only when multiple shell/page sur
 - Valid bootstrap values are the shared `ThemeMode` values from `src/core/types.ts`: `light`, `dark`, and `system`.
 - Unknown, missing, or invalid values fall back to `system` at both the backend HTML boundary and the frontend composable boundary.
 - Server-rendered HTML must replace `__INITIAL_THEME_MODE__`, `__INITIAL_THEME__`, and `__INITIAL_THEME_COLOR__`; placeholders must not leak to the browser.
-- `system` has no browser media-query knowledge on the server, so the first paint may use the safe dark initial body theme; `useThemeMode` updates to the actual media-query result after Vue mounts.
+- The initial resolved theme must be written to both `html[data-theme]` and `body[data-theme]`. Root viewport scrollbars and root-scoped CSS variables read from `html`, while app surfaces still read from `body` and inherited variables.
+- `useThemeMode` must update both `document.documentElement.dataset.theme` and `document.body.dataset.theme` when the resolved theme changes.
+- `system` has no browser media-query knowledge on the server, so the first paint may use the safe dark initial html/body theme; `useThemeMode` updates to the actual media-query result after Vue mounts.
 - `watch(rawConfig, ...)` must ignore empty/null config so it does not immediately reset the bootstrap theme before authenticated config loads.
 
 ### 4. Validation & Error Matrix
-- `config.ui.themeMode = 'light'` -> served HTML has `initialThemeMode: 'light'`, body `data-theme="light"`, and the light theme color.
-- `config.ui.themeMode = 'dark'` -> served HTML has `initialThemeMode: 'dark'`, body `data-theme="dark"`, and the dark theme color.
-- Missing or invalid `config.ui.themeMode` -> served HTML has `initialThemeMode: 'system'` and a valid initial body/meta theme.
+- `config.ui.themeMode = 'light'` -> served HTML has `initialThemeMode: 'light'`, `html data-theme="light"`, `body data-theme="light"`, and the light theme color.
+- `config.ui.themeMode = 'dark'` -> served HTML has `initialThemeMode: 'dark'`, `html data-theme="dark"`, `body data-theme="dark"`, and the dark theme color.
+- Missing or invalid `config.ui.themeMode` -> served HTML has `initialThemeMode: 'system'` and a valid initial html/body/meta theme.
 - Missing bootstrap object -> `App.vue` fallback keeps `initialThemeMode: 'system'`.
 
 ### 5. Good/Base/Bad Cases
-- Good: `/` is requested before login, the route reads current config and serves HTML whose body/meta theme matches a valid configured mode.
+- Good: `/` is requested before login, the route reads current config and serves HTML whose html/body/meta theme matches a valid configured mode.
 - Base: authenticated config later loads and `rawConfig.ui.themeMode` updates the same `useThemeMode` state.
 - Bad: `useThemeMode()` always starts at `system`, causing a first-paint flash for users who saved `light` or `dark`.
+- Bad: theme state is written only to `body`, leaving root viewport scrollbars and other `html`-scoped styling on stale variables.
 - Bad: null `rawConfig` applies `system` immediately and overwrites a valid bootstrap theme before the API response arrives.
 
 ### 6. Tests Required
 - Contract tests should request WebUI HTML through `createServer(ctx)` and assert valid configured theme modes are injected.
+- Contract tests should assert `html[data-theme]` and `body[data-theme]` are both injected.
 - Contract tests should assert invalid theme values fall back safely and no initial-theme placeholders leak.
 - Maintenance tests should assert `App.vue` passes `bootstrap.initialThemeMode` into `useThemeMode`.
 
@@ -82,6 +86,9 @@ There is no global store. Promote state upward only when multiple shell/page sur
 ```typescript
 res.type('html').send(getHtml())
 const { themeMode } = useThemeMode()
+function applyResolvedTheme(): void {
+  document.body.setAttribute('data-theme', resolvedTheme.value)
+}
 ```
 
 #### Correct
@@ -89,6 +96,10 @@ const { themeMode } = useThemeMode()
 ```typescript
 res.type('html').send(getHtml(ctx.getConfig()?.ui?.themeMode))
 const { themeMode } = useThemeMode(bootstrap.initialThemeMode)
+function applyResolvedTheme(): void {
+  document.documentElement.setAttribute('data-theme', resolvedTheme.value)
+  document.body.setAttribute('data-theme', resolvedTheme.value)
+}
 ```
 
 ---

@@ -199,11 +199,30 @@ textarea{
   min-height:150px;
   resize:vertical;
 }
-.cookie-input{
+.cookie-input-frame{
   height:150px;
-  max-height:150px;
+  overflow:hidden;
+  border:1px solid var(--line-strong);
+  border-radius:16px;
+  background:var(--surface-strong);
+  transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.cookie-input-frame:focus-within{
+  border-color:var(--accent);
+  box-shadow:var(--focus-ring);
+}
+.cookie-input{
+  display:block;
+  height:100%;
+  min-height:0;
   resize:none;
   overflow:auto;
+  border:0;
+  border-radius:0;
+  background:transparent;
+}
+.cookie-input:focus{
+  box-shadow:none;
 }
 .inline{
   display:flex;

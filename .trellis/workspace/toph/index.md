@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 66
+- **Total Sessions**: 67
 - **Last Active**: 2026-06-07
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~238 | Active |
+| `journal-2.md` | ~271 | Active |
 | `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 67 | 2026-06-07 | Align WebUI scrollbar styling | `c9f893d` | `master` |
 | 66 | 2026-06-07 | Optimize Docker workflow build speed | `251c31a` | `master` |
 | 65 | 2026-06-07 | Mimic neko scrollbar styling | `9b51cf6` | `master` |
 | 64 | 2026-06-07 | Simplify config API and stabilize WebUI layout | `96d68d1` | `master` |

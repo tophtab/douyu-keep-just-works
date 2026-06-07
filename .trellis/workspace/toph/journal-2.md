@@ -236,3 +236,36 @@ Reduced Docker build context, removed runtime npm ci duplication via production 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 67: Align WebUI scrollbar styling
+
+**Date**: 2026-06-07
+**Task**: Align WebUI scrollbar styling
+**Branch**: `master`
+
+### Summary
+
+Aligned Docker WebUI scrollbar styling with the neko reference, removed redundant scrollbar compatibility code, fixed root gutter theming, and clipped cookie/log scrollports inside rounded frames.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c9f893d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

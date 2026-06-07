@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 70
+- **Total Sessions**: 71
 - **Last Active**: 2026-06-07
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~372 | Active |
+| `journal-2.md` | ~406 | Active |
 | `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 71 | 2026-06-07 | Reduce nonessential tests | `6bb397f`, `9f53c03` | `master` |
 | 70 | 2026-06-07 | Clean test/spec redundancy | `029a489` | `master` |
 | 69 | 2026-06-07 | Record Douyu pocket double-card research | `3c4b63e` | `master` |
 | 68 | 2026-06-07 | Clean up code redundancy | `74e480a`, `3b71e38` | `master` |

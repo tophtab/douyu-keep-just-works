@@ -370,3 +370,37 @@ Conservative cleanup of contract-test fixture redundancy. Reduced repeated route
 ### Next Steps
 
 - None - task complete
+
+
+## Session 71: Reduce nonessential tests
+
+**Date**: 2026-06-07
+**Task**: Reduce nonessential tests
+**Branch**: `master`
+
+### Summary
+
+Removed nonessential maintenance/source-inspection contract tests. First narrowed project-maintenance assertions, then applied the aggressive C plan by deleting source-inspection-only maintenance tests and preserving executable behavior coverage for credential, route, config, cache, and core task flows. Verified with test:contracts, lint, type-check, and npm test.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6bb397f` | (see git log) |
+| `9f53c03` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

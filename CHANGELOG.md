@@ -7,6 +7,44 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ## Unreleased
 
+## 3.5.0 - 2026-06-07
+
+### Added
+
+- Passport QR login now captures browser cookie snapshots and can bridge Douyu
+  passport cookies into downstream main-site and Yuba task flows.
+- Manual force-refresh controls were added so credential, status, and task
+  caches can be refreshed on demand from the Docker WebUI.
+- Shared task action, settings section, table section, fan display, backpack
+  display, and resource request helpers were added to keep Docker WebUI task
+  pages consistent.
+
+### Changed
+
+- Docker build automation now uses faster workflow paths while preserving the
+  release image publishing surface.
+- Docker runtime task execution, gift allocation, resource loading, Yuba
+  helpers, and cookie-source handling were split into smaller focused modules.
+- Docker WebUI task pages, login configuration, shell styling, project
+  description, icon assets, and shared section layout were simplified for
+  denser repeated use.
+- Contract test coverage was modernized around config guardrails, route
+  guardrails, Passport login, force refresh, and Yuba check-in behavior.
+
+### Fixed
+
+- Douyu QR login now bootstraps the required device cookie, normalizes the main
+  login exchange URL, and reports scan status more clearly.
+- Yuba login recovery now preserves JWT cookies and can recover Yuba cookies
+  from Passport material.
+- Force refresh now invalidates status caches correctly, including credential
+  and Yuba-related state.
+- Cron previews no longer leak future scheduling state before authentication or
+  show low-value helper prompts.
+- Docker WebUI layout issues were fixed across empty overview table sections,
+  run-log action order, manual save button styling, scrollbar styling, and
+  cookie input resizing.
+
 ## 3.2.0 - 2026-06-02
 
 ### Changed

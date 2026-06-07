@@ -269,3 +269,37 @@ Aligned Docker WebUI scrollbar styling with the neko reference, removed redundan
 ### Next Steps
 
 - None - task complete
+
+
+## Session 68: Clean up code redundancy
+
+**Date**: 2026-06-07
+**Task**: Clean up code redundancy
+**Branch**: `master`
+
+### Summary
+
+Reduced duplicated test source-inspection helpers, narrowed internal barrel exports, centralized Yuba sign result handling, introduced shared WebUI tracked resource request helper, updated specs, and verified lint/type-check/contracts/build.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `74e480a` | (see git log) |
+| `3b71e38` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

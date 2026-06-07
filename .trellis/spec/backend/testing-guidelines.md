@@ -85,6 +85,24 @@ portions.
   explicitly scopes both. Movement churn makes coverage changes harder to
   review.
 
+## Source Inspection Helpers
+
+When a contract test reads repository source files or extracts function bodies,
+reuse `test/helpers/source-inspection.js` instead of duplicating local filesystem
+and brace-walking helpers.
+
+Use:
+
+- `readRepoFile(relativePath)` for source text.
+- `repoPath(relativePath)` for filesystem existence checks.
+- `collectRepoFiles(relativeDir)` for recursive repo file lists.
+- `getFunctionBody(source, name)` / `getAsyncMethodBody(source, name)` for
+  narrow source-shape assertions.
+
+Keep the helper focused on inspection mechanics. Do not hide the actual
+architecture or behavior assertion behind a generic helper; the test body should
+still make the contract obvious.
+
 ## Review Checklist
 
 - Is the contract labeled as `Guardrail`, `Behavior`, `Shape`, or `Mixed` when

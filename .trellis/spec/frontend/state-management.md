@@ -117,6 +117,28 @@ interface ResourceRequest {
 }
 ```
 
+Shared resource loaders should use `runTrackedResourceRequest(resource, ({ isCurrent }) => ...)` for the common pending reuse, request sequence increment, and stale response guard. Concrete resource modules still own their own refs, loading flags, error refs, toast copy, and response mapping.
+
+```typescript
+return runTrackedResourceRequest(resource, ({ isCurrent }) => {
+  loading.value = true
+  error.value = ''
+
+  return requestJson<Response>(url).then((data) => {
+    if (!isCurrent()) {
+      return undefined
+    }
+    applyResource(data)
+    loading.value = false
+    return true
+  })
+})
+```
+
+Do not create a broad generic resource framework unless several focused
+resource modules immediately need the same higher-level behavior. Abstract the
+request lifecycle, not endpoint-specific state transitions.
+
 When adding a new server resource, keep the API call in a Vue-owned composable or shared resource helper. If the resource is shared across pages, create or extend a focused `resource-*` module and import that owner directly from page modules. Do not introduce `window.DOUYU_KEEP_WEBUI_*` bridge state.
 
 ### Protected Shell Mounting

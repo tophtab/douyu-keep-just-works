@@ -1,6 +1,5 @@
 export { executeCollectGiftJob } from './collect-gift-job'
 export { executeDoubleCardJob } from './double-card-job'
 export { executeExpiringGiftJob } from './expiring-gift-job'
-export { selectExpiringGiftCandidates } from './gift-task'
 export { executeKeepaliveJob } from './keepalive-job'
 export { executeYubaCheckInJob } from './yuba-check-in-job'

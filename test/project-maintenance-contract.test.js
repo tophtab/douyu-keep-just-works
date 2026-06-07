@@ -1,27 +1,12 @@
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
-const path = require('node:path')
 const { test } = require('node:test')
+const {
+  collectRepoFiles,
+  readRepoFile,
+  repoPath,
+} = require('./helpers/source-inspection')
 const { loadTypeScriptModule } = require('./helpers/typescript-module-loader')
-
-const repoRoot = path.resolve(__dirname, '..')
-
-function readRepoFile(relativePath) {
-  return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8')
-}
-
-function repoPath(relativePath) {
-  return path.join(repoRoot, relativePath)
-}
-
-function collectRepoFiles(relativeDir) {
-  const root = repoPath(relativeDir)
-  const entries = fs.readdirSync(root, { withFileTypes: true })
-  return entries.flatMap((entry) => {
-    const child = path.join(relativeDir, entry.name)
-    return entry.isDirectory() ? collectRepoFiles(child) : [child]
-  })
-}
 
 function extractExportedStringConstant(source, name) {
   const match = source.match(new RegExp(`export const ${name} = '([^']+)'`))

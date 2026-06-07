@@ -1,14 +1,7 @@
 const assert = require('node:assert/strict')
-const fs = require('node:fs')
-const path = require('node:path')
 const { test } = require('node:test')
 const { loadTypeScriptModule } = require('./helpers/typescript-module-loader')
-
-const repoRoot = path.resolve(__dirname, '..')
-
-function readRepoFile(relativePath) {
-  return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8')
-}
+const { readRepoFile } = require('./helpers/source-inspection')
 
 function createRouteResponse() {
   return {

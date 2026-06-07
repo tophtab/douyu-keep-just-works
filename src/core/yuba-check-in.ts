@@ -21,6 +21,36 @@ const YUBA_SIGN_INTERVAL_MIN_MS = 5000
 const YUBA_SIGN_INTERVAL_MAX_MS = 8000
 const YUBA_SUPPLEMENTARY_MAX_ATTEMPTS = 10
 
+type YubaSignSuccessMode = 'legacy' | 'dyToken'
+
+function resolveYubaSignResult(body: YubaBody, groupId: number, successMode: YubaSignSuccessMode): 'signed' | 'already_signed' {
+  const statusCode = readNumber(body.status_code)
+  const errorCode = readNumber(body.error)
+  const message = getYubaErrorMessage(body, '')
+  if (statusCode === 3004 || errorCode === 3004 || message.includes('Gee')) {
+    throw new Error('鱼吧签到触发 Gee 验证，当前纯 HTTP 方案无法继续执行')
+  }
+  if (statusCode === 4206 || errorCode === 4206 || message.includes('未登录')) {
+    throw new Error('鱼吧签到接口返回未登录，请检查鱼吧登录态是否失效')
+  }
+  if (message.includes('今日已签到') || message.includes('已经签到') || message.includes('已签到')) {
+    return 'already_signed'
+  }
+  if (message.includes('签到成功')) {
+    return 'signed'
+  }
+
+  if (successMode === 'dyToken') {
+    if ((statusCode === 200 || errorCode === 200 || message === '') && typeof body.data === 'object' && body.data !== null) {
+      return 'signed'
+    }
+  } else if (statusCode === 200 || errorCode === 200) {
+    return 'signed'
+  }
+
+  throw new Error(getYubaErrorMessage(body, `鱼吧${groupId}签到失败`))
+}
+
 export async function signYubaGroup(groupId: number, curExp: number, cookie: string): Promise<'signed' | 'already_signed'> {
   const csrfToken = getYubaCsrfToken(cookie)
   const formData = createMultipartFormBody({
@@ -36,25 +66,7 @@ export async function signYubaGroup(groupId: number, curExp: number, cookie: str
   })
 
   const body = parseYubaBody(data, '鱼吧签到失败，返回数据格式异常')
-  const statusCode = readNumber(body.status_code)
-  const errorCode = readNumber(body.error)
-  const message = getYubaErrorMessage(body, '')
-  if (statusCode === 3004 || errorCode === 3004 || message.includes('Gee')) {
-    throw new Error('鱼吧签到触发 Gee 验证，当前纯 HTTP 方案无法继续执行')
-  }
-  if (statusCode === 4206 || errorCode === 4206 || message.includes('未登录')) {
-    throw new Error('鱼吧签到接口返回未登录，请检查鱼吧登录态是否失效')
-  }
-  if (message.includes('今日已签到') || message.includes('已经签到') || message.includes('已签到')) {
-    return 'already_signed'
-  }
-  if (message.includes('签到成功')) {
-    return 'signed'
-  }
-  if (statusCode === 200 || errorCode === 200) {
-    return 'signed'
-  }
-  throw new Error(getYubaErrorMessage(body, `鱼吧${groupId}签到失败`))
+  return resolveYubaSignResult(body, groupId, 'legacy')
 }
 
 async function signYubaGroupWithDyToken(groupId: number, yubaCookie: string, mainCookie: string): Promise<'signed' | 'already_signed'> {
@@ -63,25 +75,7 @@ async function signYubaGroupWithDyToken(groupId: number, yubaCookie: string, mai
   })
 
   const body = parseYubaBody(data, '鱼吧签到失败，返回数据格式异常')
-  const statusCode = readNumber(body.status_code)
-  const errorCode = readNumber(body.error)
-  const message = getYubaErrorMessage(body, '')
-  if (statusCode === 3004 || errorCode === 3004 || message.includes('Gee')) {
-    throw new Error('鱼吧签到触发 Gee 验证，当前纯 HTTP 方案无法继续执行')
-  }
-  if (statusCode === 4206 || errorCode === 4206 || message.includes('未登录')) {
-    throw new Error('鱼吧签到接口返回未登录，请检查鱼吧登录态是否失效')
-  }
-  if (message.includes('今日已签到') || message.includes('已经签到') || message.includes('已签到')) {
-    return 'already_signed'
-  }
-  if (message.includes('签到成功')) {
-    return 'signed'
-  }
-  if ((statusCode === 200 || errorCode === 200 || message === '') && typeof body.data === 'object' && body.data !== null) {
-    return 'signed'
-  }
-  throw new Error(getYubaErrorMessage(body, `鱼吧${groupId}签到失败`))
+  return resolveYubaSignResult(body, groupId, 'dyToken')
 }
 
 async function fastSignYuba(yubaCookie: string, mainCookie: string): Promise<{ signed: boolean; message: string }> {

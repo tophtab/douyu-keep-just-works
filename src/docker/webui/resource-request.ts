@@ -47,3 +47,26 @@ export function trackResourceRequest<T>(resource: ResourceRequest, requestSeq: n
   resource.pending = tracked
   return tracked
 }
+
+export interface TrackedResourceRequestContext {
+  requestSeq: number
+  isCurrent: () => boolean
+}
+
+export function runTrackedResourceRequest<T>(
+  resource: ResourceRequest,
+  run: (context: TrackedResourceRequestContext) => Promise<T>,
+): Promise<T> {
+  if (resource.pending) {
+    return resource.pending as Promise<T>
+  }
+
+  const requestSeq = resource.requestSeq + 1
+  resource.requestSeq = requestSeq
+  const pending = run({
+    requestSeq,
+    isCurrent: () => resource.requestSeq === requestSeq,
+  })
+
+  return trackResourceRequest(resource, requestSeq, pending)
+}

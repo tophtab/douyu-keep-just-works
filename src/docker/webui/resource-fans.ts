@@ -1,7 +1,7 @@
 import type { DockerConfig, Fans, FansStatusResponse, FanStatus, GiftStatus } from '../../core/types'
 import { ref } from 'vue'
 import { getRawConfig, hasCookieSourceConfigured, setRawConfig } from './resource-config'
-import { createResourceRequest, markResourceRequestLoaded, resetResourceRequest, trackResourceRequest, withForceRefresh } from './resource-request'
+import { createResourceRequest, markResourceRequestLoaded, resetResourceRequest, runTrackedResourceRequest, withForceRefresh } from './resource-request'
 import type { ResourceRequest } from './resource-request'
 import { requestJson } from './request'
 import { getErrorMessage, isHttpUnauthorized } from './task-shared'
@@ -187,46 +187,40 @@ export async function syncFans(showSuccessToast = false): Promise<unknown> {
     return false
   }
 
-  if (resource.pending) {
-    return resource.pending
-  }
+  return runTrackedResourceRequest(resource, ({ isCurrent }) => {
+    managedLoading.value = true
+    fansListError.value = ''
 
-  const requestSeq = resource.requestSeq + 1
-  resource.requestSeq = requestSeq
-  managedLoading.value = true
-  fansListError.value = ''
-
-  const pending = requestJson<ManagedFansResponse>('/api/fans/reconcile', {
-    method: 'POST',
-  }).then((data) => {
-    if (resource.requestSeq !== requestSeq) {
-      return undefined
-    }
-    applyManagedFansResponse(data, { updateFans: true })
-    managedLoading.value = false
-    fansListLoaded.value = true
-    markResourceLoaded('fansList')
-    invalidateResourceRequest('fansStatus')
-    if (showSuccessToast) {
-      showToast('粉丝牌与任务配置已同步', true)
-    }
-    return true
-  }).catch((error: unknown) => {
-    if (resource.requestSeq !== requestSeq) {
-      return undefined
-    }
-    if (isHttpUnauthorized(error)) {
-      return undefined
-    }
-    managedLoading.value = false
-    fansListError.value = getErrorMessage(error)
-    if (showSuccessToast) {
-      showToast('同步粉丝牌失败，请查看页面提示', false)
-    }
-    return false
+    return requestJson<ManagedFansResponse>('/api/fans/reconcile', {
+      method: 'POST',
+    }).then((data) => {
+      if (!isCurrent()) {
+        return undefined
+      }
+      applyManagedFansResponse(data, { updateFans: true })
+      managedLoading.value = false
+      fansListLoaded.value = true
+      markResourceLoaded('fansList')
+      invalidateResourceRequest('fansStatus')
+      if (showSuccessToast) {
+        showToast('粉丝牌与任务配置已同步', true)
+      }
+      return true
+    }).catch((error: unknown) => {
+      if (!isCurrent()) {
+        return undefined
+      }
+      if (isHttpUnauthorized(error)) {
+        return undefined
+      }
+      managedLoading.value = false
+      fansListError.value = getErrorMessage(error)
+      if (showSuccessToast) {
+        showToast('同步粉丝牌失败，请查看页面提示', false)
+      }
+      return false
+    })
   })
-
-  return trackResourceRequest(resource, requestSeq, pending)
 }
 
 export async function loadFansList(showSuccessToast = false, forceRefresh = false): Promise<unknown> {
@@ -243,43 +237,37 @@ export async function loadFansList(showSuccessToast = false, forceRefresh = fals
     return false
   }
 
-  if (resource.pending) {
-    return resource.pending
-  }
+  return runTrackedResourceRequest(resource, ({ isCurrent }) => {
+    managedLoading.value = true
+    fansListError.value = ''
 
-  const requestSeq = resource.requestSeq + 1
-  resource.requestSeq = requestSeq
-  managedLoading.value = true
-  fansListError.value = ''
-
-  const pending = requestJson<Fans[]>(withForceRefresh('/api/fans', forceRefresh)).then((data) => {
-    if (resource.requestSeq !== requestSeq) {
-      return undefined
-    }
-    setManagedFans(data)
-    managedLoading.value = false
-    fansListLoaded.value = true
-    markResourceLoaded('fansList')
-    if (showSuccessToast) {
-      showToast('粉丝牌列表已加载', true)
-    }
-    return true
-  }).catch((error: unknown) => {
-    if (resource.requestSeq !== requestSeq) {
-      return undefined
-    }
-    if (isHttpUnauthorized(error)) {
-      return undefined
-    }
-    managedLoading.value = false
-    fansListError.value = getErrorMessage(error)
-    if (showSuccessToast) {
-      showToast('加载粉丝牌列表失败，请查看页面提示', false)
-    }
-    return false
+    return requestJson<Fans[]>(withForceRefresh('/api/fans', forceRefresh)).then((data) => {
+      if (!isCurrent()) {
+        return undefined
+      }
+      setManagedFans(data)
+      managedLoading.value = false
+      fansListLoaded.value = true
+      markResourceLoaded('fansList')
+      if (showSuccessToast) {
+        showToast('粉丝牌列表已加载', true)
+      }
+      return true
+    }).catch((error: unknown) => {
+      if (!isCurrent()) {
+        return undefined
+      }
+      if (isHttpUnauthorized(error)) {
+        return undefined
+      }
+      managedLoading.value = false
+      fansListError.value = getErrorMessage(error)
+      if (showSuccessToast) {
+        showToast('加载粉丝牌列表失败，请查看页面提示', false)
+      }
+      return false
+    })
   })
-
-  return trackResourceRequest(resource, requestSeq, pending)
 }
 
 export async function loadFansStatus(showSuccessToast = false, forceRefresh = false): Promise<unknown> {
@@ -299,22 +287,33 @@ export async function loadFansStatus(showSuccessToast = false, forceRefresh = fa
     return false
   }
 
-  if (resource.pending) {
-    return resource.pending
-  }
+  return runTrackedResourceRequest(resource, ({ isCurrent }) => {
+    fansStatusLoading.value = true
+    fansStatusDetailsLoading.value = true
+    fansStatusError.value = ''
 
-  const requestSeq = resource.requestSeq + 1
-  resource.requestSeq = requestSeq
-  fansStatusLoading.value = true
-  fansStatusDetailsLoading.value = true
-  fansStatusError.value = ''
-
-  const pending = requestJson<FansStatusResponse>(withForceRefresh('/api/fans/status/base', forceRefresh)).then(async (data) => {
-    if (resource.requestSeq !== requestSeq) {
-      return undefined
-    }
-    applyFansStatusBase(data)
-    if (data?.complete) {
+    return requestJson<FansStatusResponse>(withForceRefresh('/api/fans/status/base', forceRefresh)).then(async (data) => {
+      if (!isCurrent()) {
+        return undefined
+      }
+      applyFansStatusBase(data)
+      if (data?.complete) {
+        fansStatusLoading.value = false
+        fansStatusDetailsLoading.value = false
+        markResourceLoaded('fansStatus')
+        if (fansStatus.value.length) {
+          markResourceLoaded('fansList')
+        }
+        if (showSuccessToast) {
+          showToast('粉丝牌状态已刷新', true)
+        }
+        return true
+      }
+      const details = await requestJson<FansStatusResponse>(withForceRefresh('/api/fans/status/details', forceRefresh))
+      if (!isCurrent()) {
+        return undefined
+      }
+      applyFansStatusDetails(details)
       fansStatusLoading.value = false
       fansStatusDetailsLoading.value = false
       markResourceLoaded('fansStatus')
@@ -325,42 +324,25 @@ export async function loadFansStatus(showSuccessToast = false, forceRefresh = fa
         showToast('粉丝牌状态已刷新', true)
       }
       return true
-    }
-    const details = await requestJson<FansStatusResponse>(withForceRefresh('/api/fans/status/details', forceRefresh))
-    if (resource.requestSeq !== requestSeq) {
-      return undefined
-    }
-    applyFansStatusDetails(details)
-    fansStatusLoading.value = false
-    fansStatusDetailsLoading.value = false
-    markResourceLoaded('fansStatus')
-    if (fansStatus.value.length) {
-      markResourceLoaded('fansList')
-    }
-    if (showSuccessToast) {
-      showToast('粉丝牌状态已刷新', true)
-    }
-    return true
-  }).catch((error: unknown) => {
-    if (resource.requestSeq !== requestSeq) {
-      return undefined
-    }
-    fansStatusLoading.value = false
-    fansStatusDetailsLoading.value = false
-    if (!fansStatusLoaded.value) {
-      fansStatus.value = []
-      giftStatus.value = null
-      fansStatusDetailsLoaded.value = false
-    }
-    if (isHttpUnauthorized(error)) {
-      return undefined
-    }
-    fansStatusError.value = getErrorMessage(error)
-    if (showSuccessToast) {
-      showToast('加载粉丝牌状态失败，请查看页面提示', false)
-    }
-    return false
+    }).catch((error: unknown) => {
+      if (!isCurrent()) {
+        return undefined
+      }
+      fansStatusLoading.value = false
+      fansStatusDetailsLoading.value = false
+      if (!fansStatusLoaded.value) {
+        fansStatus.value = []
+        giftStatus.value = null
+        fansStatusDetailsLoaded.value = false
+      }
+      if (isHttpUnauthorized(error)) {
+        return undefined
+      }
+      fansStatusError.value = getErrorMessage(error)
+      if (showSuccessToast) {
+        showToast('加载粉丝牌状态失败，请查看页面提示', false)
+      }
+      return false
+    })
   })
-
-  return trackResourceRequest(resource, requestSeq, pending)
 }

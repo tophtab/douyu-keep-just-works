@@ -4,7 +4,7 @@ import { createDefaultRawDockerConfig } from '../../core/task-defaults'
 import { requestJson } from './request'
 import { hasCookieSourceConfigured as hasConfiguredCookieSource } from './task-shared'
 
-interface RawConfigResponse {
+interface ConfigResponse {
   exists?: unknown
   data?: unknown
 }
@@ -23,7 +23,7 @@ export function setRawConfig(config: DockerConfig | null): void {
   rawConfig.value = config
 }
 
-export async function loadRawConfig(): Promise<void> {
-  const data = await requestJson<RawConfigResponse>('/api/config/raw')
+export async function loadConfig(): Promise<void> {
+  const data = await requestJson<ConfigResponse>('/api/config')
   rawConfig.value = data.exists ? data.data as DockerConfig : createDefaultRawDockerConfig()
 }

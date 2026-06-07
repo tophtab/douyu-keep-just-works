@@ -35,7 +35,7 @@
 - CookieCloud/browser snapshots and backend Passport refresh must not both be treated as independent write authorities for `manualCookies.main`. If both refresh the main-site snapshot, they can invalidate each other's current main-site business cookies.
 - When full recovery is required, prefer rebuilding a coherent set from Passport: refresh main-site cookies first, then run Yuba SSO with the new main-site cookie, then persist both snapshots after validation.
 - Do not assume that safeAuth extends the lifetime of `LTP0`. Live diagnostics saw safeAuth return downstream business cookies, not a replacement `LTP0`.
-- Logs, specs, tests, and API responses may include cookie names, max-age values, validation status, and missing field names, but never raw cookie values.
+- Logs, specs, tests, public/status API responses, and diagnostics may include cookie names, max-age values, validation status, and missing field names, but never raw cookie values. The authenticated `/api/config` editing endpoint is the explicit exception because it returns the complete saved config for WebUI editing.
 
 ### 4. Validation & Error Matrix
 

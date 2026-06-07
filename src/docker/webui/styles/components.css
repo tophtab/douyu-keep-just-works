@@ -199,6 +199,12 @@ textarea{
   min-height:150px;
   resize:vertical;
 }
+.cookie-input{
+  height:150px;
+  max-height:150px;
+  resize:none;
+  overflow:auto;
+}
 .inline{
   display:flex;
   align-items:center;

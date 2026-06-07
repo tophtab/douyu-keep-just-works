@@ -198,7 +198,7 @@ export function useDoubleTaskPage() {
     if (doubleModel.value === 2) {
       return '按固定数量时，会只在当前开双倍的房间里使用你填写的数量。没有房间开双倍时本次不送；只有 1 个房间开双倍时本次全部送给它。'
     }
-    return '按权重模式不要求总和等于 100。多个房间同时开双倍时，只会在这些房间里按权重值重新分配。'
+    return ''
   })
 
   const doubleRatioPreview = computed(() => {

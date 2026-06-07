@@ -1,6 +1,6 @@
 import type { CookieDiagnostics, DockerConfig, EffectiveCookiePreview, PassportQrLoginPublicStatus } from '../../core/types'
 import { requestJson } from './request'
-import { loadRawConfig, rawConfig, setRawConfig } from './resource-config'
+import { loadConfig, rawConfig, setRawConfig } from './resource-config'
 import { clearCookieBackedData, refreshOverviewSurface } from './resource-state'
 import { getErrorMessage, isHttpUnauthorized } from './task-shared'
 import { showToast } from './toast'
@@ -48,7 +48,7 @@ async function applyPassportQrLoginStatus(status: PassportQrLoginPublicStatus | 
     return
   }
 
-  await loadRawConfig()
+  await loadConfig()
   applyRawConfig(rawConfig.value)
   clearCookieBackedData()
   await refreshOverviewAfterCookieChange(false)

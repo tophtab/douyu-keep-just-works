@@ -77,8 +77,8 @@ portions.
 - Preserve real guardrails. Do not delete source checks for forbidden legacy
   files, direct secret handling, or architecture boundaries unless an equal or
   stronger check replaces them.
-- Prefer behavior tests for route auth, config masking, validation, secret
-  boundaries, cache forwarding, and config normalization.
+- Prefer behavior tests for route auth, editable config reads, overview summary
+  secret boundaries, validation, cache forwarding, and config normalization.
 - Keep labels concise. One label per `test(...)` block is usually enough; add
   assertion-group comments only when a block is unusually dense.
 - Do not mix file splitting with assertion replacement unless the task

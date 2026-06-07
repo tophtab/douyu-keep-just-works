@@ -93,7 +93,7 @@ const {
             <h3 class="section-title">
               分配说明
             </h3>
-            <p id="double-mode-help" class="subtle double-help">
+            <p v-if="doubleModeHelp" id="double-mode-help" class="subtle double-help">
               {{ doubleModeHelp }}
             </p>
             <div id="double-ratio-preview" class="helper double-ratio-preview" role="status" aria-live="polite">

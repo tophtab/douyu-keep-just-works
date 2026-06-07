@@ -52,7 +52,7 @@ If a future config shape changes, update the normalization path and contract tes
 ### 2. Signatures
 - Core default factory: `createDefaultRawDockerConfig(): DockerConfig`.
 - Runtime user config: `config/config.json` or the configured Docker config path.
-- WebUI raw config route: `GET /api/config/raw -> { exists: boolean, data?: DockerConfig }`.
+- Authenticated WebUI config route: `GET /api/config -> { exists: boolean, data?: DockerConfig }`.
 
 ### 3. Contracts
 - `src/core` owns default values. WebUI fallback defaults must call a core factory or consume a backend response derived from core defaults.
@@ -62,7 +62,7 @@ If a future config shape changes, update the normalization path and contract tes
 ### 4. Validation & Error Matrix
 - Saved config exists -> load and normalize saved values; do not replace user values with new defaults.
 - Saved config is missing a known field -> normalization may fill that missing field from core defaults.
-- `/api/config/raw` returns `exists: false` -> WebUI uses `createDefaultRawDockerConfig()` as fallback.
+- `/api/config` returns `exists: false` -> WebUI uses `createDefaultRawDockerConfig()` as fallback.
 - Example cron differs from `DEFAULT_*_CRON` -> contract tests must fail.
 
 ### 5. Good/Base/Bad Cases
@@ -101,14 +101,14 @@ export function getRawConfig(): DockerConfig {
 
 ### 1. Scope / Trigger
 - Trigger: adding or changing durable passport recovery material for manual-cookie mode.
-- Scope: `DockerConfig.manualPassport`, config normalization, `/api/config` masking, `/api/config/raw`, WebUI login config saves, and `config.example.json`.
+- Scope: `DockerConfig.manualPassport`, config normalization, authenticated `/api/config`, WebUI login config saves, overview summaries, and `config.example.json`.
 
 ### 2. Signatures
 - Shared config type: `ManualPassportConfig { cookie: string }`.
 - Runtime config field: `DockerConfig.manualPassport?: ManualPassportConfig`.
 - WebUI/API save payload: `POST /api/config` may include `{ manualPassport: { cookie: string } }`.
-- Public config route: `GET /api/config -> { data: DockerConfig }` with `manualPassport.cookie` masked when present.
-- Internal raw route: `GET /api/config/raw -> { exists: boolean, data?: DockerConfig }` returns the raw saved field under the existing internal raw-config contract.
+- Authenticated editable config route: `GET /api/config -> { exists: boolean, data?: DockerConfig }` returns the complete saved config.
+- Authenticated config mutation: `POST /api/config -> { ok: true, data?: { config?: DockerConfig, fans?: Fans[] } }` returns the complete saved config when present.
 - Config summary may expose `manualPassportConfigured: boolean`, never the value.
 
 ### 3. Contracts
@@ -119,8 +119,10 @@ export function getRawConfig(): DockerConfig {
 - `normalizeDockerConfig` trims `manualPassport.cookie`; an empty value removes `manualPassport` from normalized runtime config.
 - Normalization may migrate legacy `manualPassport.ltp0` into `manualPassport.cookie = "LTP0=<value>"` for compatibility.
 - `buildConfigWithPartialUpdate` must preserve existing `manualPassport` across unrelated config writes and replace it only when the update payload includes `manualPassport`.
-- `/api/config` and mutation responses must mask `manualPassport.cookie`; `/api/config/raw` intentionally remains raw like other internal config secrets.
-- WebUI raw-config editing may show the saved passport cookie, matching the other local cookie fields.
+- Authenticated `/api/config` reads and successful mutation responses are the editable config contract and may return `manualPassport.cookie` plus other saved cookie fields in full.
+- `GET /api/config/raw` must not be registered. Do not reintroduce a parallel raw/masked config split.
+- Summary/status routes such as `/api/overview`, cookie diagnostics, logs, and QR status responses may expose configured booleans and structural facts, never raw cookie values.
+- WebUI config editing may show the saved passport cookie, matching the other local cookie fields.
 
 ### 4. Validation & Error Matrix
 - `manualPassport` missing -> no manual passport recovery material.
@@ -129,23 +131,25 @@ export function getRawConfig(): DockerConfig {
 - Unrelated task/config save -> existing `manualPassport` remains unchanged.
 - CookieCloud persist with passport `LTP0` -> `manualPassport.cookie` is replaced with the composed CookieCloud passport cookie header.
 - CookieCloud persist without passport `LTP0` -> existing `manualPassport.cookie` remains unchanged.
-- Public config read/save response -> masked value or configured boolean only.
-- Raw config read -> raw value is returned under the established internal endpoint behavior.
+- Authenticated `/api/config` read/save response -> complete editable config.
+- `/api/overview` and diagnostics -> configured booleans or structural status only.
+- `GET /api/config/raw` request -> no JSON config route should exist.
 
 ### 5. Good/Base/Bad Cases
-- Good: user saves `manualPassport.cookie = "dy_did=...; LTP0=..."`, `/api/config` returns a masked value, and the raw-config WebUI keeps the visible cookie string available for editing.
+- Good: user saves `manualPassport.cookie = "dy_did=...; LTP0=..."`, `/api/config` returns the complete saved config to the authenticated WebUI, and the login page keeps the visible cookie string available for editing.
 - Good: CookieCloud sync receives `dy_did=...; LTP0=...` for `passport.douyu.com`, persists it to `manualPassport.cookie`, and later recovery reads the saved local value when needed.
 - Good: user clears the field, normalization removes `manualPassport`, and recovery falls back to CookieCloud-only behavior if CookieCloud is active.
 - Base: a task config save without `manualPassport` keeps the existing saved secret.
 - Base: CookieCloud has no passport `LTP0`; the current saved manual passport cookie is retained.
 - Bad: adding a separate manual `dy_did` field instead of reading it from the passport cookie string.
 - Bad: CookieCloud sync saves main/yuba cookies but drops complete passport material, leaving the login page out of sync with local recovery state.
-- Bad: showing the raw passport cookie in logs, `/api/config`, public diagnostics, or non-editing status surfaces.
+- Bad: showing the raw passport cookie in logs, `/api/overview`, public diagnostics, unauthenticated responses, or non-editing status surfaces.
+- Bad: reintroducing `/api/config/raw` while `/api/config` already owns the complete authenticated editing contract.
 
 ### 6. Tests Required
 - Contract tests should assert `ManualPassportConfig` exists and `DockerConfig.manualPassport` is shared through `src/core/types.ts`.
 - Contract tests should assert `config.example.json`, `createDefaultRawDockerConfig`, `buildConfigWithPartialUpdate`, and `normalizeDockerConfig` handle `manualPassport`.
-- Route tests or contract tests should assert `/api/config` masks manual passport cookie material, `/api/config/raw` remains raw, and `POST /api/config` saves the field.
+- Route tests or contract tests should assert authenticated `/api/config` reads and mutation responses return complete config, `GET /api/config/raw` is not registered, `/api/overview` stays summary-only, and `POST /api/config` saves the field.
 - Tests should assert CookieCloud persist writes complete passport material into `manualPassport.cookie` and preserves existing manual passport material when CookieCloud lacks `LTP0`.
 - Frontend contract tests should assert the login config UI uses a visible textarea, saves `manualPassport.cookie`, and displays configured/unconfigured state.
 
@@ -291,4 +295,4 @@ await axios.get(url.toString())
 - Do not introduce a database dependency for Docker runtime state without a task that explicitly changes storage architecture.
 - Do not write raw request bodies directly to disk.
 - Do not skip `normalizeDockerConfig`; it preserves compatibility with older config files.
-- Do not log or expose raw cookies from config responses. `/api/config` masks secrets, while `/api/config/raw` is the intentional internal raw endpoint.
+- Do not log raw cookies or expose them through summary/status responses. Authenticated `/api/config` is the complete editable config endpoint; `/api/config/raw` must stay deleted.

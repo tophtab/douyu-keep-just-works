@@ -1,6 +1,6 @@
 import type express from 'express'
 import { isCookieCloudReady } from '../core/cookie-cloud'
-import type { CookieCloudConfig, DockerConfig, ManualCookieConfig, ManualPassportConfig } from '../core/types'
+import type { DockerConfig } from '../core/types'
 import { getNextCronRuns, validateCronExpression } from './cron'
 import { validateCookieCloudConfig } from './config-validation'
 import { sendJsonOk } from './server-route-utils'
@@ -33,55 +33,6 @@ function summarizeCookieSource(config: DockerConfig | null | undefined): string 
     return 'manual'
   }
   return 'none'
-}
-
-function maskCookie(cookie: string): string {
-  if (cookie.length <= 20) {
-    return '***'
-  }
-  return `${cookie.substring(0, 10)}...${cookie.substring(cookie.length - 10)}`
-}
-
-function maskCookieCloud(config: CookieCloudConfig | undefined): CookieCloudConfig | undefined {
-  if (!config) {
-    return undefined
-  }
-
-  return {
-    ...config,
-    password: config.password ? maskCookie(config.password) : '',
-  }
-}
-
-function maskManualCookies(config: ManualCookieConfig | undefined): ManualCookieConfig | undefined {
-  if (!config) {
-    return undefined
-  }
-
-  return {
-    main: config.main ? maskCookie(config.main) : '',
-    yuba: config.yuba ? maskCookie(config.yuba) : '',
-  }
-}
-
-function maskManualPassport(config: ManualPassportConfig | undefined): ManualPassportConfig | undefined {
-  if (!config) {
-    return undefined
-  }
-
-  return {
-    cookie: config.cookie ? maskCookie(config.cookie) : '',
-  }
-}
-
-function maskConfigManualPassport<T extends { config: DockerConfig }>(result: T): T {
-  return {
-    ...result,
-    config: {
-      ...result.config,
-      manualPassport: maskManualPassport(result.config.manualPassport),
-    },
-  }
 }
 
 function summarizeConfig(config: DockerConfig | null) {
@@ -135,22 +86,8 @@ export function registerConfigRoutes(app: express.Express, ctx: AppContext): voi
     }
     res.json({
       exists: true,
-      data: {
-        ...config,
-        cookie: maskCookie(config.cookie),
-        manualCookies: maskManualCookies(config.manualCookies),
-        manualPassport: maskManualPassport(config.manualPassport),
-        cookieCloud: maskCookieCloud(config.cookieCloud),
-      },
+      data: config,
     })
-  })
-
-  app.get('/api/config/raw', (_req, res) => {
-    const config = ctx.getConfig()
-    if (!config) {
-      return res.json({ exists: false })
-    }
-    res.json({ exists: true, data: config })
   })
 
   app.get('/api/overview', (_req, res) => {
@@ -185,13 +122,13 @@ export function registerConfigRoutes(app: express.Express, ctx: AppContext): voi
 
     await sendJsonOk(
       res,
-      async () => maskConfigManualPassport(await ctx.saveTaskConfig({
+      () => ctx.saveTaskConfig({
         manualCookies: payload.manualCookies,
         manualPassport: payload.manualPassport,
         cookieCloud: payload.cookieCloud,
         ...collectTaskUpdatePayload(payload),
         ui: payload.ui,
-      })),
+      }),
       resolveConfigRouteErrorStatus,
     )
   })

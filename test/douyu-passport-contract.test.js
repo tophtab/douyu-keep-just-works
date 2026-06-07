@@ -340,7 +340,7 @@ test('Docker config normalizes manual passport cookie as optional recovery mater
   }).manualPassport)), { cookie: 'LTP0=legacy-ltp0-redacted' })
 })
 
-test('manual passport cookie is masked by public config while raw config stays raw', () => {
+test('manual passport cookie is returned by authenticated config without a raw alias', () => {
   const { registerConfigRoutes } = loadTypeScriptModule('src/docker/server-config-routes.ts')
   const passportCookie = 'dy_did=did-redacted; LTP0=manual-ltp0-redacted-secret-value'
   const config = {
@@ -403,18 +403,15 @@ test('manual passport cookie is masked by public config while raw config stays r
     return responseBody
   }
 
-  const masked = readRoute('GET', '/api/config')
-  const raw = readRoute('GET', '/api/config/raw')
+  const editableConfig = readRoute('GET', '/api/config')
+  assert.equal(routes.has('GET /api/config/raw'), false)
   return readRoute('POST', '/api/config', {
     manualPassport: {
       cookie: passportCookie,
     },
-  }).then((postMasked) => {
-    assert.equal(masked.data.manualPassport.cookie.includes('manual-ltp0-redacted-secret-value'), false)
-    assert.equal(masked.data.manualPassport.cookie.includes('...'), true)
-    assert.equal(raw.data.manualPassport.cookie, passportCookie)
-    assert.equal(postMasked.data.config.manualPassport.cookie.includes('manual-ltp0-redacted-secret-value'), false)
-    assert.equal(postMasked.data.config.manualPassport.cookie.includes('...'), true)
+  }).then((postConfig) => {
+    assert.equal(editableConfig.data.manualPassport.cookie, passportCookie)
+    assert.equal(postConfig.data.config.manualPassport.cookie, passportCookie)
   })
 })
 

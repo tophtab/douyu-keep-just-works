@@ -16,7 +16,7 @@ Backend changes must preserve the Docker WebUI runtime first. Use Node.js 24, Ty
 - Do not reintroduce deleted legacy WebUI source modules such as old `app-*.js` files.
 - Do not bypass Vite for Docker WebUI assets; `npm run build:docker` must run `npm run build:webui`.
 - Do not duplicate task-wide facts such as labels, schedule summaries, active checks, or "not configured" messages across route, scheduler, and runner modules.
-- Do not expose secrets in `/api/config`, logs, tests, or docs.
+- Do not expose secrets in unauthenticated responses, summary/status APIs, logs, tests, or docs. Authenticated `/api/config` is the explicit complete-config editing endpoint and must stay protected by WebUI auth.
 - Do not use untyped `any` when `unknown`, local interfaces, or shared types from `src/core/types.ts` are available.
 - Do not rely on implicit `any`; the Docker TypeScript config enables `noImplicitAny`.
 
@@ -86,7 +86,7 @@ const rows = (data.data.list as unknown[])
 
 - Update `test/project-maintenance-contract.test.js` when changing build architecture, WebUI file organization, Node version alignment, or legacy bridge deletion guarantees.
 - Add or update focused Node contract tests under `test/*.test.js` for request smoothing, config persistence, scheduling contracts, and static architecture rules.
-- For route auth, config masking, or secret-boundary behavior, prefer route-level Node tests through `createServer(ctx)` with a fake `AppContext` over source-text regex checks.
+- For route auth, editable config, overview summaries, or secret-boundary behavior, prefer route-level Node tests through `createServer(ctx)` with a fake `AppContext` over source-text regex checks.
 - When a Node contract test needs to execute TypeScript modules directly, use `test/helpers/typescript-module-loader.js` instead of duplicating TypeScript transpile/module-loading setup.
 - Run `npm run type-check` for TypeScript shape changes across backend and WebUI.
 - Run `npm run lint` before handoff.
@@ -97,7 +97,7 @@ const rows = (data.data.list as unknown[])
 
 - Does the change keep the Docker path working and documented in `CONTRIBUTING.md` if needed?
 - Are config changes normalized and validated before save?
-- Are secrets masked in responses and absent from logs?
+- Are secrets absent from logs, diagnostics, overview/status responses, and unauthenticated responses?
 - Are task metadata and task behavior kept in the right modules?
 - Does the change preserve Chinese user-facing messages unless behavior text is explicitly in scope?
 - Are contract tests updated when architecture or lifecycle assumptions change?

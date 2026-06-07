@@ -15,7 +15,7 @@ import {
 import {
   getRawConfig,
   hasCookieSourceConfigured,
-  loadRawConfig,
+  loadConfig,
   rawConfig,
 } from './resource-config'
 import {
@@ -179,7 +179,7 @@ export async function loadActiveTabData(activeTab: WebUiPageTab): Promise<void> 
 }
 
 async function runRefreshOverviewSurface(activeTab: WebUiPageTab, showSuccessToast: boolean, forceRefresh: boolean): Promise<void> {
-  await loadRawConfig()
+  await loadConfig()
   const config = getRawConfig()
   if (!hasCookieSourceConfigured(config)) {
     clearCookieBackedData()
@@ -226,7 +226,7 @@ export async function refreshOverviewSurface(activeTab: WebUiPageTab, showSucces
 
 export async function loadProtectedData(activeTab: WebUiPageTab): Promise<void> {
   await Promise.all([
-    loadRawConfig(),
+    loadConfig(),
     loadOverview(),
     loadLogs(),
   ])

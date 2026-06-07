@@ -349,7 +349,8 @@ test('Docker WebUI resource and page ownership stays in focused Vue modules', ()
   assert.match(resourceRequest, /fetchedAt:\s*0/)
   assert.match(resourceRequest, /requestSeq:\s*0/)
   assert.match(resourceRequest, /export function trackResourceRequest/)
-  assert.match(resourceConfig, /\/api\/config\/raw/)
+  assert.match(resourceConfig, /\/api\/config/)
+  assert.doesNotMatch(resourceConfig, /\/api\/config\/raw/)
   assert.match(resources, /\/api\/overview/)
   assert.match(resources, /\/api\/logs/)
   assert.match(resourceFans, /export async function syncFans/)
@@ -635,7 +636,7 @@ test('Docker runtime retries cookie-backed work once after centralized credentia
   assert.match(taskRoutes, /isCookieCredentialMessage/)
 })
 
-test('manual passport cookie stays masked outside raw config and is saved from login config UI', () => {
+test('manual passport cookie uses authenticated config and is saved from login config UI', () => {
   // Contract label: Mixed. Secret-boundary guardrails cross backend config,
   // public routes, and WebUI shape checks.
   const types = readRepoFile('src/core/types.ts')
@@ -657,11 +658,11 @@ test('manual passport cookie stays masked outside raw config and is saved from l
   assert.match(configStore, /manualPassport\?: ManualPassportConfig/)
   assert.match(configStore, /updates\.manualPassport !== undefined/)
 
-  assert.match(configRoutes, /function maskManualPassport/)
-  assert.match(configRoutes, /function maskConfigManualPassport/)
-  assert.match(configRoutes, /manualPassport: maskManualPassport\(config\.manualPassport\)/)
-  assert.match(configRoutes, /app\.get\('\/api\/config\/raw'[\s\S]*res\.json\(\{ exists: true, data: config \}\)/)
-  assert.match(configRoutes, /app\.post\('\/api\/config'[\s\S]*maskConfigManualPassport\(await ctx\.saveTaskConfig/)
+  assert.doesNotMatch(configRoutes, /function maskManualPassport/)
+  assert.doesNotMatch(configRoutes, /function maskConfigManualPassport/)
+  assert.match(configRoutes, /app\.get\('\/api\/config'[\s\S]*data: config/)
+  assert.doesNotMatch(configRoutes, /app\.get\('\/api\/config\/raw'/)
+  assert.match(configRoutes, /app\.post\('\/api\/config'[\s\S]*ctx\.saveTaskConfig/)
   assert.match(configRoutes, /manualPassport: payload\.manualPassport/)
 
   assert.match(cookieWebUi, /export function useCookieLoginPage\(\)/)

@@ -273,7 +273,7 @@ await refreshOverviewSurface(activeTab, false)
 ### 5. Good/Base/Bad Cases
 - Good: saving a keepalive room config immediately updates `rawConfig`, `managed.config`, and `managed.fans` from the POST result before current-tab refresh runs.
 - Base: saving a collect/yuba config updates `rawConfig` from the POST result and leaves any existing fans list intact.
-- Bad: reloading only `/api/config/raw` while leaving an older `managed.config` in memory, because task pages may resolve managed config before raw config.
+- Bad: reloading only `/api/config` while leaving an older `managed.config` in memory, because task pages may resolve managed config before the shared complete config.
 
 ### 6. Tests Required
 - Contract tests should assert that `saveTaskConfig` passes `SaveTaskConfigResult` to refresh callbacks.

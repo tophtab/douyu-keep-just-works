@@ -205,7 +205,7 @@ test('createServer injects configured WebUI theme into served HTML', async () =>
   })
 })
 
-test('createServer protects config routes and masks public config secrets', async () => {
+test('createServer protects config route and keeps overview summary free of config secrets', async () => {
   const { context } = createRouteTestContext()
   await withServer(createServer(context), async (baseUrl) => {
     const authStatus = await requestJson(`${baseUrl}/api/auth/status`)
@@ -216,10 +216,6 @@ test('createServer protects config routes and masks public config secrets', asyn
     assert.equal(unauthenticatedConfig.response.status, 401)
     assert.deepEqual(unauthenticatedConfig.body, { error: '请先登录' })
 
-    const unauthenticatedRawConfig = await requestJson(`${baseUrl}/api/config/raw`)
-    assert.equal(unauthenticatedRawConfig.response.status, 401)
-    assert.deepEqual(unauthenticatedRawConfig.body, { error: '请先登录' })
-
     const login = await requestJson(`${baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -228,30 +224,35 @@ test('createServer protects config routes and masks public config secrets', asyn
     assert.equal(login.response.status, 200)
     const sessionCookie = getSessionCookie(login.response)
 
-    const maskedConfig = await requestJson(`${baseUrl}/api/config`, {
+    const config = await requestJson(`${baseUrl}/api/config`, {
       headers: { Cookie: sessionCookie },
     })
-    assert.equal(maskedConfig.response.status, 200)
-    assert.equal(maskedConfig.body.exists, true)
-    assert.notEqual(maskedConfig.body.data.cookie, MAIN_COOKIE)
-    assert.notEqual(maskedConfig.body.data.manualCookies.main, MAIN_COOKIE)
-    assert.notEqual(maskedConfig.body.data.manualCookies.yuba, YUBA_COOKIE)
-    assert.notEqual(maskedConfig.body.data.manualPassport.cookie, PASSPORT_COOKIE)
-    assert.notEqual(maskedConfig.body.data.cookieCloud.password, COOKIE_CLOUD_PASSWORD)
-    assert.equal(JSON.stringify(maskedConfig.body).includes('main-auth-redacted-secret-value'), false)
-    assert.equal(JSON.stringify(maskedConfig.body).includes('passport-ltp0-redacted-secret-value'), false)
-    assert.equal(JSON.stringify(maskedConfig.body).includes('cookiecloud-password-redacted-secret-value'), false)
+    assert.equal(config.response.status, 200)
+    assert.equal(config.body.exists, true)
+    assert.equal(config.body.data.cookie, MAIN_COOKIE)
+    assert.equal(config.body.data.manualCookies.main, MAIN_COOKIE)
+    assert.equal(config.body.data.manualCookies.yuba, YUBA_COOKIE)
+    assert.equal(config.body.data.manualPassport.cookie, PASSPORT_COOKIE)
+    assert.equal(config.body.data.cookieCloud.password, COOKIE_CLOUD_PASSWORD)
 
-    const rawConfig = await requestJson(`${baseUrl}/api/config/raw`, {
+    const removedRawConfig = await fetch(`${baseUrl}/api/config/raw`, {
       headers: { Cookie: sessionCookie },
     })
-    assert.equal(rawConfig.response.status, 200)
-    assert.equal(rawConfig.body.data.manualPassport.cookie, PASSPORT_COOKIE)
-    assert.equal(rawConfig.body.data.cookieCloud.password, COOKIE_CLOUD_PASSWORD)
+    assert.equal(removedRawConfig.status, 404)
+
+    const overview = await requestJson(`${baseUrl}/api/overview`, {
+      headers: { Cookie: sessionCookie },
+    })
+    assert.equal(overview.response.status, 200)
+    assert.equal(overview.body.manualPassportConfigured, true)
+    const overviewJson = JSON.stringify(overview.body)
+    assert.equal(overviewJson.includes('main-auth-redacted-secret-value'), false)
+    assert.equal(overviewJson.includes('passport-ltp0-redacted-secret-value'), false)
+    assert.equal(overviewJson.includes('cookiecloud-password-redacted-secret-value'), false)
   })
 })
 
-test('createServer masks manual passport material in config mutation responses', async () => {
+test('createServer returns complete config in config mutation responses', async () => {
   const { context, getLastSavePayload } = createRouteTestContext()
   const nextPassportCookie = 'dy_did=did-next-redacted; LTP0=next-passport-ltp0-redacted-secret-value'
 
@@ -282,8 +283,7 @@ test('createServer masks manual passport material in config mutation responses',
 
     assert.equal(saveResult.response.status, 200)
     assert.equal(getLastSavePayload().manualPassport.cookie, nextPassportCookie)
-    assert.notEqual(saveResult.body.data.config.manualPassport.cookie, nextPassportCookie)
-    assert.equal(JSON.stringify(saveResult.body).includes('next-passport-ltp0-redacted-secret-value'), false)
+    assert.equal(saveResult.body.data.config.manualPassport.cookie, nextPassportCookie)
   })
 })
 

@@ -166,7 +166,7 @@ Keep messages stable when frontend code or tests rely on them.
 - Contract tests must assert `refreshCookieSourceAfterFailure`, `runWithCookieSourceRetry`, and `RuntimeTaskRunnerDeps.refreshCookieSourceAfterFailure` exist.
 - Contract tests must assert credential recovery uses `recoverCredentialSnapshot`, which validates the current local cookie, calls `persistEffectiveCookies(true)` for CookieCloud mode, validates with `getFansList()`, optionally calls `safeAuth`, and validates again before persisting the passport refresh.
 - Unit-style tests must cover `LTP0` detection without exposing the value and `safeAuth` cookie merge behavior with mocked response headers.
-- Unit-style tests must cover manual passport cookie normalization, public config masking, manual-mode main recovery, Yuba SSO recovery, Yuba SSO failure fallback, and missing-`dy_did` behavior.
+- Unit-style tests must cover manual passport cookie normalization, authenticated config and summary secret boundaries, manual-mode main recovery, Yuba SSO recovery, Yuba SSO failure fallback, and missing-`dy_did` behavior.
 - Contract tests must assert task runner modules do not directly reference `safeAuth`, `LTP0`, `ltp0`, or `refreshDouyuMainCookiesWithSafeAuth`.
 - Contract tests must assert fan reconcile preserves the side-effecting config write and merges the latest local cookie snapshot before `reconcileDockerConfig`.
 
@@ -200,6 +200,6 @@ try {
 - Do not `catch (e)` and assume `e.message`; catch as `unknown` and normalize.
 - Do not throw raw Douyu response objects.
 - Do not let scheduled task errors escape out of cron callbacks.
-- Do not return stack traces or raw config secrets in API responses.
+- Do not return stack traces or raw config secrets in public/status API responses. Authenticated `/api/config` is the explicit complete-config editing endpoint.
 - Do not hide remote CookieCloud fetches inside local-only diagnostics such as `/api/cookie-source/check`.
 - Do not add direct `LTP0` / passport refresh without a separate config, secret-masking, validation, and test plan.

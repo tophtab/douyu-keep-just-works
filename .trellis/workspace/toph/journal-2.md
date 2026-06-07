@@ -203,3 +203,36 @@ Adjusted Docker WebUI scrollbars to use a narrower transparent-track treatment m
 ### Next Steps
 
 - None - task complete
+
+
+## Session 66: Optimize Docker workflow build speed
+
+**Date**: 2026-06-07
+**Task**: Optimize Docker workflow build speed
+**Branch**: `master`
+
+### Summary
+
+Reduced Docker build context, removed runtime npm ci duplication via production dependency stage, added workflow path filters, and verified lint/type-check/tests/local Docker build.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `251c31a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

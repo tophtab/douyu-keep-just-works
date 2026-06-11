@@ -439,3 +439,36 @@ Prepared the 3.5.0 changelog, created the release task record, and used npm vers
 ### Next Steps
 
 - None - task complete
+
+
+## Session 73: Login cookie status diagnostics
+
+**Date**: 2026-06-11
+**Task**: Login cookie status diagnostics
+**Branch**: `master`
+
+### Summary
+
+Updated the login status card to show live, yuba, and passport cookie validity from the existing cookie diagnostics endpoint, removed the previous system/fans/source cells, and kept manual check toasts on the same diagnostics result.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4baccdf` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

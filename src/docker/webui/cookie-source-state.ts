@@ -1,4 +1,4 @@
-import type { CookieCloudConfig, DockerConfig, ManualCookieConfig, ManualPassportConfig, PassportQrLoginPublicStatus } from '../../core/types'
+import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, ManualCookieConfig, ManualPassportConfig, PassportQrLoginPublicStatus } from '../../core/types'
 import { reactive, ref } from 'vue'
 import { DEFAULT_COOKIE_CLOUD_SYNC_CRON } from '../../core/task-defaults'
 import { useCronPreview } from './composables/use-cron-preview'
@@ -7,6 +7,7 @@ import { setRawConfig } from './resource-config'
 export const mainCookie = ref('')
 export const yubaCookie = ref('')
 export const passportCookie = ref('')
+export const cookieDiagnostics = ref<CookieDiagnostics | null>(null)
 export const passportQrLogin = ref<PassportQrLoginPublicStatus | null>(null)
 export const passportQrLoginBusy = ref(false)
 export const cookieCloud = reactive({
@@ -52,6 +53,10 @@ export function hasManualPassport(config: DockerConfig | null): boolean {
 
 export function getCookieSourceLabel(config: DockerConfig | null): string {
   return getCookieCloudConfig(config).active ? 'CookieCloud' : '手填'
+}
+
+export function clearCookieDiagnostics(): void {
+  cookieDiagnostics.value = null
 }
 
 export function applyRawConfig(config: DockerConfig | null): void {

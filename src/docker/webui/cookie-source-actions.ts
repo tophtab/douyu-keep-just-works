@@ -7,6 +7,8 @@ import { showToast } from './toast'
 import {
   applyManualPassportSaveResponse,
   applyRawConfig,
+  clearCookieDiagnostics,
+  cookieDiagnostics,
   cookieCloud,
   getCookieCloudConfig,
   mainCookie,
@@ -34,6 +36,8 @@ export interface PersistCookieSourceResponse {
 interface PassportQrLoginResponse {
   data?: PassportQrLoginPublicStatus | null
 }
+
+let cookieDiagnosticsPending: Promise<CookieDiagnostics> | null = null
 
 async function refreshOverviewAfterCookieChange(showSuccessToast: boolean): Promise<void> {
   await refreshOverviewSurface('overview', false)
@@ -174,18 +178,46 @@ export async function syncCookieCloudToLoginCookies(showSuccessToast?: boolean, 
   }
 }
 
+async function requestCookieDiagnostics(): Promise<CookieDiagnostics> {
+  if (cookieDiagnosticsPending) {
+    return await cookieDiagnosticsPending
+  }
+
+  cookieDiagnosticsPending = requestJson<CookieDiagnostics>('/api/cookie-source/check', {
+    method: 'POST',
+  }).then((data) => {
+    cookieDiagnostics.value = data
+    return data
+  }).finally(() => {
+    cookieDiagnosticsPending = null
+  })
+
+  return await cookieDiagnosticsPending
+}
+
+export async function refreshCookieDiagnostics(): Promise<CookieDiagnostics | undefined> {
+  try {
+    return await requestCookieDiagnostics()
+  } catch (error) {
+    clearCookieDiagnostics()
+    if (isHttpUnauthorized(error)) {
+      return undefined
+    }
+    return undefined
+  }
+}
+
 export async function checkCookieSource(showSuccessToast = true): Promise<CookieDiagnostics | undefined> {
   try {
     await syncCookieCloudToLoginCookies(false, true)
-    const data = await requestJson<CookieDiagnostics>('/api/cookie-source/check', {
-      method: 'POST',
-    })
+    const data = await requestCookieDiagnostics()
     if (showSuccessToast !== false) {
       const readyForDyTokenYuba = data.mainCookieReady && data.yubaDyTokenReady
       showToast(readyForDyTokenYuba ? '登录凭证已同步，dy-token 鱼吧请求已就绪' : '登录凭证已同步并校验，请查看缺失项', readyForDyTokenYuba)
     }
     return data
   } catch (error) {
+    clearCookieDiagnostics()
     if (isHttpUnauthorized(error)) {
       return undefined
     }

@@ -5,6 +5,7 @@ import {
   checkCookieSource,
   disableCookieCloud,
   pollPassportQrLogin,
+  refreshCookieDiagnostics,
   retryPassportQrLoginYuba,
   saveAndEnableCookieCloud,
   saveCookie,
@@ -13,6 +14,7 @@ import {
 } from './cookie-source-actions'
 import {
   applyRawConfig,
+  clearCookieDiagnostics,
   cookieCloud,
   cronPreviewText,
   loadCookieCloudCronPreview,
@@ -78,7 +80,14 @@ export function useCookieLoginPage() {
     void disableCookieCloud()
   }
 
-  watch(rawConfig, applyRawConfig, { immediate: true })
+  watch(rawConfig, (config) => {
+    applyRawConfig(config)
+    if (!config) {
+      clearCookieDiagnostics()
+      return
+    }
+    void refreshCookieDiagnostics()
+  }, { immediate: true })
   watch(passportQrLogin, ensurePassportQrPolling)
   onBeforeUnmount(stopPassportQrPolling)
 

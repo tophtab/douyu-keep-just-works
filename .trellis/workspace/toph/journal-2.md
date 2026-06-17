@@ -472,3 +472,36 @@ Updated the login status card to show live, yuba, and passport cookie validity f
 ### Next Steps
 
 - None - task complete
+
+
+## Session 74: Sync Trellis migration outputs
+
+**Date**: 2026-06-17
+**Task**: Sync Trellis migration outputs
+**Branch**: `master`
+
+### Summary
+
+Reviewed trellis update --migrate outputs, kept Trellis-managed assets tracked, removed tracked local-only .trellis/.developer, verified checks, and pushed master.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `27b2e3e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 74
-- **Last Active**: 2026-06-17
+- **Total Sessions**: 75
+- **Last Active**: 2026-06-19
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~507 | Active |
+| `journal-2.md` | ~540 | Active |
 | `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 75 | 2026-06-19 | Streamline Trellis specs | `b234d2f` | `master` |
 | 74 | 2026-06-17 | Sync Trellis migration outputs | `27b2e3e` | `master` |
 | 73 | 2026-06-11 | Login cookie status diagnostics | `4baccdf` | `master` |
 | 72 | 2026-06-07 | Release 3.5.0 | `6516d65`, `4e8dbac`, `9cece83` | `master` |

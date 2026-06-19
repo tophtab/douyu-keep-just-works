@@ -505,3 +505,36 @@ Reviewed trellis update --migrate outputs, kept Trellis-managed assets tracked, 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 75: Streamline Trellis specs
+
+**Date**: 2026-06-19
+**Task**: Streamline Trellis specs
+**Branch**: `master`
+
+### Summary
+
+Reviewed and streamlined Trellis specs by consolidating backend and frontend scenario contracts, adding read-routing tables, compressing shared guides, and reducing spec size while preserving high-risk guardrails.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b234d2f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

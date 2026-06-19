@@ -23,7 +23,7 @@ The set is discovered at runtime by listing directories under `templates/common/
 | Skill | Purpose |
 | --- | --- |
 | `trellis-meta` | This skill. Explains the local Trellis architecture and customization entry points to an AI working inside a user project. |
-| `trellis-session-insight` | Wraps the `trellis mem` CLI so an AI knows when and how to reach into past Claude Code / Codex conversation logs. |
+| `trellis-session-insight` | Wraps the `trellis mem` CLI so an AI knows when and how to reach into past Claude Code / Codex / Pi Agent conversation logs. |
 | `trellis-spec-bootstrap` | Platform-neutral workflow for creating or refreshing `.trellis/spec/` from the real codebase (with optional GitNexus / ABCoder integration). |
 | `trellis-channel` | Capability skill teaching an AI when to reach for `trellis channel` for multi-agent collaboration, forum/thread persistent boards, and dispatcher-wait patterns. |
 
@@ -45,7 +45,7 @@ Each platform configurator calls `writeSkills(<root>, <workflowSkills>, resolveB
 | Copilot | `.github/skills/<skill>/` | `configureCopilot` |
 | Droid | `.factory/skills/<skill>/` | `configureDroid` |
 | Antigravity | `.agent/skills/<skill>/` | `configureAntigravity` |
-| Windsurf | `.windsurf/skills/<skill>/` | `configureWindsurf` |
+| Devin | `.devin/skills/<skill>/` | `configureDevin` |
 | Kilo | `.kilocode/skills/<skill>/` | `configureKilo` |
 | OpenCode | (handled by `collectOpenCodeTemplates`) | Uses the same `resolveBundledSkills(ctx)` output |
 | Pi, Reasonix | (their own collectors) | Same `resolveBundledSkills(ctx)` output |
@@ -69,7 +69,7 @@ The mechanism that auto-dispatches bundled skills to platform skill roots lives 
    - `writeSkills(skillsRoot, workflowSkills, bundledSkills)` writes both workflow skills and bundled skill files under `skillsRoot`.
    - `collectSkillTemplates(skillsRoot, workflowSkills, bundledSkills)` returns the same shape as a `Map<filePath, content>` for the update / hash pipeline.
 
-Every platform configurator that supports skills imports both helpers (see `claude.ts`, `cursor.ts`, `codex.ts`, `gemini.ts`, `kiro.ts`, `qoder.ts`, `codebuddy.ts`, `copilot.ts`, `droid.ts`, `antigravity.ts`, `windsurf.ts`, `kilo.ts`). The `index.ts` `PLATFORM_FUNCTIONS` registry also calls `resolveBundledSkills(ctx)` inside each `collectTemplates` closure so `trellis update` tracking stays consistent.
+Every platform configurator that supports skills imports both helpers (see `claude.ts`, `cursor.ts`, `codex.ts`, `gemini.ts`, `kiro.ts`, `qoder.ts`, `codebuddy.ts`, `copilot.ts`, `droid.ts`, `antigravity.ts`, `devin.ts`, `kilo.ts`). The `index.ts` `PLATFORM_FUNCTIONS` registry also calls `resolveBundledSkills(ctx)` inside each `collectTemplates` closure so `trellis update` tracking stays consistent.
 
 ## Adding a New Bundled Skill
 

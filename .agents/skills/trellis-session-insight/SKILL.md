@@ -11,7 +11,7 @@ It is intentionally a **capability skill, not a workflow**. There is no fixed ou
 
 ## What `trellis mem` is
 
-A local CLI that indexes the user's past Claude Code and Codex conversation logs (the JSONL files each platform stores under `~/.claude/projects/` and `~/.codex/sessions/`) and lets you list, search, slice by Trellis task boundaries, and dump cleaned dialogue from them. OpenCode logs are not yet indexable (provider adapter pending) — when an OpenCode session is the obvious target, surface that limitation rather than guessing.
+A local CLI that indexes the user's past Claude Code, Codex, and Pi Agent conversation logs (the JSONL files each platform stores under `~/.claude/projects/`, `~/.codex/sessions/`, and `~/.pi/agent/sessions/`) and lets you list, search, slice by Trellis task boundaries, and dump cleaned dialogue from them. OpenCode logs are not yet indexable (provider adapter pending) — when an OpenCode session is the obvious target, surface that limitation rather than guessing.
 
 Nothing in `mem` is uploaded. All reads are local.
 
@@ -64,7 +64,7 @@ trellis mem extract <session-id> --grep "<keyword>"
 trellis mem context <session-id> --turns 3 --around 2
 
 # When you do not know the session id yet, start with list + filter.
-trellis mem list --task <task-dir>
+trellis mem list --cwd <project-path>
 trellis mem projects   # → list active project cwds, then narrow
 ```
 

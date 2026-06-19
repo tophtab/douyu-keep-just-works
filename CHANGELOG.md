@@ -7,6 +7,23 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ## Unreleased
 
+## 3.6.0 - 2026-06-19
+
+### Added
+
+- The login page status card now shows direct validity indicators for live,
+  Yuba, and passport cookies using the same cookie diagnostics as the sync and
+  check action.
+
+### Changed
+
+- Login cookie diagnostics now refresh when login configuration loads or
+  changes, so saved cookie strings are reflected without a separate manual
+  check.
+- Trellis workflow files, bundled agent skills, project specs, and archived
+  task metadata were refreshed to reduce future maintenance and context-loading
+  cost.
+
 ## 3.5.0 - 2026-06-07
 
 ### Added

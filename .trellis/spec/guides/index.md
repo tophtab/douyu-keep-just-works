@@ -1,79 +1,31 @@
 # Thinking Guides
 
-> **Purpose**: Expand your thinking to catch things you might not have considered.
+> Shared pre-edit prompts for mistakes that layer specs do not fully cover.
 
 ---
 
-## Why Thinking Guides?
+## Read Routing
 
-**Most bugs and tech debt come from "didn't think of that"**, not from lack of skill:
-
-- Didn't think about what happens at layer boundaries → cross-layer bugs
-- Didn't think about code patterns repeating → duplicated code everywhere
-- Didn't think about edge cases → runtime errors
-- Didn't think about future maintainers → unreadable code
-
-These guides help you **ask the right questions before coding**.
+| Trigger | Read |
+|---|---|
+| Feature touches 3+ layers, changes a data format, or has unclear ownership | [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) |
+| New helper/utility, repeated pattern, constant/config change, or similar code already exists | [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md) |
 
 ---
 
-## Available Guides
+## Quick Checks
 
-| Guide | Purpose | When to Use |
-|-------|---------|-------------|
-| [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md) | Identify patterns and reduce duplication | When you notice repeated patterns |
-| [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) | Think through data flow across layers | Features spanning multiple layers |
-
----
-
-## Quick Reference: Thinking Triggers
-
-### When to Think About Cross-Layer Issues
-
-- [ ] Feature touches 3+ layers (API, Service, Component, Database)
-- [ ] Data format changes between layers
-- [ ] Multiple consumers need the same data
-- [ ] You're not sure where to put some logic
-
-→ Read [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md)
-
-### When to Think About Code Reuse
-
-- [ ] You're writing similar code to something that exists
-- [ ] You see the same pattern repeated 3+ times
-- [ ] You're adding a new field to multiple places
-- [ ] **You're modifying any constant or config**
-- [ ] **You're creating a new utility/helper function** ← Search first!
-
-→ Read [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md)
-
----
-
-## Pre-Modification Rule (CRITICAL)
-
-> **Before changing ANY value, ALWAYS search first!**
+Before changing any value, search for all current owners:
 
 ```bash
-# Search for the value you're about to change
-grep -r "value_to_change" .
+rg "value_to_change" .
 ```
 
-This single habit prevents most "forgot to update X" bugs.
+Before adding a helper or abstraction:
 
----
+```bash
+rg "similarName|domainKeyword" src test
+```
 
-## How to Use This Directory
-
-1. **Before coding**: Skim the relevant thinking guide
-2. **During coding**: If something feels repetitive or complex, check the guides
-3. **After bugs**: Add new insights to the relevant guide (learn from mistakes)
-
----
-
-## Contributing
-
-Found a new "didn't think of that" moment? Add it to the relevant guide.
-
----
-
-**Core Principle**: 30 minutes of thinking saves 3 hours of debugging.
+Use these guides before coding, again when a change starts crossing boundaries,
+and after bugs when a new reusable lesson should be captured.

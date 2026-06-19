@@ -37,68 +37,9 @@ npm test
 
 `npm test` currently runs Node contract tests and then a Docker build.
 
-### Docker Image Build Cache Contracts
-
-#### 1. Scope / Trigger
-
-Apply this contract when editing `Dockerfile`, `.dockerignore`, `.github/workflows/docker.yml`, package metadata, TypeScript/Vite build config, or files that change Docker image build inputs.
-
-#### 2. Signatures
-
-- Local runtime build: `npm run build:docker`
-- Image build: `docker build -f Dockerfile .`
-- CI workflow: `.github/workflows/docker.yml`
-
-#### 3. Contracts
-
-- Docker context should be an allowlist aligned to Dockerfile inputs: `Dockerfile`, `.dockerignore`, `package.json`, `package-lock.json`, `tsconfig.docker.json`, `tsconfig.webui.json`, `vite.config.ts`, and `src/**`.
-- Dependency install must happen in a package-file-only stage before `COPY src`; this keeps `npm ci` cached across source-only changes.
-- Production dependency pruning must derive from the dependency stage, not from a post-source build stage; otherwise every source change re-runs the prune step.
-- Runtime must copy production-pruned `node_modules` and compiled `build/docker` output from prior stages instead of running a second runtime `npm ci`.
-- Branch and pull request workflow triggers should use path filters for image-affecting files; release tag and manual dispatch behavior must remain available.
-
-#### 4. Validation & Error Matrix
-
-- Source-only change invalidates `npm ci` or production prune -> stage boundary is wrong.
-- Docs-only or local metadata change starts branch/PR Docker workflow -> path filters are too broad.
-- Package or lockfile change does not start Docker workflow -> path filters are too narrow.
-- Runtime image can load dev-only build tooling -> production prune/copy contract is broken.
-- Runtime image cannot load a production dependency such as `express` -> runtime dependency copy is incomplete.
-
-#### 5. Good/Base/Bad Cases
-
-- Good: source change re-runs `COPY src` and `npm run build:docker` only, while dependency and production-prune stages stay cacheable.
-- Base: package-lock change re-runs dependency install and production prune.
-- Bad: `npm prune` is chained after `npm run build:docker` in the same stage, causing source changes to repeat dependency pruning.
-
-#### 6. Tests Required
-
-- Update `test/project-maintenance-contract.test.js` when changing Dockerfile stages, `.dockerignore` allowlist, or workflow path filters.
-- Assert the Dockerfile has one `RUN npm ci`, keeps production prune before the source-copy build stage, and does not run `npm ci` in the runtime stage.
-- Assert `.dockerignore` active rules match the Dockerfile input allowlist.
-- Assert workflow path filters include image-affecting files.
-- Run `npm run lint`, `npm run type-check`, `npm run test:contracts`, `npm run build:docker`, and a local `docker build` when Docker is available.
-
-#### 7. Wrong vs Correct
-
-Wrong:
-
-```Dockerfile
-COPY src ./src
-RUN npm run build:docker \
-  && npm prune --omit=dev
-```
-
-Correct:
-
-```Dockerfile
-FROM deps AS production-deps
-RUN npm prune --omit=dev --omit=optional
-
-FROM deps AS builder
-COPY src ./src
-RUN npm run build:docker
-```
+Read [Backend Contracts](./contracts.md#docker-image-build-cache) before
+editing Docker image inputs, Dockerfile stages, `.dockerignore`, package
+metadata, TypeScript/Vite build config, or image workflow path filters.
 
 ### Docker Task Metadata Ownership
 
@@ -128,6 +69,10 @@ await runRuntimeTask(type, taskConfig, deps)
 ```
 
 Keep task-specific cookie/status-cache behavior in `runtime-task-runners.ts`; scheduler code should own cron lifecycle and locks, not duplicate task execution switches.
+
+Read [Backend Contracts](./contracts.md#docker-task-metadata-ownership) when
+adding a task or changing task-wide labels, active checks, schedule summaries,
+or "not configured" messages.
 
 ### Validate Before Persisting
 

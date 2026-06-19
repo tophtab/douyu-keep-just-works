@@ -22,12 +22,28 @@ These guidelines document current project reality, not an aspirational rewrite.
 |-------|-------------|--------|
 | [Directory Structure](./directory-structure.md) | Module organization and file layout | Filled |
 | [Database Guidelines](./database-guidelines.md) | Persistence and config storage patterns | Filled |
-| [Douyu Auth Cookie Lifecycle](./auth-cookie-lifecycle.md) | Passport/main-site/Yuba cookie authority and lifetime contracts | Filled |
-| [Douyu Pocket and Double-Card Contracts](./douyu-pocket-contracts.md) | Anchor pocket/effective API fields and glow-stick multiplier rules | Filled |
 | [Error Handling](./error-handling.md) | Error types, handling strategies | Filled |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | Filled |
 | [Testing Guidelines](./testing-guidelines.md) | Contract-test taxonomy and modernization rules | Filled |
 | [Logging Guidelines](./logging-guidelines.md) | Runtime logging conventions | Filled |
+| [Backend Contracts](./contracts.md) | Scenario contracts for high-risk backend behavior | Filled |
+
+---
+
+## Read Routing
+
+Use this table before opening every backend spec file.
+
+| Change area | Read |
+|---|---|
+| Adding, moving, or splitting backend modules | [Directory Structure](./directory-structure.md) |
+| Config persistence, default config, manual passport config, normalization, or examples | [Database Guidelines](./database-guidelines.md), [Backend Contracts](./contracts.md#config-and-persistence-contracts) |
+| Routes, task runners, CookieCloud, credential errors, or Douyu API failures | [Error Handling](./error-handling.md), [Backend Contracts](./contracts.md#credential-recovery-retry) |
+| Passport QR login, safeAuth, CookieCloud authority, Yuba SSO, or cookie lifetime assumptions | [Backend Contracts](./contracts.md#passport-main-site-and-yuba-cookie-authority), [Backend Contracts](./contracts.md#project-owned-passport-qr-login-snapshots) |
+| Glow-stick double-card detection or Douyu pocket card interpretation | [Backend Contracts](./contracts.md#glow-stick-double-card-detection) |
+| Dockerfile, `.dockerignore`, build workflow, task metadata, type safety, or route architecture | [Quality Guidelines](./quality-guidelines.md), [Docker Image Build Cache](./contracts.md#docker-image-build-cache), [Docker Task Metadata Ownership](./contracts.md#docker-task-metadata-ownership) |
+| Runtime log messages or log categories | [Logging Guidelines](./logging-guidelines.md) |
+| Contract tests or source-inspection test modernization | [Testing Guidelines](./testing-guidelines.md) |
 
 ---
 
@@ -38,12 +54,11 @@ Before backend changes:
 - Read `CONTRIBUTING.md`, especially "Docker-First Development".
 - Read [Directory Structure](./directory-structure.md) when adding, moving, or splitting modules.
 - Read [Database Guidelines](./database-guidelines.md) before changing config persistence or adding durable state.
-- Read [Douyu Auth Cookie Lifecycle](./auth-cookie-lifecycle.md) before touching Passport QR login, CookieCloud cookie authority, credential recovery, or Yuba SSO.
-- Read [Douyu Pocket and Double-Card Contracts](./douyu-pocket-contracts.md) before changing glow-stick double-card detection, active room filtering, or Douyu pocket card interpretation.
 - Read [Error Handling](./error-handling.md) before touching routes, task runners, cookie handling, or Douyu API calls.
 - Read [Logging Guidelines](./logging-guidelines.md) before adding runtime messages.
 - Read [Testing Guidelines](./testing-guidelines.md) before adding, removing, or modernizing contract tests.
 - Read [Quality Guidelines](./quality-guidelines.md) before finishing any backend change.
+- Read the matching section of [Backend Contracts](./contracts.md) when the change matches a row in Read Routing.
 
 ---
 

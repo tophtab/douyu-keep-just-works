@@ -1,105 +1,74 @@
 # Code Reuse Thinking Guide
 
-> **Purpose**: Stop and think before creating new code - does it already exist?
-
----
-
-## The Problem
-
-**Duplicated code is the #1 source of inconsistency bugs.**
-
-When you copy-paste or rewrite existing logic:
-- Bug fixes don't propagate
-- Behavior diverges over time
-- Codebase becomes harder to understand
+> Search first, then decide whether reuse or a new abstraction is justified.
 
 ---
 
 ## Before Writing New Code
 
-### Step 1: Search First
+1. Search for existing names and domain terms:
 
 ```bash
-# Search for similar function names
-grep -r "functionName" .
-
-# Search for similar logic
-grep -r "keyword" .
+rg "functionName|domainKeyword" src test
 ```
 
-### Step 2: Ask These Questions
+2. Ask:
 
-| Question | If Yes... |
-|----------|-----------|
-| Does a similar function exist? | Use or extend it |
-| Is this pattern used elsewhere? | Follow the existing pattern |
-| Could this be a shared utility? | Create it in the right place |
-| Am I copying code from another file? | **STOP** - extract to shared |
-
----
-
-## Common Duplication Patterns
-
-### Pattern 1: Copy-Paste Functions
-
-**Bad**: Copying a validation function to another file
-
-**Good**: Extract to shared utilities, import where needed
-
-### Pattern 2: Similar Components
-
-**Bad**: Creating a new component that's 80% similar to existing
-
-**Good**: Extend existing component with props/variants
-
-### Pattern 3: Repeated Constants
-
-**Bad**: Defining the same constant in multiple files
-
-**Good**: Single source of truth, import everywhere
+| Question | If yes |
+|---|---|
+| Does a similar function/component exist? | Use or extend it |
+| Is the same pattern already used elsewhere? | Follow the local pattern |
+| Is the new code copied from another file? | Extract the shared part |
+| Is a constant/config value repeated? | Keep one source of truth |
 
 ---
 
-## When to Abstract
+## When To Abstract
 
-**Abstract when**:
-- Same code appears 3+ times
-- Logic is complex enough to have bugs
-- Multiple people might need this
+Abstract when:
 
-**Don't abstract when**:
-- Only used once
-- Trivial one-liner
-- Abstraction would be more complex than duplication
+- the same logic appears 3+ times,
+- the logic is complex enough to hide bugs,
+- multiple modules need the same behavior.
+
+Do not abstract when:
+
+- it is used once,
+- it is a trivial one-liner,
+- the abstraction would be harder to understand than the duplication.
 
 ---
 
 ## After Batch Modifications
 
-When you've made similar changes to multiple files:
-
-1. **Review**: Did you catch all instances?
-2. **Search**: Run grep to find any missed
-3. **Consider**: Should this be abstracted?
+- Search for missed instances.
+- Check whether similar edits should share a helper, fixture, constant, or
+  component.
+- Keep architecture assertions visible in tests; extract setup mechanics, not
+  the contract being tested.
 
 ---
 
 ## Gotcha: Asymmetric Mechanisms Producing Same Output
 
-**Problem**: When two different mechanisms must produce the same file set (e.g., recursive directory copy for init vs. manual `files.set()` for update), structural changes (renaming, moving, adding subdirectories) only propagate through the automatic mechanism. The manual one silently drifts.
+Problem: two mechanisms produce the same file set, but only one is auto-derived
+from the directory structure. Example: recursive copy during init vs. manual
+`files.set()` during update.
 
-**Symptom**: Init works perfectly, but update creates files at wrong paths or misses files entirely.
+Risk: structural changes propagate through the automatic path while the manual
+path silently drifts.
 
-**Prevention checklist**:
-- [ ] When migrating directory structures, search for ALL code paths that reference the old structure
-- [ ] If one path is auto-derived (glob/copy) and another is manually listed, the manual one needs updating
-- [ ] Add a regression test that compares outputs from both mechanisms
+Checklist:
+
+- [ ] Search for all code paths that reference the old structure.
+- [ ] Update manual file lists when an automatic copy path also exists.
+- [ ] Add a regression that compares outputs from both mechanisms.
 
 ---
 
 ## Checklist Before Commit
 
-- [ ] Searched for existing similar code
-- [ ] No copy-pasted logic that should be shared
-- [ ] Constants defined in one place
-- [ ] Similar patterns follow same structure
+- [ ] Searched for existing similar code.
+- [ ] No copy-pasted logic that should be shared.
+- [ ] Constants and config defaults have one owner.
+- [ ] Similar patterns follow the same structure.

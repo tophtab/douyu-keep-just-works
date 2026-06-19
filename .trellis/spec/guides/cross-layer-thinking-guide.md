@@ -1,162 +1,108 @@
 # Cross-Layer Thinking Guide
 
-> **Purpose**: Think through data flow across layers before implementing.
+> Map data flow and ownership before implementing cross-layer behavior.
 
 ---
 
-## The Problem
-
-**Most bugs happen at layer boundaries**, not within layers.
-
-Common cross-layer bugs:
-- API returns format A, frontend expects format B
-- Database stores X, service transforms to Y, but loses data
-- Multiple layers implement the same logic differently
-
----
-
-## Before Implementing Cross-Layer Features
-
-### Step 1: Map the Data Flow
-
-Draw out how data moves:
-
-```
-Source → Transform → Store → Retrieve → Transform → Display
-```
-
-For each arrow, ask:
-- What format is the data in?
-- What could go wrong?
-- Who is responsible for validation?
-
-### Step 2: Identify Boundaries
-
-| Boundary | Common Issues |
-|----------|---------------|
-| API ↔ Service | Type mismatches, missing fields |
-| Service ↔ Database | Format conversions, null handling |
-| Backend ↔ Frontend | Serialization, date formats |
-| Component ↔ Component | Props shape changes |
-
-### Step 3: Define Contracts
-
-For each boundary:
-- What is the exact input format?
-- What is the exact output format?
-- What errors can occur?
-
----
-
-## Common Cross-Layer Mistakes
-
-### Mistake 1: Implicit Format Assumptions
-
-**Bad**: Assuming date format without checking
-
-**Good**: Explicit format conversion at boundaries
-
-### Mistake 2: Scattered Validation
-
-**Bad**: Validating the same thing in multiple layers
-
-**Good**: Validate once at the entry point
-
-### Mistake 3: Leaky Abstractions
-
-**Bad**: Component knows about database schema
-
-**Good**: Each layer only knows its neighbors
-
----
-
-## Checklist for Cross-Layer Features
+## Core Checklist
 
 Before implementation:
-- [ ] Mapped the complete data flow
-- [ ] Identified all layer boundaries
-- [ ] Defined format at each boundary
-- [ ] Decided where validation happens
+
+- [ ] Map the complete data flow: source -> transform -> store -> retrieve ->
+  transform -> display.
+- [ ] Identify every layer boundary.
+- [ ] Define the format at each boundary.
+- [ ] Decide where validation happens.
+- [ ] Decide which module owns the contract.
 
 After implementation:
-- [ ] Tested with edge cases (null, empty, invalid)
-- [ ] Verified error handling at each boundary
-- [ ] Checked data survives round-trip
+
+- [ ] Test null, empty, invalid, and stale inputs.
+- [ ] Verify error handling at each boundary.
+- [ ] Check data survives a round trip.
+
+Common mistakes:
+
+- implicit format assumptions,
+- scattered validation,
+- components or routes depending on storage internals.
 
 ---
 
 ## Cross-Platform Template Consistency
 
-In Trellis, command templates (e.g., `record-session.md`) exist in **multiple platforms** with identical or near-identical content. This is a cross-layer boundary.
+Trellis command templates can exist across multiple platform directories with
+near-identical content.
 
-### Checklist: After Modifying Any Command Template
+After modifying a command template:
 
-- [ ] Find all platforms with the same command: `find src/templates/*/commands/trellis/ -name "<command>.*"`
-- [ ] Update all platform copies (Markdown `.md` and TOML `.toml`)
-- [ ] For Gemini TOML: adapt line continuations (`\\` vs `\`) and triple-quoted strings
-- [ ] Run `/trellis:check-cross-layer` to verify nothing was missed
+- [ ] Find all platform copies:
+  `find src/templates/*/commands/trellis/ -name "<command>.*"`
+- [ ] Update Markdown and TOML variants.
+- [ ] For Gemini TOML, adapt line continuations and triple-quoted strings.
+- [ ] Run `/trellis:check-cross-layer`.
 
-**Real-world example**: Updated `record-session.md` in Claude to use `--mode record`, but forgot iFlow, Kilo, OpenCode, and Gemini — caught by cross-layer check.
+Known failure: `record-session.md` was updated for one platform, but iFlow,
+Kilo, OpenCode, and Gemini were missed; cross-layer check caught it.
 
 ---
 
-## Generated Runtime Template Upgrade Consistency
+## Runtime-Parsed Template Upgrade Consistency
 
-Some generated files are both documentation and runtime input. In Trellis,
-`.trellis/workflow.md` is parsed by `get_context.py`, `workflow_phase.py`,
-SessionStart filters, and per-turn hooks. Template changes must be validated
-against both fresh init and upgrade paths.
+Some generated files are also runtime input. `.trellis/workflow.md` is parsed by
+`get_context.py`, `workflow_phase.py`, SessionStart filters, and per-turn hooks.
 
-### Checklist: After Modifying A Runtime-Parsed Template
+After modifying a runtime-parsed template:
 
-- [ ] Identify every runtime parser that reads the template, not just the file
-  writer that installs it
-- [ ] Check whether relevant syntax lives outside obvious managed regions
-  such as tag blocks
-- [ ] Verify fresh `init` output and a versioned `update` scenario that writes
-  the older `.trellis/.version`
-- [ ] Add an upgrade regression using an older pristine template fixture, then
-  assert the installed file reaches the current packaged shape
-- [ ] Update the backend spec that owns the runtime contract
+- [ ] Identify every parser, not just the installer.
+- [ ] Check whether relevant syntax lives outside managed tag blocks.
+- [ ] Verify fresh `init` output.
+- [ ] Verify a versioned `update` scenario from an older `.trellis/.version`.
+- [ ] Add an upgrade regression with an older pristine fixture.
+- [ ] Update the backend spec that owns the runtime contract.
 
-**Real-world example**: Codex inline mode changed workflow platform markers from
-`[Codex]` / `[Kilo, Antigravity, Windsurf]` to `[codex-sub-agent]` /
-`[codex-inline, Kilo, Antigravity, Windsurf]`. Fresh init was correct, but
-`trellis update` only merged `[workflow-state:*]` blocks and preserved stale
-markers outside those blocks. Result: upgraded projects got new hook scripts
-but old workflow routing, so `get_context.py --mode phase --platform codex`
-could return empty Phase 2.1 detail.
+Known failure: Codex inline platform markers changed in fresh templates, but
+`trellis update` only merged workflow-state blocks and preserved stale markers
+outside those blocks. Upgraded projects then had new hooks but old workflow
+routing.
 
 ---
 
 ## Mode-Detection Probe Checklist
 
-When a CLI auto-detects a mode by probing a remote resource (e.g., checking if `index.json` exists to decide marketplace vs direct download):
+When a CLI auto-detects a mode by probing a remote resource:
 
-### Before implementing:
-- [ ] Probe runs in **ALL** code paths that use the result (interactive, `-y`, `--flag` combos)
-- [ ] 404 vs transient error are distinguished — don't treat both as "not found"
-- [ ] Transient errors **abort or retry**, never silently switch modes
-- [ ] Shared state (caches, prefetched data) is **reset** when context changes (e.g., user switches source)
-- [ ] **Shortcut paths** (e.g., `--template` skipping picker) must have the same error-handling quality as the probed path — check that downstream functions don't call catch-all wrappers
+Before implementing:
 
-### After implementing:
-- [ ] Trace every path from probe result to the mode-decision branch — no fallthrough
-- [ ] External format contracts (giget URI, raw URLs) are tested or at least documented as comments
-- [ ] Metadata reads consume a complete response or use a streaming parser — never parse a fixed-size prefix as full JSON
-- [ ] When reconstructing a composite identifier from parsed parts, verify **all** fields are included and in the **correct position** (e.g., `provider:repo/path#ref` not `provider:repo#ref/path`)
-- [ ] Verify that **action functions** called after a shortcut don't internally use the old catch-all fetch — they must use the probe-quality variant when error distinction matters
+- [ ] Probe runs in every code path that uses the result, including
+  interactive, `-y`, and shortcut flags.
+- [ ] 404 and transient failures are distinguished.
+- [ ] Transient failures abort or retry; they never silently switch modes.
+- [ ] Shared state and prefetched data reset when source/context changes.
+- [ ] Shortcut paths use the same error-handling quality as the probed path.
 
-**Real-world example**: Custom registry flow had 8 bugs across 3 review rounds: (1) probe only ran in interactive mode, (2) transient errors fell through to wrong mode, (3) giget URI had `#ref` in wrong position, (4) prefetched templates leaked across source switches, (5) `--template` shortcut bypassed probe but `downloadTemplateById` internally used catch-all `fetchTemplateIndex`, turning timeouts into "Template not found".
+After implementing:
 
-**Real-world example**: Agent-session update hints fetched npm `latest` metadata with `response.read(4096)` and then parsed it as complete JSON. The `@mindfoldhq/trellis` package metadata exceeded 4 KB, so the JSON was truncated, parse failed silently, and the first session injection showed no update hint. Fix: read the complete response before parsing, and add a regression where `version` is followed by an 8 KB metadata tail.
+- [ ] Trace every path from probe result to mode decision.
+- [ ] Test or document external format contracts such as giget URI and raw URLs.
+- [ ] Read complete metadata responses or use a streaming parser; never parse a
+  fixed-size prefix as full JSON.
+- [ ] Reconstruct composite identifiers with all fields in the correct position.
+- [ ] Verify downstream action functions do not use old catch-all fetch helpers.
+
+Known failures:
+
+- Custom registry flow had probe gaps, transient-error fallthrough, wrong giget
+  `#ref` position, stale prefetched templates, and shortcut paths that bypassed
+  probe-quality fetches.
+- Agent-session update hints parsed only the first 4096 bytes of npm package
+  metadata; the JSON was truncated and the update hint disappeared. Fix by
+  reading the complete response and adding a regression with a large metadata
+  tail.
 
 ---
 
-## When to Create Flow Documentation
+## When To Create Flow Documentation
 
-Create detailed flow docs when:
-- Feature spans 3+ layers
-- Multiple teams are involved
-- Data format is complex
-- Feature has caused bugs before
+Create detailed flow docs when a feature spans 3+ layers, has complex formats,
+has multiple implementation owners, or has caused bugs before.

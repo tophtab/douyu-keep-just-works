@@ -22,6 +22,23 @@ The maintained WebUI runtime is Vue-only. `src/docker/webui/main.ts` should moun
 | [State Management](./state-management.md) | Local, shared, and server state | Filled |
 | [Quality Guidelines](./quality-guidelines.md) | Linting, testing, accessibility | Filled |
 | [Type Safety](./type-safety.md) | TypeScript and validation patterns | Filled |
+| [Frontend Contracts](./contracts.md) | Scenario contracts for high-risk WebUI behavior | Filled |
+
+---
+
+## Read Routing
+
+Use this table before opening every frontend spec file.
+
+| Change area | Read |
+|---|---|
+| Adding or moving WebUI files | [Directory Structure](./directory-structure.md) |
+| Editing Vue components, shared section/table components, UI copy, or accessibility markup | [Component Guidelines](./component-guidelines.md) |
+| Adding composables, event handlers, or task page actions | [Hook Guidelines](./hook-guidelines.md) |
+| Changing local/shared/server state ownership, resource loaders, or protected shell mounting | [State Management](./state-management.md) |
+| Theme bootstrap, resource error feedback, manual force refresh, save-response application, CookieCloud sync/check, or Passport QR polling | [Frontend Contracts](./contracts.md) |
+| Changing API/config shapes or validation | [Type Safety](./type-safety.md), [Frontend Contracts](./contracts.md) when a scenario trigger matches |
+| Final frontend verification, Vue-only runtime, build behavior, or accessibility checks | [Quality Guidelines](./quality-guidelines.md) |
 
 ---
 
@@ -36,6 +53,7 @@ Before frontend changes:
 - Read [State Management](./state-management.md) before changing data loading, refresh, or shared resource state.
 - Read [Type Safety](./type-safety.md) before changing config/API shapes.
 - Read [Quality Guidelines](./quality-guidelines.md) before final verification.
+- Read the matching section of [Frontend Contracts](./contracts.md) when the change matches a row in Read Routing.
 
 ---
 

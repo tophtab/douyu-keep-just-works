@@ -538,3 +538,37 @@ Reviewed and streamlined Trellis specs by consolidating backend and frontend sce
 ### Next Steps
 
 - None - task complete
+
+
+## Session 76: Refresh README presentation
+
+**Date**: 2026-06-22
+**Task**: Refresh README presentation
+**Branch**: `master`
+
+### Summary
+
+Refreshed the README first screen with Docker-focused badges, compact navigation, and an updated privacy-safe poster; recorded the visual asset privacy rule in frontend specs.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f0d4d04` | (see git log) |
+| `52ce506` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

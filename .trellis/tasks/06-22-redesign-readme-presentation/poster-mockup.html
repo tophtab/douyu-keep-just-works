@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1672, initial-scale=1">
+  <title>douyu-keep-just-works poster mockup</title>
+  <style>
+    :root {
+      --bg: #000;
+      --panel: rgba(8, 8, 8, .96);
+      --panel-soft: rgba(30, 19, 12, .9);
+      --line: rgba(255, 135, 77, .18);
+      --line-strong: rgba(255, 135, 77, .34);
+      --text: #edf7ff;
+      --muted: #c7a38d;
+      --accent: #ff874d;
+      --accent-2: #c75b1e;
+      --success: #27b27f;
+      --warning: #f8b84c;
+      --shadow: 0 34px 70px rgba(0, 0, 0, .6);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 1672px;
+      height: 941px;
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+      color: var(--text);
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    body {
+      display: grid;
+      place-items: stretch;
+    }
+
+    .poster {
+      position: relative;
+      width: 1672px;
+      height: 941px;
+      overflow: hidden;
+      background:
+        linear-gradient(90deg, rgba(255, 135, 77, .08), transparent 34%, transparent 72%, rgba(255, 135, 77, .06)),
+        radial-gradient(circle at 18% 12%, rgba(255, 135, 77, .14), transparent 24%),
+        radial-gradient(circle at 84% 18%, rgba(199, 91, 30, .16), transparent 24%),
+        #000;
+    }
+
+    .poster::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(rgba(255, 135, 77, .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 135, 77, .035) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(90deg, transparent, #000 20%, #000 88%, transparent);
+      opacity: .36;
+      pointer-events: none;
+    }
+
+    .poster::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(255, 135, 77, .22);
+      pointer-events: none;
+    }
+
+    .layout {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 326px 1fr;
+      width: 100%;
+      height: 100%;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line-strong);
+      background: rgba(5, 5, 5, .92);
+      padding: 24px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      box-shadow: 24px 0 70px rgba(0, 0, 0, .46);
+    }
+
+    .brand {
+      display: grid;
+      gap: 12px;
+    }
+
+    .brand-line {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .logo {
+      width: 46px;
+      height: 46px;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 18px rgba(255, 135, 77, .2));
+    }
+
+    .app-name {
+      margin: 0;
+      color: #fff;
+      font-size: 34px;
+      line-height: 1.05;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .version {
+      width: max-content;
+      padding: 4px 10px;
+      border: 1px solid rgba(255, 135, 77, .35);
+      border-radius: 999px;
+      color: var(--accent);
+      background: rgba(255, 135, 77, .14);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .brand-copy {
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.65;
+      font-weight: 600;
+    }
+
+    .nav {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .nav-item {
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      border-radius: 22px;
+      color: #edf7ff;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .nav-item.active {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: #fff;
+      box-shadow: 0 18px 34px rgba(0, 0, 0, .38);
+    }
+
+    .theme-box {
+      margin-top: auto;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(9, 9, 9, .92);
+      box-shadow: var(--shadow);
+    }
+
+    .theme-title,
+    .sample-note {
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .theme-options {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .theme-btn {
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 16px;
+      color: var(--muted);
+      background: rgba(30, 19, 12, .9);
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .theme-btn.active {
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    }
+
+    .sample-note {
+      margin-top: 14px;
+      line-height: 1.5;
+    }
+
+    .main {
+      padding: 24px 34px 26px;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+    }
+
+    .headline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .kicker {
+      width: max-content;
+      padding: 6px 12px;
+      border: 1px solid rgba(255, 135, 77, .28);
+      border-radius: 999px;
+      color: var(--accent);
+      background: rgba(255, 135, 77, .1);
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 42px;
+      line-height: 1.08;
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .tagline {
+      margin: 0;
+      max-width: 680px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.65;
+      font-weight: 600;
+    }
+
+    .actions {
+      display: flex;
+      gap: 14px;
+    }
+
+    .action {
+      width: 74px;
+      height: 56px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 28px;
+      background: rgba(5, 5, 5, .72);
+      color: #fff;
+      font-size: 30px;
+      font-weight: 900;
+      box-shadow: var(--shadow);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric {
+      min-height: 84px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel-soft);
+      box-shadow: var(--shadow);
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      min-width: 72px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 900;
+      background: rgba(39, 178, 127, .16);
+      color: var(--success);
+    }
+
+    .pill.off {
+      color: var(--muted);
+      background: rgba(120, 138, 160, .14);
+    }
+
+    .pill.warn {
+      color: var(--warning);
+      background: rgba(248, 184, 76, .16);
+    }
+
+    .content {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .panel,
+    .table-shell {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+      font-weight: 900;
+    }
+
+    .section-subtitle {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .status-card {
+      min-height: 76px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--panel-soft);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    th,
+    td {
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 16px;
+      line-height: 1.45;
+    }
+
+    th {
+      color: var(--muted);
+      text-align: left;
+      font-size: 14px;
+      font-weight: 900;
+      background: rgba(4, 4, 4, .98);
+    }
+
+    tbody tr:nth-child(even) {
+      background: rgba(255, 255, 255, .04);
+    }
+
+    .num,
+    .date {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    .privacy {
+      position: absolute;
+      right: 34px;
+      bottom: 24px;
+      padding: 8px 12px;
+      border: 1px solid rgba(255, 135, 77, .26);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, .72);
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <main class="poster" aria-label="douyu-keep-just-works Docker WebUI preview poster">
+    <div class="layout">
+      <aside class="sidebar">
+        <section class="brand" aria-label="brand">
+          <div class="brand-line">
+            <img class="logo" src="../../../icon.png" alt="">
+            <h1 class="app-name">douyu-keep</h1>
+          </div>
+          <span class="version">V3.6.0</span>
+          <p class="brand-copy">
+            斗鱼荧光棒续粉丝牌检测双倍鱼吧签到<br>
+            Docker WebUI · 长期后台运行
+          </p>
+        </section>
+
+        <nav class="nav" aria-label="pages">
+          <div class="nav-item active">概况</div>
+          <div class="nav-item">登录</div>
+          <div class="nav-item">领取任务</div>
+          <div class="nav-item">保活任务</div>
+          <div class="nav-item">双倍任务</div>
+          <div class="nav-item">临期任务</div>
+          <div class="nav-item">鱼吧签到</div>
+          <div class="nav-item">运行日志</div>
+        </nav>
+
+        <section class="theme-box" aria-label="theme">
+          <div class="theme-title">主题模式</div>
+          <div class="theme-options">
+            <div class="theme-btn">☼</div>
+            <div class="theme-btn">☾</div>
+            <div class="theme-btn active">▣</div>
+          </div>
+          <div class="sample-note">演示数据 · 不含真实账号信息</div>
+        </section>
+      </aside>
+
+      <section class="main">
+        <header class="topbar">
+          <div class="headline">
+            <span class="kicker">Docker Ready · WebUI</span>
+            <h2>douyu-keep-just-works</h2>
+            <p class="tagline">
+              斗鱼粉丝牌 Docker 管理台：扫码登录、任务保活、双倍检测、临期礼物处理，一站式后台运行。
+            </p>
+          </div>
+          <div class="actions" aria-label="toolbar">
+            <div class="action">↻</div>
+            <div class="action">↪</div>
+          </div>
+        </header>
+
+        <section class="panel" aria-label="status">
+          <div class="panel-head">
+            <div>
+              <p class="section-subtitle">基础状态</p>
+              <h3 class="section-title">概况</h3>
+            </div>
+          </div>
+          <div class="status-grid">
+            <div class="status-card">
+              <div class="metric-label">登录</div>
+              <span class="pill">已就绪</span>
+            </div>
+            <div class="status-card">
+              <div class="metric-label">领取</div>
+              <span class="pill">已开启</span>
+            </div>
+            <div class="status-card">
+              <div class="metric-label">保活</div>
+              <span class="pill">已开启</span>
+            </div>
+            <div class="status-card">
+              <div class="metric-label">双倍</div>
+              <span class="pill">已开启</span>
+            </div>
+            <div class="status-card">
+              <div class="metric-label">临期</div>
+              <span class="pill">已开启</span>
+            </div>
+            <div class="status-card">
+              <div class="metric-label">鱼吧签到</div>
+              <span class="pill">已开启</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="content">
+          <div class="table-shell">
+            <table aria-label="sample backpack">
+              <colgroup>
+                <col style="width: 70px">
+                <col style="width: 180px">
+                <col style="width: 110px">
+                <col style="width: 110px">
+                <col style="width: 120px">
+                <col style="width: 170px">
+                <col style="width: 140px">
+                <col style="width: 110px">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="center">序号</th>
+                  <th>礼物</th>
+                  <th class="num">ID</th>
+                  <th class="num">数量</th>
+                  <th class="num">亲密度</th>
+                  <th class="date">过期时间</th>
+                  <th class="num">剩余</th>
+                  <th class="center">临期</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="center">1</td>
+                  <td>示例荧光棒</td>
+                  <td class="num">9001</td>
+                  <td class="num">88</td>
+                  <td class="num">1</td>
+                  <td class="date">06/30 23:59</td>
+                  <td class="num">8.3 天</td>
+                  <td class="center"><span class="pill warn">是</span></td>
+                </tr>
+                <tr>
+                  <td class="center">2</td>
+                  <td>演示助力卡</td>
+                  <td class="num">9002</td>
+                  <td class="num">12</td>
+                  <td class="num">5</td>
+                  <td class="date">07/08 23:59</td>
+                  <td class="num">16.3 天</td>
+                  <td class="center"><span class="pill off">否</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-shell">
+            <table aria-label="sample fans">
+              <colgroup>
+                <col style="width: 70px">
+                <col style="width: 180px">
+                <col style="width: 120px">
+                <col style="width: 90px">
+                <col style="width: 110px">
+                <col style="width: 150px">
+                <col style="width: 170px">
+                <col style="width: 130px">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="center">序号</th>
+                  <th>主播名称</th>
+                  <th class="num">房间号</th>
+                  <th class="num">等级</th>
+                  <th class="num">排名</th>
+                  <th class="num">今日亲密度</th>
+                  <th class="num">亲密度</th>
+                  <th class="center">双倍状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="center">1</td>
+                  <td>示例主播 A</td>
+                  <td class="num">100001</td>
+                  <td class="num">18</td>
+                  <td class="num">1520</td>
+                  <td class="num">36</td>
+                  <td class="num">15230/20000</td>
+                  <td class="center"><span class="pill">双倍中</span></td>
+                </tr>
+                <tr>
+                  <td class="center">2</td>
+                  <td>示例主播 B</td>
+                  <td class="num">100002</td>
+                  <td class="num">12</td>
+                  <td class="num">8745</td>
+                  <td class="num">18</td>
+                  <td class="num">8040/12000</td>
+                  <td class="center"><span class="pill off">未开启</span></td>
+                </tr>
+                <tr>
+                  <td class="center">3</td>
+                  <td>示例主播 C</td>
+                  <td class="num">100003</td>
+                  <td class="num">9</td>
+                  <td class="num">20481</td>
+                  <td class="num">8</td>
+                  <td class="num">3120/6000</td>
+                  <td class="center"><span class="pill off">未开启</span></td>
+                </tr>
+                <tr>
+                  <td class="center">4</td>
+                  <td>示例主播 D</td>
+                  <td class="num">100004</td>
+                  <td class="num">6</td>
+                  <td class="num">32800</td>
+                  <td class="num">2</td>
+                  <td class="num">980/3000</td>
+                  <td class="center"><span class="pill off">未开启</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </div>
+    <div class="privacy">示例数据，仅用于 README 展示</div>
+  </main>
+</body>
+</html>

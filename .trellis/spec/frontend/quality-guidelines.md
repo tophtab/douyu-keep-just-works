@@ -17,6 +17,7 @@ Frontend work must preserve the Docker WebUI build and the Vue-only runtime boun
 - Do not add `installLegacy*Bridge`, `startLegacyApp`, or `window.DOUYU_KEEP_WEBUI_*` compatibility globals. `DOUYU_KEEP_WEBUI_BOOTSTRAP` in `index.html` is the only allowed WebUI bootstrap global.
 - Do not add a new state-management library for local page state.
 - Do not put secrets, raw cookies, or WebUI passwords into visible text, logs, or test fixtures.
+- Do not put real account/runtime data into README images, screenshots, visual fixtures, or demo assets. Use clearly fictional sample streamer names, room IDs, gift rows, counts, logs, and account-related values.
 - Do not make visual changes without checking responsive behavior when the task touches layout.
 
 ---

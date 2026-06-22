@@ -63,7 +63,7 @@ services:
 
 ## 理念：it just works
 
-纯 vibe coding，能用就行。（出自 Bethesda Todd 超级小陶）
+纯 vibe coding，能用就行。（出自 Todd Howard 超级小陶）
 
 ## 声明
 

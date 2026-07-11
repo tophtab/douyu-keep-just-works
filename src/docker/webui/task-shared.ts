@@ -1,7 +1,12 @@
-import type { DockerConfig, Fans, JobConfig, sendConfig } from '../../core/types'
+import type { JobConfig, sendConfig } from '../../core/types'
 import { formatDate } from './datetime'
+import { hasCookieSourceConfigured, saveConfigPatch } from './resource-config'
+import type { ConfigMutationResult, CookieSourceConfig } from './resource-config'
 import { requestJson } from './request'
 import { showToast } from './toast'
+
+export { hasCookieSourceConfigured }
+export type { CookieSourceConfig }
 
 export interface TaskRunStatus {
   lastRun?: string | null
@@ -22,23 +27,6 @@ export interface TaskCardPill {
 export interface TaskStatusCardState {
   cells: TaskCardCell[]
   pills: TaskCardPill[]
-}
-
-export interface CookieSourceConfig {
-  cookie?: string
-  manualCookies?: {
-    main?: string
-    yuba?: string
-  }
-  manualPassport?: {
-    cookie?: string
-  }
-  cookieCloud?: {
-    active?: boolean
-    endpoint?: string
-    uuid?: string
-    password?: string
-  }
 }
 
 export interface TaskTriggerOptions {
@@ -67,14 +55,7 @@ export interface DisableTaskConfigOptions {
   restoreEnabled: () => void
 }
 
-export interface SaveTaskConfigResult {
-  config?: DockerConfig
-  fans?: Fans[]
-}
-
-interface SaveTaskConfigResponse {
-  data?: SaveTaskConfigResult
-}
+export type SaveTaskConfigResult = ConfigMutationResult
 
 export interface FanListMessageOptions {
   emptyMissingCredentialText: string
@@ -109,16 +90,6 @@ export function getErrorMessage(error: unknown): string {
 
 export function isHttpUnauthorized(error: unknown): boolean {
   return Boolean(error && typeof error === 'object' && 'status' in error && error.status === 401)
-}
-
-export function hasCookieSourceConfigured(config: CookieSourceConfig | null): boolean {
-  const cookieCloud = config?.cookieCloud
-  const manualCookies = config?.manualCookies
-  return Boolean(
-    String(manualCookies?.main || config?.cookie || '').trim()
-    || String(manualCookies?.yuba || '').trim()
-    || (cookieCloud?.active && String(cookieCloud.endpoint || '').trim() && String(cookieCloud.uuid || '').trim() && String(cookieCloud.password || '').trim()),
-  )
 }
 
 export function createFanListEmptyText(options: FanListMessageOptions): string {
@@ -222,12 +193,7 @@ export function createScheduledTaskCard(configured: boolean, status: TaskRunStat
 }
 
 async function postConfigPayload(payload: unknown): Promise<SaveTaskConfigResult | null> {
-  const data = await requestJson<SaveTaskConfigResponse>('/api/config', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-  return data.data || null
+  return await saveConfigPatch(payload)
 }
 
 export async function saveTaskConfig(options: SaveTaskConfigOptions): Promise<void> {

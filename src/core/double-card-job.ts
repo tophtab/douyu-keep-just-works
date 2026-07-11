@@ -3,7 +3,7 @@ import { checkDoubleCard } from './double-card'
 import { errorMessage } from './errors'
 import { computeGiftCountWithDoubleCard } from './gift'
 import { applyGiftIdToSendJobs, buildEnabledSendConfig, buildGiftSendGroups, countPositiveGiftTargets, hasActiveDoubleCardRoom, selectExpiringGiftCandidates } from './gift-task'
-import { loadBackpackStatus, loadGiftNumber, sendGifts } from './job-gift-utils'
+import { createRoomDidResolver, loadBackpackStatus, loadGiftNumber, sendGifts } from './job-gift-utils'
 import type { DoubleCardConfig, Logger, sendConfig } from './types'
 
 export async function executeDoubleCardJob(config: DoubleCardConfig, cookie: string, log: Logger): Promise<void> {
@@ -76,6 +76,7 @@ export async function executeDoubleCardJob(config: DoubleCardConfig, cookie: str
   }
 
   log('双倍状态检测完成，检测到可执行房间，开始执行双倍赠送')
+  const resolveDid = createRoomDidResolver(cookie)
   for (const group of giftGroups) {
     const giftLabel = giftScope === 'glowStick' && group.giftId === GLOW_STICK_GIFT_ID
       ? '荧光棒'
@@ -96,6 +97,6 @@ export async function executeDoubleCardJob(config: DoubleCardConfig, cookie: str
 
     const targetCount = countPositiveGiftTargets(jobs)
     log(`准备使用双倍卡向 ${targetCount} 个房间赠送 ${group.giftCount} 个${giftLabel}`)
-    await sendGifts(jobs, cookie, log, giftLabel, `${giftLabel}双倍赠送`)
+    await sendGifts(jobs, cookie, log, giftLabel, `${giftLabel}双倍赠送`, { resolveDid })
   }
 }

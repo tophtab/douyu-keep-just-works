@@ -2,6 +2,23 @@ import { getBackpackStatus, getDid, getGiftNumber, parseDyAndSidFromCookie, send
 import { errorMessage } from './errors'
 import type { BackpackStatus, Logger, sendArgs, sendConfig } from './types'
 
+export type RoomDidResolver = (roomId: number) => Promise<string>
+
+export function createRoomDidResolver(cookie: string): RoomDidResolver {
+  const didByRoom = new Map<number, string>()
+
+  return async (roomId) => {
+    const cached = didByRoom.get(roomId)
+    if (cached !== undefined) {
+      return cached
+    }
+
+    const did = await getDid(String(roomId), cookie)
+    didByRoom.set(roomId, did)
+    return did
+  }
+}
+
 export async function loadGiftNumber(cookie: string, log: Logger, prefix?: string, candidateRoomIds: number[] = []): Promise<number | null> {
   if (prefix) {
     log(prefix)
@@ -50,7 +67,14 @@ export function formatShanghaiTime(value: number): string {
   }).format(new Date(value)).replace(/\//g, '-')
 }
 
-export async function sendGifts(jobs: sendConfig, cookie: string, log: Logger, giftLabel = '荧光棒', completionLabel = '任务'): Promise<void> {
+export async function sendGifts(
+  jobs: sendConfig,
+  cookie: string,
+  log: Logger,
+  giftLabel = '荧光棒',
+  completionLabel = '任务',
+  options: { resolveDid?: RoomDidResolver } = {},
+): Promise<void> {
   let args: sendArgs
   try {
     args = parseDyAndSidFromCookie(cookie)
@@ -60,13 +84,14 @@ export async function sendGifts(jobs: sendConfig, cookie: string, log: Logger, g
   }
 
   let failedNumber = 0
+  const resolveDid = options.resolveDid || createRoomDidResolver(cookie)
   const sendJobs = Object.values(jobs).filter(item => item.count !== 0)
   for (const [index, item] of sendJobs.entries()) {
     try {
       item.count = (item.count ?? 0) + failedNumber
 
       log(`即将赠送${item.roomId}房间${item.count}个${giftLabel}`)
-      const did = await getDid(item.roomId.toString(), cookie)
+      const did = await resolveDid(item.roomId)
       args.did = did
       await sendGift(args, item, cookie)
       failedNumber = 0

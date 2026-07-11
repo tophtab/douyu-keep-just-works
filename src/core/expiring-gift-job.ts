@@ -2,7 +2,7 @@ import { sleep } from './api'
 import { errorMessage } from './errors'
 import { computeGiftCountOfNumber, computeGiftCountOfProportion } from './gift'
 import { applyGiftIdToSendJobs, buildGiftSendGroups, countPositiveGiftTargets, getEarliestPositiveGiftExpireTime, selectExpiringGiftCandidates } from './gift-task'
-import { formatShanghaiTime, loadBackpackStatus, sendGifts } from './job-gift-utils'
+import { createRoomDidResolver, formatShanghaiTime, loadBackpackStatus, sendGifts } from './job-gift-utils'
 import type { ExpiringGiftConfig, Logger, sendConfig } from './types'
 
 export async function executeExpiringGiftJob(config: ExpiringGiftConfig, cookie: string, log: Logger): Promise<void> {
@@ -57,6 +57,7 @@ export async function executeExpiringGiftJob(config: ExpiringGiftConfig, cookie:
   await sleep(2000)
 
   const { model, send } = config
+  const resolveDid = createRoomDidResolver(cookie)
   for (const group of buildGiftSendGroups(selection)) {
     const giftLabel = `${group.giftName}(ID ${group.giftId})`
     let jobs: sendConfig = {}
@@ -75,6 +76,6 @@ export async function executeExpiringGiftJob(config: ExpiringGiftConfig, cookie:
 
     const targetCount = countPositiveGiftTargets(jobs)
     log(`已达到临期阈值，准备向 ${targetCount} 个房间释放 ${group.giftCount} 个临期${giftLabel}`)
-    await sendGifts(jobs, cookie, log, giftLabel, `${giftLabel}临期赠送`)
+    await sendGifts(jobs, cookie, log, giftLabel, `${giftLabel}临期赠送`, { resolveDid })
   }
 }

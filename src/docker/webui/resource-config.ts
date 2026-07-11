@@ -1,12 +1,38 @@
-import type { DockerConfig } from '../../core/types'
+import type { DockerConfig, Fans } from '../../core/types'
 import { ref } from 'vue'
 import { createDefaultRawDockerConfig } from '../../core/task-defaults'
 import { requestJson } from './request'
-import { hasCookieSourceConfigured as hasConfiguredCookieSource } from './task-shared'
+import type { WebUiRequestInit } from './request'
 
 interface ConfigResponse {
   exists?: unknown
   data?: unknown
+}
+
+export interface ConfigMutationResult {
+  config?: DockerConfig
+  fans?: Fans[]
+}
+
+export interface CookieSourceConfig {
+  cookie?: string
+  manualCookies?: {
+    main?: string
+    yuba?: string
+  }
+  manualPassport?: {
+    cookie?: string
+  }
+  cookieCloud?: {
+    active?: boolean
+    endpoint?: string
+    uuid?: string
+    password?: string
+  }
+}
+
+interface ConfigMutationResponse {
+  data?: ConfigMutationResult
 }
 
 export const rawConfig = ref<DockerConfig | null>(null)
@@ -15,8 +41,14 @@ export function getRawConfig(): DockerConfig {
   return rawConfig.value || createDefaultRawDockerConfig()
 }
 
-export function hasCookieSourceConfigured(config: DockerConfig | null = getRawConfig()): boolean {
-  return hasConfiguredCookieSource(config)
+export function hasCookieSourceConfigured(config: CookieSourceConfig | null = getRawConfig()): boolean {
+  const cookieCloud = config?.cookieCloud
+  const manualCookies = config?.manualCookies
+  return Boolean(
+    String(manualCookies?.main || config?.cookie || '').trim()
+    || String(manualCookies?.yuba || '').trim()
+    || (cookieCloud?.active && String(cookieCloud.endpoint || '').trim() && String(cookieCloud.uuid || '').trim() && String(cookieCloud.password || '').trim()),
+  )
 }
 
 export function setRawConfig(config: DockerConfig | null): void {
@@ -26,4 +58,21 @@ export function setRawConfig(config: DockerConfig | null): void {
 export async function loadConfig(): Promise<void> {
   const data = await requestJson<ConfigResponse>('/api/config')
   rawConfig.value = data.exists ? data.data as DockerConfig : createDefaultRawDockerConfig()
+}
+
+export async function saveConfigPatch(
+  payload: unknown,
+  options: Pick<WebUiRequestInit, 'errorToast'> = {},
+): Promise<ConfigMutationResult | null> {
+  const data = await requestJson<ConfigMutationResponse>('/api/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    ...options,
+  })
+  const result = data.data || null
+  if (result?.config) {
+    setRawConfig(result.config)
+  }
+  return result
 }

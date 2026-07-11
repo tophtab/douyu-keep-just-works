@@ -1,7 +1,6 @@
-import type { DockerConfig, ThemeMode } from '../../core/types'
+import type { ThemeMode } from '../../core/types'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { requestJson } from './request'
-import { rawConfig, setRawConfig } from './resource-config'
+import { rawConfig, saveConfigPatch } from './resource-config'
 
 type ResolvedThemeMode = 'light' | 'dark'
 const THEME_COLOR_BY_MODE: Record<ResolvedThemeMode, string> = {
@@ -78,15 +77,9 @@ export function useThemeMode(initialThemeMode: unknown = 'system') {
     savingThemeMode.value = nextThemeMode
 
     try {
-      const data = await requestJson<{ data?: { config?: DockerConfig } }>('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ui: { themeMode: nextThemeMode } }),
+      await saveConfigPatch({ ui: { themeMode: nextThemeMode } }, {
         errorToast: message => `保存主题失败：${message}`,
       })
-      if (data.data?.config) {
-        setRawConfig(data.data.config)
-      }
     } catch {
       themeMode.value = previousThemeMode
     } finally {

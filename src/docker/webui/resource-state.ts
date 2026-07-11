@@ -228,7 +228,6 @@ export async function loadProtectedData(activeTab: WebUiPageTab): Promise<void> 
   await Promise.all([
     loadConfig(),
     loadOverview(),
-    loadLogs(),
   ])
   await loadActiveTabData(activeTab)
 }

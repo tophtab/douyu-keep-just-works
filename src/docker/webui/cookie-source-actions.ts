@@ -1,6 +1,6 @@
 import type { CookieDiagnostics, DockerConfig, EffectiveCookiePreview, PassportQrLoginPublicStatus } from '../../core/types'
 import { requestJson } from './request'
-import { loadConfig, rawConfig, setRawConfig } from './resource-config'
+import { loadConfig, rawConfig, saveConfigPatch, setRawConfig } from './resource-config'
 import { clearCookieBackedData, refreshOverviewSurface } from './resource-state'
 import { getErrorMessage, isHttpUnauthorized } from './task-shared'
 import { showToast } from './toast'
@@ -117,21 +117,17 @@ export async function retryPassportQrLoginYuba(): Promise<PassportQrLoginPublicS
 export async function saveCookie(): Promise<void> {
   const nextPassportCookie = passportCookie.value.trim()
   try {
-    const data = await requestJson<{ data?: { config?: DockerConfig } }>('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        manualCookies: {
-          main: mainCookie.value.trim(),
-          yuba: yubaCookie.value.trim(),
-        },
-        manualPassport: {
-          cookie: nextPassportCookie,
-        },
-      }),
+    const result = await saveConfigPatch({
+      manualCookies: {
+        main: mainCookie.value.trim(),
+        yuba: yubaCookie.value.trim(),
+      },
+      manualPassport: {
+        cookie: nextPassportCookie,
+      },
     })
-    if (data.data?.config) {
-      applyManualPassportSaveResponse(data.data.config, nextPassportCookie)
+    if (result?.config) {
+      applyManualPassportSaveResponse(result.config, nextPassportCookie)
     }
     clearCookieBackedData()
     showToast('手填 Cookie 已保存', true)
@@ -246,14 +242,9 @@ async function saveCookieCloud(options: SaveCookieCloudOptions = {}): Promise<vo
         cryptoType: 'legacy',
       },
     }
-    const data = await requestJson<{ data?: { config?: DockerConfig } }>('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    if (data.data?.config) {
-      setRawConfig(data.data.config)
-      applyRawConfig(data.data.config)
+    const result = await saveConfigPatch(payload)
+    if (result?.config) {
+      applyRawConfig(result.config)
     }
     clearCookieBackedData()
     if (!options.quietSuccess) {

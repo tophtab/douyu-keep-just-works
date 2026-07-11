@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 80
+- **Total Sessions**: 81
 - **Last Active**: 2026-07-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~704 | Active |
+| `journal-2.md` | ~735 | Active |
 | `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 81 | 2026-07-11 | 审查 CookieCloud 与扫码 Cookie 优先级 | - | `master` |
 | 80 | 2026-07-11 | 审查斗鱼访问频率与风控风险 | - | `master` |
 | 79 | 2026-07-11 | Audit previous two tasks | - | `master` |
 | 78 | 2026-07-11 | Optimize runtime and WebUI request work | `5db8f91`, `7b7a204`, `c49cb95` | `master` |

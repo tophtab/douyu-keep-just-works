@@ -702,3 +702,34 @@ Audited the two July 11 code-review tasks against session history, archived task
 ### Next Steps
 
 - None - task complete
+
+
+## Session 81: 审查 CookieCloud 与扫码 Cookie 优先级
+
+**Date**: 2026-07-11
+**Task**: 审查 CookieCloud 与扫码 Cookie 优先级
+**Branch**: `master`
+
+### Summary
+
+确认当前实现符合既定权威模型：运行时始终读取本地快照，CookieCloud 开启时更新本地、关闭后保留本地，云端不完整主站/鱼吧快照不会降级完整本地值；无需修改业务代码。记录不同账号混用与同步/扫码并发等非当前整改边界。lint、类型检查和 38 项合同测试通过。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

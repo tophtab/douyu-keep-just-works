@@ -143,7 +143,10 @@
   }
   .shell{display:block}
   .sidebar{
+    position:static;
     width:auto;
+    height:auto;
+    overflow-y:visible;
     border-right:none;
     border-bottom:1px solid var(--line);
   }

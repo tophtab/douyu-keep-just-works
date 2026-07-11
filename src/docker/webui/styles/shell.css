@@ -107,8 +107,14 @@
   display:flex;
 }
 .sidebar{
+  position:sticky;
+  top:0;
+  align-self:flex-start;
   width:292px;
+  height:100vh;
+  height:100dvh;
   flex:0 0 292px;
+  overflow-y:auto;
   padding:24px 20px;
   border-right:1px solid var(--line);
   background:var(--surface);

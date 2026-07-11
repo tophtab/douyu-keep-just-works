@@ -33,7 +33,7 @@ Agent files should not become generic chat prompts. They should define input sou
 | Factory Droid | `.factory/droids/trellis-*.md` |
 | Pi Agent | `.pi/agents/trellis-*.md` |
 | Reasonix | `.reasonix/skills/trellis-*/SKILL.md` (subagent frontmatter) |
-| ZCode | `.zcode/cli/agents/trellis-*.md` |
+| ZCode | `.zcode/agents/trellis-*.md` |
 
 GitHub Copilot agent/prompt support is provided by a combination of directories such as `.github/agents/`, `.github/prompts/`, and `.github/skills/`; inspect the files actually generated in the user project.
 

@@ -1,4 +1,4 @@
-import { normalizeDockerConfig } from '../core/medal-sync'
+import { normalizeDockerConfig } from '../core/config-normalization'
 import type { DockerConfig } from '../core/types'
 import { assertDockerConfigCrons } from './cron'
 import { jsonEquals } from './config-equality'

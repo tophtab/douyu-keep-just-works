@@ -392,7 +392,7 @@ test('Yuba SSO rejects missing passport bridge location with a Yuba-specific err
 })
 
 test('Docker config normalizes manual passport cookie as optional recovery material', () => {
-  const { normalizeDockerConfig } = loadTypeScriptModule('src/core/medal-sync.ts')
+  const { normalizeDockerConfig } = loadTypeScriptModule('src/core/config-normalization.ts')
 
   assert.deepEqual(JSON.parse(JSON.stringify(normalizeDockerConfig({
     cookie: '',
@@ -403,11 +403,6 @@ test('Docker config normalizes manual passport cookie as optional recovery mater
     cookie: '',
     manualPassport: { cookie: '   ' },
   }).manualPassport, undefined)
-
-  assert.deepEqual(JSON.parse(JSON.stringify(normalizeDockerConfig({
-    cookie: '',
-    manualPassport: { ltp0: '  legacy-ltp0-redacted  ' },
-  }).manualPassport)), { cookie: 'LTP0=legacy-ltp0-redacted' })
 })
 
 test('manual passport cookie is returned by authenticated config without a raw alias', () => {

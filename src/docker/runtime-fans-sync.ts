@@ -1,4 +1,4 @@
-import { createDefaultDockerConfig, normalizeDockerConfig, reconcileDockerConfig } from '../core/medal-sync'
+import { createDefaultDockerConfig, normalizeDockerConfig, reconcileDockerConfig } from '../core/config-normalization'
 import type { DockerConfig, Fans } from '../core/types'
 import { configsEqual } from './config-store'
 import { jsonEquals } from './config-equality'

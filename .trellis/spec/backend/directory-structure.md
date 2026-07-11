@@ -24,6 +24,7 @@ test/                   Node contract tests for repo maintenance and behavior.
 Current examples:
 
 - `src/core/api.ts` owns low-level Douyu HTTP helpers, cookie parsing, and response normalization.
+- `src/core/config-normalization.ts` owns Docker config defaults, normalization, and fan-backed task reconciliation.
 - `src/core/job.ts` coordinates task execution using shared APIs.
 - `src/core/gift-task.ts` owns pure gift-task helpers used by task execution, such as enabled-room filtering and gift send-job preparation.
 - `src/docker/runtime.ts` wires config loading, runtime services, scheduler dependencies, and Express app startup.

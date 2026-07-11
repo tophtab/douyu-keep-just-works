@@ -87,12 +87,12 @@ if sys.platform.startswith("win"):
             try:
                 _stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
             except Exception:
-                pass
+                pass  # Optional Windows stream setup; keep hook startup non-fatal.
         elif hasattr(_stream, "detach"):
             try:
                 setattr(sys, _stream_name, _io.TextIOWrapper(_stream.detach(), encoding="utf-8", errors="replace"))
             except Exception:
-                pass
+                pass  # Optional Windows stream setup; keep hook startup non-fatal.
 
 
 
@@ -137,6 +137,7 @@ def should_skip_injection() -> bool:
         "GEMINI_NON_INTERACTIVE",
         "KIRO_NON_INTERACTIVE",
         "COPILOT_NON_INTERACTIVE",
+        "TRAE_NON_INTERACTIVE",
     ]
     return any(os.environ.get(var) == "1" for var in non_interactive_vars)
 
@@ -195,6 +196,7 @@ def _detect_platform(input_data: dict) -> str | None:
         "QODER_PROJECT_DIR": "qoder",
         "KIRO_PROJECT_DIR": "kiro",
         "COPILOT_PROJECT_DIR": "copilot",
+        "TRAE_PROJECT_DIR": "trae",
     }
     for env_name, platform in env_map.items():
         if os.environ.get(env_name):
@@ -216,6 +218,8 @@ def _detect_platform(input_data: dict) -> str | None:
         return "droid"
     if ".kiro" in script_parts:
         return "kiro"
+    if ".trae" in script_parts:
+        return "trae"
     return None
 
 
@@ -245,7 +249,7 @@ def _persist_context_key_for_bash(context_key: str | None) -> None:
         with open(env_file, "a", encoding="utf-8") as handle:
             handle.write(f"export TRELLIS_CONTEXT_ID={shlex.quote(context_key)}\n")
     except OSError:
-        pass
+        pass  # Optional shell bridge; keep session-start non-fatal.
 
 
 def _resolve_active_task(trellis_dir: Path, input_data: dict):
@@ -347,7 +351,7 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
         try:
             task_data = json.loads(task_json_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, PermissionError):
-            pass
+            pass  # Optional task metadata; fall back to generic status.
 
     task_title = task_data.get("title", task_ref)
     task_status = task_data.get("status", "unknown")
@@ -449,7 +453,7 @@ def _load_trellis_config(trellis_dir: Path, input_data: dict) -> tuple:
                         if isinstance(tp, str) and tp:
                             task_pkg = tp
                 except (json.JSONDecodeError, OSError):
-                    pass
+                    pass  # Optional package metadata; fall back to default scope.
 
         default_pkg = get_default_package(repo_root)
         return is_mono, packages, scope, task_pkg, default_pkg
@@ -626,7 +630,7 @@ def _build_compact_current_state(
                 if isinstance(data, dict):
                     status = str(data.get("status") or "unknown")
             except (json.JSONDecodeError, OSError):
-                pass
+                pass  # Optional task metadata; fall back to generic status.
         lines.append(f"Current task: {_repo_relative(repo_root, task_dir)}; status={status}.")
     else:
         lines.append("Current task: none.")
@@ -638,7 +642,7 @@ def _build_compact_current_state(
                 f"Active tasks: {task_count} total. Use `python3 ./.trellis/scripts/task.py list --mine` only if needed."
             )
         except Exception:
-            pass
+            pass  # Optional task summary; keep compact state available.
 
     if get_active_journal_file and count_lines:
         journal = get_active_journal_file(repo_root)
@@ -739,6 +743,7 @@ def main():
         "GEMINI_PROJECT_DIR",
         "KIRO_PROJECT_DIR",
         "COPILOT_PROJECT_DIR",
+        "TRAE_PROJECT_DIR",
     ]
     project_dir = None
     for var in project_dir_env_vars:
@@ -813,6 +818,14 @@ Context loaded. Follow <task-status>. Load workflow/spec/task details only when 
 </ready>""")
 
     context_text = output.getvalue()
+
+    # Kiro (CLI trellis agent agentSpawn) adds a hook's stdout directly to the
+    # conversation context — no JSON envelope. Emit the bare overview text.
+    # Conditionally isolated: all other platforms keep the JSON path below.
+    if _detect_platform(hook_input) == "kiro":
+        print(context_text, flush=True)
+        return
+
     result = {
         # Claude Code / Qoder / CodeBuddy / Droid / Gemini / Copilot format
         "hookSpecificOutput": {

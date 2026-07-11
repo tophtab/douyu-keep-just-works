@@ -53,6 +53,7 @@ Use a concise title from the user's request. Use a slug without a date prefix. `
 5. Include your recommended answer with the question.
 6. After each user answer, update `prd.md` before continuing.
 7. For complex tasks, create or update `design.md` and `implement.md` before implementation starts.
+8. Before final review or `task.py start`, run the PRD convergence pass below.
 
 Do not invent a project-specific product/spec hierarchy. If the repository already has product, domain, or spec docs, use them. If it does not, proceed with the evidence that exists.
 
@@ -140,16 +141,33 @@ For each component of the current plan:
 
 Lightweight tasks may have only `prd.md`. Complex tasks must have `prd.md`, `design.md`, and `implement.md` before `task.py start`.
 
-`implement.md` is not a replacement for `implement.jsonl`. Use JSONL files only for manifest-style spec and research references when the task needs them.
+`implement.md` is not a replacement for `implement.jsonl`. On sub-agent-dispatch workflows, `implement.jsonl` and `check.jsonl` must each contain at least one real spec/research entry before `task.py start`; the seed `_example` row does not count. Inline workflows skip this JSONL gate because Phase 2 loads context through `trellis-before-dev`.
+
+## PRD Convergence Pass
+
+Before declaring planning ready or running `task.py start`, rewrite `prd.md` once against the final structure described in the artifact rules above. This is not optional cleanup; it is the final planning gate.
+
+The pass must be lossless:
+
+- Collapse repeated facts into one authoritative section.
+- Fold temporary brainstorm sections such as `What I already know`, `Assumptions`, and resolved `Open Questions` into Goal, Background, Requirements, Technical Notes, or Acceptance Criteria.
+- Remove resolved open questions instead of leaving empty or already-answered sections.
+- Merge parallel bug and requirement lists when they describe the same work; keep each defect's severity, evidence, and file:line anchors on the owning requirement.
+- Preserve every file:line anchor, decision, constraint, requirement ID, and acceptance-criteria mapping.
+- Keep only genuinely blocking open questions.
+
+After the pass, read `prd.md` top to bottom and verify that no fact is repeated across sections unless the repetition adds new information.
 
 ## Quality Bar
 
 Before declaring planning ready:
 
 - `prd.md` contains testable acceptance criteria.
+- `prd.md` has passed the PRD convergence pass: no unresolved temporary brainstorm sections, no duplicate facts across sections, and no lost anchors, decisions, or acceptance mappings.
 - Repository-answerable questions have already been answered through inspection.
 - Remaining open questions are genuinely about user intent or scope.
 - Complex tasks have `design.md` and `implement.md`.
+- Sub-agent-dispatch tasks have real curated entries in both `implement.jsonl` and `check.jsonl`; seed-only manifests are not ready.
 - The user has reviewed the final planning artifacts or explicitly approved proceeding.
 
 Do not start implementation until the user approves or asks for implementation.

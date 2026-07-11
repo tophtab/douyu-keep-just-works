@@ -58,7 +58,7 @@ Contracts:
   an existing manual passport cookie when remote material is absent or lacks
   `LTP0`.
 - `normalizeDockerConfig` trims `manualPassport.cookie`; blank values remove the
-  field. Legacy `manualPassport.ltp0` may migrate to `manualPassport.cookie`.
+  field. Recovery material uses the current complete-cookie shape only.
 - `buildConfigWithPartialUpdate` preserves existing `manualPassport` across
   unrelated writes and replaces it only when the update payload includes it.
 - Authenticated `/api/config` read/save responses are the complete editable
@@ -70,6 +70,80 @@ Contracts:
 Tests: cover shared types, normalization, partial updates, authenticated config
 read/save, summary secret boundaries, CookieCloud passport persistence, and the
 frontend visible textarea.
+
+### Current Config Shape And Retired Legacy Fields
+
+#### 1. Scope / Trigger
+
+Trigger: changing `DockerConfig`, `SendGift`, `DoubleCardConfig`, config-file
+loading, normalization, or persisted config examples.
+
+#### 2. Signatures
+
+- `normalizeDockerConfig(config: DockerConfig, options?): DockerConfig`
+- `reconcileDockerConfig(config: DockerConfig, fans: Fans[]): DockerConfig`
+- `loadConfigFromDisk(configPath: string): DockerConfig | null`
+
+#### 3. Contracts
+
+- Config normalization lives in `src/core/config-normalization.ts`.
+- Send allocation uses `SendGift.weight`; `percentage` is not part of the
+  current shape and is ignored if it appears in untyped JSON.
+- Manual Passport recovery material uses `manualPassport.cookie` containing the
+  complete visible cookie string; `manualPassport.ltp0` is not converted.
+- Double-card selection uses explicit `doubleCard.enabled` values. Missing
+  entries normalize to `false`; membership in `doubleCard.send` does not imply
+  selection.
+- The top-level `cookie` field remains part of the current Docker config
+  contract and must not be removed as part of legacy-field cleanup.
+- Missing current fields may still receive task defaults during normalization.
+
+#### 4. Validation & Error Matrix
+
+- Missing or non-finite `weight` -> use the task's current weight fallback.
+- Blank `manualPassport.cookie` -> omit `manualPassport` from the normalized
+  snapshot.
+- Missing `doubleCard.enabled[roomId]` -> normalized value is `false`.
+- Invalid current task fields such as cron/model/threshold -> existing
+  normalization and route validation rules still apply.
+
+#### 5. Good/Base/Bad Cases
+
+- Good: `send[roomId].weight` and `doubleCard.enabled[roomId]` are explicit,
+  and `manualPassport.cookie` contains `LTP0` plus available device material.
+- Base: optional current fields are missing and normalization fills defaults.
+- Bad: a snapshot relies only on `percentage`, `manualPassport.ltp0`, or a
+  `send` entry to select a double-card room; those retired shapes are not
+  migrated.
+
+#### 6. Tests Required
+
+- Assert current-shape normalization preserves explicit weights and enabled
+  values while filling task defaults.
+- Assert fan reconciliation preserves current settings and adds new rooms with
+  task-specific defaults.
+- Assert `manualPassport.cookie` is trimmed and blank material is removed.
+- Run backend/frontend type checks after changing shared config interfaces.
+
+#### 7. Wrong vs Correct
+
+Wrong:
+
+```json
+{ "manualPassport": { "ltp0": "..." }, "doubleCard": { "send": { "100": {} } } }
+```
+
+Correct:
+
+```json
+{
+  "manualPassport": { "cookie": "dy_did=...; LTP0=..." },
+  "doubleCard": {
+    "enabled": { "100": true },
+    "send": { "100": { "roomId": 100, "number": 0, "giftId": 268, "weight": 1 } }
+  }
+}
+```
 
 ## Credential Recovery Retry
 

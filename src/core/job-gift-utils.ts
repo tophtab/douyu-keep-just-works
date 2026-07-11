@@ -60,12 +60,9 @@ export async function sendGifts(jobs: sendConfig, cookie: string, log: Logger, g
   }
 
   let failedNumber = 0
-  for (const item of Object.values(jobs)) {
+  const sendJobs = Object.values(jobs).filter(item => item.count !== 0)
+  for (const [index, item] of sendJobs.entries()) {
     try {
-      if (item.count === 0) {
-        continue
-      }
-
       item.count = (item.count ?? 0) + failedNumber
 
       log(`即将赠送${item.roomId}房间${item.count}个${giftLabel}`)
@@ -78,7 +75,9 @@ export async function sendGifts(jobs: sendConfig, cookie: string, log: Logger, g
       failedNumber += item?.count ?? 0
       log(`${item.roomId}房间赠送失败: ${error}, ${item.count}个${giftLabel}自动移交给下一个房间`)
     }
-    await sleep(2000)
+    if (index < sendJobs.length - 1) {
+      await sleep(2000)
+    }
   }
 
   if (failedNumber > 0) {

@@ -188,7 +188,6 @@ export interface SendGift {
   giftId: number
   weight: number
   count?: number
-  percentage?: number
 }
 
 export type sendConfig = Record<string, SendGift>

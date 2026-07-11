@@ -8,7 +8,7 @@
 
 This project does not use a database, ORM, migrations, or query layer. Durable backend state is the Docker config JSON file selected by runtime options and maintained through `src/docker/config-store.ts`.
 
-The config object shape is defined in `src/core/types.ts`, normalized by `src/core/medal-sync.ts`, validated by `src/docker/config-validation.ts`, and persisted by `saveConfigToDisk`.
+The config object shape is defined in `src/core/types.ts`, normalized by `src/core/config-normalization.ts`, validated by `src/docker/config-validation.ts`, and persisted by `saveConfigToDisk`.
 
 ---
 
@@ -33,13 +33,13 @@ When applying partial WebUI updates, merge through `buildConfigWithPartialUpdate
 
 ## Migrations
 
-There is no formal migration system. Backward compatibility is handled by config normalization when loading or saving:
+There is no formal migration system. Current config snapshots are normalized when loading or saving:
 
 - `loadConfigFromDisk` parses JSON and passes it to `normalizeDockerConfig`.
 - runtime startup rewrites normalized config back to disk after a successful load.
 - `createDefaultDockerConfig` supplies new default config shape.
 
-If a future config shape changes, update the normalization path and contract tests rather than adding a separate migration directory.
+If a future config shape changes and requires a compatibility window, update the normalization path and contract tests rather than adding a separate migration directory.
 
 ---
 
@@ -65,5 +65,5 @@ rules.
 
 - Do not introduce a database dependency for Docker runtime state without a task that explicitly changes storage architecture.
 - Do not write raw request bodies directly to disk.
-- Do not skip `normalizeDockerConfig`; it preserves compatibility with older config files.
+- Do not skip `normalizeDockerConfig`; it fills current defaults and produces a stable persisted snapshot.
 - Do not log raw cookies or expose them through summary/status responses. Authenticated `/api/config` is the complete editable config endpoint; `/api/config/raw` must stay deleted.

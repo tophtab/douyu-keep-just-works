@@ -8,7 +8,7 @@ const {
   createDefaultKeepaliveConfig,
   normalizeDockerConfig,
   reconcileDockerConfig,
-} = loadTypeScriptModule('src/core/medal-sync.ts')
+} = loadTypeScriptModule('src/core/config-normalization.ts')
 const {
   DEFAULT_DOUBLE_CARD_CRON,
   DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
@@ -70,9 +70,9 @@ test('Fan-backed task defaults create send maps with task-specific defaults', ()
   assert.equal(expiringGift.send['200'].weight, 0)
 })
 
-test('Docker config normalization fills task defaults and migrates legacy send fields', () => {
-  // Behavior: persisted task config may be sparse or legacy-shaped; normalize it
-  // without changing task-specific send semantics.
+test('Docker config normalization fills task defaults for the current config shape', () => {
+  // Behavior: persisted task config may be sparse; normalize it without
+  // changing task-specific send semantics.
   const normalized = normalizeDockerConfig({
     cookie: ' legacy-main ',
     manualCookies: {
@@ -87,7 +87,6 @@ test('Docker config normalization fills task defaults and migrates legacy send f
           roomId: 999,
           giftId: '',
           number: Number.NaN,
-          percentage: 7,
           count: Number.NaN,
         },
       },
@@ -101,7 +100,6 @@ test('Docker config normalization fills task defaults and migrates legacy send f
           roomId: 102,
           giftId: '',
           number: 2,
-          percentage: 5,
           weight: 8,
           count: 3,
         },
@@ -116,7 +114,7 @@ test('Docker config normalization fills task defaults and migrates legacy send f
           roomId: 103,
           giftId: '',
           number: Number.NaN,
-          percentage: 4,
+          weight: 4,
         },
       },
     },
@@ -134,7 +132,7 @@ test('Docker config normalization fills task defaults and migrates legacy send f
     roomId: 101,
     giftId: DEFAULT_GIFT_ID,
     number: 0,
-    weight: 7,
+    weight: 1,
     count: 0,
   })
   assert.equal(normalized.doubleCard.active, true)
@@ -142,15 +140,15 @@ test('Docker config normalization fills task defaults and migrates legacy send f
   assert.equal(normalized.doubleCard.giftScope, DEFAULT_DOUBLE_CARD_GIFT_SCOPE)
   assert.equal(normalized.doubleCard.send['102'].number, 2)
   assert.equal(normalized.doubleCard.send['102'].weight, 0)
-  assert.deepEqual(JSON.parse(JSON.stringify(normalized.doubleCard.enabled)), { 102: true })
+  assert.deepEqual(JSON.parse(JSON.stringify(normalized.doubleCard.enabled)), { 102: false })
   assert.equal(normalized.expiringGift.cron, DEFAULT_EXPIRING_GIFT_CRON)
   assert.equal(normalized.expiringGift.thresholdHours, DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS)
   assert.equal(normalized.expiringGift.send['103'].weight, 4)
 })
 
-test('Docker config reconciliation follows fans and preserves migration behavior', () => {
+test('Docker config reconciliation follows fans and preserves current task settings', () => {
   // Behavior: fan reconciliation owns the send-room set while preserving
-  // task-specific migration rules and room defaults.
+  // task-specific settings and room defaults.
   const fans = [
     createFan(100, 'first-room'),
     createFan(200, 'second-room'),
@@ -183,6 +181,9 @@ test('Docker config reconciliation follows fans and preserves migration behavior
       cron: '',
       model: 1,
       giftScope: 'limitedTime',
+      enabled: {
+        100: true,
+      },
       send: {
         100: {
           roomId: 100,

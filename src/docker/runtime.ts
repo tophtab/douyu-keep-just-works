@@ -1,6 +1,6 @@
 import process from 'node:process'
 import { errorMessage } from '../core/errors'
-import { createDefaultDockerConfig } from '../core/medal-sync'
+import { createDefaultDockerConfig } from '../core/config-normalization'
 import type { DockerConfig } from '../core/types'
 import { loadConfigFromDisk, saveConfigToDisk } from './config-store'
 import { createLogger } from './logger'

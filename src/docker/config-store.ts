@@ -1,6 +1,6 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { normalizeDockerConfig } from '../core/medal-sync'
+import { normalizeDockerConfig } from '../core/config-normalization'
 import type { CollectGiftConfig, DockerConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig, ManualCookieConfig, ManualPassportConfig, YubaCheckInConfig } from '../core/types'
 import { jsonEquals } from './config-equality'
 import { collectTaskConfigUpdates } from './task-metadata'

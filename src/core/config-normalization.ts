@@ -25,9 +25,6 @@ function resolveWeight(item: Partial<SendGift> | undefined, fallback: number): n
   if (typeof item?.weight === 'number' && Number.isFinite(item.weight)) {
     return item.weight
   }
-  if (typeof item?.percentage === 'number' && Number.isFinite(item.percentage)) {
-    return item.percentage
-  }
   return fallback
 }
 
@@ -200,10 +197,7 @@ function normalizeManualCookies(config: DockerConfig): ManualCookieConfig | unde
 }
 
 function normalizeManualPassport(config: DockerConfig): ManualPassportConfig | undefined {
-  const legacyManualPassport = config.manualPassport as (Partial<ManualPassportConfig> & { ltp0?: string }) | undefined
-  const cookie = legacyManualPassport?.cookie?.trim() || ''
-  const legacyLtp0 = legacyManualPassport?.ltp0?.trim() || ''
-  const passportCookie = cookie || (legacyLtp0 ? `LTP0=${legacyLtp0}` : '')
+  const passportCookie = config.manualPassport?.cookie?.trim() || ''
 
   if (!passportCookie) {
     return undefined
@@ -228,13 +222,7 @@ function buildEnabledMap(roomKeys: string[], config: DoubleCardConfig | undefine
   const enabled: Record<string, boolean> = {}
 
   for (const key of roomKeys) {
-    if (config?.enabled && key in config.enabled) {
-      enabled[key] = Boolean(config.enabled[key])
-      continue
-    }
-
-    // Migration path: old configs only stored selected rooms in send.
-    enabled[key] = Boolean(config?.send?.[key])
+    enabled[key] = Boolean(config?.enabled?.[key])
   }
 
   return enabled

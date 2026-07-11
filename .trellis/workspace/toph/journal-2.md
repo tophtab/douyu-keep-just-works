@@ -605,3 +605,38 @@ Reviewed code quality, removed the final gift-send delay, fixed the form-data ad
 ### Next Steps
 
 - None - task complete
+
+
+## Session 78: Optimize runtime and WebUI request work
+
+**Date**: 2026-07-11
+**Task**: Optimize runtime and WebUI request work
+**Branch**: `master`
+
+### Summary
+
+Completed an independent full-code optimization review and implemented task-local room DID reuse, lazy full-log loading, centralized WebUI config mutation handling, CI contract-test gating, focused regression tests, and executable Trellis contracts. Lint, type checks, 38 contract tests, and the Docker build passed.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5db8f91` | (see git log) |
+| `7b7a204` | (see git log) |
+| `c49cb95` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

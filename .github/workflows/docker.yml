@@ -11,10 +11,12 @@ on:
       - 'Dockerfile'
       - 'package.json'
       - 'package-lock.json'
+      - 'eslint.config.mjs'
       - 'tsconfig.docker.json'
       - 'tsconfig.webui.json'
       - 'vite.config.ts'
       - 'src/**'
+      - 'test/**'
   pull_request:
     branches: [master]
     paths:
@@ -23,10 +25,12 @@ on:
       - 'Dockerfile'
       - 'package.json'
       - 'package-lock.json'
+      - 'eslint.config.mjs'
       - 'tsconfig.docker.json'
       - 'tsconfig.webui.json'
       - 'vite.config.ts'
       - 'src/**'
+      - 'test/**'
 
 permissions:
   contents: read
@@ -65,6 +69,9 @@ jobs:
 
       - name: Type-check
         run: npm run type-check
+
+      - name: Contract tests
+        run: npm run test:contracts
 
       - name: Build Docker runtime
         run: npm run build:docker

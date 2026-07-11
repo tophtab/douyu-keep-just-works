@@ -733,3 +733,36 @@ Audited the two July 11 code-review tasks against session history, archived task
 ### Next Steps
 
 - None - task complete
+
+
+## Session 82: 固定 Docker WebUI 侧边栏
+
+**Date**: 2026-07-11
+**Task**: 固定 Docker WebUI 侧边栏
+**Branch**: `master`
+
+### Summary
+
+桌面端侧边栏改为 sticky 并支持内部滚动，小屏保留原有堆叠布局；完成响应式浏览器验证、项目质量检查和本地 Docker 部署。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0058de5` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -41,7 +41,8 @@ Use this table before opening every backend spec file.
 | Routes, task runners, CookieCloud, credential errors, or Douyu API failures | [Error Handling](./error-handling.md), [Backend Contracts](./contracts.md#credential-recovery-retry) |
 | Passport QR login, safeAuth, CookieCloud authority, Yuba SSO, or cookie lifetime assumptions | [Backend Contracts](./contracts.md#passport-main-site-and-yuba-cookie-authority), [Backend Contracts](./contracts.md#project-owned-passport-qr-login-snapshots) |
 | Glow-stick double-card detection or Douyu pocket card interpretation | [Backend Contracts](./contracts.md#glow-stick-double-card-detection) |
-| Dockerfile, `.dockerignore`, build workflow, task metadata, type safety, or route architecture | [Quality Guidelines](./quality-guidelines.md), [Docker Image Build Cache](./contracts.md#docker-image-build-cache), [Docker Task Metadata Ownership](./contracts.md#docker-task-metadata-ownership) |
+| Gift sending, room DID reuse, or multi-gift task sequencing | [Backend Contracts](./contracts.md#task-local-room-did-reuse), [Testing Guidelines](./testing-guidelines.md) |
+| Dockerfile, `.dockerignore`, build workflow, task metadata, type safety, or route architecture | [Quality Guidelines](./quality-guidelines.md), [Docker Image Build Cache](./contracts.md#docker-image-build-cache), [Docker CI Quality Gate](./contracts.md#docker-ci-quality-gate), [Docker Task Metadata Ownership](./contracts.md#docker-task-metadata-ownership) |
 | Runtime log messages or log categories | [Logging Guidelines](./logging-guidelines.md) |
 | Contract tests or source-inspection test modernization | [Testing Guidelines](./testing-guidelines.md) |
 

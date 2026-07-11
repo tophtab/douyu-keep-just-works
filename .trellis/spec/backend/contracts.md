@@ -14,7 +14,9 @@
 | Passport QR login, safeAuth, CookieCloud authority, or Yuba SSO | [Passport, Main-Site, And Yuba Cookie Authority](#passport-main-site-and-yuba-cookie-authority) |
 | Backend-owned QR login route/session behavior | [Project-Owned Passport QR Login Snapshots](#project-owned-passport-qr-login-snapshots) |
 | Glow-stick double-card detection or Douyu pocket card fields | [Glow-Stick Double-Card Detection](#glow-stick-double-card-detection) |
+| Gift send DID lookup reuse or `sendGifts` resolver behavior | [Task-Local Room DID Reuse](#task-local-room-did-reuse) |
 | Docker image stages, context, or workflow path filters | [Docker Image Build Cache](#docker-image-build-cache) |
+| GitHub Actions validation steps or quality-gate path filters | [Docker CI Quality Gate](#docker-ci-quality-gate) |
 | Docker task labels, schedule summaries, and active checks | [Docker Task Metadata Ownership](#docker-task-metadata-ownership) |
 
 ---
@@ -293,6 +295,71 @@ Tests: cover active future `type: 1`, expired/malformed `type: 1`, inactive
 types `22`, `32`, and `2`, malformed `expireTime`, and the distinction between
 Douyu card `type` values and project allocation `model` values.
 
+## Task-Local Room DID Reuse
+
+### 1. Scope / Trigger
+
+Trigger: changing `sendGifts`, `getDid` lookup ownership, or multi-gift loops in
+the expiring-gift and limited-time double-card jobs.
+
+### 2. Signatures
+
+- `createRoomDidResolver(cookie: string): (roomId: number) => Promise<string>`
+- `sendGifts(..., options?: { resolveDid?: RoomDidResolver }): Promise<void>`
+
+### 3. Contracts
+
+- A resolver cache belongs to one task execution and is shared across gift
+  groups in that task.
+- Cache only fulfilled DID values. A rejected lookup is not retained and may be
+  retried by a later gift group.
+- Actual gift sends stay serial. Preserve failed-count carry-over, two-second
+  spacing between attempts, and no delay after the final attempt.
+- Do not put room DID values in the Docker runtime cache or increase Douyu
+  request concurrency as part of lookup reuse.
+
+### 4. Validation & Error Matrix
+
+- Successful room lookup -> reuse the DID for later gift groups in the task.
+- Failed room lookup -> current send attempt fails and carries its count; later
+  groups may resolve the room again.
+- Missing `sid` / `dy` -> keep the existing early log-and-return behavior.
+- Failed gift send -> carry the attempted count to the next room exactly once.
+
+### 5. Good/Base/Bad Cases
+
+- Good: three gift groups targeting one room perform one successful room-page
+  lookup and three serial gift sends.
+- Base: a single-group keepalive task uses the default task-local resolver with
+  no observable behavior change.
+- Bad: caching a rejected promise permanently suppresses recovery, or sharing a
+  cache across scheduled runs makes room ownership stale.
+
+### 6. Tests Required
+
+- Assert one successful DID lookup per room across multiple `sendGifts` calls.
+- Assert failed DID lookup is retried.
+- Assert send ordering, failed-count carry-over, and delay placement.
+
+### 7. Wrong vs Correct
+
+Wrong:
+
+```typescript
+for (const group of giftGroups) {
+  await sendGifts(group.jobs, cookie, log) // resolves the same room every group
+}
+```
+
+Correct:
+
+```typescript
+const resolveDid = createRoomDidResolver(cookie)
+for (const group of giftGroups) {
+  await sendGifts(group.jobs, cookie, log, group.label, group.taskLabel, { resolveDid })
+}
+```
+
 ## Docker Image Build Cache
 
 Trigger: editing `Dockerfile`, `.dockerignore`, `.github/workflows/docker.yml`,
@@ -314,6 +381,68 @@ Contracts:
 Tests: update `test/project-maintenance-contract.test.js` for Dockerfile stages,
 `.dockerignore` allowlist, or workflow path filters. Verify lint, type-check,
 contract tests, Docker WebUI build, and local Docker build when available.
+
+## Docker CI Quality Gate
+
+### 1. Scope / Trigger
+
+Trigger: changing `.github/workflows/docker.yml`, contract-test inputs, lint
+configuration, or the commands that gate Docker image publication.
+
+### 2. Signatures
+
+- Validation commands: `npm run lint`, `npm run type-check`,
+  `npm run test:contracts`, `npm run build:docker`.
+- Workflow inputs include application/build files plus `test/**` and
+  `eslint.config.mjs`.
+
+### 3. Contracts
+
+- The existing `validate` job runs the lightweight contract suite before the
+  Docker runtime build.
+- Use `npm run test:contracts`, not `npm test`, because `npm test` would run
+  `build:docker` and duplicate the workflow build step.
+- Changes to tests or lint configuration must trigger validation.
+- Preserve Docker tags, platforms, cache scopes, publish conditions,
+  provenance, and SBOM behavior unless a separate release task changes them.
+
+### 4. Validation & Error Matrix
+
+- Lint/type/test/build failure -> validation job fails and Docker jobs do not
+  proceed through the `needs: validate` dependency.
+- Test-only change -> workflow validation is triggered.
+- Release tag with green validation -> existing multi-platform publication
+  continues unchanged.
+
+### 5. Good/Base/Bad Cases
+
+- Good: a contract regression fails before image publication.
+- Base: an application change runs the same four quality commands in one
+  validation job.
+- Bad: calling `npm test` and then `npm run build:docker`, or omitting `test/**`
+  so test changes bypass CI.
+
+### 6. Tests Required
+
+- Run the four validation commands locally before committing workflow changes.
+- Review workflow path filters and confirm the contract-test step is in the
+  `validate` job before `Build Docker runtime`.
+
+### 7. Wrong vs Correct
+
+Wrong:
+
+```yaml
+- run: npm test
+- run: npm run build:docker
+```
+
+Correct:
+
+```yaml
+- run: npm run test:contracts
+- run: npm run build:docker
+```
 
 ## Docker Task Metadata Ownership
 

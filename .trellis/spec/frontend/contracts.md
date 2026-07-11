@@ -70,11 +70,15 @@ Contracts:
   as page resource errors.
 - Runtime logs are backend/runtime facts, not a sink for frontend request-display
   failures.
+- Authenticated bootstrap loads config and overview, not the full log list.
+  `loadActiveTabData('logs')` owns the first full-log request so direct `/Logs`
+  navigation still loads logs after authentication.
 
 Tests: assert durable resource error refs and clear paths, short explicit
 failure toasts gated by `showSuccessToast`, automatic loaders using
 `showSuccessToast = false`, `logsError` for logs-page load failure, and top-level
-refresh deriving failure toast state from `false` loader results.
+refresh deriving failure toast state from `false` loader results. Assert
+non-log bootstrap omits `/api/logs` and the logs-tab path requests it.
 
 ## Manual Force Refresh Of Cache-Backed Resources
 
@@ -102,25 +106,73 @@ manual refresh passing `forceRefresh: true`.
 
 ## Applying Config Save Responses
 
-Trigger: changing `/api/config` save handling or task page save/disable flows.
+### 1. Scope / Trigger
 
-Contracts:
+Trigger: changing `/api/config` save handling, `saveConfigPatch`, or task,
+Cookie, CookieCloud, and theme save flows.
 
-- `POST /api/config -> { ok: true, data?: { config?: DockerConfig, fans?: Fans[] } }`.
-- `data.config` is the authoritative persisted config after backend defaults,
-  normalization, and reconciliation; apply it to `resource-config.rawConfig`
-  before reloading derived surfaces.
-- For fans-backed task tabs (`keepalive`, `double-card`, `expiring-gift`),
-  `data.fans` is authoritative, including an empty array.
-- Non-fans-backed saves may update existing managed config but must not clear an
-  existing fans list just because the response carries `fans: []`.
-- `managed.config` must not outlive or override newer `rawConfig`.
-- Unauthorized save responses are owned by existing session handling; failed
-  saves keep existing toast/revert behavior.
+### 2. Signatures
 
-Tests: assert `saveTaskConfig` passes `SaveTaskConfigResult`,
-`refreshTaskSurface` applies managed fans responses only for fans-backed tabs,
-and managed fans helpers attach new fans to `getRawConfig()`.
+- `saveConfigPatch(payload: unknown, options?): Promise<ConfigMutationResult | null>`
+- `POST /api/config -> { ok: true, data?: { config?: DockerConfig, fans?: Fans[] } }`
+
+### 3. Contracts
+
+- `resource-config.ts` owns the mutation transport, response envelope, and
+  authoritative `rawConfig` replacement.
+- `data.config` is the persisted config after backend defaults, normalization,
+  and reconciliation; apply it before reloading derived surfaces.
+- Return `data.fans` to task-page callers. For fans-backed tabs it is
+  authoritative, including an empty array.
+- Non-fans-backed saves must not clear an existing fans list merely because the
+  response carries `fans: []`.
+- Keep feature-specific form application, cache invalidation, diagnostics,
+  toasts, and optimistic rollback in the feature module.
+- `task-shared.ts` may depend on `resource-config.ts`; `resource-config.ts` must
+  not import `task-shared.ts`, which would create a circular owner dependency.
+
+### 4. Validation & Error Matrix
+
+- Response contains `data.config` -> replace `rawConfig` and return the result.
+- Response lacks `data` -> return `null`; feature flow continues with its
+  existing optional-result behavior.
+- 401 -> existing unauthorized/session handling owns the response.
+- Other failure -> feature module preserves its current toast and rollback.
+
+### 5. Good/Base/Bad Cases
+
+- Good: CookieCloud save uses `saveConfigPatch`, then applies form state and
+  invalidates cookie-backed resources locally.
+- Base: task save receives `{ config, fans: [] }` and the fans-backed page
+  applies the authoritative empty list.
+- Bad: every feature reimplements `/api/config`, or the shared helper starts
+  owning theme rollback, Cookie diagnostics, and unrelated resource refreshes.
+
+### 6. Tests Required
+
+- Assert the helper sends the expected JSON payload and applies returned full
+  config to `rawConfig`.
+- Assert optional reconciled fans remain in the returned result.
+- Assert task save/disable flows pass the result into their existing refresh
+  callbacks and preserve unauthorized/error behavior.
+
+### 7. Wrong vs Correct
+
+Wrong:
+
+```typescript
+const data = await requestJson('/api/config', request)
+setRawConfig(data.data.config) // repeated in every feature
+```
+
+Correct:
+
+```typescript
+const result = await saveConfigPatch(payload)
+if (result?.config) {
+  applyFeatureFormState(result.config)
+}
+```
 
 ## CookieCloud Sync-And-Local-Check
 

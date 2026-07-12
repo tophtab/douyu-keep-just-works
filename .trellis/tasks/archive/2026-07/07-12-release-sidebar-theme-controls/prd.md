@@ -25,13 +25,13 @@ Publish the completed sidebar theme-control update to GitHub and trigger the Doc
 
 ## Acceptance Criteria
 
-- [ ] Release version `v3.8.0` is absent locally and remotely before versioning.
-- [ ] The local preview container is stopped.
-- [ ] Release changelog and package metadata are correct.
-- [ ] All documented release checks pass from a clean worktree.
-- [ ] `master` is pushed to GitHub.
-- [ ] The new annotated version tag is pushed and visible on GitHub.
-- [ ] The release workflow trigger or published Docker release state is verified.
+- [x] Release version `v3.8.0` is absent locally and remotely before versioning.
+- [x] The local preview container is stopped.
+- [x] Release changelog and package metadata are correct.
+- [x] All documented release checks pass from a clean worktree.
+- [x] `master` is pushed to GitHub.
+- [x] The new annotated version tag is pushed and visible on GitHub.
+- [x] The release workflow trigger or published Docker release state is verified.
 
 ## Out of Scope
 

@@ -834,3 +834,36 @@ Prepared and published v3.7.0, pushed master and the annotated release tag, and 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 85: Simplify sidebar theme controls
+
+**Date**: 2026-07-12
+**Task**: Simplify sidebar theme controls
+**Branch**: `master`
+
+### Summary
+
+Removed visible theme-control descriptions, anchored the icon-only control to the desktop sidebar bottom, preserved responsive flow and accessibility, and verified lint, type-check, tests, Docker build, and browser layouts.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `da00d05` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

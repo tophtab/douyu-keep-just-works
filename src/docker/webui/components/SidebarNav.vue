@@ -33,8 +33,8 @@ const PROJECT_URL = 'https://github.com/tophtab/douyu-keep-just-works'
         >
           {{ appName }}
         </a>
+        <span class="version-label">{{ versionLabel }}</span>
       </h1>
-      <span class="version-label">{{ versionLabel }}</span>
     </div>
     <p class="brand-copy">
       <span>斗鱼荧光棒|续粉丝牌|检测双倍|鱼吧签到</span>

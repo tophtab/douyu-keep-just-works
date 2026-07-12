@@ -867,3 +867,38 @@ Removed visible theme-control descriptions, anchored the icon-only control to th
 ### Next Steps
 
 - None - task complete
+
+
+## Session 86: Release 3.8.0
+
+**Date**: 2026-07-12
+**Task**: Release 3.8.0
+**Branch**: `master`
+
+### Summary
+
+Reused the 3.7.0 release workflow, published the sidebar theme-control update as v3.8.0, passed all local and GitHub quality gates, pushed master and the annotated tag, and verified matching multi-architecture 3.8.0/latest Docker images.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `112f274` | (see git log) |
+| `ff5ae2c` | (see git log) |
+| `6c50c0c` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

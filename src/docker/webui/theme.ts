@@ -50,13 +50,6 @@ export function useThemeMode(initialThemeMode: unknown = 'system') {
     return themeMode.value
   })
 
-  const themeNote = computed(() => {
-    if (themeMode.value === 'system') {
-      return `当前跟随系统，系统为 ${systemPrefersDark.value ? '深色' : '浅色'}`
-    }
-    return `当前固定为 ${themeMode.value === 'dark' ? '深色' : '浅色'} 模式`
-  })
-
   function applyResolvedTheme(): void {
     document.documentElement.setAttribute('data-theme', resolvedTheme.value)
     document.body.setAttribute('data-theme', resolvedTheme.value)
@@ -125,6 +118,5 @@ export function useThemeMode(initialThemeMode: unknown = 'system') {
     selectThemeMode,
     themeMode,
     themeModes: WEBUI_THEME_MODES,
-    themeNote,
   }
 }

@@ -26,7 +26,6 @@ defineProps<{
   tabs: WebUiPageMeta[]
   themeMode: ThemeMode
   themeModes: Array<{ mode: ThemeMode, label: string, title: string }>
-  themeNote: string
   versionLabel: string
 }>()
 
@@ -48,7 +47,6 @@ const emit = defineEmits<{
       :tabs="tabs"
       :theme-mode="themeMode"
       :theme-modes="themeModes"
-      :theme-note="themeNote"
       :version-label="versionLabel"
     />
 

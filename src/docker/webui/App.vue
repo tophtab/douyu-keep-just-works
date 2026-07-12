@@ -55,7 +55,6 @@ const {
   selectThemeMode,
   themeMode,
   themeModes,
-  themeNote,
 } = useThemeMode(bootstrap.initialThemeMode)
 
 const {
@@ -98,7 +97,6 @@ watch([authenticated, activeTab], ([nextAuthenticated, nextTab]) => {
     :tabs="tabs"
     :theme-mode="themeMode"
     :theme-modes="themeModes"
-    :theme-note="themeNote"
     :version-label="bootstrap.appVersionLabel"
     @refresh-overview="overviewPage.refreshOverview"
     @logout="logout"

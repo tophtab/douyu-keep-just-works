@@ -12,7 +12,6 @@ defineProps<{
   tabs: WebUiPageMeta[]
   themeMode: ThemeMode
   themeModes: Array<{ mode: ThemeMode, label: string, title: string }>
-  themeNote: string
   versionLabel: string
 }>()
 
@@ -62,10 +61,7 @@ const PROJECT_URL = 'https://github.com/tophtab/douyu-keep-just-works'
     </div>
 
     <div class="theme-box">
-      <div id="theme-mode-label" class="field-label">
-        主题模式
-      </div>
-      <div class="theme-options" role="group" aria-labelledby="theme-mode-label">
+      <div class="theme-options" role="group" aria-label="主题模式">
         <button
           v-for="option in themeModes"
           :key="option.mode"
@@ -101,9 +97,6 @@ const PROJECT_URL = 'https://github.com/tophtab/douyu-keep-just-works'
             </template>
           </svg>
         </button>
-      </div>
-      <div id="theme-note" class="theme-note">
-        {{ themeNote }}
       </div>
     </div>
   </aside>

@@ -110,6 +110,8 @@
   position:sticky;
   top:0;
   align-self:flex-start;
+  display:flex;
+  flex-direction:column;
   width:292px;
   height:100vh;
   height:100dvh;
@@ -188,6 +190,7 @@
   display:flex;
   flex-direction:column;
   gap:8px;
+  margin-bottom:22px;
 }
 .tab-btn{
   width:100%;
@@ -229,18 +232,12 @@ select:focus-visible,
   box-shadow:var(--btn-shadow);
 }
 .theme-box{
-  margin-top:22px;
+  margin-top:auto;
   padding:16px;
   border:1px solid var(--line);
   border-radius:20px;
   background:var(--surface-strong);
   box-shadow:var(--shadow);
-}
-.theme-note{
-  margin-top:8px;
-  color:var(--muted);
-  font-size:12px;
-  line-height:1.7;
 }
 .theme-options{
   display:grid;

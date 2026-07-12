@@ -799,3 +799,38 @@ Moved the Docker WebUI sidebar version label into a compact upper-right badge at
 ### Next Steps
 
 - None - task complete
+
+
+## Session 84: Release v3.7.0
+
+**Date**: 2026-07-12
+**Task**: Release v3.7.0
+**Branch**: `master`
+
+### Summary
+
+Prepared and published v3.7.0, pushed master and the annotated release tag, and verified successful multi-architecture Docker publication for amd64 and arm64.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `478ae80` | (see git log) |
+| `c0b49aa` | (see git log) |
+| `c62b649` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

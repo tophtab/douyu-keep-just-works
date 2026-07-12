@@ -7,6 +7,23 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ## Unreleased
 
+## 3.7.0 - 2026-07-12
+
+### Changed
+
+- Docker runtime and WebUI internals were reorganized to reduce repeated task,
+  resource-loading, and UI composition work while preserving existing behavior.
+- Contract tests now run before Docker builds in CI, providing faster feedback
+  when behavioral guardrails fail.
+- Project documentation and README presentation were refreshed, including
+  clearer privacy requirements for screenshots and visual assets.
+- The sidebar version is now displayed as a compact upper-right badge attached
+  to the `douyu-keep` title.
+
+### Fixed
+
+- The desktop sidebar now stays visible while long pages scroll.
+
 ## 3.6.0 - 2026-06-19
 
 ### Added

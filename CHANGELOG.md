@@ -7,6 +7,14 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ## Unreleased
 
+## 3.8.0 - 2026-07-12
+
+### Changed
+
+- Sidebar theme controls now use icon-only light, dark, and system choices,
+  with the control anchored to the bottom of the desktop sidebar while
+  preserving natural responsive flow and accessible labels.
+
 ## 3.7.0 - 2026-07-12
 
 ### Changed

@@ -766,3 +766,36 @@ Audited the two July 11 code-review tasks against session history, archived task
 ### Next Steps
 
 - None - task complete
+
+
+## Session 83: Sidebar version badge
+
+**Date**: 2026-07-12
+**Task**: Sidebar version badge
+**Branch**: `master`
+
+### Summary
+
+Moved the Docker WebUI sidebar version label into a compact upper-right badge attached to the douyu-keep title; lint, WebUI type-check, and WebUI build passed.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d6e3768` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

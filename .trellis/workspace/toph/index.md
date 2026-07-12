@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 82
-- **Last Active**: 2026-07-11
+- **Total Sessions**: 83
+- **Last Active**: 2026-07-12
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~768 | Active |
+| `journal-2.md` | ~801 | Active |
 | `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 83 | 2026-07-12 | Sidebar version badge | `d6e3768` | `master` |
 | 82 | 2026-07-11 | 固定 Docker WebUI 侧边栏 | `0058de5` | `master` |
 | 81 | 2026-07-11 | 审查 CookieCloud 与扫码 Cookie 优先级 | - | `master` |
 | 80 | 2026-07-11 | 审查斗鱼访问频率与风控风险 | - | `master` |

@@ -969,3 +969,36 @@ Prepared the 3.9.0 changelog, ran lint/type-check/build/tests, created the npm r
 ### Next Steps
 
 - None - task complete
+
+
+## Session 89: Publish fnOS package metadata fix
+
+**Date**: 2026-07-19
+**Task**: Publish fnOS package metadata fix
+**Branch**: `master`
+
+### Summary
+
+Fixed repository-wide config ignore rules so packaging/fnos/config/resource and privilege are included in GitHub tag builds; verified tests, Docker build, fnpack verification, and FPK packaging from git archive.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `310ff1a` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

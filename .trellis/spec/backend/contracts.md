@@ -17,6 +17,7 @@
 | Gift send DID lookup reuse or `sendGifts` resolver behavior | [Task-Local Room DID Reuse](#task-local-room-did-reuse) |
 | Docker image stages, context, or workflow path filters | [Docker Image Build Cache](#docker-image-build-cache) |
 | GitHub Actions validation steps or quality-gate path filters | [Docker CI Quality Gate](#docker-ci-quality-gate) |
+| fnOS FPK package source or release workflow | [fnOS FPK Release](#fnos-fpk-release) |
 | Docker task labels, schedule summaries, and active checks | [Docker Task Metadata Ownership](#docker-task-metadata-ownership) |
 
 ---
@@ -442,6 +443,104 @@ Correct:
 ```yaml
 - run: npm run test:contracts
 - run: npm run build:docker
+```
+
+## fnOS FPK Release
+
+### 1. Scope / Trigger
+
+Trigger: changing `packaging/fnos/`, `.github/workflows/fnos-fpk.yml`, or the
+`fnos-fpk` caller job in `.github/workflows/docker.yml`.
+
+### 2. Signatures
+
+- Reusable/manual workflow input: `release_tag: string`, matching
+  `^[vV][0-9]+\.[0-9]+\.[0-9]+$` and resolving to an existing repository tag.
+- Package placeholders: `manifest` owns `version=__VERSION__`; Compose owns
+  image tag `__DOCKER_TAG__`. Both are replaced only in a temporary copy.
+- fnOS runtime inputs: `TRIM_SERVICE_PORT` maps host port `51417`, and
+  `TRIM_PKGVAR` mounts at `/app/config`.
+- Release outputs:
+  `douyu-keep-just-works-<version>-fnos.fpk` and its `.sha256` file.
+
+### 3. Contracts
+
+- The Docker tag workflow must call the reusable FPK workflow through a job
+  that `needs: release-manifest`; independent tag workflows would race the
+  multi-architecture image publication.
+- The FPK contains no native executable and declares `platform=all`. Before
+  packaging, the exact versioned Docker image must expose both `linux/amd64`
+  and `linux/arm64` manifests.
+- Reusable workflow calls retain the caller's event name. Select the build job
+  with non-empty `inputs.release_tag`, not
+  `github.event_name == 'workflow_call'`; branch/PR validation uses the empty
+  input path and must not publish a Release.
+- Official `fnpack` is version-pinned and SHA256-verified before execution.
+  Build from a temporary stamped copy and reject unresolved placeholders.
+- Create or reuse the GitHub Release for the exact tag and upload deterministic
+  FPK/checksum assets with idempotent replacement semantics.
+- `cmd/main status` checks the stable Compose container name. The other eight
+  `fnpack`-required lifecycle scripts remain executable successful no-ops
+  because fnOS manages the declared Docker project.
+
+### 4. Validation & Error Matrix
+
+- Invalid or missing tag -> fail before package preparation.
+- Exact image missing either required platform -> fail before `fnpack`.
+- `fnpack` checksum mismatch -> fail before executing the downloaded tool.
+- Unresolved version/image placeholder -> fail before package creation.
+- Missing lifecycle file, invalid package metadata, or failed `fnpack` build ->
+  no artifact or Release upload.
+- Pull request or branch package change -> run package-only validation with
+  read-only repository permission; do not enter the build/publish job.
+
+### 5. Good/Base/Bad Cases
+
+- Good: a `v3.9.0` tag publishes the two-platform Docker manifest, then creates
+  `douyu-keep-just-works-3.9.0-fnos.fpk` on Release `v3.9.0`.
+- Base: a package-source pull request checks static contracts, JSON, and
+  Compose rendering without downloading an image or changing a Release.
+- Bad: a separate tag-triggered FPK workflow starts concurrently, references
+  an image tag that is not published yet, or skips because it expects the
+  reusable call's event name to be `workflow_call`.
+
+### 6. Tests Required
+
+- `test/fnos-packaging-contract.test.js` must assert package structure,
+  executable lifecycle files, synchronized port/container/project values,
+  durable config mapping, exact image placeholders, tool hash, platform checks,
+  release commands, and `release-manifest` ordering.
+- Run `actionlint` for workflow semantics, render Compose with test fnOS
+  environment values, and run a real SHA256-verified `fnpack build` from a
+  stamped temporary directory.
+- Run the Docker CI quality gate after changing the caller workflow.
+
+### 7. Wrong vs Correct
+
+Wrong:
+
+```yaml
+on:
+  push:
+    tags: ['v*']
+jobs:
+  build-fpk:
+    if: github.event_name == 'workflow_call'
+```
+
+Correct:
+
+```yaml
+# In docker.yml, after the image manifest job:
+fnos-fpk:
+  needs: [validate, release-manifest]
+  uses: ./.github/workflows/fnos-fpk.yml
+  with:
+    release_tag: ${{ github.ref_name }}
+
+# In the reusable workflow:
+build:
+  if: inputs.release_tag != ''
 ```
 
 ## Docker Task Metadata Ownership

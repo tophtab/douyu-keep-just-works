@@ -40,6 +40,17 @@ services:
       - WEB_PASSWORD=password
 ```
 
+### 飞牛 fnOS
+
+推送 `vX.Y.Z` 或 `VX.Y.Z` tag 后，发布 Workflow 会先生成同版本的
+amd64/arm64 Docker 镜像，再自动构建飞牛安装包并上传到该 tag 对应的
+[GitHub Release](https://github.com/tophtab/douyu-keep-just-works/releases)。下载
+`douyu-keep-just-works-X.Y.Z-fnos.fpk` 后，可在飞牛 fnOS 应用中心手动安装；
+安装包会持久化应用配置，并在桌面提供 WebUI 入口。
+
+当前安装包沿用 Docker 版本的默认 WebUI 密码 `password`。首次登录后请避免将
+服务直接暴露到公网；安装包暂不提供修改容器环境变量的安装向导。
+
 ## 功能一览
 
 | 功能 | 用途 |

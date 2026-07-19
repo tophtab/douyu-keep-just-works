@@ -1,0 +1,191 @@
+name: Build fnOS FPK
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fnos-fpk.yml'
+      - 'packaging/fnos/**'
+      - 'test/fnos-packaging-contract.test.js'
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/fnos-fpk.yml'
+      - 'packaging/fnos/**'
+      - 'test/fnos-packaging-contract.test.js'
+  workflow_call:
+    inputs:
+      release_tag:
+        description: Existing vX.Y.Z or VX.Y.Z tag to package
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing vX.Y.Z or VX.Y.Z tag to package and publish
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: tophtab/douyu-keep-just-works
+  FNPACK_VERSION: '1.2.3'
+  FNPACK_SHA256: 54b97fa7b70968c4d05c79840f5daeff508957d0bb2062fdb0376d00d9615c93
+
+jobs:
+  validate-package:
+    if: inputs.release_tag == ''
+    name: Validate fnOS package source
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Validate package contracts
+        run: node --test test/fnos-packaging-contract.test.js
+
+      - name: Validate package metadata
+        run: jq empty packaging/fnos/config/resource packaging/fnos/config/privilege packaging/fnos/app/ui/config
+
+      - name: Validate Compose configuration
+        env:
+          TRIM_SERVICE_PORT: '51417'
+          TRIM_PKGVAR: /tmp/douyu-fnos-var
+        run: docker compose -f packaging/fnos/app/docker/docker-compose.yaml config --quiet
+
+  build:
+    if: inputs.release_tag != ''
+    name: Build and publish fnOS FPK
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Resolve release version
+        id: version
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${RELEASE_TAG}" =~ ^[vV]([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            VERSION="${BASH_REMATCH[1]}"
+          else
+            echo "Release tag must use vX.Y.Z or VX.Y.Z, received: ${RELEASE_TAG}" >&2
+            exit 1
+          fi
+          if ! git show-ref --verify --quiet "refs/tags/${RELEASE_TAG}"; then
+            echo "Release tag does not exist in the repository: ${RELEASE_TAG}" >&2
+            exit 1
+          fi
+
+          if [[ "$(git rev-parse HEAD)" != "$(git rev-list -n 1 "${RELEASE_TAG}")" ]]; then
+            echo "Checked out commit does not match ${RELEASE_TAG}" >&2
+            exit 1
+          fi
+
+          echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Verify released image platforms
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          IMAGE="${IMAGE_NAME}:${VERSION}"
+          docker buildx imagetools inspect --raw "$IMAGE" > "$RUNNER_TEMP/image-index.json"
+          jq -r '.manifests[]?.platform | "\(.os)/\(.architecture)"' \
+            "$RUNNER_TEMP/image-index.json" | sort -u > "$RUNNER_TEMP/image-platforms"
+          grep -qx 'linux/amd64' "$RUNNER_TEMP/image-platforms"
+          grep -qx 'linux/arm64' "$RUNNER_TEMP/image-platforms"
+
+      - name: Prepare fnOS package
+        id: package
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          PACKAGE_DIR="$RUNNER_TEMP/fnos-package"
+          OUTPUT_DIR="$RUNNER_TEMP/fnos-output"
+          PACKAGE_NAME="douyu-keep-just-works-${VERSION}-fnos.fpk"
+          cp -a packaging/fnos "$PACKAGE_DIR"
+          mkdir -p "$OUTPUT_DIR"
+
+          sed -i "s/^version=.*/version=${VERSION}/" "$PACKAGE_DIR/manifest"
+          sed -i "s/__DOCKER_TAG__/${VERSION}/g" \
+            "$PACKAGE_DIR/app/docker/docker-compose.yaml"
+
+          if grep -R -n -E '__VERSION__|__DOCKER_TAG__' "$PACKAGE_DIR"; then
+            echo "Unresolved package placeholder" >&2
+            exit 1
+          fi
+          grep -Fx "version=${VERSION}" "$PACKAGE_DIR/manifest"
+          grep -F "image: ${IMAGE_NAME}:${VERSION}" \
+            "$PACKAGE_DIR/app/docker/docker-compose.yaml"
+
+          echo "package_dir=${PACKAGE_DIR}" >> "$GITHUB_OUTPUT"
+          echo "package_name=${PACKAGE_NAME}" >> "$GITHUB_OUTPUT"
+          echo "package_path=${OUTPUT_DIR}/${PACKAGE_NAME}" >> "$GITHUB_OUTPUT"
+          echo "checksum_path=${OUTPUT_DIR}/${PACKAGE_NAME}.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Download verified fnpack
+        run: |
+          set -euo pipefail
+
+          FNPACK="$RUNNER_TEMP/fnpack"
+          curl -fL --retry 3 --retry-all-errors -o "$FNPACK" \
+            "https://static2.fnnas.com/fnpack/fnpack-${FNPACK_VERSION}-linux-amd64"
+          echo "${FNPACK_SHA256}  ${FNPACK}" | sha256sum -c -
+          chmod +x "$FNPACK"
+
+      - name: Build and checksum package
+        env:
+          PACKAGE_DIR: ${{ steps.package.outputs.package_dir }}
+          PACKAGE_NAME: ${{ steps.package.outputs.package_name }}
+          PACKAGE_PATH: ${{ steps.package.outputs.package_path }}
+          CHECKSUM_PATH: ${{ steps.package.outputs.checksum_path }}
+        run: |
+          set -euo pipefail
+
+          cd "$PACKAGE_DIR"
+          "$RUNNER_TEMP/fnpack" build --directory .
+          test -f douyu-keep-just-works.fpk
+          mv douyu-keep-just-works.fpk "$PACKAGE_PATH"
+          cd "$(dirname "$PACKAGE_PATH")"
+          sha256sum "$PACKAGE_NAME" > "$CHECKSUM_PATH"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnos-fpk-${{ steps.version.outputs.version }}
+          path: |
+            ${{ steps.package.outputs.package_path }}
+            ${{ steps.package.outputs.checksum_path }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach package to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.release_tag }}
+          PACKAGE_PATH: ${{ steps.package.outputs.package_path }}
+          CHECKSUM_PATH: ${{ steps.package.outputs.checksum_path }}
+        run: |
+          set -euo pipefail
+
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --verify-tag \
+              --title "$RELEASE_TAG" --generate-notes
+          fi
+          gh release upload "$RELEASE_TAG" "$PACKAGE_PATH" "$CHECKSUM_PATH" --clobber

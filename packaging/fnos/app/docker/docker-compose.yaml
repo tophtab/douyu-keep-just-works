@@ -1,0 +1,12 @@
+services:
+  douyu-keep-just-works:
+    image: tophtab/douyu-keep-just-works:__DOCKER_TAG__
+    container_name: douyu-keep-just-works
+    restart: unless-stopped
+    ports:
+      - "${TRIM_SERVICE_PORT}:51417"
+    volumes:
+      - "${TRIM_PKGVAR}:/app/config"
+    environment:
+      TZ: Asia/Shanghai
+      WEB_PASSWORD: password

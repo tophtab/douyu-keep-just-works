@@ -1,0 +1,29 @@
+#!/bin/bash
+
+CONTAINER_NAME="douyu-keep-just-works"
+
+is_running() {
+  docker inspect --format '{{.State.Running}}' "$CONTAINER_NAME" 2>/dev/null \
+    | grep -qx 'true'
+}
+
+case "$1" in
+  start | stop)
+    exit 0
+    ;;
+  status)
+    if is_running; then
+      exit 0
+    fi
+    exit 3
+    ;;
+  *)
+    message="Unknown command: $1"
+    if [[ -n "${TRIM_TEMP_LOGFILE:-}" ]]; then
+      printf '%s\n' "$message" > "$TRIM_TEMP_LOGFILE"
+    else
+      printf '%s\n' "$message" >&2
+    fi
+    exit 1
+    ;;
+esac

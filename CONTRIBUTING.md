@@ -99,7 +99,9 @@ git push origin v<version>
 ```
 
 The release tag must use `vX.Y.Z` or `VX.Y.Z`. Pushing the tag triggers the
-Docker release workflow, which publishes the version tag and `latest`.
+Docker release workflow, which publishes the version tag and `latest`. After
+the multi-architecture image is available, the same workflow builds the fnOS
+FPK and attaches it with a checksum to the tag's GitHub Release.
 
 ## Reporting Bugs
 

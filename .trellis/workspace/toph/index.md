@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 90
+- **Total Sessions**: 91
 - **Last Active**: 2026-07-19
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1037 | Active |
+| `journal-2.md` | ~1070 | Active |
 | `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 91 | 2026-07-19 | Restore fixed fnOS service port | `3fa9dc2` | `master` |
 | 90 | 2026-07-19 | Fix fnOS WebUI launch and configurable port | `ebc8027` | `master` |
 | 89 | 2026-07-19 | Publish fnOS package metadata fix | `310ff1a` | `master` |
 | 88 | 2026-07-19 | Release v3.9.0 with fnOS FPK workflow | `0f8945f`, `6c52012` | `master` |

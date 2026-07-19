@@ -1035,3 +1035,36 @@ Changed fnOS app display name to douyu-keep-just-works, switched desktop launch 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 91: Restore fixed fnOS service port
+
+**Date**: 2026-07-19
+**Task**: Restore fixed fnOS service port
+**Branch**: `master`
+
+### Summary
+
+Reverted the ineffective fnOS wizard/custom host-port changes while preserving the douyu-keep-just-works display name and external URL launch. Restored fixed 51417 manifest/UI port, removed wizard config and related contract/spec references, and republished the corrected v3.9.0 FPK.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3fa9dc2` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

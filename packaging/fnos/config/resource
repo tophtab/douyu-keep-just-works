@@ -1,0 +1,10 @@
+{
+  "docker-project": {
+    "projects": [
+      {
+        "name": "douyu-keep-just-works",
+        "path": "docker"
+      }
+    ]
+  }
+}

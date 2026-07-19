@@ -17,3 +17,8 @@ build
 
 # Local runtime config
 config/
+
+# fnOS package metadata is an installable resource, not local runtime state.
+!packaging/fnos/config/
+!packaging/fnos/config/privilege
+!packaging/fnos/config/resource

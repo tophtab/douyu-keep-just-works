@@ -1,0 +1,7 @@
+{
+  "defaults": {
+    "run-as": "package"
+  },
+  "username": "douyu-keep-just-works",
+  "groupname": "douyu-keep-just-works"
+}

@@ -935,3 +935,37 @@ Added an official fnOS Docker FPK package template, reusable tag-driven release 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 88: Release v3.9.0 with fnOS FPK workflow
+
+**Date**: 2026-07-19
+**Task**: Release v3.9.0 with fnOS FPK workflow
+**Branch**: `master`
+
+### Summary
+
+Prepared the 3.9.0 changelog, ran lint/type-check/build/tests, created the npm release commit and v3.9.0 tag, and pushed master plus the tag. The tag now triggers Docker image publication followed by the fnOS FPK Release asset workflow.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0f8945f` | (see git log) |
+| `6c52012` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

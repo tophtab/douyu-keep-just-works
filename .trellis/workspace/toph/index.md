@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 86
-- **Last Active**: 2026-07-12
+- **Total Sessions**: 87
+- **Last Active**: 2026-07-19
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~904 | Active |
+| `journal-2.md` | ~937 | Active |
 | `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 87 | 2026-07-19 | Build fnOS FPK release workflow | `f69b1ef` | `master` |
 | 86 | 2026-07-12 | Release 3.8.0 | `112f274`, `ff5ae2c`, `6c50c0c` | `master` |
 | 85 | 2026-07-12 | Simplify sidebar theme controls | `da00d05` | `master` |
 | 84 | 2026-07-12 | Release v3.7.0 | `478ae80`, `c0b49aa`, `c62b649` | `master` |

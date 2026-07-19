@@ -902,3 +902,36 @@ Reused the 3.7.0 release workflow, published the sidebar theme-control update as
 ### Next Steps
 
 - None - task complete
+
+
+## Session 87: Build fnOS FPK release workflow
+
+**Date**: 2026-07-19
+**Task**: Build fnOS FPK release workflow
+**Branch**: `master`
+
+### Summary
+
+Added an official fnOS Docker FPK package template, reusable tag-driven release workflow, package contract tests, release documentation, and backend CI contracts. The existing Docker release now waits for the multi-architecture image manifest before building and attaching the FPK to the same GitHub Release. Verified fnpack 1.2.3 SHA256, real FPK build, Compose/JSON/shell contracts, actionlint, npm lint/type-check/test/build, and local Docker image build.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f69b1ef` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

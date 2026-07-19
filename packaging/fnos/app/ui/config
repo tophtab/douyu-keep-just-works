@@ -1,11 +1,11 @@
 {
   ".url": {
     "douyu-keep-just-works.main": {
-      "title": "斗鱼保活",
+      "title": "douyu-keep-just-works",
       "icon": "images/icon_{0}.png",
-      "type": "iframe",
+      "type": "url",
       "protocol": "http",
-      "port": "51417",
+      "port": "${wizard_port}",
       "url": "/",
       "allUsers": true
     }

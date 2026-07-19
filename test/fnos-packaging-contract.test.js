@@ -25,6 +25,8 @@ test('fnOS package follows the Docker application contracts', () => {
   const resource = JSON.parse(readRepoFile('packaging/fnos/config/resource'))
   const privilege = JSON.parse(readRepoFile('packaging/fnos/config/privilege'))
   const entry = JSON.parse(readRepoFile('packaging/fnos/app/ui/config'))
+  const wizard = JSON.parse(readRepoFile('packaging/fnos/wizard/config'))
+  const wizardPortPlaceholder = '${' + 'wizard_port}'
   const mainPath = path.join(repoRoot, 'packaging/fnos/cmd/main')
   const main = readFileSync(mainPath, 'utf8')
   const lifecycleScripts = [
@@ -41,7 +43,8 @@ test('fnOS package follows the Docker application contracts', () => {
   assert.match(manifest, /^appname=douyu-keep-just-works$/m)
   assert.match(manifest, /^version=__VERSION__$/m)
   assert.match(manifest, /^platform=all$/m)
-  assert.match(manifest, /^service_port=51417$/m)
+  assert.match(manifest, /^display_name=douyu-keep-just-works$/m)
+  assert.match(manifest, /^service_port=\$\{wizard_port\}$/m)
   assert.match(manifest, /^desktop_applaunchname=douyu-keep-just-works\.main$/m)
   assert.match(compose, /image: tophtab\/douyu-keep-just-works:__DOCKER_TAG__/)
   assert.match(compose, /container_name: douyu-keep-just-works/)
@@ -53,8 +56,17 @@ test('fnOS package follows the Docker application contracts', () => {
     { name: 'douyu-keep-just-works', path: 'docker' },
   ])
   assert.equal(privilege.defaults['run-as'], 'package')
-  assert.equal(entry['.url']['douyu-keep-just-works.main'].port, '51417')
+  assert.equal(entry['.url']['douyu-keep-just-works.main'].title, 'douyu-keep-just-works')
+  assert.equal(entry['.url']['douyu-keep-just-works.main'].type, 'url')
+  assert.equal(entry['.url']['douyu-keep-just-works.main'].port, wizardPortPlaceholder)
   assert.equal(entry['.url']['douyu-keep-just-works.main'].protocol, 'http')
+  assert.equal(entry['.url']['douyu-keep-just-works.main'].url, '/')
+  assert.equal(wizard[0].items[0].field, 'wizard_port')
+  assert.equal(wizard[0].items[0].initValue, '51417')
+  assert.deepEqual(wizard[0].items[0].rules, [
+    { required: true, message: '请输入 WebUI 端口' },
+    { pattern: '^[0-9]+$', message: '端口必须是数字' },
+  ])
   assert.match(main, /CONTAINER_NAME="douyu-keep-just-works"/)
   assert.match(main, /docker inspect --format '\{\{\.State\.Running\}\}'/)
   assert.match(main, /exit 3/)
@@ -83,6 +95,7 @@ test('fnOS release waits for the tagged multi-architecture Docker image', () => 
   assert.match(fnosWorkflow, /workflow_dispatch:/)
   assert.match(fnosWorkflow, /pull_request:[\s\S]*packaging\/fnos\/\*\*/)
   assert.match(fnosWorkflow, /validate-package:[\s\S]*node --test test\/fnos-packaging-contract\.test\.js/)
+  assert.match(fnosWorkflow, /jq empty[^\n]*packaging\/fnos\/wizard\/config/)
   assert.match(fnosWorkflow, /validate-package:\n\s+if: inputs\.release_tag == ''/)
   assert.match(fnosWorkflow, /build:\n\s+if: inputs\.release_tag != ''/)
   assert.match(fnosWorkflow, /\^\[vV\]\(\[0-9\]\+\\\.\[0-9\]\+\\\.\[0-9\]\+\)\$/)

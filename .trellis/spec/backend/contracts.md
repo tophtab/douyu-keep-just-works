@@ -458,8 +458,13 @@ Trigger: changing `packaging/fnos/`, `.github/workflows/fnos-fpk.yml`, or the
   `^[vV][0-9]+\.[0-9]+\.[0-9]+$` and resolving to an existing repository tag.
 - Package placeholders: `manifest` owns `version=__VERSION__`; Compose owns
   image tag `__DOCKER_TAG__`. Both are replaced only in a temporary copy.
-- fnOS runtime inputs: `TRIM_SERVICE_PORT` maps host port `51417`, and
+- fnOS runtime inputs: `wizard_port` defaults to host port `51417` and feeds
+  `manifest.service_port`/the desktop entry; fnOS exposes that selected host
+  port as `TRIM_SERVICE_PORT`, which maps to container port `51417`, and
   `TRIM_PKGVAR` mounts at `/app/config`.
+- Package UI inputs: `wizard/config` owns the required numeric `wizard_port`
+  field; `app/ui/config` uses `type=url` and `port=${wizard_port}` for the
+  external WebUI entry.
 - Release outputs:
   `douyu-keep-just-works-<version>-fnos.fpk` and its `.sha256` file.
 
@@ -477,6 +482,12 @@ Trigger: changing `packaging/fnos/`, `.github/workflows/fnos-fpk.yml`, or the
   input path and must not publish a Release.
 - Official `fnpack` is version-pinned and SHA256-verified before execution.
   Build from a temporary stamped copy and reject unresolved placeholders.
+- Host-port customization must change only the Compose host side through
+  `${TRIM_SERVICE_PORT}`; the Docker container must continue listening on
+  `51417`.
+- A direct browser entry uses `type=url` with the selected `${wizard_port}`;
+  `type=iframe` is an embedded fnOS window and is not interchangeable when
+  the product requires a new WebUI page.
 - Create or reuse the GitHub Release for the exact tag and upload deterministic
   FPK/checksum assets with idempotent replacement semantics.
 - `cmd/main status` checks the stable Compose container name. The other eight
@@ -486,6 +497,8 @@ Trigger: changing `packaging/fnos/`, `.github/workflows/fnos-fpk.yml`, or the
 ### 4. Validation & Error Matrix
 
 - Invalid or missing tag -> fail before package preparation.
+- Missing wizard port, non-numeric wizard port, or a UI/manifest port that is
+  not `${wizard_port}` -> fail package contract validation.
 - Exact image missing either required platform -> fail before `fnpack`.
 - `fnpack` checksum mismatch -> fail before executing the downloaded tool.
 - Unresolved version/image placeholder -> fail before package creation.
@@ -498,8 +511,12 @@ Trigger: changing `packaging/fnos/`, `.github/workflows/fnos-fpk.yml`, or the
 
 - Good: a `v3.9.0` tag publishes the two-platform Docker manifest, then creates
   `douyu-keep-just-works-3.9.0-fnos.fpk` on Release `v3.9.0`.
+- Good: wizard port `62000` renders `62000:51417`, and the external desktop
+  entry opens HTTP port `62000`.
 - Base: a package-source pull request checks static contracts, JSON, and
   Compose rendering without downloading an image or changing a Release.
+- Bad: a fixed `51417:51417` mapping or `port=51417` prevents a user-selected
+  host port, or an `iframe` entry keeps the WebUI embedded in fnOS.
 - Bad: a separate tag-triggered FPK workflow starts concurrently, references
   an image tag that is not published yet, or skips because it expects the
   reusable call's event name to be `workflow_call`.
@@ -508,8 +525,9 @@ Trigger: changing `packaging/fnos/`, `.github/workflows/fnos-fpk.yml`, or the
 
 - `test/fnos-packaging-contract.test.js` must assert package structure,
   executable lifecycle files, synchronized port/container/project values,
-  durable config mapping, exact image placeholders, tool hash, platform checks,
-  release commands, and `release-manifest` ordering.
+  durable config mapping, wizard default/validation and `${wizard_port}`
+  propagation, external URL entry shape, exact image placeholders, tool hash,
+  platform checks, release commands, and `release-manifest` ordering.
 - Run `actionlint` for workflow semantics, render Compose with test fnOS
   environment values, and run a real SHA256-verified `fnpack build` from a
   stamped temporary directory.
@@ -526,6 +544,24 @@ on:
 jobs:
   build-fpk:
     if: github.event_name == 'workflow_call'
+```
+
+Wrong package entry:
+
+```json
+{
+  "type": "iframe",
+  "port": "51417"
+}
+```
+
+Correct package entry:
+
+```json
+{
+  "type": "url",
+  "port": "${wizard_port}"
+}
 ```
 
 Correct:

@@ -1,6 +1,6 @@
 appname=douyu-keep-just-works
 version=__VERSION__
-display_name=斗鱼保活
+display_name=douyu-keep-just-works
 desc=斗鱼粉丝牌保活 Docker WebUI
 source=thirdparty
 platform=all
@@ -10,7 +10,7 @@ distributor=tophtab
 distributor_url=https://github.com/tophtab/douyu-keep-just-works
 desktop_uidir=ui
 desktop_applaunchname=douyu-keep-just-works.main
-service_port=51417
+service_port=${wizard_port}
 checkport=true
 ctl_stop=true
 disable_authorization_path=true

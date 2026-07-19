@@ -1002,3 +1002,36 @@ Fixed repository-wide config ignore rules so packaging/fnos/config/resource and 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 90: Fix fnOS WebUI launch and configurable port
+
+**Date**: 2026-07-19
+**Task**: Fix fnOS WebUI launch and configurable port
+**Branch**: `master`
+
+### Summary
+
+Changed fnOS app display name to douyu-keep-just-works, switched desktop launch from embedded iframe to external URL, added wizard_port with default 51417 and propagated it through manifest/UI while preserving the container listener. Updated package contracts/specs, rebuilt and force-released v3.9.0 with corrected FPK assets.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ebc8027` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

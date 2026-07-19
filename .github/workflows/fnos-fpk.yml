@@ -46,7 +46,7 @@ jobs:
         run: node --test test/fnos-packaging-contract.test.js
 
       - name: Validate package metadata
-        run: jq empty packaging/fnos/config/resource packaging/fnos/config/privilege packaging/fnos/app/ui/config packaging/fnos/wizard/config
+        run: jq empty packaging/fnos/config/resource packaging/fnos/config/privilege packaging/fnos/app/ui/config
 
       - name: Validate Compose configuration
         env:

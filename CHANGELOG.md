@@ -7,6 +7,8 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ## Unreleased
 
+## 3.9.0 - 2026-07-19
+
 ### Added
 
 - GitHub tag releases now publish an installable fnOS Docker FPK and checksum

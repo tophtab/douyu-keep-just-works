@@ -65,6 +65,12 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
     <PageSection title="登录 Cookie">
       <div class="grid cols-3 section-form-grid">
         <div class="field-block">
+          <label class="field-label" for="manual-passport-cookie">passport.douyu.com Cookie</label>
+          <div class="cookie-input-frame">
+            <textarea id="manual-passport-cookie" v-model="passportCookie" class="cookie-input" name="manual-passport-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="dy_did=...; LTP0=..." rows="4" />
+          </div>
+        </div>
+        <div class="field-block">
           <label class="field-label" for="main-cookie-input">斗鱼直播的 Cookie</label>
           <div class="cookie-input-frame">
             <textarea id="main-cookie-input" v-model="mainCookie" class="cookie-input" name="main-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 www.douyu.com / douyu.com 登录 Cookie" />
@@ -74,12 +80,6 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
           <label class="field-label" for="yuba-cookie-input">斗鱼鱼吧的 Cookie</label>
           <div class="cookie-input-frame">
             <textarea id="yuba-cookie-input" v-model="yubaCookie" class="cookie-input" name="yuba-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="粘贴 yuba.douyu.com 登录 Cookie" />
-          </div>
-        </div>
-        <div class="field-block">
-          <label class="field-label" for="manual-passport-cookie">passport.douyu.com Cookie</label>
-          <div class="cookie-input-frame">
-            <textarea id="manual-passport-cookie" v-model="passportCookie" class="cookie-input" name="manual-passport-cookie" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="dy_did=...; LTP0=..." rows="4" />
           </div>
         </div>
       </div>

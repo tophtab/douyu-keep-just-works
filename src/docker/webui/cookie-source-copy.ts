@@ -17,9 +17,9 @@ function formatCookieStatus(valid: boolean | undefined): string {
 
 function buildCookieStatusCells(diagnostics: CookieDiagnostics | null) {
   return [
+    { label: 'passport Cookie', value: formatCookieStatus(diagnostics?.passportLtp0Present) },
     { label: '直播 Cookie', value: formatCookieStatus(diagnostics?.mainCookieReady) },
     { label: '鱼吧 Cookie', value: formatCookieStatus(diagnostics?.yubaCookieReady) },
-    { label: 'passport Cookie', value: formatCookieStatus(diagnostics?.passportLtp0Present) },
   ]
 }
 

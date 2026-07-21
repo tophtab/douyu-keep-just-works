@@ -22,13 +22,13 @@
 
 ## Acceptance Criteria
 
-- [ ] `package.json` 与 `package-lock.json` 均声明版本 `3.10.0`。
-- [ ] `CHANGELOG.md` 包含 `## 3.10.0 - 2026-07-21`，并覆盖 canonical 配置迁移、每周三保活默认计划和登录 Cookie 展示顺序变化。
-- [ ] `npm run lint`、`npm run type-check`、`npm test` 与 `git diff --check` 通过。
-- [ ] 发布相关改动已提交并推送到 `origin/master`。
-- [ ] 远端 `v3.10.0` 指向本次发布提交，Docker tag workflow 成功。
-- [ ] GitHub Release 包含 `douyu-keep-just-works-3.10.0-fnos.fpk` 与对应 `.sha256` 文件。
-- [ ] 最终工作区干净，`master` 与 `origin/master` 同步。
+- [x] `package.json` 与 `package-lock.json` 均声明版本 `3.10.0`。
+- [x] `CHANGELOG.md` 包含 `## 3.10.0 - 2026-07-21`，并覆盖 canonical 配置迁移、每周三保活默认计划和登录 Cookie 展示顺序变化。
+- [x] `npm run lint`、`npm run type-check`、`npm test` 与 `git diff --check` 通过。
+- [x] 发布相关改动已提交并推送到 `origin/master`。
+- [x] 远端 `v3.10.0` 指向本次发布提交，Docker tag workflow 成功。
+- [x] GitHub Release 包含 `douyu-keep-just-works-3.10.0-fnos.fpk` 与对应 `.sha256` 文件。
+- [x] 最终工作区干净，`master` 与 `origin/master` 同步。
 
 ## Out of Scope
 

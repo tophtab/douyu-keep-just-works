@@ -7,6 +7,20 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ## Unreleased
 
+## 3.10.0 - 2026-07-21
+
+### Changed
+
+- Saved configuration now converges on one canonical shape using
+  `loginCookies`, task `enabled` switches, explicit allocation modes, and
+  room-allocation entries while continuing to migrate legacy configuration at
+  the input boundary.
+- The keepalive default now runs every Wednesday at 08:00 in `Asia/Shanghai`;
+  the previous default expression is migrated automatically while other custom
+  six-field cron expressions are preserved.
+- Login Cookie fields and diagnostics now present Passport, main-site, and Yuba
+  credentials in their canonical recovery order.
+
 ## 3.9.0 - 2026-07-19
 
 ### Added

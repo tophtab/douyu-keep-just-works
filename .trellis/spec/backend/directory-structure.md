@@ -26,7 +26,7 @@ Current examples:
 - `src/core/api.ts` owns low-level Douyu HTTP helpers, cookie parsing, and response normalization.
 - `src/core/config-normalization.ts` owns Docker config defaults, normalization, and fan-backed task reconciliation.
 - `src/core/job.ts` coordinates task execution using shared APIs.
-- `src/core/gift-task.ts` owns pure gift-task helpers used by task execution, such as enabled-room filtering and gift send-job preparation.
+- `src/core/gift-task.ts` owns pure gift-task helpers used by task execution, such as participating-room allocation filtering and runtime gift send-job preparation.
 - `src/docker/runtime.ts` wires config loading, runtime services, scheduler dependencies, and Express app startup.
 - `src/docker/runtime-app-context.ts` builds the WebUI `AppContext` from runtime services.
 - `src/docker/runtime-cookie-source.ts` is the cookie-source facade; focused cookie-source responsibilities live in sibling modules such as `runtime-cookie-cloud-cache.ts`, `runtime-effective-cookies.ts`, `runtime-cookie-snapshot-store.ts`, and `runtime-passport-qr-login.ts`.

@@ -41,6 +41,13 @@ There is no formal migration system. Current config snapshots are normalized whe
 
 If a future config shape changes and requires a compatibility window, update the normalization path and contract tests rather than adding a separate migration directory.
 
+Normal runtime state and writes use only canonical `DockerConfig`. Legacy
+`cookie`, `manualCookies`, `manualPassport`, task `active`, `model`, and `send`
+fields may be read only by `normalizeDockerConfig` or the API partial-update
+boundary. Do not dual-write legacy fields. Because canonical writes are
+one-way, rollback to an older image requires restoring a pre-upgrade config
+backup.
+
 ---
 
 ## Scenario Contracts

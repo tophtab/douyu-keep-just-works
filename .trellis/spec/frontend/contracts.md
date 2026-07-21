@@ -181,18 +181,18 @@ Trigger: changing WebUI CookieCloud "同步并校验",
 
 Contracts:
 
-- When CookieCloud is active, `/api/cookie-source/persist` force-refreshes
+- When CookieCloud `enabled` is true, `/api/cookie-source/persist` force-refreshes
   CookieCloud once and persists the effective local login snapshot.
 - Persist keeps existing local cookies as fallback when the fresh CookieCloud
   snapshot misses one side; the result may be a hybrid effective snapshot.
-- Persist writes `passport.douyu.com` material into `manualPassport.cookie` only
-  when the fresh snapshot contains `LTP0`, and preserves existing manual
-  passport material when remote material lacks `LTP0`.
+- Persist writes `passport.douyu.com` material into `loginCookies.passport` only
+  when the fresh snapshot contains `LTP0`, and preserves existing local passport
+  material when remote material lacks `LTP0`.
 - `/api/cookie-source/check` inspects only saved local login cookies. It must
   not fetch CookieCloud or force-refresh remote data.
 - The WebUI action runs persist first, then the local-only check endpoint.
-- When CookieCloud is inactive, the same check endpoint diagnoses saved manual
-  cookies.
+- When CookieCloud is disabled, the same check endpoint diagnoses saved local
+  login cookies.
 - Diagnostics are structural: required keys, cookie count, domains, and
   CookieCloud update time. The WebUI summary should show source, update time,
   readiness, missing keys, and passport recovery-material state; do not expose

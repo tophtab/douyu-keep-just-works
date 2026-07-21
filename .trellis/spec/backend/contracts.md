@@ -9,7 +9,7 @@
 
 | Trigger | Section |
 |---|---|
-| Defaults, config normalization, examples, or manual passport persistence | [Config And Persistence Contracts](#config-and-persistence-contracts) |
+| Defaults, config normalization, examples, or login-cookie persistence | [Config And Persistence Contracts](#config-and-persistence-contracts) |
 | Runtime retry after login-cookie failures | [Credential Recovery Retry](#credential-recovery-retry) |
 | Passport QR login, safeAuth, CookieCloud authority, or Yuba SSO | [Passport, Main-Site, And Yuba Cookie Authority](#passport-main-site-and-yuba-cookie-authority) |
 | Backend-owned QR login route/session behavior | [Project-Owned Passport QR Login Snapshots](#project-owned-passport-qr-login-snapshots) |
@@ -26,7 +26,7 @@
 
 ### Default Config Ownership
 
-Trigger: changing Docker/WebUI default task config, cron values, active defaults,
+Trigger: changing Docker/WebUI default task config, cron values, enabled defaults,
 CookieCloud defaults, or `config.example.json`.
 
 Contracts:
@@ -45,105 +45,107 @@ Contracts:
 Tests: assert example cron fields match `DEFAULT_*_CRON`, assert WebUI imports
 the core default factory, and type-check WebUI when browser-safe defaults change.
 
-### Manual Passport Recovery Material
+### Login Cookie Recovery Material
 
-Trigger: adding or changing durable Passport recovery material for manual-cookie
-mode.
+Trigger: adding or changing durable Passport, main-site, or Yuba login cookies.
 
 Contracts:
 
-- Store the visible `passport.douyu.com` cookie string in
-  `DockerConfig.manualPassport.cookie`; parse `LTP0` and `dy_did` from that
-  cookie during recovery.
-- Do not add a standalone `dy_did` field.
-- CookieCloud persistence writes complete passport-domain material into
-  `manualPassport.cookie` when the fresh snapshot contains `LTP0`, and preserves
-  an existing manual passport cookie when remote material is absent or lacks
-  `LTP0`.
-- `normalizeDockerConfig` trims `manualPassport.cookie`; blank values remove the
-  field. Recovery material uses the current complete-cookie shape only.
-- `buildConfigWithPartialUpdate` preserves existing `manualPassport` across
-  unrelated writes and replaces it only when the update payload includes it.
-- Authenticated `/api/config` read/save responses are the complete editable
-  config contract and may return raw saved cookies. Summary/status routes,
-  diagnostics, logs, and QR status responses expose only booleans or structural
-  facts.
-- `GET /api/config/raw` must stay deleted.
+- Canonical persisted credentials are `DockerConfig.loginCookies` in the order
+  `{ passport, main, yuba }`. The complete Passport cookie remains one string;
+  recovery parses `LTP0` and `dy_did` from it.
+- `normalizeDockerConfig` is the only legacy constructor. It accepts
+  `manualCookies`, `manualPassport`, and top-level `cookie` only at disk/API
+  boundaries, with canonical values taking precedence.
+- CookieCloud persistence writes Passport material to `loginCookies.passport`
+  only when fresh data contains `LTP0`, and preserves existing local values when
+  a remote snapshot is incomplete.
+- Authenticated `/api/config` responses may contain raw saved cookies. Overview,
+  diagnostics, logs, and QR status expose only booleans or structural facts;
+  `GET /api/config/raw` stays deleted.
 
-Tests: cover shared types, normalization, partial updates, authenticated config
-read/save, summary secret boundaries, CookieCloud passport persistence, and the
-frontend visible textarea.
+Tests: cover canonical ordering, legacy/mixed precedence, partial updates,
+authenticated config round trips, secret boundaries, CookieCloud persistence,
+and the frontend visible cookie fields.
 
-### Current Config Shape And Retired Legacy Fields
+### Canonical Config And Legacy Boundary
 
 #### 1. Scope / Trigger
 
-Trigger: changing `DockerConfig`, `SendGift`, `DoubleCardConfig`, config-file
-loading, normalization, or persisted config examples.
+Trigger: changing `DockerConfig`, allocation contracts, config loading,
+normalization, persistence, API routes, or WebUI config state.
 
 #### 2. Signatures
 
-- `normalizeDockerConfig(config: DockerConfig, options?): DockerConfig`
-- `reconcileDockerConfig(config: DockerConfig, fans: Fans[]): DockerConfig`
+- `normalizeDockerConfig(input: unknown, options?): DockerConfig`
+- `buildConfigWithPartialUpdate(current: DockerConfig | null, updates: DockerConfigUpdate): DockerConfig`
 - `loadConfigFromDisk(configPath: string): DockerConfig | null`
+- `saveConfigToDisk(configPath: string, config: DockerConfig): void`
 
 #### 3. Contracts
 
-- Config normalization lives in `src/core/config-normalization.ts`.
-- Send allocation uses `SendGift.weight`; `percentage` is not part of the
-  current shape and is ignored if it appears in untyped JSON.
-- Manual Passport recovery material uses `manualPassport.cookie` containing the
-  complete visible cookie string; `manualPassport.ltp0` is not converted.
-- Double-card selection uses explicit `doubleCard.enabled` values. Missing
-  entries normalize to `false`; membership in `doubleCard.send` does not imply
-  selection.
-- The top-level `cookie` field remains part of the current Docker config
-  contract and must not be removed as part of legacy-field cleanup.
-- Missing current fields may still receive task defaults during normalization.
+- Public top-level order is `loginCookies`, `cookieCloud`, `ui`,
+  `collectGift`, `keepalive`, `doubleCard`, `expiringGift`, `yubaCheckIn`.
+- Scheduled task switches use `enabled`. Runtime card state and Vue tab/CSS
+  state may still use `active`; do not use `active` for normal config.
+- Gift allocation intent is discriminated by `allocationMode` and
+  `roomAllocations`. Fixed entries contain only `count` (one optional `-1`),
+  weighted entries contain only finite non-negative `weight`.
+- Runtime `GiftSendJobs` are created after allocation and contain `roomId`,
+  selected `giftId`, and actual `count`; they must not be persisted as config.
+- `doubleCard.participatingRoomIds` stores selected rooms. `DoubleCardInfo.active`
+  remains runtime detection state.
+- Cron remains npm `cron` six-field syntax. Missing keepalive cron and the exact
+  old default `0 0 8 */7 * *` normalize to `0 0 8 * * 3`; other expressions are
+  trimmed and preserved.
+- Successful API responses and disk writes contain canonical fields only.
 
 #### 4. Validation & Error Matrix
 
-- Missing or non-finite `weight` -> use the task's current weight fallback.
-- Blank `manualPassport.cookie` -> omit `manualPassport` from the normalized
-  snapshot.
-- Missing `doubleCard.enabled[roomId]` -> normalized value is `false`.
-- Invalid current task fields such as cron/model/threshold -> existing
-  normalization and route validation rules still apply.
+- Canonical fields win over legacy aliases when both are present.
+- Weighted entries containing `count`, fixed entries containing `weight`,
+  non-finite/negative weights, non-integer counts below `-1`, or multiple `-1`
+  entries -> `400` validation error.
+- Legacy double-card room maps are accepted only at the API/disk boundary and
+  are converted to `participatingRoomIds`.
+- Invalid cron, task switches, CookieCloud fields, or allocation mode -> `400`;
+  no invalid payload reaches persistence.
 
 #### 5. Good/Base/Bad Cases
 
-- Good: `send[roomId].weight` and `doubleCard.enabled[roomId]` are explicit,
-  and `manualPassport.cookie` contains `LTP0` plus available device material.
-- Base: optional current fields are missing and normalization fills defaults.
-- Bad: a snapshot relies only on `percentage`, `manualPassport.ltp0`, or a
-  `send` entry to select a double-card room; those retired shapes are not
-  migrated.
+- Good: WebUI sends canonical config and applies the authoritative normalized
+  response; runtime modules consume only `DockerConfig` and `GiftSendJobs`.
+- Base: a legacy snapshot is normalized once, then rewritten canonically.
+- Bad: a scheduler, task runner, or WebUI state module reads `manualCookies`,
+  `model`, `send`, or `active` as a normal configuration field.
 
 #### 6. Tests Required
 
-- Assert current-shape normalization preserves explicit weights and enabled
-  values while filling task defaults.
-- Assert fan reconciliation preserves current settings and adds new rooms with
-  task-specific defaults.
-- Assert `manualPassport.cookie` is trimmed and blank material is removed.
-- Run backend/frontend type checks after changing shared config interfaces.
+- Assert canonical top-level/nested order and mixed-precedence fixtures.
+- Assert fixed/weighted validation, `-1`, participating rooms, and stable gift
+  counts.
+- Assert config API validation, canonical response/persistence, Cookie masking,
+  WebUI save-response application, and six-field cron migration.
+- Run backend/frontend type checks, lint, contract tests, and Docker build.
 
 #### 7. Wrong vs Correct
 
 Wrong:
 
 ```json
-{ "manualPassport": { "ltp0": "..." }, "doubleCard": { "send": { "100": {} } } }
+{ "manualCookies": { "main": "..." }, "keepalive": { "model": 2, "send": {} } }
 ```
 
 Correct:
 
 ```json
 {
-  "manualPassport": { "cookie": "dy_did=...; LTP0=..." },
-  "doubleCard": {
-    "enabled": { "100": true },
-    "send": { "100": { "roomId": 100, "number": 0, "giftId": 268, "weight": 1 } }
+  "loginCookies": { "passport": "...", "main": "...", "yuba": "..." },
+  "keepalive": {
+    "enabled": true,
+    "cron": "0 0 8 * * 3",
+    "allocationMode": "fixed",
+    "roomAllocations": { "123456": { "count": -1 } }
   }
 }
 ```
@@ -157,8 +159,8 @@ Contracts:
 
 - Recovery eligibility is message-based; there is no custom error class
   hierarchy.
-- Recovery runs only when CookieCloud is fully configured and active or saved
-  `manualPassport.cookie` exists.
+- Recovery runs only when CookieCloud is fully configured and enabled or saved
+  `loginCookies.passport` exists.
 - `DockerRuntimeCookieRecoveryService` owns runtime retry eligibility, logging,
   and delegation to `DockerCookieSourceManager.recoverCredentialSnapshot(...)`.
   Task runners use `RuntimeTaskRunnerDeps.refreshCookieSourceAfterFailure`;
@@ -208,7 +210,7 @@ Contracts:
   Passport/device flow. A newly minted main snapshot supersedes previous local
   or browser snapshots and should invalidate local caches.
 - CookieCloud/browser snapshots and backend Passport refresh are not equal
-  independent write authorities for `manualCookies.main`.
+  independent write authorities for `loginCookies.main`.
 - Full recovery should rebuild a coherent set: refresh main from Passport,
   validate it, run Yuba SSO with that main snapshot, validate Yuba, then persist
   both snapshots together.
@@ -227,9 +229,9 @@ or local passport/main/Yuba snapshot persistence.
 
 Contracts:
 
-- QR login creates project-owned local snapshots in
-  `manualPassport.cookie`, `manualCookies.main`, and `manualCookies.yuba`; it
-  never writes back to browser profiles or CookieCloud.
+- QR login creates project-owned local snapshots in `loginCookies.passport`,
+  `loginCookies.main`, and `loginCookies.yuba`; it never writes back to browser
+  profiles or CookieCloud.
 - `scan_code`, login ticket/code, `LTP0`, raw cookies, and login URLs are
   service-private. Public route responses may expose a rendered QR image data
   URL, derived booleans, status, message, and retry flags only.
@@ -238,9 +240,9 @@ Contracts:
 - Backend QR sessions bootstrap browser-like device material before QR
   generation: `dy_did`, `acf_did`, and `game_did` should exist before `LTP0`.
   `passportSaved` means `LTP0` exists, not just device material.
-- Passport/main success persists `manualPassport.cookie` and
-  `manualCookies.main` immediately. Yuba success later persists
-  `manualCookies.yuba`.
+- Passport/main success persists `loginCookies.passport` and
+  `loginCookies.main` immediately. Yuba success later persists
+  `loginCookies.yuba`.
 - Normalize the QR main login URL before requesting it: preserve returned query
   fields, add missing `callback=appClient_json_callback`, and add missing
   `_=<timestamp>`.
@@ -576,8 +578,9 @@ Contracts:
 
 - Task-wide labels, schedule summaries, active checks, and "not configured"
   messages belong in `src/docker/task-metadata.ts` before they are repeated.
-- Use `isTaskActive(config)` and `hasActiveTaskConfig(config)` instead of
-  hand-writing `config && config.active !== false` checks or task `||` chains.
+- Use `isTaskEnabled(config)` and `hasEnabledTaskConfig(config)` instead of
+  hand-writing enabled checks or task `||` chains. Reserve `active` for runtime
+  state such as `DoubleCardInfo.active`.
 - Scheduled and manual task dispatch share `runRuntimeTask(type, taskConfig,
   deps)`.
 - Keep task-specific cookie/status-cache behavior in `runtime-task-runners.ts`.

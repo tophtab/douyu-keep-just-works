@@ -56,6 +56,18 @@ function isThemeMode(value: unknown): value is ThemeMode {
 
 Use `Record<string, unknown>` only for truly dynamic response summaries, such as overview response data.
 
+## Canonical Config Boundary
+
+WebUI normal state consumes `DockerConfig` only: login credentials are under
+`loginCookies`, task switches use `enabled`, and allocation forms read/write
+`allocationMode` plus `roomAllocations`. Legacy `manualCookies`, `manualPassport`,
+`model`, `send`, and task `active` fields belong to backend disk/API migration
+only and must not be used as normal-path fallbacks.
+
+`saveConfigPatch` owns the `/api/config` mutation transport and replaces
+`rawConfig` with the backend's complete canonical response before feature-local
+refreshes run.
+
 ---
 
 ## Forbidden Patterns

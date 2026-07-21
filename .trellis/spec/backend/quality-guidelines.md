@@ -53,14 +53,14 @@ export const TASK_NOT_CONFIGURED_MESSAGES: Record<TaskType, string> = {
   // ...
 }
 
-export function isTaskActive(config: { active?: boolean } | null | undefined): boolean {
-  return Boolean(config && config.active !== false)
+export function isTaskEnabled(config: { enabled?: boolean } | null | undefined): boolean {
+  return Boolean(config?.enabled)
 }
 ```
 
-Do not copy equivalent task messages, task-list iteration, or `config && config.active !== false` checks into multiple modules. Reuse metadata helpers from `runtime.ts`, `server-config-routes.ts`, `runtime-scheduler.ts`, `runtime-task-runners.ts`, and future task route code where practical.
+Do not copy equivalent task messages, task-list iteration, or enabled checks into multiple modules. Reuse metadata helpers from `runtime.ts`, `server-config-routes.ts`, `runtime-scheduler.ts`, `runtime-task-runners.ts`, and future task route code where practical.
 
-When a module needs to know whether any Docker task is enabled, use `hasActiveTaskConfig(config)` from `src/docker/task-metadata.ts` instead of hand-writing an `||` chain across `collectGift`, `keepalive`, `doubleCard`, `expiringGift`, and `yubaCheckIn`.
+When a module needs to know whether any Docker task is enabled, use `hasEnabledTaskConfig(config)` from `src/docker/task-metadata.ts` instead of hand-writing an `||` chain across `collectGift`, `keepalive`, `doubleCard`, `expiringGift`, and `yubaCheckIn`.
 
 Scheduled and manual task dispatch should share the runtime runner entry point:
 

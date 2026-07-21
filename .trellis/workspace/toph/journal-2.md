@@ -1068,3 +1068,37 @@ Reverted the ineffective fnOS wizard/custom host-port changes while preserving t
 ### Next Steps
 
 - None - task complete
+
+
+## Session 92: Converge TypeScript config contracts
+
+**Date**: 2026-07-21
+**Task**: Converge TypeScript config contracts
+**Branch**: `master`
+
+### Summary
+
+Kept the TypeScript/Vue stack, migrated config and WebUI state to one canonical contract, separated allocation intent from runtime gift jobs, changed keepalive default to Wednesday 08:00 Shanghai time, preserved legacy input normalization, updated specs and migration docs, and passed lint, type checks, 43 contract tests, and the Docker build.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a24d676` | (see git log) |
+| `bf7e2bd` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

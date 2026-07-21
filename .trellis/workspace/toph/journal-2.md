@@ -1102,3 +1102,37 @@ Kept the TypeScript/Vue stack, migrated config and WebUI state to one canonical 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 93: Release v3.10.0
+
+**Date**: 2026-07-21
+**Task**: Release v3.10.0
+**Branch**: `master`
+
+### Summary
+
+Prepared the 3.10.0 changelog and npm metadata, passed lint/type-check/43 contract tests/Docker build, pushed master and v3.10.0, and verified amd64/arm64 images, the multi-arch manifest, and fnOS FPK Release assets.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6abbcc1` | (see git log) |
+| `6753873` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

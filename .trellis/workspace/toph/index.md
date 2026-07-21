@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 92
+- **Total Sessions**: 93
 - **Last Active**: 2026-07-21
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1104 | Active |
+| `journal-2.md` | ~1138 | Active |
 | `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 93 | 2026-07-21 | Release v3.10.0 | `6abbcc1`, `6753873` | `master` |
 | 92 | 2026-07-21 | Converge TypeScript config contracts | `a24d676`, `bf7e2bd` | `master` |
 | 91 | 2026-07-19 | Restore fixed fnOS service port | `3fa9dc2` | `master` |
 | 90 | 2026-07-19 | Fix fnOS WebUI launch and configurable port | `ebc8027` | `master` |

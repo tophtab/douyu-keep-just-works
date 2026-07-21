@@ -5,7 +5,7 @@ import { clearCookieBackedData, refreshOverviewSurface } from './resource-state'
 import { getErrorMessage, isHttpUnauthorized } from './task-shared'
 import { showToast } from './toast'
 import {
-  applyManualPassportSaveResponse,
+  applyLoginCookieSaveResponse,
   applyRawConfig,
   clearCookieDiagnostics,
   cookieDiagnostics,
@@ -39,9 +39,9 @@ interface PassportQrLoginResponse {
 
 let cookieDiagnosticsPending: Promise<CookieDiagnostics> | null = null
 
-async function refreshOverviewAfterCookieChange(showSuccessToast: boolean): Promise<void> {
+async function refreshOverviewAfterCookieChange(options: { showSuccessToast?: boolean } = {}): Promise<void> {
   await refreshOverviewSurface('overview', false)
-  if (showSuccessToast) {
+  if (options.showSuccessToast) {
     showToast('状态已刷新', true)
   }
 }
@@ -55,7 +55,7 @@ async function applyPassportQrLoginStatus(status: PassportQrLoginPublicStatus | 
   await loadConfig()
   applyRawConfig(rawConfig.value)
   clearCookieBackedData()
-  await refreshOverviewAfterCookieChange(false)
+  await refreshOverviewAfterCookieChange()
 }
 
 async function requestPassportQrLoginStatus(pathname: string): Promise<PassportQrLoginPublicStatus | null | undefined> {
@@ -118,20 +118,18 @@ export async function saveCookie(): Promise<void> {
   const nextPassportCookie = passportCookie.value.trim()
   try {
     const result = await saveConfigPatch({
-      manualCookies: {
+      loginCookies: {
+        passport: nextPassportCookie,
         main: mainCookie.value.trim(),
         yuba: yubaCookie.value.trim(),
       },
-      manualPassport: {
-        cookie: nextPassportCookie,
-      },
     })
     if (result?.config) {
-      applyManualPassportSaveResponse(result.config, nextPassportCookie)
+      applyLoginCookieSaveResponse(result.config)
     }
     clearCookieBackedData()
     showToast('手填 Cookie 已保存', true)
-    await refreshOverviewAfterCookieChange(false)
+    await refreshOverviewAfterCookieChange()
   } catch (error) {
     if (isHttpUnauthorized(error)) {
       return
@@ -140,8 +138,11 @@ export async function saveCookie(): Promise<void> {
   }
 }
 
-export async function syncCookieCloudToLoginCookies(showSuccessToast?: boolean, rethrowError?: boolean): Promise<PersistCookieSourceResponse | null | undefined> {
-  if (!getCookieCloudConfig(rawConfig.value).active) {
+export async function syncCookieCloudToLoginCookies(options: {
+  showSuccessToast?: boolean
+  rethrowError?: boolean
+} = {}): Promise<PersistCookieSourceResponse | null | undefined> {
+  if (!getCookieCloudConfig(rawConfig.value).enabled) {
     return null
   }
 
@@ -156,7 +157,7 @@ export async function syncCookieCloudToLoginCookies(showSuccessToast?: boolean, 
     if (data.data?.updated) {
       clearCookieBackedData()
     }
-    if (showSuccessToast) {
+    if (options.showSuccessToast) {
       showToast(data.data?.updated ? 'CookieCloud 已同步到本地登录 Cookie' : '本地登录 Cookie 已是最新同步结果', true)
     }
     return data
@@ -164,10 +165,10 @@ export async function syncCookieCloudToLoginCookies(showSuccessToast?: boolean, 
     if (isHttpUnauthorized(error)) {
       return undefined
     }
-    if (showSuccessToast) {
+    if (options.showSuccessToast) {
       showToast(`同步 CookieCloud 到登录 Cookie 失败：${getErrorMessage(error)}`, false)
     }
-    if (rethrowError) {
+    if (options.rethrowError) {
       throw error
     }
     return undefined
@@ -205,10 +206,10 @@ export async function refreshCookieDiagnostics(): Promise<CookieDiagnostics | un
 
 export async function checkCookieSource(showSuccessToast = true): Promise<CookieDiagnostics | undefined> {
   try {
-    await syncCookieCloudToLoginCookies(false, true)
+    await syncCookieCloudToLoginCookies({ rethrowError: true })
     const data = await requestCookieDiagnostics()
     if (showSuccessToast !== false) {
-      const readyForDyTokenYuba = data.mainCookieReady && data.yubaDyTokenReady
+      const readyForDyTokenYuba = data.main.ready && data.yuba.dyTokenReady
       showToast(readyForDyTokenYuba ? '登录凭证已同步，dy-token 鱼吧请求已就绪' : '登录凭证已同步并校验，请查看缺失项', readyForDyTokenYuba)
     }
     return data
@@ -224,17 +225,17 @@ export async function checkCookieSource(showSuccessToast = true): Promise<Cookie
 
 async function saveCookieCloud(options: SaveCookieCloudOptions = {}): Promise<void> {
   if (options.forceEnable) {
-    cookieCloud.active = true
+    cookieCloud.enabled = true
   }
   if (options.forceDisable) {
-    cookieCloud.active = false
+    cookieCloud.enabled = false
   }
-  const shouldEnable = cookieCloud.active
+  const shouldEnable = cookieCloud.enabled
 
   try {
     const payload = {
       cookieCloud: {
-        active: shouldEnable,
+        enabled: shouldEnable,
         endpoint: cookieCloud.endpoint.trim(),
         uuid: cookieCloud.uuid.trim(),
         cron: cookieCloud.cron.trim(),
@@ -250,13 +251,13 @@ async function saveCookieCloud(options: SaveCookieCloudOptions = {}): Promise<vo
     if (!options.quietSuccess) {
       showToast(shouldEnable ? 'CookieCloud 已保存并启用' : 'CookieCloud 配置已保存', true)
     }
-    if (payload.cookieCloud.active) {
+    if (payload.cookieCloud.enabled) {
       await checkCookieSource(false)
     }
-    await refreshOverviewAfterCookieChange(false)
+    await refreshOverviewAfterCookieChange()
   } catch (error) {
     if (options.revertActiveTo !== undefined) {
-      cookieCloud.active = options.revertActiveTo
+      cookieCloud.enabled = options.revertActiveTo
     }
     if (isHttpUnauthorized(error)) {
       return
@@ -267,13 +268,13 @@ async function saveCookieCloud(options: SaveCookieCloudOptions = {}): Promise<vo
 
 export function saveCookieCloudToggle(options?: { revertCheckboxOnError?: boolean }): Promise<void> {
   return saveCookieCloud({
-    revertActiveTo: options?.revertCheckboxOnError ? !cookieCloud.active : undefined,
+    revertActiveTo: options?.revertCheckboxOnError ? !cookieCloud.enabled : undefined,
     quietSuccess: true,
   })
 }
 
 export function saveAndEnableCookieCloud(): Promise<void> {
-  const previousActive = cookieCloud.active
+  const previousActive = cookieCloud.enabled
   return saveCookieCloud({
     forceEnable: true,
     revertActiveTo: previousActive,

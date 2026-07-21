@@ -24,16 +24,16 @@ const logSystem = createLogger('系统')
 const taskLoggers: Record<TaskType, (message: string) => void> = createTaskRecord(type => createLogger(TASK_LOG_CATEGORIES[type]))
 
 const runtimeCache = new DockerRuntimeCache()
-const cookieSource = new DockerCookieSourceManager(
-  () => currentConfig,
-  (config) => {
+const cookieSource = new DockerCookieSourceManager({
+  getConfig: () => currentConfig,
+  setConfig: (config) => {
     currentConfig = config
   },
-  () => activeConfigPath,
+  getConfigPath: () => activeConfigPath,
   applyConfig,
-  () => runtimeCache.clearFansList(),
-  scope => runtimeCache.invalidateStatus(scope),
-)
+  clearFansListCache: () => runtimeCache.clearFansList(),
+  invalidateStatusCaches: scope => runtimeCache.invalidateStatus(scope),
+})
 
 const cookieRecovery = new DockerRuntimeCookieRecoveryService({
   hasPassportRecoveryMaterial: () => cookieSource.hasPassportRecoveryMaterial(),
@@ -44,13 +44,13 @@ const cookieRecovery = new DockerRuntimeCookieRecoveryService({
   logSystem,
 })
 
-const scheduler = new DockerTaskScheduler(
+const scheduler = new DockerTaskScheduler({
   logSystem,
   taskLoggers,
-  targetUrl => cookieSource.resolveCookieForUrl(targetUrl),
-  async (error, context) => await cookieRecovery.refreshCookieSourceAfterFailure(error, context),
-  (scope, runTask) => runtimeCache.runAndInvalidateStatus(scope, runTask),
-)
+  resolveCookieForUrl: targetUrl => cookieSource.resolveCookieForUrl(targetUrl),
+  refreshCookieSourceAfterFailure: async (error, context) => await cookieRecovery.refreshCookieSourceAfterFailure(error, context),
+  runAndInvalidateStatusCache: (scope, runTask) => runtimeCache.runAndInvalidateStatus(scope, runTask),
+})
 
 const cookieCloudSync = new DockerCookieCloudSyncService({
   hasCookieCloudSource: config => cookieSource.hasCookieCloudSource(config),

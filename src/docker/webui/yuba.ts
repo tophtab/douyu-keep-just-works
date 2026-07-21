@@ -5,7 +5,7 @@ import { useCronPreview } from './composables/use-cron-preview'
 import { rawConfig as sharedRawConfig, setRawConfig } from './resource-config'
 import { loadLogs, loadOverview, overview as sharedOverview, refreshOverviewSurface } from './resource-state'
 import { loadYubaStatus as loadResourceYubaStatus, yubaStatus as sharedYubaStatus, yubaStatusError as sharedYubaStatusError, yubaStatusLoaded as sharedYubaStatusLoaded, yubaStatusLoading as sharedYubaStatusLoading } from './resource-yuba'
-import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isHttpUnauthorized, isTaskActive, saveTaskConfig, triggerTask } from './task-shared'
+import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isHttpUnauthorized, isTaskEnabled, saveTaskConfig, triggerTask } from './task-shared'
 import type { CookieSourceConfig, SaveTaskConfigResult, TaskRunStatus } from './task-shared'
 
 interface YubaOverview {
@@ -35,13 +35,13 @@ function normalizeMode(mode: unknown): YubaCheckInMode {
 }
 
 function getYubaConfig(config: RawYubaConfig | null): YubaCheckInConfig {
-  return config?.yubaCheckIn || { active: false, cron: DEFAULT_YUBA_CHECK_IN_CRON, mode: DEFAULT_YUBA_CHECK_IN_MODE }
+  return config?.yubaCheckIn || { enabled: false, cron: DEFAULT_YUBA_CHECK_IN_CRON, mode: DEFAULT_YUBA_CHECK_IN_MODE }
 }
 
 function applyRawConfig(config: RawYubaConfig | null): void {
   rawConfig.value = config
   const yubaConfig = getYubaConfig(config)
-  yubaEnabled.value = isTaskActive(yubaConfig)
+  yubaEnabled.value = isTaskEnabled(yubaConfig)
   yubaCron.value = yubaConfig.cron || DEFAULT_YUBA_CHECK_IN_CRON
   yubaMode.value = normalizeMode(yubaConfig.mode)
   void ensureCronPreview()
@@ -67,7 +67,7 @@ async function saveYubaConfig(options?: { revertCheckboxOnError?: boolean }): Pr
   await saveTaskConfig({
     payload: {
       yubaCheckIn: {
-        active: true,
+        enabled: true,
         cron: yubaCron.value.trim(),
         mode: yubaMode.value || DEFAULT_YUBA_CHECK_IN_MODE,
       },
@@ -85,14 +85,14 @@ async function saveYubaConfig(options?: { revertCheckboxOnError?: boolean }): Pr
 
 async function disableYubaConfig(): Promise<void> {
   const currentConfig = rawConfig.value?.yubaCheckIn || {
-    active: false,
+    enabled: false,
     cron: DEFAULT_YUBA_CHECK_IN_CRON,
     mode: DEFAULT_YUBA_CHECK_IN_MODE,
   }
   await disableTaskConfig({
     payload: {
       yubaCheckIn: {
-        active: false,
+        enabled: false,
         cron: currentConfig.cron || DEFAULT_YUBA_CHECK_IN_CRON,
         mode: normalizeMode(currentConfig.mode),
       },

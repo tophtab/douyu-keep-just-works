@@ -1,12 +1,12 @@
 import type { DoubleCardConfig, DoubleCardGiftScope, Fans, FanStatus } from '../../core/types'
 import { computed, ref } from 'vue'
-import { DEFAULT_DOUBLE_CARD_CRON, DEFAULT_DOUBLE_CARD_GIFT_SCOPE, DEFAULT_DOUBLE_CARD_MODEL } from '../../core/task-defaults'
+import { DEFAULT_DOUBLE_CARD_ALLOCATION_MODE, DEFAULT_DOUBLE_CARD_CRON, DEFAULT_DOUBLE_CARD_GIFT_SCOPE } from '../../core/task-defaults'
 import type { AllocationFanRow } from './allocation-task'
-import { buildAllocationFanRows, buildAllocationSendMap, buildEnabledRoomMap, formatRatioPercent, normalizeAllocationModel } from './allocation-task'
+import { allocationModeToModel, buildAllocationConfig, buildAllocationFanRows, buildParticipatingRoomIds, formatRatioPercent } from './allocation-task'
 import { useCronPreview } from './composables/use-cron-preview'
 import { createFansBackedTaskPageState } from './fans-backed-task-page'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
-import { createDisabledAllocationTaskConfig, createFanListEmptyText, createTaskConfigAccessor, getAllocationValueLabel, hasFanTaskTableRows, isTaskActive } from './task-shared'
+import { createDisabledAllocationTaskConfig, createFanListEmptyText, createTaskConfigAccessor, getAllocationValueLabel, hasFanTaskTableRows, isTaskEnabled } from './task-shared'
 import { showToast } from './toast'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
@@ -33,22 +33,22 @@ const taskPage = createFansBackedTaskPageState<DoubleOverview, RawDoubleConfig, 
 const { fans, fansListError, fansListLoaded, managedConfig, managedLoading, overview, rawConfig } = taskPage
 const doubleEnabled = ref(false)
 const doubleCron = ref(DEFAULT_DOUBLE_CARD_CRON)
-const doubleModel = ref<1 | 2>(DEFAULT_DOUBLE_CARD_MODEL)
+const doubleModel = ref<1 | 2>(allocationModeToModel(DEFAULT_DOUBLE_CARD_ALLOCATION_MODE, DEFAULT_DOUBLE_CARD_ALLOCATION_MODE))
 const doubleGiftScope = ref<DoubleCardGiftScope>(DEFAULT_DOUBLE_CARD_GIFT_SCOPE)
 const fanRows = ref<DoubleFanRow[]>([])
 const { cronPreviewText: doubleCronPreviewText, ensureCronPreview, loadCronPreview: loadDoubleCronPreview } = useCronPreview(() => doubleCron.value)
 
 const DOUBLE_CONFIG_FALLBACK: DoubleCardConfig = {
-  active: true,
+  enabled: true,
   cron: DEFAULT_DOUBLE_CARD_CRON,
-  model: DEFAULT_DOUBLE_CARD_MODEL,
   giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
-  send: {},
-  enabled: {},
+  participatingRoomIds: [],
+  allocationMode: DEFAULT_DOUBLE_CARD_ALLOCATION_MODE,
+  roomAllocations: {},
 }
 
-function normalizeModel(model: unknown): 1 | 2 {
-  return normalizeAllocationModel(model, DEFAULT_DOUBLE_CARD_MODEL)
+function normalizeModel(mode: unknown): 1 | 2 {
+  return allocationModeToModel(mode, DEFAULT_DOUBLE_CARD_ALLOCATION_MODE)
 }
 
 function normalizeGiftScope(scope: unknown): DoubleCardGiftScope {
@@ -63,22 +63,23 @@ const getDoubleConfig = createTaskConfigAccessor<DoubleCardConfig, RawDoubleConf
 })
 
 function buildFanRows(nextFans: DoubleFan[], config: DoubleCardConfig): DoubleFanRow[] {
-  const model = normalizeModel(config.model)
+  const model = normalizeModel(config.allocationMode)
+  const participatingRoomIds = new Set(config.participatingRoomIds)
   return buildAllocationFanRows(nextFans, {
     model,
-    send: config.send,
+    roomAllocations: config.roomAllocations,
     defaultValue: () => 1,
     extra: fan => ({
       doubleActive: typeof fan.doubleActive === 'boolean' ? fan.doubleActive : undefined,
-      enabled: Boolean(config.enabled?.[String(fan.roomId)]),
+      enabled: participatingRoomIds.has(fan.roomId),
     }),
   })
 }
 
 function applyDoubleConfig(config: DoubleCardConfig): void {
-  doubleEnabled.value = isTaskActive(config)
+  doubleEnabled.value = isTaskEnabled(config)
   doubleCron.value = config.cron || DEFAULT_DOUBLE_CARD_CRON
-  doubleModel.value = normalizeModel(config.model)
+  doubleModel.value = normalizeModel(config.allocationMode)
   doubleGiftScope.value = normalizeGiftScope(config.giftScope)
   fanRows.value = buildFanRows(fans.value, config)
   void ensureCronPreview()
@@ -91,12 +92,11 @@ function applyResourceState(): void {
 
 function buildDoublePayload(): DoubleCardConfig {
   return {
-    active: true,
+    enabled: true,
     cron: doubleCron.value.trim(),
-    model: doubleModel.value,
     giftScope: doubleGiftScope.value,
-    send: buildAllocationSendMap(fanRows.value, doubleModel.value),
-    enabled: buildEnabledRoomMap(fanRows.value),
+    participatingRoomIds: buildParticipatingRoomIds(fanRows.value),
+    ...buildAllocationConfig(fanRows.value, doubleModel.value),
   }
 }
 
@@ -115,10 +115,10 @@ async function refreshDoubleSurfaces(): Promise<void> {
 async function saveDoubleConfig(options?: { revertCheckboxOnError?: boolean }): Promise<void> {
   doubleEnabled.value = true
   const nextConfig = buildDoublePayload()
-  if (nextConfig.model === 1) {
-    const enabledKeys = Object.keys(nextConfig.enabled || {}).filter(key => nextConfig.enabled?.[key])
-    const totalWeight = enabledKeys.reduce((sum, key) => sum + Number(nextConfig.send[key]?.weight || 0), 0)
-    if (enabledKeys.length > 0 && totalWeight <= 0) {
+  if (nextConfig.allocationMode === 'weighted') {
+    const participatingRoomIds = nextConfig.participatingRoomIds.map(String)
+    const totalWeight = participatingRoomIds.reduce((sum, roomId) => sum + Number(nextConfig.roomAllocations[roomId]?.weight || 0), 0)
+    if (participatingRoomIds.length > 0 && totalWeight <= 0) {
       showToast('按权重模式至少需要一个已勾选房间填写大于 0 的权重值', false)
       return
     }
@@ -139,12 +139,9 @@ async function disableDoubleConfig(): Promise<void> {
   await disableEnabledTask({
     payload: {
       doubleCard: {
-        ...createDisabledAllocationTaskConfig(currentConfig, {
-          defaultCron: DEFAULT_DOUBLE_CARD_CRON,
-          normalizeModel,
-        }),
+        ...createDisabledAllocationTaskConfig(currentConfig),
         giftScope: normalizeGiftScope(currentConfig.giftScope),
-        enabled: currentConfig.enabled || {},
+        participatingRoomIds: currentConfig.participatingRoomIds,
       },
     },
     successMessage: '双倍任务已停用',

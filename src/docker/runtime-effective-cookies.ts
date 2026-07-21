@@ -9,7 +9,7 @@ const COMPLETE_YUBA_COOKIE_KEYS = ['acf_yb_auth', 'acf_yb_uid', 'acf_yb_t']
 
 export interface EffectiveCookieMaterial {
   effective: EffectiveCookiePreview
-  manualPassportCookie?: string
+  passportCookie?: string
 }
 
 interface EffectiveCookieResolverDeps {
@@ -17,11 +17,10 @@ interface EffectiveCookieResolverDeps {
   loadCookieCloudSnapshot: (forceRefresh?: boolean) => Promise<CookieCloudSnapshot>
 }
 
-export function hasManualCookie(config: DockerConfig | null | undefined): boolean {
+export function hasLocalLoginCookies(config: DockerConfig | null | undefined): boolean {
   return Boolean(
-    config?.manualCookies?.main?.trim()
-    || config?.manualCookies?.yuba?.trim()
-    || config?.cookie?.trim(),
+    config?.loginCookies.main.trim()
+    || config?.loginCookies.yuba.trim(),
   )
 }
 
@@ -29,22 +28,22 @@ export function hasCookieCloudSource(config: DockerConfig | null | undefined): b
   return isCookieCloudReady(config?.cookieCloud)
 }
 
-export function hasManualPassport(config: DockerConfig | null | undefined): boolean {
-  return Boolean(config?.manualPassport?.cookie?.trim())
+export function hasLocalPassportCookie(config: DockerConfig | null | undefined): boolean {
+  return Boolean(config?.loginCookies.passport.trim())
 }
 
 export function hasPassportRecoveryMaterial(config: DockerConfig | null | undefined): boolean {
-  return hasCookieCloudSource(config) || hasManualPassport(config)
+  return hasCookieCloudSource(config) || hasLocalPassportCookie(config)
 }
 
 export function hasConfiguredCookieSource(config: DockerConfig | null | undefined): boolean {
-  return hasManualCookie(config) || hasCookieCloudSource(config)
+  return hasLocalLoginCookies(config) || hasCookieCloudSource(config)
 }
 
-export function getManualCookieForUrl(targetUrl: string, config: DockerConfig | null | undefined): string {
+export function getLocalCookieForUrl(targetUrl: string, config: DockerConfig | null | undefined): string {
   const hostname = new URL(targetUrl).hostname
-  const mainCookie = config?.manualCookies?.main?.trim() || config?.cookie?.trim() || ''
-  const yubaCookie = config?.manualCookies?.yuba?.trim() || ''
+  const mainCookie = config?.loginCookies.main.trim() || ''
+  const yubaCookie = config?.loginCookies.yuba.trim() || ''
 
   if (hostname === 'yuba.douyu.com') {
     return yubaCookie || mainCookie
@@ -54,10 +53,10 @@ export function getManualCookieForUrl(targetUrl: string, config: DockerConfig | 
 }
 
 export function resolveCookieForUrlFromConfig(targetUrl: string, config: DockerConfig | null | undefined): string {
-  const manualCookie = getManualCookieForUrl(targetUrl, config)
+  const localCookie = getLocalCookieForUrl(targetUrl, config)
 
-  if (manualCookie) {
-    return manualCookie
+  if (localCookie) {
+    return localCookie
   }
 
   if (hasCookieCloudSource(config)) {
@@ -91,11 +90,11 @@ export class DockerEffectiveCookieResolver {
 
   async resolveMaterial(forceRefresh = false): Promise<EffectiveCookieMaterial> {
     const currentConfig = this.deps.getConfig()
-    let mainCookie = getManualCookieForUrl(MAIN_DOUYU_URL, currentConfig)
-    let yubaCookie = getManualCookieForUrl(YUBA_DOUYU_URL, currentConfig)
-    let source: EffectiveCookiePreview['source'] = hasManualCookie(currentConfig) ? 'manual' : 'none'
+    let mainCookie = getLocalCookieForUrl(MAIN_DOUYU_URL, currentConfig)
+    let yubaCookie = getLocalCookieForUrl(YUBA_DOUYU_URL, currentConfig)
+    let source: EffectiveCookiePreview['source'] = hasLocalLoginCookies(currentConfig) ? 'local' : 'none'
     let passportLtp0Present: boolean | undefined
-    let manualPassportCookie: string | undefined
+    let passportCookie: string | undefined
 
     if (hasCookieCloudSource(currentConfig)) {
       const snapshot = await this.deps.loadCookieCloudSnapshot(forceRefresh)
@@ -104,7 +103,7 @@ export class DockerEffectiveCookieResolver {
       const cloudPassportCookie = getCookieCloudPassportCookie(snapshot.cookies).trim()
       passportLtp0Present = Boolean(parseCookieRecord(cloudPassportCookie).LTP0)
       if (passportLtp0Present) {
-        manualPassportCookie = cloudPassportCookie
+        passportCookie = cloudPassportCookie
       }
 
       if (cloudMainCookie || cloudYubaCookie) {
@@ -115,7 +114,7 @@ export class DockerEffectiveCookieResolver {
           yubaCookie = cloudYubaCookie
         }
         yubaCookie = yubaCookie || mainCookie
-        source = hasManualCookie(currentConfig) ? 'hybrid' : 'cookieCloud'
+        source = hasLocalLoginCookies(currentConfig) ? 'hybrid' : 'cookieCloud'
       }
     }
 
@@ -125,21 +124,21 @@ export class DockerEffectiveCookieResolver {
 
     const resolvedYubaCookie = yubaCookie || mainCookie
     const latestConfig = this.deps.getConfig()
-    const localPassportCookie = latestConfig?.manualPassport?.cookie?.trim() || ''
-    const persistedLocally = latestConfig?.manualCookies?.main?.trim() === mainCookie
-      && latestConfig?.manualCookies?.yuba?.trim() === resolvedYubaCookie
-      && (!manualPassportCookie || localPassportCookie === manualPassportCookie)
+    const localPassportCookie = latestConfig?.loginCookies.passport.trim() || ''
+    const persistedLocally = latestConfig?.loginCookies.main.trim() === mainCookie
+      && latestConfig?.loginCookies.yuba.trim() === resolvedYubaCookie
+      && (!passportCookie || localPassportCookie === passportCookie)
 
     return {
       effective: {
         source,
         mainCookie,
         yubaCookie: resolvedYubaCookie,
-        cookieCloudActive: hasCookieCloudSource(latestConfig),
+        cookieCloudEnabled: hasCookieCloudSource(latestConfig),
         persistedLocally,
         passportLtp0Present,
       },
-      manualPassportCookie,
+      passportCookie,
     }
   }
 }

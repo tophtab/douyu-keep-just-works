@@ -136,7 +136,7 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
     <PageSection title="CookieCloud 同步">
       <template #actions>
         <EnableSwitch
-          v-model="cookieCloud.active"
+          v-model="cookieCloud.enabled"
           input-id="cookie-cloud-enable"
           name="cookie-cloud-enable"
           label="启用 CookieCloud 同步"

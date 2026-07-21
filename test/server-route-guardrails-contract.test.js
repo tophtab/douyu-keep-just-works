@@ -3,6 +3,8 @@ const { test } = require('node:test')
 const { loadTypeScriptModule } = require('./helpers/typescript-module-loader')
 
 const { createServer } = loadTypeScriptModule('src/docker/server.ts')
+const { normalizeDockerConfig } = loadTypeScriptModule('src/core/config-normalization.ts')
+const { buildConfigWithPartialUpdate } = loadTypeScriptModule('src/docker/config-store.ts')
 
 const MAIN_COOKIE = 'acf_uid=uid-redacted; dy_did=did-redacted; acf_auth=main-auth-redacted-secret-value; acf_stk=main-stk-redacted'
 const YUBA_COOKIE = 'acf_yb_uid=yb-uid-redacted; acf_yb_t=yuba-token-redacted-secret-value; acf_yb_auth=yuba-auth-redacted'
@@ -18,24 +20,21 @@ function createJobStatus() {
 }
 
 function createInitialConfig() {
-  return {
-    cookie: MAIN_COOKIE,
-    manualCookies: {
+  return normalizeDockerConfig({
+    loginCookies: {
+      passport: PASSPORT_COOKIE,
       main: MAIN_COOKIE,
       yuba: YUBA_COOKIE,
     },
-    manualPassport: {
-      cookie: PASSPORT_COOKIE,
-    },
     cookieCloud: {
-      active: true,
+      enabled: true,
       endpoint: 'https://cookiecloud.example.com',
       uuid: 'uuid-redacted',
       password: COOKIE_CLOUD_PASSWORD,
       cron: '0 0 */6 * * *',
       cryptoType: 'legacy',
     },
-  }
+  })
 }
 
 function createRouteTestContext() {
@@ -57,20 +56,18 @@ function createRouteTestContext() {
       getConfig: () => config,
       saveCookie: (cookies) => {
         calls.saveCookie.push(cookies)
-        config = {
-          ...config,
-          cookie: cookies.main,
-          manualCookies: cookies,
-        }
+        config = buildConfigWithPartialUpdate(config, {
+          loginCookies: {
+            passport: config.loginCookies.passport,
+            main: cookies.main,
+            yuba: cookies.yuba,
+          },
+        })
       },
       saveTaskConfig: async (updates) => {
         calls.saveTaskConfig.push(updates)
         lastSavePayload = updates
-        config = {
-          ...config,
-          ...updates,
-          cookie: updates.manualCookies?.main ?? config.cookie,
-        }
+        config = buildConfigWithPartialUpdate(config, updates)
         return { config, fans: [] }
       },
       syncWithFans: async () => ({ config, fans: [] }),
@@ -86,25 +83,25 @@ function createRouteTestContext() {
       inspectCookieSource: async (...args) => {
         calls.inspectCookieSource.push(args)
         return {
-          source: 'manual',
-          mainCookieReady: true,
-          yubaDyTokenReady: true,
-          yubaCookieReady: true,
-          missingMainKeys: [],
-          missingYubaDyTokenKeys: [],
-          missingYubaCookieKeys: [],
-          missingYubaKeys: [],
-          cookieCount: 3,
-          domains: ['local'],
+          source: 'local',
+          passport: { ltp0Present: true },
+          main: { ready: true, missingKeys: [] },
+          yuba: {
+            dyTokenReady: true,
+            cookieReady: true,
+            missingDyTokenKeys: [],
+            missingCookieKeys: [],
+          },
+          snapshot: { cookieCount: 3, domains: ['local'] },
         }
       },
       getEffectiveCookies: async (...args) => {
         calls.getEffectiveCookies.push(args)
         return {
-          source: 'manual',
-          mainCookie: config.manualCookies.main,
-          yubaCookie: config.manualCookies.yuba,
-          cookieCloudActive: Boolean(config.cookieCloud?.active),
+          source: 'local',
+          mainCookie: config.loginCookies.main,
+          yubaCookie: config.loginCookies.yuba,
+          cookieCloudEnabled: Boolean(config.cookieCloud?.enabled),
           persistedLocally: true,
         }
       },
@@ -113,10 +110,10 @@ function createRouteTestContext() {
         return {
           config,
           effective: {
-            source: 'manual',
-            mainCookie: config.manualCookies.main,
-            yubaCookie: config.manualCookies.yuba,
-            cookieCloudActive: Boolean(config.cookieCloud?.active),
+            source: 'local',
+            mainCookie: config.loginCookies.main,
+            yubaCookie: config.loginCookies.yuba,
+            cookieCloudEnabled: Boolean(config.cookieCloud?.enabled),
             persistedLocally: true,
           },
           updated: false,
@@ -235,10 +232,11 @@ test('createServer protects config route and keeps overview summary free of conf
     })
     assert.equal(config.response.status, 200)
     assert.equal(config.body.exists, true)
-    assert.equal(config.body.data.cookie, MAIN_COOKIE)
-    assert.equal(config.body.data.manualCookies.main, MAIN_COOKIE)
-    assert.equal(config.body.data.manualCookies.yuba, YUBA_COOKIE)
-    assert.equal(config.body.data.manualPassport.cookie, PASSPORT_COOKIE)
+    assert.equal(config.body.data.loginCookies.main, MAIN_COOKIE)
+    assert.equal(config.body.data.loginCookies.yuba, YUBA_COOKIE)
+    assert.equal(config.body.data.loginCookies.passport, PASSPORT_COOKIE)
+    assert.equal(config.body.data.manualCookies, undefined)
+    assert.equal(config.body.data.manualPassport, undefined)
     assert.equal(config.body.data.cookieCloud.password, COOKIE_CLOUD_PASSWORD)
 
     const removedRawConfig = await fetch(`${baseUrl}/api/config/raw`, {
@@ -250,7 +248,7 @@ test('createServer protects config route and keeps overview summary free of conf
       headers: { Cookie: sessionCookie },
     })
     assert.equal(overview.response.status, 200)
-    assert.equal(overview.body.manualPassportConfigured, true)
+    assert.equal(overview.body.passportConfigured, true)
     const overviewJson = JSON.stringify(overview.body)
     assert.equal(overviewJson.includes('main-auth-redacted-secret-value'), false)
     assert.equal(overviewJson.includes('passport-ltp0-redacted-secret-value'), false)
@@ -284,7 +282,8 @@ test('createServer returns complete config in config mutation responses', async 
 
     assert.equal(saveResult.response.status, 200)
     assert.equal(getLastSavePayload().manualPassport.cookie, nextPassportCookie)
-    assert.equal(saveResult.body.data.config.manualPassport.cookie, nextPassportCookie)
+    assert.equal(saveResult.body.data.config.loginCookies.passport, nextPassportCookie)
+    assert.equal(saveResult.body.data.config.manualPassport, undefined)
   })
 })
 
@@ -350,22 +349,20 @@ test('createServer config mutations validate before save and return JSON envelop
           yuba: YUBA_COOKIE,
         },
         ui: {
-          theme: 'dark',
+          themeMode: 'dark',
         },
       }),
     })
     assert.equal(validConfig.response.status, 200)
     assert.equal(validConfig.body.ok, true)
-    assert.equal(validConfig.body.data.config.ui.theme, 'dark')
+    assert.equal(validConfig.body.data.config.ui.themeMode, 'dark')
     assert.deepEqual(calls.saveTaskConfig, [{
       manualCookies: {
         main: MAIN_COOKIE,
         yuba: YUBA_COOKIE,
       },
-      manualPassport: undefined,
-      cookieCloud: undefined,
       ui: {
-        theme: 'dark',
+        themeMode: 'dark',
       },
     }])
   })
@@ -382,7 +379,7 @@ test('createServer cookie-source routes keep diagnostics local and persist with 
       headers: { Cookie: sessionCookie },
     })
     assert.equal(check.response.status, 200)
-    assert.equal(check.body.source, 'manual')
+    assert.equal(check.body.source, 'local')
     assert.deepEqual(calls.inspectCookieSource, [[]])
 
     const effective = await requestJson(`${baseUrl}/api/cookie-source/effective`, {
@@ -395,7 +392,7 @@ test('createServer cookie-source routes keep diagnostics local and persist with 
     setConfig({
       ...createInitialConfig(),
       cookieCloud: {
-        active: false,
+        enabled: false,
         endpoint: 'https://cookiecloud.example.com',
         uuid: 'uuid-redacted',
         password: COOKIE_CLOUD_PASSWORD,

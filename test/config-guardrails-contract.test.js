@@ -1,4 +1,6 @@
 const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
 const { test } = require('node:test')
 const { loadTypeScriptModule } = require('./helpers/typescript-module-loader')
 
@@ -14,9 +16,13 @@ const {
   DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
   DEFAULT_EXPIRING_GIFT_CRON,
   DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
-  DEFAULT_GIFT_ID,
   DEFAULT_KEEPALIVE_CRON,
+  LEGACY_DEFAULT_KEEPALIVE_CRON,
 } = loadTypeScriptModule('src/core/task-defaults.ts')
+const {
+  validateDoubleCardConfig,
+  validateJobConfig,
+} = loadTypeScriptModule('src/docker/config-validation.ts')
 
 function createFan(roomId, name) {
   return {
@@ -29,197 +35,273 @@ function createFan(roomId, name) {
   }
 }
 
-test('Fan-backed task defaults create send maps with task-specific defaults', () => {
-  // Behavior: keepalive, double-card, and expiring-gift share fan-backed send
-  // normalization but keep distinct default activation, models, and weights.
+test('Fan-backed task defaults separate allocation intent from runtime send jobs', () => {
   const fans = [
     createFan(100, 'first-room'),
     createFan(200, 'second-room'),
   ]
 
-  const keepalive = createDefaultKeepaliveConfig(fans)
-  const doubleCard = createDefaultDoubleCardConfig(fans)
-  const expiringGift = createDefaultExpiringGiftConfig(fans)
-
-  assert.deepEqual(Object.keys(keepalive.send).sort(), ['100', '200'])
-  assert.equal(keepalive.active, true)
-  assert.equal(keepalive.cron, DEFAULT_KEEPALIVE_CRON)
-  assert.equal(keepalive.send['100'].number, 1)
-  assert.equal(keepalive.send['100'].weight, 0)
-  assert.equal(keepalive.send['200'].number, 1)
-  assert.equal(keepalive.send['200'].weight, 0)
-
-  assert.deepEqual(Object.keys(doubleCard.send).sort(), ['100', '200'])
-  assert.equal(doubleCard.active, false)
-  assert.equal(doubleCard.cron, DEFAULT_DOUBLE_CARD_CRON)
-  assert.equal(doubleCard.giftScope, DEFAULT_DOUBLE_CARD_GIFT_SCOPE)
-  assert.deepEqual(JSON.parse(JSON.stringify(doubleCard.enabled)), {
-    100: false,
-    200: false,
+  assert.deepEqual(JSON.parse(JSON.stringify(createDefaultKeepaliveConfig(fans))), {
+    enabled: true,
+    cron: DEFAULT_KEEPALIVE_CRON,
+    allocationMode: 'fixed',
+    roomAllocations: {
+      100: { count: 1 },
+      200: { count: 1 },
+    },
   })
-  assert.equal(doubleCard.send['100'].number, 0)
-  assert.equal(doubleCard.send['100'].weight, 1)
 
-  assert.deepEqual(Object.keys(expiringGift.send).sort(), ['100', '200'])
-  assert.equal(expiringGift.active, false)
-  assert.equal(expiringGift.cron, DEFAULT_EXPIRING_GIFT_CRON)
-  assert.equal(expiringGift.thresholdHours, DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS)
-  assert.equal(expiringGift.send['100'].number, 0)
-  assert.equal(expiringGift.send['100'].weight, 1)
-  assert.equal(expiringGift.send['200'].number, 0)
-  assert.equal(expiringGift.send['200'].weight, 0)
+  assert.deepEqual(JSON.parse(JSON.stringify(createDefaultDoubleCardConfig(fans))), {
+    enabled: false,
+    cron: DEFAULT_DOUBLE_CARD_CRON,
+    giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
+    participatingRoomIds: [],
+    allocationMode: 'weighted',
+    roomAllocations: {
+      100: { weight: 1 },
+      200: { weight: 1 },
+    },
+  })
+
+  assert.deepEqual(JSON.parse(JSON.stringify(createDefaultExpiringGiftConfig(fans))), {
+    enabled: false,
+    cron: DEFAULT_EXPIRING_GIFT_CRON,
+    thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
+    allocationMode: 'weighted',
+    roomAllocations: {
+      100: { weight: 1 },
+      200: { weight: 0 },
+    },
+  })
 })
 
-test('Docker config normalization fills task defaults for the current config shape', () => {
-  // Behavior: persisted task config may be sparse; normalize it without
-  // changing task-specific send semantics.
+test('Example config is canonical and stable after normalization', () => {
+  const example = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../config.example.json'), 'utf8'))
+  assert.deepEqual(Object.keys(example), [
+    'loginCookies',
+    'cookieCloud',
+    'ui',
+    'collectGift',
+    'keepalive',
+    'doubleCard',
+    'expiringGift',
+    'yubaCheckIn',
+  ])
+  assert.deepEqual(JSON.parse(JSON.stringify(normalizeDockerConfig(example))), example)
+})
+
+test('Docker config normalization migrates legacy fields with canonical precedence and order', () => {
   const normalized = normalizeDockerConfig({
     cookie: ' legacy-main ',
+    loginCookies: {
+      passport: ' new-passport ',
+      main: '',
+    },
     manualCookies: {
-      main: ' main-redacted ',
-      yuba: ' yuba-redacted ',
+      main: ' legacy-manual-main ',
+      yuba: ' legacy-yuba ',
+    },
+    manualPassport: {
+      cookie: ' legacy-passport ',
+    },
+    cookieCloud: {
+      enabled: false,
+      active: true,
+      endpoint: ' https://cookie.example/ ',
+      uuid: ' uuid ',
+      password: ' password ',
     },
     keepalive: {
+      enabled: true,
+      active: false,
       cron: '',
-      model: 99,
+      allocationMode: 'weighted',
+      model: 2,
+      roomAllocations: {
+        101: { weight: 3, count: 99, roomId: 999, giftId: 268 },
+      },
       send: {
-        101: {
-          roomId: 999,
-          giftId: '',
-          number: Number.NaN,
-          count: Number.NaN,
-        },
+        999: { number: -1 },
       },
     },
     doubleCard: {
+      active: true,
       cron: '',
       model: 2,
       giftScope: 'invalid',
+      enabled: {
+        102: true,
+        103: false,
+      },
       send: {
-        102: {
-          roomId: 102,
-          giftId: '',
-          number: 2,
-          weight: 8,
-          count: 3,
-        },
+        102: { roomId: 102, giftId: 268, number: -1, weight: 8, count: 3 },
       },
     },
     expiringGift: {
+      active: false,
       cron: '',
       thresholdHours: 0,
       model: 1,
       send: {
-        103: {
-          roomId: 103,
-          giftId: '',
-          number: Number.NaN,
-          weight: 4,
-        },
+        103: { roomId: 103, giftId: 268, number: 7, weight: 4, count: 9 },
       },
     },
   })
 
-  assert.equal(normalized.cookie, 'main-redacted')
-  assert.deepEqual(JSON.parse(JSON.stringify(normalized.manualCookies)), {
-    main: 'main-redacted',
-    yuba: 'yuba-redacted',
+  assert.deepEqual(Object.keys(normalized), [
+    'loginCookies',
+    'cookieCloud',
+    'ui',
+    'collectGift',
+    'keepalive',
+    'doubleCard',
+    'expiringGift',
+    'yubaCheckIn',
+  ])
+  assert.deepEqual(JSON.parse(JSON.stringify(normalized.loginCookies)), {
+    passport: 'new-passport',
+    main: '',
+    yuba: 'legacy-yuba',
   })
-  assert.equal(normalized.keepalive.active, true)
-  assert.equal(normalized.keepalive.cron, DEFAULT_KEEPALIVE_CRON)
-  assert.equal(normalized.keepalive.model, 1)
-  assert.deepEqual(JSON.parse(JSON.stringify(normalized.keepalive.send['101'])), {
-    roomId: 101,
-    giftId: DEFAULT_GIFT_ID,
-    number: 0,
-    weight: 1,
-    count: 0,
+  assert.deepEqual(JSON.parse(JSON.stringify(normalized.cookieCloud)), {
+    enabled: false,
+    endpoint: 'https://cookie.example',
+    uuid: 'uuid',
+    password: 'password',
+    cron: '0 5 0 * * *',
+    cryptoType: 'legacy',
   })
-  assert.equal(normalized.doubleCard.active, true)
-  assert.equal(normalized.doubleCard.cron, DEFAULT_DOUBLE_CARD_CRON)
-  assert.equal(normalized.doubleCard.giftScope, DEFAULT_DOUBLE_CARD_GIFT_SCOPE)
-  assert.equal(normalized.doubleCard.send['102'].number, 2)
-  assert.equal(normalized.doubleCard.send['102'].weight, 0)
-  assert.deepEqual(JSON.parse(JSON.stringify(normalized.doubleCard.enabled)), { 102: false })
-  assert.equal(normalized.expiringGift.cron, DEFAULT_EXPIRING_GIFT_CRON)
-  assert.equal(normalized.expiringGift.thresholdHours, DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS)
-  assert.equal(normalized.expiringGift.send['103'].weight, 4)
+  assert.deepEqual(JSON.parse(JSON.stringify(normalized.keepalive)), {
+    enabled: true,
+    cron: DEFAULT_KEEPALIVE_CRON,
+    allocationMode: 'weighted',
+    roomAllocations: {
+      101: { weight: 3 },
+    },
+  })
+  assert.deepEqual(JSON.parse(JSON.stringify(normalized.doubleCard)), {
+    enabled: true,
+    cron: DEFAULT_DOUBLE_CARD_CRON,
+    giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
+    participatingRoomIds: [102],
+    allocationMode: 'fixed',
+    roomAllocations: {
+      102: { count: -1 },
+    },
+  })
+  assert.deepEqual(JSON.parse(JSON.stringify(normalized.expiringGift)), {
+    enabled: false,
+    cron: DEFAULT_EXPIRING_GIFT_CRON,
+    thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
+    allocationMode: 'weighted',
+    roomAllocations: {
+      103: { weight: 4 },
+    },
+  })
+  assert.equal(JSON.stringify(normalized).includes('manualCookies'), false)
+  assert.equal(JSON.stringify(normalized).includes('manualPassport'), false)
+  assert.equal(JSON.stringify(normalized).includes('"model"'), false)
+  assert.equal(JSON.stringify(normalized).includes('"send"'), false)
+  assert.equal(JSON.stringify(normalized).includes('giftId'), false)
+  assert.equal(JSON.stringify(normalized).includes('roomId'), false)
 })
 
-test('Docker config reconciliation follows fans and preserves current task settings', () => {
-  // Behavior: fan reconciliation owns the send-room set while preserving
-  // task-specific settings and room defaults.
+test('Keepalive cron migration changes only the exact old default', () => {
+  assert.equal(DEFAULT_KEEPALIVE_CRON, '0 0 8 * * 3')
+  assert.equal(normalizeDockerConfig({
+    keepalive: { cron: LEGACY_DEFAULT_KEEPALIVE_CRON },
+  }).keepalive.cron, DEFAULT_KEEPALIVE_CRON)
+  assert.equal(normalizeDockerConfig({
+    keepalive: { cron: ' 0 30 9 * * 5 ' },
+  }).keepalive.cron, '0 30 9 * * 5')
+})
+
+test('Allocation validation accepts the legacy boundary shape and rejects mixed canonical entries', () => {
+  assert.equal(validateDoubleCardConfig({
+    active: true,
+    cron: DEFAULT_DOUBLE_CARD_CRON,
+    model: 1,
+    enabled: { 100: true },
+    send: { 100: { weight: 1 } },
+  }), null)
+
+  assert.match(validateJobConfig('keepalive', {
+    enabled: true,
+    cron: DEFAULT_KEEPALIVE_CRON,
+    allocationMode: 'weighted',
+    roomAllocations: { 100: { weight: 1, count: 1 } },
+  }), /固定数量字段不适用/)
+
+  assert.match(validateJobConfig('keepalive', {
+    enabled: true,
+    cron: DEFAULT_KEEPALIVE_CRON,
+    allocationMode: 'fixed',
+    roomAllocations: { 100: { count: -1 }, 200: { count: -1 } },
+  }), /最多只能有一个房间/)
+})
+
+test('Docker config reconciliation follows fans and preserves canonical settings', () => {
   const fans = [
     createFan(100, 'first-room'),
     createFan(200, 'second-room'),
   ]
-  const reconciled = reconcileDockerConfig({
-    cookie: '',
+  const reconciled = reconcileDockerConfig(normalizeDockerConfig({
     keepalive: {
-      active: false,
+      enabled: false,
       cron: '',
-      model: 1,
-      send: {
-        100: {
-          roomId: 100,
-          giftId: 'custom-gift',
-          number: 2,
-          weight: 3,
-          count: 4,
-        },
-        999: {
-          roomId: 999,
-          giftId: 'stale-room',
-          number: 1,
-          weight: 1,
-          count: 1,
-        },
+      allocationMode: 'weighted',
+      roomAllocations: {
+        100: { weight: 3 },
+        999: { weight: 9 },
       },
     },
     doubleCard: {
-      active: false,
+      enabled: false,
       cron: '',
-      model: 1,
+      allocationMode: 'weighted',
       giftScope: 'limitedTime',
-      enabled: {
-        100: true,
-      },
-      send: {
-        100: {
-          roomId: 100,
-          giftId: 'double-gift',
-          number: 0,
-          weight: 6,
-          count: 0,
-        },
+      participatingRoomIds: [100, 999],
+      roomAllocations: {
+        100: { weight: 6 },
       },
     },
     expiringGift: {
-      active: false,
+      enabled: false,
       cron: '',
       thresholdHours: 12,
-      model: 1,
-      send: {},
+      allocationMode: 'weighted',
+      roomAllocations: {},
     },
-  }, fans)
+  }), fans)
 
-  assert.deepEqual(Object.keys(reconciled.keepalive.send).sort(), ['100', '200'])
-  assert.equal(reconciled.keepalive.active, false)
-  assert.equal(reconciled.keepalive.cron, DEFAULT_KEEPALIVE_CRON)
-  assert.equal(reconciled.keepalive.send['100'].giftId, 'custom-gift')
-  assert.equal(reconciled.keepalive.send['100'].weight, 3)
-  assert.equal(reconciled.keepalive.send['200'].giftId, DEFAULT_GIFT_ID)
-  assert.equal(reconciled.keepalive.send['200'].weight, 1)
-
-  assert.deepEqual(Object.keys(reconciled.doubleCard.send).sort(), ['100', '200'])
-  assert.equal(reconciled.doubleCard.giftScope, 'limitedTime')
-  assert.deepEqual(JSON.parse(JSON.stringify(reconciled.doubleCard.enabled)), {
-    100: true,
-    200: false,
+  assert.deepEqual(JSON.parse(JSON.stringify(reconciled.keepalive)), {
+    enabled: false,
+    cron: DEFAULT_KEEPALIVE_CRON,
+    allocationMode: 'weighted',
+    roomAllocations: {
+      100: { weight: 3 },
+      200: { weight: 1 },
+    },
   })
-
-  assert.deepEqual(Object.keys(reconciled.expiringGift.send).sort(), ['100', '200'])
-  assert.equal(reconciled.expiringGift.thresholdHours, 12)
-  assert.equal(reconciled.expiringGift.send['100'].weight, 1)
-  assert.equal(reconciled.expiringGift.send['200'].weight, 0)
+  assert.deepEqual(JSON.parse(JSON.stringify(reconciled.doubleCard)), {
+    enabled: false,
+    cron: DEFAULT_DOUBLE_CARD_CRON,
+    giftScope: 'limitedTime',
+    participatingRoomIds: [100],
+    allocationMode: 'weighted',
+    roomAllocations: {
+      100: { weight: 6 },
+      200: { weight: 1 },
+    },
+  })
+  assert.deepEqual(JSON.parse(JSON.stringify(reconciled.expiringGift)), {
+    enabled: false,
+    cron: DEFAULT_EXPIRING_GIFT_CRON,
+    thresholdHours: 12,
+    allocationMode: 'weighted',
+    roomAllocations: {
+      100: { weight: 1 },
+      200: { weight: 0 },
+    },
+  })
 })

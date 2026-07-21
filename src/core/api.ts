@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { BackpackGiftRow, BackpackStatus, Fans, GiftStatus, SendGift, sendArgs } from './types'
+import type { BackpackGiftRow, BackpackStatus, Fans, GiftSendJob, GiftStatus, SendGiftRequestArgs } from './types'
 
 export const DOUYU_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.188'
 export const GLOW_STICK_GIFT_ID = 268
@@ -251,7 +251,7 @@ export async function getGiftNumber(cookie: string, candidateRoomIds: number[] =
   return status.count ?? 0
 }
 
-export async function sendGift(args: sendArgs, job: SendGift, cookie: string): Promise<string> {
+export async function sendGift(args: SendGiftRequestArgs, job: GiftSendJob, cookie: string): Promise<string> {
   const formData = new URLSearchParams()
   formData.append('rid', String(job.roomId))
   formData.append('prop_id', String(job.giftId))
@@ -321,7 +321,7 @@ export async function getFansList(cookie: string): Promise<Fans[]> {
   return fans.sort((a, b) => readFansIntimacyCurrent(b.intimacy) - readFansIntimacyCurrent(a.intimacy))
 }
 
-export function parseDyAndSidFromCookie(cookie: string): sendArgs {
+export function parseDyAndSidFromCookie(cookie: string): SendGiftRequestArgs {
   const sid = getCookieValue(cookie, 'acf_uid')
   const dy = getCookieValue(cookie, 'dy_did')
   if (!sid || !dy) {

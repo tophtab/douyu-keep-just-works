@@ -4,6 +4,7 @@ const path = require('node:path')
 const vm = require('node:vm')
 const ts = require('typescript')
 const { test } = require('node:test')
+const { loadTypeScriptModule } = require('./helpers/typescript-module-loader')
 
 const repoRoot = path.resolve(__dirname, '..')
 
@@ -21,26 +22,51 @@ function loadGiftTaskModule() {
   return module.exports
 }
 
-test('gift task helpers preserve enabled room filtering and gift send preparation', () => {
+test('gift task helpers separate participating allocation intent from runtime send jobs', () => {
   const {
     applyGiftIdToSendJobs,
-    buildEnabledSendConfig,
+    buildParticipatingAllocation,
     buildGiftSendGroups,
     countPositiveGiftTargets,
     hasActiveDoubleCardRoom,
   } = loadGiftTaskModule()
+  const {
+    computeGiftCountOfNumber,
+    computeGiftCountOfProportion,
+  } = loadTypeScriptModule('src/core/gift.ts')
 
-  const send = {
+  const fixedAllocation = buildParticipatingAllocation({
+    enabled: true,
+    cron: '0 0 8 * * 3',
+    giftScope: 'glowStick',
+    participatingRoomIds: [1001, 1003],
+    allocationMode: 'fixed',
+    roomAllocations: {
+      1001: { count: 2 },
+      1002: { count: 0 },
+      1003: { count: -1 },
+    },
+  })
+  assert.deepEqual(JSON.parse(JSON.stringify(fixedAllocation)), {
+    allocationMode: 'fixed',
+    roomAllocations: {
+      1001: { count: 2 },
+      1003: { count: -1 },
+    },
+  })
+  assert.deepEqual(JSON.parse(JSON.stringify(computeGiftCountOfNumber(7, fixedAllocation.roomAllocations))), {
     1001: { roomId: 1001, giftId: 268, count: 2 },
-    1002: { roomId: 1002, giftId: 268, count: 0 },
     1003: { roomId: 1003, giftId: 268, count: 5 },
-  }
+  })
 
-  assert.deepEqual(Object.keys(buildEnabledSendConfig({
-    send,
-    enabled: { 1001: true, 1002: false, 1003: true },
-  })), ['1001', '1003'])
-  assert.deepEqual(Object.keys(buildEnabledSendConfig({ send })), ['1001', '1002', '1003'])
+  const weightedJobs = computeGiftCountOfProportion(10, {
+    1001: { weight: 1 },
+    1002: { weight: 3 },
+  })
+  assert.deepEqual(JSON.parse(JSON.stringify(weightedJobs)), {
+    1001: { roomId: 1001, giftId: 268, count: 2 },
+    1002: { roomId: 1002, giftId: 268, count: 8 },
+  })
 
   const jobs = {
     1001: { roomId: 1001, giftId: 268, count: 2 },

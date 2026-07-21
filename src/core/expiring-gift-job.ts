@@ -3,17 +3,17 @@ import { errorMessage } from './errors'
 import { computeGiftCountOfNumber, computeGiftCountOfProportion } from './gift'
 import { applyGiftIdToSendJobs, buildGiftSendGroups, countPositiveGiftTargets, getEarliestPositiveGiftExpireTime, selectExpiringGiftCandidates } from './gift-task'
 import { createRoomDidResolver, formatShanghaiTime, loadBackpackStatus, sendGifts } from './job-gift-utils'
-import type { ExpiringGiftConfig, Logger, sendConfig } from './types'
+import type { ExpiringGiftConfig, GiftSendJobs, Logger } from './types'
 
 export async function executeExpiringGiftJob(config: ExpiringGiftConfig, cookie: string, log: Logger): Promise<void> {
   log('开始执行临期任务')
-  if (!Object.keys(config.send || {}).length) {
+  if (!Object.keys(config.roomAllocations).length) {
     log('临期任务未配置赠送房间，跳过本次任务')
     return
   }
 
-  const roomIds = Object.values(config.send).map(item => item.roomId)
-  const status = await loadBackpackStatus(cookie, log, '正在获取背包明细和过期时间...', roomIds)
+  const roomIds = Object.keys(config.roomAllocations).map(Number)
+  const status = await loadBackpackStatus({ cookie, log, prefix: '正在获取背包明细和过期时间...', candidateRoomIds: roomIds })
   if (!status) {
     return
   }
@@ -56,16 +56,15 @@ export async function executeExpiringGiftJob(config: ExpiringGiftConfig, cookie:
 
   await sleep(2000)
 
-  const { model, send } = config
   const resolveDid = createRoomDidResolver(cookie)
   for (const group of buildGiftSendGroups(selection)) {
     const giftLabel = `${group.giftName}(ID ${group.giftId})`
-    let jobs: sendConfig = {}
+    let jobs: GiftSendJobs = {}
     try {
-      if (model === 1) {
-        jobs = computeGiftCountOfProportion(group.giftCount, send)
+      if (config.allocationMode === 'weighted') {
+        jobs = computeGiftCountOfProportion(group.giftCount, config.roomAllocations)
       } else {
-        jobs = computeGiftCountOfNumber(group.giftCount, send)
+        jobs = computeGiftCountOfNumber(group.giftCount, config.roomAllocations)
       }
     } catch (error: unknown) {
       log(`计算${giftLabel}临期赠送数量失败: ${errorMessage(error)}`)
@@ -76,6 +75,6 @@ export async function executeExpiringGiftJob(config: ExpiringGiftConfig, cookie:
 
     const targetCount = countPositiveGiftTargets(jobs)
     log(`已达到临期阈值，准备向 ${targetCount} 个房间释放 ${group.giftCount} 个临期${giftLabel}`)
-    await sendGifts(jobs, cookie, log, giftLabel, `${giftLabel}临期赠送`, { resolveDid })
+    await sendGifts({ jobs, cookie, log, giftLabel, completionLabel: `${giftLabel}临期赠送`, resolveDid })
   }
 }

@@ -1,5 +1,5 @@
 import { getFollowedYubaStatusesWithDyToken } from '../core/yuba'
-import type { CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, ManualCookieConfig, PassportQrLoginPublicStatus, YubaStatusResponse } from '../core/types'
+import type { CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, LoginCookiesConfig, PassportQrLoginPublicStatus, YubaStatusResponse } from '../core/types'
 import { assertDockerConfigCrons } from './cron'
 import { buildConfigWithPartialUpdate } from './config-store'
 import type { DockerConfigUpdate } from './config-store'
@@ -51,11 +51,14 @@ interface DockerRuntimeAppContextDeps {
 }
 
 function hasSendRooms(config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined): boolean {
-  return Object.keys(config?.send || {}).length > 0
+  return Object.keys(config?.roomAllocations || {}).length > 0
 }
 
 function hasCookieSourcePayload(config: DockerConfigUpdate): boolean {
-  return config.cookieCloud !== undefined || config.manualCookies !== undefined || config.manualPassport !== undefined
+  return config.cookieCloud !== undefined
+    || config.loginCookies !== undefined
+    || config.manualCookies !== undefined
+    || config.manualPassport !== undefined
 }
 
 function hasTaskPayload(config: DockerConfigUpdate): boolean {
@@ -70,13 +73,15 @@ export function createRuntimeAppContext(deps: DockerRuntimeAppContextDeps): AppC
   return {
     webPassword: deps.webPassword,
     getConfig: () => deps.getCurrentConfig(),
-    saveCookie: (cookies: ManualCookieConfig) => {
-      const nextConfig = buildConfigWithPartialUpdate(deps.getCurrentConfig(), {})
-      nextConfig.manualCookies = {
-        main: cookies.main.trim(),
-        yuba: cookies.yuba.trim(),
-      }
-      nextConfig.cookie = nextConfig.manualCookies.main || nextConfig.manualCookies.yuba || ''
+    saveCookie: (cookies: Pick<LoginCookiesConfig, 'main' | 'yuba'>) => {
+      const currentLoginCookies = deps.getCurrentConfig()?.loginCookies
+      const nextConfig = buildConfigWithPartialUpdate(deps.getCurrentConfig(), {
+        loginCookies: {
+          passport: currentLoginCookies?.passport || '',
+          main: cookies.main.trim(),
+          yuba: cookies.yuba.trim(),
+        },
+      })
       deps.saveConfig(deps.getConfigPath(), nextConfig)
       deps.applyConfig(nextConfig, 'cookie_saved')
     },

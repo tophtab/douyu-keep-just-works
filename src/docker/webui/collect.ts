@@ -5,7 +5,7 @@ import { useCronPreview } from './composables/use-cron-preview'
 import { rawConfig } from './resource-config'
 import { overview } from './resource-state'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
-import { isTaskActive } from './task-shared'
+import { isTaskEnabled } from './task-shared'
 
 interface RawCollectConfig {
   collectGift?: CollectGiftConfig
@@ -16,7 +16,7 @@ const collectCron = ref(DEFAULT_COLLECT_GIFT_CRON)
 const { cronPreviewText: collectCronPreviewText, ensureCronPreview, loadCronPreview: loadCollectCronPreview } = useCronPreview(() => collectCron.value)
 
 function applyRawConfig(config: RawCollectConfig | null): void {
-  collectEnabled.value = isTaskActive(config?.collectGift)
+  collectEnabled.value = isTaskEnabled(config?.collectGift)
   collectCron.value = config?.collectGift?.cron || DEFAULT_COLLECT_GIFT_CRON
   void ensureCronPreview()
 }
@@ -29,7 +29,7 @@ async function saveCollectConfig(options?: { revertCheckboxOnError?: boolean }):
   await saveEnabledTask({
     payload: {
       collectGift: {
-        active: true,
+        enabled: true,
         cron: collectCron.value.trim(),
       },
     },
@@ -43,13 +43,13 @@ async function saveCollectConfig(options?: { revertCheckboxOnError?: boolean }):
 
 async function disableCollectConfig(): Promise<void> {
   const currentConfig = rawConfig.value?.collectGift || {
-    active: true,
+    enabled: true,
     cron: DEFAULT_COLLECT_GIFT_CRON,
   }
   await disableEnabledTask({
     payload: {
       collectGift: {
-        active: false,
+        enabled: false,
         cron: currentConfig.cron || DEFAULT_COLLECT_GIFT_CRON,
       },
     },

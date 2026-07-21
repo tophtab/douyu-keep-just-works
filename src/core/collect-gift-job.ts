@@ -26,7 +26,12 @@ export async function executeCollectGiftJob(cookie: string, log: Logger): Promis
   log(`正在领取荧光棒，随机进入粉丝牌房间${collectRoomId}...`)
   await collectGiftViaDanmu(cookie, collectRoomId)
 
-  const number = await loadGiftNumber(cookie, log, '领取完成，正在查询当前荧光棒数量...', roomIds)
+  const number = await loadGiftNumber({
+    cookie,
+    log,
+    prefix: '领取完成，正在查询当前荧光棒数量...',
+    candidateRoomIds: roomIds,
+  })
   if (number === null) {
     throw new Error('领取完成，但查询当前荧光棒数量失败')
   }

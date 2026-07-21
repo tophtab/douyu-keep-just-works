@@ -5,7 +5,6 @@ import { validateCronConfig, validateDoubleCardConfig, validateExpiringGiftConfi
 export type TaskType = 'collectGift' | 'keepalive' | 'doubleCard' | 'expiringGift' | 'yubaCheckIn'
 
 export type TaskStatusCacheScope = 'fans' | 'yuba'
-export type TaskConfigMap = Partial<Pick<DockerConfig, TaskType>>
 export type TaskConfigUpdateMap = Partial<Record<TaskType, DockerConfig[TaskType] | null | undefined>>
 
 export interface TaskDefinition {
@@ -17,14 +16,14 @@ export interface TaskDefinition {
   configChangeScope?: TaskStatusCacheScope
   requiresFansSync: boolean
   requiresSendRooms: boolean
-  getConfig: (config: DockerConfig | null | undefined) => DockerConfig[TaskType]
+  getConfig: (config: DockerConfig | null | undefined) => DockerConfig[TaskType] | undefined
   validate: (config: NonNullable<DockerConfig[TaskType]>) => string | null
   getRoomCount?: (config: DockerConfig[TaskType]) => number
   getScheduleSummary: (config: DockerConfig[TaskType]) => string | undefined
 }
 
 function countSendRooms(config: JobConfig | DoubleCardConfig | ExpiringGiftConfig | null | undefined): number {
-  return Object.keys(config?.send || {}).length
+  return Object.keys(config?.roomAllocations || {}).length
 }
 
 export const TASK_DEFINITIONS: TaskDefinition[] = [
@@ -123,7 +122,7 @@ export function isTaskType(value: string): value is TaskType {
   return (TASK_TYPES as string[]).includes(value)
 }
 
-export function getTaskConfig(config: DockerConfig | null | undefined, type: TaskType): DockerConfig[TaskType] {
+export function getTaskConfig(config: DockerConfig | null | undefined, type: TaskType): DockerConfig[TaskType] | undefined {
   return getTaskDefinition(type).getConfig(config)
 }
 
@@ -142,7 +141,7 @@ export function getTriggerableTaskConfig(
   return taskConfig
 }
 
-export function getTaskCron(config: DockerConfig[TaskType]): string | undefined {
+export function getTaskCron(config: DockerConfig[TaskType] | undefined): string | undefined {
   return config?.cron
 }
 
@@ -154,16 +153,16 @@ export function getTaskNotConfiguredMessage(type: TaskType): string {
   return TASK_NOT_CONFIGURED_MESSAGES[type]
 }
 
-export function isTaskActive(config: { active?: boolean } | null | undefined): boolean {
-  return Boolean(config && config.active !== false)
+export function isTaskEnabled(config: { enabled?: boolean } | null | undefined): boolean {
+  return Boolean(config?.enabled)
 }
 
-export function hasActiveTaskConfig(config: DockerConfig | null | undefined): boolean {
-  return TASK_TYPES.some(type => isTaskActive(getTaskConfig(config, type)))
+export function hasEnabledTaskConfig(config: DockerConfig | null | undefined): boolean {
+  return TASK_TYPES.some(type => isTaskEnabled(getTaskConfig(config, type)))
 }
 
-export function getTaskScheduleSummary(type: TaskType, config: DockerConfig[TaskType]): string | undefined {
-  return getTaskDefinition(type).getScheduleSummary(config)
+export function getTaskScheduleSummary(type: TaskType, config: DockerConfig[TaskType] | undefined): string | undefined {
+  return config ? getTaskDefinition(type).getScheduleSummary(config) : undefined
 }
 
 export function formatTaskList(types: TaskType[]): string {
@@ -190,65 +189,18 @@ export function getTaskStatusCacheScope(type: TaskType): TaskStatusCacheScope {
   return getTaskDefinition(type).statusCacheScope
 }
 
-export function getTaskRoomCount(type: TaskType, config: DockerConfig[TaskType]): number | undefined {
-  return getTaskDefinition(type).getRoomCount?.(config)
-}
-
-export function assignTaskConfig(target: TaskConfigMap, type: TaskType, value: DockerConfig[TaskType]): void {
-  switch (type) {
-    case 'collectGift':
-      target.collectGift = value as DockerConfig['collectGift']
-      return
-    case 'keepalive':
-      target.keepalive = value as DockerConfig['keepalive']
-      return
-    case 'doubleCard':
-      target.doubleCard = value as DockerConfig['doubleCard']
-      return
-    case 'expiringGift':
-      target.expiringGift = value as DockerConfig['expiringGift']
-      return
-    case 'yubaCheckIn':
-      target.yubaCheckIn = value as DockerConfig['yubaCheckIn']
-  }
+export function getTaskRoomCount(type: TaskType, config: DockerConfig[TaskType] | undefined): number | undefined {
+  return config ? getTaskDefinition(type).getRoomCount?.(config) : undefined
 }
 
 export function getTaskOverviewSummary(config: DockerConfig | null): Record<string, boolean | number> {
   return TASK_DEFINITIONS.reduce((summary, definition) => {
     const taskConfig = getTaskConfig(config, definition.type)
-    summary[`${definition.type}Configured`] = isTaskActive(taskConfig)
+    summary[`${definition.type}Configured`] = isTaskEnabled(taskConfig)
     const roomCount = getTaskRoomCount(definition.type, taskConfig)
     if (roomCount !== undefined) {
       summary[`${definition.type}Rooms`] = roomCount
     }
     return summary
   }, {} as Record<string, boolean | number>)
-}
-
-export function collectTaskConfigUpdates(current: DockerConfig | null, updates: TaskConfigUpdateMap): TaskConfigMap {
-  return TASK_TYPES.reduce((taskUpdates: TaskConfigMap, type) => {
-    const nextValue = updates[type]
-    if (nextValue !== undefined) {
-      if (nextValue) {
-        assignTaskConfig(taskUpdates, type, nextValue)
-      }
-      return taskUpdates
-    }
-
-    const currentValue = getTaskConfig(current, type)
-    if (currentValue) {
-      assignTaskConfig(taskUpdates, type, currentValue)
-    }
-    return taskUpdates
-  }, {} as Partial<DockerConfig>)
-}
-
-export function collectTaskUpdatePayload(updates: TaskConfigUpdateMap): TaskConfigMap {
-  return TASK_TYPES.reduce((taskUpdates: TaskConfigMap, type) => {
-    const nextValue = updates[type]
-    if (nextValue) {
-      assignTaskConfig(taskUpdates, type, nextValue)
-    }
-    return taskUpdates
-  }, {})
 }

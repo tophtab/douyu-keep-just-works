@@ -40,8 +40,8 @@ export function createFansBackedTaskPageState<
   const managedLoading = ref(false)
 
   function syncResourceState(): void {
-    rawConfig.value = sharedRawConfig.value as TRawConfig | null
-    managedConfig.value = getManagedConfig() as TRawConfig
+    rawConfig.value = sharedRawConfig.value as unknown as TRawConfig | null
+    managedConfig.value = getManagedConfig() as unknown as TRawConfig
     overview.value = sharedOverview.value as TOverview | null
     fans.value = getManagedFans() as TFan[]
     fansListError.value = sharedFansListError.value

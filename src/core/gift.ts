@@ -1,106 +1,96 @@
-import type { sendConfig } from './types'
+import { DEFAULT_GIFT_ID } from './task-defaults'
+import type { FixedAllocationConfig, GiftAllocationConfig, GiftSendJobs, WeightedAllocationConfig } from './types'
 
-function cloneSendItem<T extends sendConfig[keyof sendConfig]>(item: T): T {
-  return { ...item }
+function createGiftSendJobs(entries: Array<{ roomId: number; count: number }>): GiftSendJobs {
+  return entries.reduce((jobs, entry) => {
+    jobs[String(entry.roomId)] = { roomId: entry.roomId, giftId: DEFAULT_GIFT_ID, count: entry.count }
+    return jobs
+  }, {} as GiftSendJobs)
 }
 
-function toSendConfig(items: sendConfig[keyof sendConfig][]): sendConfig {
-  return items.reduce((acc, item) => {
-    acc[item.roomId] = item
-    return acc
-  }, {} as sendConfig)
-}
-
-export function computeGiftCountOfNumber(number: number, send: sendConfig): sendConfig {
-  const sendSort = Object.values(send).map(cloneSendItem).sort((a, b) => b.number - a.number)
-  const cfgCountNumber = sendSort.reduce((a, b) => a + (b.number === -1 ? 0 : b.number), 0)
-  if (cfgCountNumber > number) {
-    throw new Error(`荧光棒数量不足,请重新配置. 当前${number}个, 需求${cfgCountNumber}个`)
+export function computeGiftCountOfNumber(number: number, roomAllocations: FixedAllocationConfig['roomAllocations']): GiftSendJobs {
+  const allocations = Object.entries(roomAllocations)
+    .map(([roomId, item]) => ({ roomId: Number(roomId), configuredCount: item.count }))
+    .sort((a, b) => b.configuredCount - a.configuredCount)
+  const configuredCount = allocations.reduce((sum, item) => sum + (item.configuredCount === -1 ? 0 : item.configuredCount), 0)
+  if (configuredCount > number) {
+    throw new Error(`荧光棒数量不足,请重新配置. 当前${number}个, 需求${configuredCount}个`)
   }
 
-  const remainderRooms = sendSort.filter(item => item.number === -1)
+  const remainderRooms = allocations.filter(item => item.configuredCount === -1)
   if (remainderRooms.length > 1) {
     throw new Error('固定数量模式最多只能有一个房间配置为-1')
   }
 
-  let assignedCount = 0
-  for (const item of sendSort) {
-    if (item.number === -1) {
-      item.count = 0
-    } else {
-      item.count = item.number
-      assignedCount += item.number
-    }
-  }
-
+  const jobs = allocations.map(item => ({
+    roomId: item.roomId,
+    count: item.configuredCount === -1 ? 0 : item.configuredCount,
+  }))
   if (remainderRooms.length === 1) {
-    remainderRooms[0].count = number - assignedCount
+    const remainderJob = jobs.find(job => job.roomId === remainderRooms[0].roomId)!
+    remainderJob.count = number - configuredCount
   }
-
-  return toSendConfig(sendSort)
+  return createGiftSendJobs(jobs)
 }
 
-export function computeGiftCountOfProportion(number: number, send: sendConfig): sendConfig {
-  const sendSort = Object.values(send).map(cloneSendItem).sort((a, b) => a.weight - b.weight)
-  const totalWeight = sendSort.reduce((sum, item) => sum + item.weight, 0)
-
+export function computeGiftCountOfProportion(number: number, roomAllocations: WeightedAllocationConfig['roomAllocations']): GiftSendJobs {
+  const allocations = Object.entries(roomAllocations)
+    .map(([roomId, item]) => ({ roomId: Number(roomId), weight: item.weight, count: 0 }))
+    .sort((a, b) => a.weight - b.weight)
+  const totalWeight = allocations.reduce((sum, item) => sum + item.weight, 0)
   if (totalWeight <= 0) {
     throw new Error('按权重模式至少需要一个房间填写大于 0 的权重值')
   }
 
-  for (let i = 0; i < sendSort.length; i++) {
-    const item = sendSort[i]
-    if (i === sendSort.length - 1) {
-      const count = number - sendSort.reduce((sum, entry) => sum + (entry.count || 0), 0)
+  for (let index = 0; index < allocations.length; index += 1) {
+    const item = allocations[index]
+    if (index === allocations.length - 1) {
+      const count = number - allocations.reduce((sum, entry) => sum + entry.count, 0)
       if (count < 0) {
-        throw new Error(`荧光棒数量不足,请重新配置. 当前${number}个, 需求至少${sendSort.filter(entry => entry.weight > 0).length}个`)
+        throw new Error(`荧光棒数量不足,请重新配置. 当前${number}个, 需求至少${allocations.filter(entry => entry.weight > 0).length}个`)
       }
       item.count = count
-    } else {
-      if (item.weight === 0) {
-        item.count = 0
-        continue
-      }
+    } else if (item.weight > 0) {
       const count = Math.floor((item.weight / totalWeight) * number)
       item.count = count === 0 ? 1 : count
     }
   }
 
-  const newSend = toSendConfig(sendSort)
-  const cfgCountNumber = Object.values(newSend).reduce((a, b) => a + (b.count || 0), 0)
-  if (cfgCountNumber > number) {
-    throw new Error(`荧光棒数量不足,请重新配置. 当前${number}个, 需求${cfgCountNumber}个`)
+  const assignedCount = allocations.reduce((sum, item) => sum + item.count, 0)
+  if (assignedCount > number) {
+    throw new Error(`荧光棒数量不足,请重新配置. 当前${number}个, 需求${assignedCount}个`)
   }
-  return newSend
+  return createGiftSendJobs(allocations)
+}
+
+function selectActiveAllocations(config: GiftAllocationConfig, activeRoomIds: Set<string>): GiftAllocationConfig {
+  if (config.allocationMode === 'fixed') {
+    return {
+      allocationMode: 'fixed',
+      roomAllocations: Object.fromEntries(Object.entries(config.roomAllocations).filter(([roomId]) => activeRoomIds.has(roomId))),
+    }
+  }
+  return {
+    allocationMode: 'weighted',
+    roomAllocations: Object.fromEntries(Object.entries(config.roomAllocations).filter(([roomId]) => activeRoomIds.has(roomId))),
+  }
 }
 
 export function computeGiftCountWithDoubleCard(
   number: number,
-  send: sendConfig,
+  allocation: GiftAllocationConfig,
   doubleCardRooms: Record<string, boolean>,
-  baseModel: 1 | 2,
-): sendConfig | null {
-  const rooms = Object.values(send)
-  const doubleRooms = rooms.filter(r => doubleCardRooms[String(r.roomId)])
-
-  // 0个双倍 → 不送，攒着
-  if (doubleRooms.length === 0) {
+): GiftSendJobs | null {
+  const activeRoomIds = new Set(Object.entries(doubleCardRooms).filter(([, active]) => active).map(([roomId]) => roomId))
+  const activeAllocation = selectActiveAllocations(allocation, activeRoomIds)
+  const activeRoomKeys = Object.keys(activeAllocation.roomAllocations)
+  if (activeRoomKeys.length === 0) {
     return null
   }
-
-  // 恰好1个双倍 → 全部送给这个房间
-  if (doubleRooms.length === 1) {
-    const room = { ...doubleRooms[0], count: number }
-    return { [room.roomId]: room }
+  if (activeRoomKeys.length === 1) {
+    return createGiftSendJobs([{ roomId: Number(activeRoomKeys[0]), count: number }])
   }
-
-  // 2个及以上双倍（含全部双倍）→ 按原比例在双倍房间之间重新分配
-  const doubleSend: sendConfig = {}
-  for (const room of doubleRooms) {
-    doubleSend[room.roomId] = { ...room }
-  }
-
-  return baseModel === 1
-    ? computeGiftCountOfProportion(number, doubleSend)
-    : computeGiftCountOfNumber(number, doubleSend)
+  return activeAllocation.allocationMode === 'weighted'
+    ? computeGiftCountOfProportion(number, activeAllocation.roomAllocations)
+    : computeGiftCountOfNumber(number, activeAllocation.roomAllocations)
 }

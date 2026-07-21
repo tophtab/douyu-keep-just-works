@@ -246,7 +246,7 @@ async function refreshMainCookieFromCookieCloudStage(
     ? 'CookieCloud 已同步最新本地登录快照'
     : 'CookieCloud 同步完成，本地登录快照无需更新')
 
-  const mainCookie = persistResult.config.manualCookies?.main?.trim() || persistResult.config.cookie.trim()
+  const mainCookie = persistResult.config.loginCookies.main.trim()
   const validation = await validateRecoveredMainCookie(mainCookie, deps.validateMainCookie)
   if (!validation.valid) {
     deps.log(`CookieCloud 同步后主站 Cookie 仍不可用: ${validation.reason}`)

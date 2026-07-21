@@ -36,8 +36,22 @@ test('gift sends reuse successful room DID lookups across gift groups', async ()
     1002: { roomId: 1002, giftId: 999, count: 1 },
   }
 
-  await sendGifts(firstGroup, 'cookie', () => {}, '礼物一', '礼物一任务', { resolveDid })
-  await sendGifts(secondGroup, 'cookie', () => {}, '礼物二', '礼物二任务', { resolveDid })
+  await sendGifts({
+    jobs: firstGroup,
+    cookie: 'cookie',
+    log: () => {},
+    giftLabel: '礼物一',
+    completionLabel: '礼物一任务',
+    resolveDid,
+  })
+  await sendGifts({
+    jobs: secondGroup,
+    cookie: 'cookie',
+    log: () => {},
+    giftLabel: '礼物二',
+    completionLabel: '礼物二任务',
+    resolveDid,
+  })
 
   assert.deepEqual(didCalls, ['1001', '1002'])
   assert.deepEqual(sendCalls, [
@@ -88,9 +102,13 @@ test('gift sends stay serial, carry failed counts forward, and delay only betwee
   })
 
   await sendGifts({
-    1001: { roomId: 1001, giftId: 268, count: 2 },
-    1002: { roomId: 1002, giftId: 268, count: 3 },
-  }, 'cookie', () => {})
+    jobs: {
+      1001: { roomId: 1001, giftId: 268, count: 2 },
+      1002: { roomId: 1002, giftId: 268, count: 3 },
+    },
+    cookie: 'cookie',
+    log: () => {},
+  })
 
   assert.deepEqual(events, [
     'send:1001:2',

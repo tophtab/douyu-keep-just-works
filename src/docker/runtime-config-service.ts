@@ -4,7 +4,7 @@ import { assertDockerConfigCrons } from './cron'
 import { jsonEquals } from './config-equality'
 import type { StatusCacheScope } from './runtime-cache'
 import type { TaskReloadSummary } from './runtime-scheduler'
-import { getTaskConfig, getTaskConfigChangeScope, hasActiveTaskConfig, TASK_TYPES } from './task-metadata'
+import { getTaskConfig, getTaskConfigChangeScope, hasEnabledTaskConfig, TASK_TYPES } from './task-metadata'
 
 export type DockerRuntimeConfigApplyReason = 'startup' | 'cookie_saved' | 'tasks_saved' | 'ui_saved' | 'medal_synced'
 
@@ -23,9 +23,7 @@ export function analyzeDockerRuntimeConfigChange(
     .map(getTaskConfigChangeScope)
 
   return {
-    cookieSourceChanged: prevConfig?.cookie !== nextConfig.cookie
-      || !jsonEquals(prevConfig?.manualCookies || null, nextConfig.manualCookies || null)
-      || !jsonEquals(prevConfig?.manualPassport || null, nextConfig.manualPassport || null)
+    cookieSourceChanged: !jsonEquals(prevConfig?.loginCookies || null, nextConfig.loginCookies)
       || !jsonEquals(prevConfig?.cookieCloud || null, nextConfig.cookieCloud || null),
     fansTaskConfigChanged: changedTaskScopes.includes('fans'),
     yubaTaskConfigChanged: changedTaskScopes.includes('yuba'),
@@ -64,7 +62,7 @@ export class DockerRuntimeConfigService {
       return
     }
 
-    if (!hasActiveTaskConfig(nextConfig)) {
+    if (!hasEnabledTaskConfig(nextConfig)) {
       this.handleMissingActiveTasks(reason)
       return
     }
@@ -92,7 +90,7 @@ export class DockerRuntimeConfigService {
   private handleMissingCookieSource(config: DockerConfig, reason: DockerRuntimeConfigApplyReason): void {
     if (reason === 'startup') {
       this.deps.logSystem('配置已加载，但登录凭证为空，请通过 WebUI 填写 Cookie 或启用 CookieCloud')
-    } else if (hasActiveTaskConfig(config)) {
+    } else if (hasEnabledTaskConfig(config)) {
       this.deps.stopTaskJobs()
       this.deps.logSystem('任务配置已保存，但登录凭证为空，任务未启动')
     } else if (reason === 'tasks_saved') {

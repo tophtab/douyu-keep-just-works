@@ -8,8 +8,17 @@ import { recoverCredentialSnapshot as recoverCredentialSnapshotWithDeps } from '
 import type { CookieRecoveryLogger, CookieSnapshotValidator, CredentialSnapshotRecoveryResult } from './runtime-cookie-recovery'
 import type { StatusCacheScope } from './runtime-cache'
 import { MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
-import { DockerEffectiveCookieResolver, getManualCookieForUrl, hasConfiguredCookieSource, hasCookieCloudSource, hasManualCookie, hasManualPassport, hasPassportRecoveryMaterial, resolveCookieForUrlFromConfig } from './runtime-effective-cookies'
+import { DockerEffectiveCookieResolver, getLocalCookieForUrl, hasConfiguredCookieSource, hasCookieCloudSource, hasLocalLoginCookies, hasLocalPassportCookie, hasPassportRecoveryMaterial, resolveCookieForUrlFromConfig } from './runtime-effective-cookies'
 import { DockerPassportQrLoginService } from './runtime-passport-qr-login'
+
+interface DockerCookieSourceManagerDeps {
+  getConfig: () => DockerConfig | null
+  setConfig: (config: DockerConfig) => void
+  getConfigPath: () => string
+  applyConfig: (config: DockerConfig, reason: 'cookie_saved') => void
+  clearFansListCache: () => void
+  invalidateStatusCaches: (scope: StatusCacheScope) => void
+}
 
 export class DockerCookieSourceManager {
   private readonly cookieCloudCache: DockerCookieCloudCache
@@ -17,52 +26,45 @@ export class DockerCookieSourceManager {
   private readonly effectiveCookieResolver: DockerEffectiveCookieResolver
   private readonly passportQrLogin: DockerPassportQrLoginService
 
-  constructor(
-    private readonly getConfig: () => DockerConfig | null,
-    private readonly setConfig: (config: DockerConfig) => void,
-    private readonly getConfigPath: () => string,
-    private readonly applyConfig: (config: DockerConfig, reason: 'cookie_saved') => void,
-    private readonly clearFansListCache: () => void,
-    private readonly invalidateStatusCaches: (scope: StatusCacheScope) => void,
-  ) {
-    this.cookieCloudCache = new DockerCookieCloudCache(this.getConfig)
+  constructor(private readonly deps: DockerCookieSourceManagerDeps) {
+    this.cookieCloudCache = new DockerCookieCloudCache(this.deps.getConfig)
     this.cookieSnapshotStore = new DockerCookieSnapshotStore({
-      getConfig: this.getConfig,
-      setConfig: this.setConfig,
-      getConfigPath: this.getConfigPath,
-      applyConfig: this.applyConfig,
-      clearFansListCache: this.clearFansListCache,
-      invalidateStatusCaches: this.invalidateStatusCaches,
+      getConfig: this.deps.getConfig,
+      setConfig: this.deps.setConfig,
+      getConfigPath: this.deps.getConfigPath,
+      applyConfig: this.deps.applyConfig,
+      clearFansListCache: this.deps.clearFansListCache,
+      invalidateStatusCaches: this.deps.invalidateStatusCaches,
     })
     this.effectiveCookieResolver = new DockerEffectiveCookieResolver({
-      getConfig: this.getConfig,
+      getConfig: this.deps.getConfig,
       loadCookieCloudSnapshot: async forceRefresh => await this.loadCookieCloudSnapshot(forceRefresh),
     })
     this.passportQrLogin = new DockerPassportQrLoginService({
-      getCurrentMainCookie: () => getManualCookieForUrl(MAIN_DOUYU_URL, this.getConfig()),
-      getCurrentYubaCookie: () => getManualCookieForUrl(YUBA_DOUYU_URL, this.getConfig()),
-      getManualPassportCookie: () => this.getManualPassportCookie(),
+      getCurrentMainCookie: () => getLocalCookieForUrl(MAIN_DOUYU_URL, this.deps.getConfig()),
+      getCurrentYubaCookie: () => getLocalCookieForUrl(YUBA_DOUYU_URL, this.deps.getConfig()),
+      getManualPassportCookie: () => this.getPassportCookie(),
       persistCookieSnapshot: args => this.cookieSnapshotStore.persistPassportQrCookieSnapshot(args),
     })
   }
 
-  hasManualCookie(config: DockerConfig | null | undefined = this.getConfig()): boolean {
-    return hasManualCookie(config)
+  hasLocalLoginCookies(config: DockerConfig | null | undefined = this.deps.getConfig()): boolean {
+    return hasLocalLoginCookies(config)
   }
 
-  hasCookieCloudSource(config: DockerConfig | null | undefined = this.getConfig()): boolean {
+  hasCookieCloudSource(config: DockerConfig | null | undefined = this.deps.getConfig()): boolean {
     return hasCookieCloudSource(config)
   }
 
-  hasManualPassport(config: DockerConfig | null | undefined = this.getConfig()): boolean {
-    return hasManualPassport(config)
+  hasLocalPassportCookie(config: DockerConfig | null | undefined = this.deps.getConfig()): boolean {
+    return hasLocalPassportCookie(config)
   }
 
-  hasPassportRecoveryMaterial(config: DockerConfig | null | undefined = this.getConfig()): boolean {
+  hasPassportRecoveryMaterial(config: DockerConfig | null | undefined = this.deps.getConfig()): boolean {
     return hasPassportRecoveryMaterial(config)
   }
 
-  hasConfiguredCookieSource(config: DockerConfig | null | undefined = this.getConfig()): boolean {
+  hasConfiguredCookieSource(config: DockerConfig | null | undefined = this.deps.getConfig()): boolean {
     return hasConfiguredCookieSource(config)
   }
 
@@ -95,7 +97,7 @@ export class DockerCookieSourceManager {
   }
 
   resolveCookieForUrl(targetUrl: string): string {
-    return this.resolveCookieForUrlFromConfig(targetUrl, this.getConfig())
+    return this.resolveCookieForUrlFromConfig(targetUrl, this.deps.getConfig())
   }
 
   async getEffectiveCookies(forceRefresh = false): Promise<EffectiveCookiePreview> {
@@ -123,25 +125,32 @@ export class DockerCookieSourceManager {
       hasCookieCloudSource: () => this.hasCookieCloudSource(),
       persistEffectiveCookies: async forceRefresh => await this.persistEffectiveCookies(forceRefresh),
       loadCookieCloudSnapshot: async forceRefresh => await this.loadCookieCloudSnapshot(forceRefresh),
-      getCurrentMainCookie: () => getManualCookieForUrl(MAIN_DOUYU_URL, this.getConfig()),
-      getCurrentYubaCookie: () => getManualCookieForUrl(YUBA_DOUYU_URL, this.getConfig()),
-      getManualPassportCookie: () => this.getManualPassportCookie(),
-      persistManualCookieSnapshot: (mainCookie, yubaCookie) => this.cookieSnapshotStore.persistManualCookieSnapshot(mainCookie, yubaCookie),
+      getCurrentMainCookie: () => getLocalCookieForUrl(MAIN_DOUYU_URL, this.deps.getConfig()),
+      getCurrentYubaCookie: () => getLocalCookieForUrl(YUBA_DOUYU_URL, this.deps.getConfig()),
+      getManualPassportCookie: () => this.getPassportCookie(),
+      persistManualCookieSnapshot: (mainCookie, yubaCookie) => this.cookieSnapshotStore.persistLocalCookieSnapshot(mainCookie, yubaCookie),
     })
   }
 
   async inspectCookieSource(): Promise<CookieDiagnostics> {
-    const currentConfig = this.getConfig()
-    if (this.hasManualCookie(currentConfig)) {
-      const mainCookie = getManualCookieForUrl(MAIN_DOUYU_URL, currentConfig)
-      const yubaCookie = getManualCookieForUrl(YUBA_DOUYU_URL, currentConfig)
-      return createCookieDiagnostics(this.hasCookieCloudSource(currentConfig) ? 'cookieCloud' : 'manual', mainCookie, yubaCookie, {
-        cookieCount: Object.keys({
-          ...parseCookieRecord(mainCookie),
-          ...parseCookieRecord(yubaCookie),
-        }).length,
-        domains: ['local'],
-        passportLtp0Present: parseCookieRecord(this.getManualPassportCookie()).LTP0 ? true : undefined,
+    const currentConfig = this.deps.getConfig()
+    if (this.hasLocalLoginCookies(currentConfig)) {
+      const mainCookie = getLocalCookieForUrl(MAIN_DOUYU_URL, currentConfig)
+      const yubaCookie = getLocalCookieForUrl(YUBA_DOUYU_URL, currentConfig)
+      return createCookieDiagnostics({
+        source: this.hasCookieCloudSource(currentConfig) ? 'cookieCloud' : 'local',
+        cookies: {
+          passportCookie: this.getPassportCookie(),
+          mainCookie,
+          yubaCookie,
+        },
+        snapshot: {
+          cookieCount: Object.keys({
+            ...parseCookieRecord(mainCookie),
+            ...parseCookieRecord(yubaCookie),
+          }).length,
+          domains: ['local'],
+        },
       })
     }
 
@@ -156,7 +165,7 @@ export class DockerCookieSourceManager {
     return await this.cookieCloudCache.load(forceRefresh)
   }
 
-  private getManualPassportCookie(): string {
-    return this.getConfig()?.manualPassport?.cookie?.trim() || ''
+  private getPassportCookie(): string {
+    return this.deps.getConfig()?.loginCookies.passport.trim() || ''
   }
 }

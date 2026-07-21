@@ -1,244 +1,300 @@
-import { normalizeCookieCloudConfig } from './cookie-cloud'
 import {
   DEFAULT_COLLECT_GIFT_CRON,
   DEFAULT_COOKIE_CLOUD_SYNC_CRON,
+  DEFAULT_DOUBLE_CARD_ALLOCATION_MODE,
   DEFAULT_DOUBLE_CARD_CRON,
   DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
-  DEFAULT_DOUBLE_CARD_MODEL,
+  DEFAULT_EXPIRING_GIFT_ALLOCATION_MODE,
   DEFAULT_EXPIRING_GIFT_CRON,
-  DEFAULT_EXPIRING_GIFT_MODEL,
   DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
-  DEFAULT_GIFT_ID,
+  DEFAULT_KEEPALIVE_ALLOCATION_MODE,
   DEFAULT_KEEPALIVE_CRON,
-  DEFAULT_KEEPALIVE_MODEL,
   DEFAULT_THEME_MODE,
   DEFAULT_YUBA_CHECK_IN_CRON,
   DEFAULT_YUBA_CHECK_IN_MODE,
+  LEGACY_DEFAULT_KEEPALIVE_CRON,
+  createDefaultRawDockerConfig,
 } from './task-defaults'
-import type { CollectGiftConfig, CookieCloudConfig, DockerConfig, DoubleCardConfig, DoubleCardGiftScope, ExpiringGiftConfig, Fans, JobConfig, ManualCookieConfig, ManualPassportConfig, SendGift, YubaCheckInConfig, sendConfig } from './types'
+import type {
+  AllocationMode,
+  CollectGiftConfig,
+  DockerConfig,
+  DoubleCardConfig,
+  DoubleCardGiftScope,
+  ExpiringGiftConfig,
+  Fans,
+  FixedAllocationConfig,
+  GiftAllocationConfig,
+  JobConfig,
+  LoginCookiesConfig,
+  WeightedAllocationConfig,
+  YubaCheckInConfig,
+} from './types'
 
-function resolveTaskActive(active: boolean | undefined): boolean {
-  return active !== false
-}
-
-function resolveWeight(item: Partial<SendGift> | undefined, fallback: number): number {
-  if (typeof item?.weight === 'number' && Number.isFinite(item.weight)) {
-    return item.weight
-  }
-  return fallback
-}
-
-interface SendRoomRef {
-  key: string
-  roomId: number
-}
+type UnknownRecord = Record<string, unknown>
 
 interface FanBackedTaskDefaults {
-  active: boolean
+  enabled: boolean
   cron: string
-  model: 1 | 2
+  allocationMode: AllocationMode
+  legacyCron?: string
   resolveMissingWeight?: (index: number) => number
 }
 
 const KEEPALIVE_TASK_DEFAULTS: FanBackedTaskDefaults = {
-  active: true,
+  enabled: true,
   cron: DEFAULT_KEEPALIVE_CRON,
-  model: DEFAULT_KEEPALIVE_MODEL,
+  allocationMode: DEFAULT_KEEPALIVE_ALLOCATION_MODE,
+  legacyCron: LEGACY_DEFAULT_KEEPALIVE_CRON,
 }
 
 const DOUBLE_CARD_TASK_DEFAULTS: FanBackedTaskDefaults = {
-  active: false,
+  enabled: false,
   cron: DEFAULT_DOUBLE_CARD_CRON,
-  model: DEFAULT_DOUBLE_CARD_MODEL,
+  allocationMode: DEFAULT_DOUBLE_CARD_ALLOCATION_MODE,
 }
 
 const EXPIRING_GIFT_TASK_DEFAULTS: FanBackedTaskDefaults = {
-  active: false,
+  enabled: false,
   cron: DEFAULT_EXPIRING_GIFT_CRON,
-  model: DEFAULT_EXPIRING_GIFT_MODEL,
+  allocationMode: DEFAULT_EXPIRING_GIFT_ALLOCATION_MODE,
   resolveMissingWeight: index => (index === 0 ? 1 : 0),
 }
 
-function createSendRoomRefsFromFans(fans: Fans[]): SendRoomRef[] {
-  return fans.map(fan => ({
-    key: String(fan.roomId),
-    roomId: fan.roomId,
-  }))
+function asRecord(value: unknown): UnknownRecord | undefined {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as UnknownRecord
+    : undefined
 }
 
-function createSendRoomRefsFromConfig(send: sendConfig | undefined): SendRoomRef[] {
-  return Object.keys(send || {}).map(key => ({
-    key,
-    roomId: Number(key),
-  }))
+function hasOwn(record: UnknownRecord | undefined, key: string): boolean {
+  return Boolean(record && Object.prototype.hasOwnProperty.call(record, key))
 }
 
-function normalizeSendItem(item: Partial<SendGift> | undefined, roomId: number, model: 1 | 2, weightFallback: number): SendGift {
-  return {
-    roomId,
-    giftId: item?.giftId || DEFAULT_GIFT_ID,
-    number: typeof item?.number === 'number' && Number.isFinite(item.number)
-      ? item.number
-      : (model === 2 ? 1 : 0),
-    weight: model === 1 ? resolveWeight(item, weightFallback) : 0,
-    count: typeof item?.count === 'number' && Number.isFinite(item.count) ? item.count : 0,
+function normalizeString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function normalizeCron(value: unknown, defaults: Pick<FanBackedTaskDefaults, 'cron' | 'legacyCron'>): string {
+  const cron = normalizeString(value)
+  if (!cron || cron === defaults.legacyCron) {
+    return defaults.cron
   }
+  return cron
 }
 
-function normalizeSendMap(
-  send: sendConfig | undefined,
-  rooms: SendRoomRef[],
-  model: 1 | 2,
-  resolveMissingWeight: (index: number) => number = () => 1,
-): sendConfig {
-  const next: sendConfig = {}
+function normalizeEnabled(config: UnknownRecord | undefined, fallback: boolean): boolean {
+  if (typeof config?.enabled === 'boolean') {
+    return config.enabled
+  }
+  if (typeof config?.active === 'boolean') {
+    return config.active
+  }
+  return fallback
+}
 
-  rooms.forEach(({ key, roomId }, index) => {
-    const item = send?.[key]
-    const weightFallback = item ? 1 : resolveMissingWeight(index)
-    next[key] = normalizeSendItem(item, roomId, model, weightFallback)
+function normalizeAllocationMode(config: UnknownRecord | undefined, fallback: AllocationMode): AllocationMode {
+  if (config?.allocationMode === 'weighted' || config?.allocationMode === 'fixed') {
+    return config.allocationMode
+  }
+  if (config?.model === 1) {
+    return 'weighted'
+  }
+  if (config?.model === 2) {
+    return 'fixed'
+  }
+  return fallback
+}
+
+function normalizeFiniteNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function selectAllocationSource(config: UnknownRecord | undefined): { source: UnknownRecord; legacy: boolean } {
+  const roomAllocations = asRecord(config?.roomAllocations)
+  if (roomAllocations) {
+    return { source: roomAllocations, legacy: false }
+  }
+  return { source: asRecord(config?.send) || {}, legacy: true }
+}
+
+function normalizeWeightedAllocations(source: UnknownRecord, resolveMissingWeight: (index: number) => number): WeightedAllocationConfig {
+  const roomAllocations: WeightedAllocationConfig['roomAllocations'] = {}
+  Object.entries(source).forEach(([roomId, rawItem], index) => {
+    const item = asRecord(rawItem)
+    roomAllocations[roomId] = {
+      weight: normalizeFiniteNumber(item?.weight) ?? resolveMissingWeight(index),
+    }
   })
-
-  return next
+  return { allocationMode: 'weighted', roomAllocations }
 }
 
-function normalizeTaskModel(config: JobConfig): 1 | 2 {
-  return config.model === 2 ? 2 : 1
-}
-
-function createDefaultFanBackedTaskConfig(fans: Fans[], defaults: FanBackedTaskDefaults): JobConfig {
-  return {
-    active: defaults.active,
-    cron: defaults.cron,
-    model: defaults.model,
-    send: normalizeSendMap(undefined, createSendRoomRefsFromFans(fans), defaults.model, defaults.resolveMissingWeight),
+function normalizeFixedAllocations(source: UnknownRecord, legacy: boolean): FixedAllocationConfig {
+  const roomAllocations: FixedAllocationConfig['roomAllocations'] = {}
+  for (const [roomId, rawItem] of Object.entries(source)) {
+    const item = asRecord(rawItem)
+    roomAllocations[roomId] = {
+      count: legacy
+        ? normalizeFiniteNumber(item?.number) ?? 1
+        : normalizeFiniteNumber(item?.count) ?? 1,
+    }
   }
+  return { allocationMode: 'fixed', roomAllocations }
 }
 
-function normalizeFanBackedTaskConfig(config: JobConfig, defaults: FanBackedTaskDefaults): JobConfig {
-  const model = normalizeTaskModel(config)
+function normalizeAllocation(config: UnknownRecord | undefined, defaults: FanBackedTaskDefaults): GiftAllocationConfig {
+  const allocationMode = normalizeAllocationMode(config, defaults.allocationMode)
+  const { source, legacy } = selectAllocationSource(config)
+  return allocationMode === 'fixed'
+    ? normalizeFixedAllocations(source, legacy)
+    : normalizeWeightedAllocations(source, defaults.resolveMissingWeight || (() => 1))
+}
+
+function createAllocationForFans(config: JobConfig | undefined, fans: Fans[], defaults: FanBackedTaskDefaults): GiftAllocationConfig {
+  const allocationMode = config?.allocationMode || defaults.allocationMode
+  if (allocationMode === 'fixed') {
+    const roomAllocations: FixedAllocationConfig['roomAllocations'] = {}
+    for (const fan of fans) {
+      roomAllocations[String(fan.roomId)] = {
+        count: config?.allocationMode === 'fixed'
+          ? config.roomAllocations[String(fan.roomId)]?.count ?? 1
+          : 1,
+      }
+    }
+    return { allocationMode, roomAllocations }
+  }
+
+  const roomAllocations: WeightedAllocationConfig['roomAllocations'] = {}
+  fans.forEach((fan, index) => {
+    roomAllocations[String(fan.roomId)] = {
+      weight: config?.allocationMode === 'weighted'
+        ? config.roomAllocations[String(fan.roomId)]?.weight ?? (defaults.resolveMissingWeight?.(index) ?? 1)
+        : (defaults.resolveMissingWeight?.(index) ?? 1),
+    }
+  })
+  return { allocationMode, roomAllocations }
+}
+
+function normalizeFanBackedTaskConfig(rawConfig: unknown, defaults: FanBackedTaskDefaults): JobConfig {
+  const config = asRecord(rawConfig)
   return {
-    active: resolveTaskActive(config.active),
-    cron: config.cron || defaults.cron,
-    model,
-    send: normalizeSendMap(config.send, createSendRoomRefsFromConfig(config.send), model),
+    enabled: normalizeEnabled(config, defaults.enabled),
+    cron: normalizeCron(config?.cron, defaults),
+    ...normalizeAllocation(config, defaults),
   }
 }
 
 function reconcileFanBackedTaskConfig(config: JobConfig, fans: Fans[], defaults: FanBackedTaskDefaults): JobConfig {
-  const model = normalizeTaskModel(config)
   return {
-    active: resolveTaskActive(config.active),
+    enabled: config.enabled,
     cron: config.cron || defaults.cron,
-    model,
-    send: normalizeSendMap(config.send, createSendRoomRefsFromFans(fans), model, defaults.resolveMissingWeight),
+    ...createAllocationForFans(config, fans, defaults),
+  }
+}
+
+function normalizeLoginCookies(config: UnknownRecord): LoginCookiesConfig {
+  const loginCookies = asRecord(config.loginCookies)
+  const manualCookies = asRecord(config.manualCookies)
+  const manualPassport = asRecord(config.manualPassport)
+
+  return {
+    passport: hasOwn(loginCookies, 'passport')
+      ? normalizeString(loginCookies?.passport)
+      : normalizeString(manualPassport?.cookie),
+    main: hasOwn(loginCookies, 'main')
+      ? normalizeString(loginCookies?.main)
+      : (hasOwn(manualCookies, 'main')
+          ? normalizeString(manualCookies?.main)
+          : normalizeString(config.cookie)),
+    yuba: hasOwn(loginCookies, 'yuba')
+      ? normalizeString(loginCookies?.yuba)
+      : normalizeString(manualCookies?.yuba),
+  }
+}
+
+function normalizeCookieCloud(rawConfig: unknown): DockerConfig['cookieCloud'] {
+  const config = asRecord(rawConfig)
+  return {
+    enabled: normalizeEnabled(config, false),
+    endpoint: normalizeString(config?.endpoint).replace(/\/+$/, ''),
+    uuid: normalizeString(config?.uuid),
+    password: normalizeString(config?.password),
+    cron: normalizeString(config?.cron) || DEFAULT_COOKIE_CLOUD_SYNC_CRON,
+    cryptoType: 'legacy',
   }
 }
 
 export function createDefaultCollectGiftConfig(): CollectGiftConfig {
-  return {
-    active: true,
-    cron: DEFAULT_COLLECT_GIFT_CRON,
-  }
+  return { enabled: true, cron: DEFAULT_COLLECT_GIFT_CRON }
 }
 
-function normalizeCollectGiftConfig(config: CollectGiftConfig | undefined): CollectGiftConfig | undefined {
-  if (!config) {
-    return undefined
-  }
-
+function normalizeCollectGiftConfig(rawConfig: unknown): CollectGiftConfig {
+  const config = asRecord(rawConfig)
   return {
-    active: resolveTaskActive(config.active),
-    cron: config.cron || DEFAULT_COLLECT_GIFT_CRON,
+    enabled: normalizeEnabled(config, true),
+    cron: normalizeString(config?.cron) || DEFAULT_COLLECT_GIFT_CRON,
   }
 }
 
 export function createDefaultYubaCheckInConfig(): YubaCheckInConfig {
+  return { enabled: false, cron: DEFAULT_YUBA_CHECK_IN_CRON, mode: DEFAULT_YUBA_CHECK_IN_MODE }
+}
+
+function normalizeYubaCheckInConfig(rawConfig: unknown): YubaCheckInConfig {
+  const config = asRecord(rawConfig)
   return {
-    active: false,
-    cron: DEFAULT_YUBA_CHECK_IN_CRON,
-    mode: DEFAULT_YUBA_CHECK_IN_MODE,
+    enabled: normalizeEnabled(config, false),
+    cron: normalizeString(config?.cron) || DEFAULT_YUBA_CHECK_IN_CRON,
+    mode: config?.mode === 'followed' ? config.mode : DEFAULT_YUBA_CHECK_IN_MODE,
   }
 }
 
-function normalizeYubaCheckInConfig(config: YubaCheckInConfig | undefined): YubaCheckInConfig | undefined {
-  if (!config) {
-    return undefined
-  }
-
-  return {
-    active: resolveTaskActive(config.active),
-    cron: config.cron || DEFAULT_YUBA_CHECK_IN_CRON,
-    mode: config.mode || DEFAULT_YUBA_CHECK_IN_MODE,
-  }
-}
-
-function normalizeCookieCloud(config: CookieCloudConfig | undefined): CookieCloudConfig | undefined {
-  const normalized = normalizeCookieCloudConfig(config)
-  if (!normalized) {
-    return undefined
-  }
-
-  return {
-    ...normalized,
-    cron: normalized.cron || DEFAULT_COOKIE_CLOUD_SYNC_CRON,
-  }
-}
-
-function normalizeManualCookies(config: DockerConfig): ManualCookieConfig | undefined {
-  const main = config.manualCookies?.main?.trim() || config.cookie || ''
-  const yuba = config.manualCookies?.yuba?.trim() || ''
-
-  if (!main && !yuba) {
-    return undefined
-  }
-
-  return { main, yuba }
-}
-
-function normalizeManualPassport(config: DockerConfig): ManualPassportConfig | undefined {
-  const passportCookie = config.manualPassport?.cookie?.trim() || ''
-
-  if (!passportCookie) {
-    return undefined
-  }
-
-  return { cookie: passportCookie }
-}
-
-export function createDefaultKeepaliveConfig(fans: Fans[]): JobConfig {
-  return createDefaultFanBackedTaskConfig(fans, KEEPALIVE_TASK_DEFAULTS)
-}
-
-export function reconcileKeepaliveConfig(config: JobConfig | undefined, fans: Fans[]): JobConfig | undefined {
-  if (!config) {
-    return undefined
-  }
-
-  return reconcileFanBackedTaskConfig(config, fans, KEEPALIVE_TASK_DEFAULTS)
-}
-
-function buildEnabledMap(roomKeys: string[], config: DoubleCardConfig | undefined): Record<string, boolean> {
-  const enabled: Record<string, boolean> = {}
-
-  for (const key of roomKeys) {
-    enabled[key] = Boolean(config?.enabled?.[key])
-  }
-
-  return enabled
-}
-
-function normalizeDoubleCardGiftScope(value: DoubleCardGiftScope | undefined): DoubleCardGiftScope {
+function normalizeDoubleCardGiftScope(value: unknown): DoubleCardGiftScope {
   return value === 'limitedTime' ? 'limitedTime' : DEFAULT_DOUBLE_CARD_GIFT_SCOPE
 }
 
+function normalizeParticipatingRoomIds(config: UnknownRecord | undefined): number[] {
+  if (Array.isArray(config?.participatingRoomIds)) {
+    return Array.from(new Set(config.participatingRoomIds
+      .map(value => Number(value))
+      .filter(value => Number.isFinite(value))))
+  }
+  const legacyEnabledMap = asRecord(config?.enabled)
+  if (!legacyEnabledMap) {
+    return []
+  }
+  return Object.entries(legacyEnabledMap)
+    .filter(([, enabled]) => Boolean(enabled))
+    .map(([roomId]) => Number(roomId))
+    .filter(roomId => Number.isFinite(roomId))
+}
+
+function normalizeThresholdHours(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? value
+    : DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS
+}
+
+export function createDefaultKeepaliveConfig(fans: Fans[]): JobConfig {
+  return reconcileFanBackedTaskConfig({
+    enabled: true,
+    cron: DEFAULT_KEEPALIVE_CRON,
+    allocationMode: DEFAULT_KEEPALIVE_ALLOCATION_MODE,
+    roomAllocations: {},
+  }, fans, KEEPALIVE_TASK_DEFAULTS)
+}
+
+export function reconcileKeepaliveConfig(config: JobConfig | undefined, fans: Fans[]): JobConfig | undefined {
+  return config ? reconcileFanBackedTaskConfig(config, fans, KEEPALIVE_TASK_DEFAULTS) : undefined
+}
+
 export function createDefaultDoubleCardConfig(fans: Fans[]): DoubleCardConfig {
-  const base = createDefaultFanBackedTaskConfig(fans, DOUBLE_CARD_TASK_DEFAULTS)
   return {
-    ...base,
-    active: false,
+    enabled: false,
+    cron: DEFAULT_DOUBLE_CARD_CRON,
     giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
-    enabled: buildEnabledMap(fans.map(fan => String(fan.roomId)), undefined),
+    participatingRoomIds: [],
+    ...createAllocationForFans(undefined, fans, DOUBLE_CARD_TASK_DEFAULTS),
   }
 }
 
@@ -246,20 +302,22 @@ export function reconcileDoubleCardConfig(config: DoubleCardConfig | undefined, 
   if (!config) {
     return undefined
   }
-
-  const base = reconcileFanBackedTaskConfig(config, fans, DOUBLE_CARD_TASK_DEFAULTS)
+  const fanRoomIds = new Set(fans.map(fan => fan.roomId))
   return {
-    ...base,
-    giftScope: normalizeDoubleCardGiftScope(config.giftScope),
-    enabled: buildEnabledMap(fans.map(fan => String(fan.roomId)), config),
+    enabled: config.enabled,
+    cron: config.cron || DEFAULT_DOUBLE_CARD_CRON,
+    giftScope: config.giftScope,
+    participatingRoomIds: config.participatingRoomIds.filter(roomId => fanRoomIds.has(roomId)),
+    ...createAllocationForFans(config, fans, DOUBLE_CARD_TASK_DEFAULTS),
   }
 }
 
 export function createDefaultExpiringGiftConfig(fans: Fans[]): ExpiringGiftConfig {
-  const base = createDefaultFanBackedTaskConfig(fans, EXPIRING_GIFT_TASK_DEFAULTS)
   return {
-    ...base,
+    enabled: false,
+    cron: DEFAULT_EXPIRING_GIFT_CRON,
     thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
+    ...createAllocationForFans(undefined, fans, EXPIRING_GIFT_TASK_DEFAULTS),
   }
 }
 
@@ -267,108 +325,65 @@ export function reconcileExpiringGiftConfig(config: ExpiringGiftConfig | undefin
   if (!config) {
     return undefined
   }
-
-  const base = reconcileFanBackedTaskConfig(config, fans, EXPIRING_GIFT_TASK_DEFAULTS)
   return {
-    ...base,
+    enabled: config.enabled,
+    cron: config.cron || DEFAULT_EXPIRING_GIFT_CRON,
     thresholdHours: normalizeThresholdHours(config.thresholdHours),
+    ...createAllocationForFans(config, fans, EXPIRING_GIFT_TASK_DEFAULTS),
   }
 }
 
-function normalizeThresholdHours(value: number | undefined): number {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0
-    ? value
-    : DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS
-}
-
-function normalizeKeepaliveConfig(config: JobConfig | undefined): JobConfig | undefined {
-  if (!config) {
-    return undefined
-  }
-
-  return normalizeFanBackedTaskConfig(config, KEEPALIVE_TASK_DEFAULTS)
-}
-
-function normalizeDoubleCardConfig(config: DoubleCardConfig | undefined): DoubleCardConfig | undefined {
-  if (!config) {
-    return undefined
-  }
-
-  const base = normalizeFanBackedTaskConfig(config, DOUBLE_CARD_TASK_DEFAULTS)
+function normalizeDoubleCardConfig(rawConfig: unknown): DoubleCardConfig {
+  const config = asRecord(rawConfig)
   return {
-    ...base,
-    giftScope: normalizeDoubleCardGiftScope(config.giftScope),
-    enabled: buildEnabledMap(Object.keys(base.send), config),
+    enabled: normalizeEnabled(config, false),
+    cron: normalizeString(config?.cron) || DEFAULT_DOUBLE_CARD_CRON,
+    giftScope: normalizeDoubleCardGiftScope(config?.giftScope),
+    participatingRoomIds: normalizeParticipatingRoomIds(config),
+    ...normalizeAllocation(config, DOUBLE_CARD_TASK_DEFAULTS),
   }
 }
 
-function normalizeExpiringGiftConfig(config: ExpiringGiftConfig | undefined): ExpiringGiftConfig | undefined {
-  if (!config) {
-    return undefined
-  }
-
-  const base = normalizeFanBackedTaskConfig(config, EXPIRING_GIFT_TASK_DEFAULTS)
+function normalizeExpiringGiftConfig(rawConfig: unknown): ExpiringGiftConfig {
+  const config = asRecord(rawConfig)
   return {
-    ...base,
-    thresholdHours: normalizeThresholdHours(config.thresholdHours),
+    enabled: normalizeEnabled(config, false),
+    cron: normalizeString(config?.cron) || DEFAULT_EXPIRING_GIFT_CRON,
+    thresholdHours: normalizeThresholdHours(config?.thresholdHours),
+    ...normalizeAllocation(config, EXPIRING_GIFT_TASK_DEFAULTS),
   }
 }
 
-export function normalizeDockerConfig(config: DockerConfig, options: { ensureCollectGift?: boolean } = {}): DockerConfig {
-  const collectGift = normalizeCollectGiftConfig(config.collectGift)
-  const cookieCloud = normalizeCookieCloud(config.cookieCloud)
-  const manualCookies = normalizeManualCookies(config)
-  const manualPassport = normalizeManualPassport(config)
-  const yubaCheckIn = normalizeYubaCheckInConfig(config.yubaCheckIn)
+export function normalizeDockerConfig(input: unknown, _options: { ensureCollectGift?: boolean } = {}): DockerConfig {
+  const config = asRecord(input) || {}
+  const themeMode = asRecord(config.ui)?.themeMode
   return {
-    cookie: manualCookies?.main || config.cookie || '',
-    ...(manualCookies ? { manualCookies } : {}),
-    ...(manualPassport ? { manualPassport } : {}),
-    ...(cookieCloud ? { cookieCloud } : {}),
+    loginCookies: normalizeLoginCookies(config),
+    cookieCloud: normalizeCookieCloud(config.cookieCloud),
     ui: {
-      themeMode: config.ui?.themeMode || DEFAULT_THEME_MODE,
+      themeMode: themeMode === 'light' || themeMode === 'dark' ? themeMode : DEFAULT_THEME_MODE,
     },
-    ...(collectGift
-      ? { collectGift }
-      : (options.ensureCollectGift ? { collectGift: createDefaultCollectGiftConfig() } : {})),
-    keepalive: normalizeKeepaliveConfig(config.keepalive),
+    collectGift: normalizeCollectGiftConfig(config.collectGift),
+    keepalive: normalizeFanBackedTaskConfig(config.keepalive, KEEPALIVE_TASK_DEFAULTS),
     doubleCard: normalizeDoubleCardConfig(config.doubleCard),
     expiringGift: normalizeExpiringGiftConfig(config.expiringGift),
-    ...(yubaCheckIn ? { yubaCheckIn } : {}),
+    yubaCheckIn: normalizeYubaCheckInConfig(config.yubaCheckIn),
   }
 }
 
 export function reconcileDockerConfig(config: DockerConfig, fans: Fans[]): DockerConfig {
-  const collectGift = normalizeCollectGiftConfig(config.collectGift)
-  const cookieCloud = normalizeCookieCloud(config.cookieCloud)
-  const manualCookies = normalizeManualCookies(config)
-  const manualPassport = normalizeManualPassport(config)
-  const yubaCheckIn = normalizeYubaCheckInConfig(config.yubaCheckIn)
   return {
-    cookie: manualCookies?.main || config.cookie,
-    ...(manualCookies ? { manualCookies } : {}),
-    ...(manualPassport ? { manualPassport } : {}),
-    ...(cookieCloud ? { cookieCloud } : {}),
-    ui: {
-      themeMode: config.ui?.themeMode || DEFAULT_THEME_MODE,
-    },
-    ...(collectGift ? { collectGift } : {}),
-    keepalive: reconcileKeepaliveConfig(config.keepalive, fans),
-    doubleCard: reconcileDoubleCardConfig(config.doubleCard, fans),
-    expiringGift: reconcileExpiringGiftConfig(config.expiringGift, fans),
-    ...(yubaCheckIn ? { yubaCheckIn } : {}),
+    loginCookies: { ...config.loginCookies },
+    cookieCloud: { ...config.cookieCloud },
+    ui: { ...config.ui },
+    collectGift: { ...config.collectGift },
+    keepalive: reconcileFanBackedTaskConfig(config.keepalive, fans, KEEPALIVE_TASK_DEFAULTS),
+    doubleCard: reconcileDoubleCardConfig(config.doubleCard, fans) || createDefaultDoubleCardConfig(fans),
+    expiringGift: reconcileExpiringGiftConfig(config.expiringGift, fans) || createDefaultExpiringGiftConfig(fans),
+    yubaCheckIn: { ...config.yubaCheckIn },
   }
 }
 
 export function createDefaultDockerConfig(): DockerConfig {
-  return {
-    cookie: '',
-    ui: {
-      themeMode: DEFAULT_THEME_MODE,
-    },
-    collectGift: createDefaultCollectGiftConfig(),
-    keepalive: createDefaultKeepaliveConfig([]),
-    expiringGift: createDefaultExpiringGiftConfig([]),
-    yubaCheckIn: createDefaultYubaCheckInConfig(),
-  }
+  return createDefaultRawDockerConfig()
 }

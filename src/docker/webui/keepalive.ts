@@ -1,12 +1,12 @@
 import type { Fans, JobConfig } from '../../core/types'
 import { computed, ref } from 'vue'
-import { DEFAULT_KEEPALIVE_CRON, DEFAULT_KEEPALIVE_MODEL } from '../../core/task-defaults'
+import { DEFAULT_KEEPALIVE_ALLOCATION_MODE, DEFAULT_KEEPALIVE_CRON } from '../../core/task-defaults'
 import type { AllocationFanRow } from './allocation-task'
-import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationModel } from './allocation-task'
+import { allocationModeToModel, buildAllocationConfig, buildAllocationFanRows } from './allocation-task'
 import { useCronPreview } from './composables/use-cron-preview'
 import { createFansBackedTaskPageState } from './fans-backed-task-page'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
-import { createDisabledAllocationTaskConfig, createFanListEmptyText, createTaskConfigAccessor, getAllocationValueLabel, hasFanTaskTableRows, isTaskActive } from './task-shared'
+import { createDisabledAllocationTaskConfig, createFanListEmptyText, createTaskConfigAccessor, getAllocationValueLabel, hasFanTaskTableRows, isTaskEnabled } from './task-shared'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface KeepaliveOverview {
@@ -27,19 +27,19 @@ const taskPage = createFansBackedTaskPageState<KeepaliveOverview, RawKeepaliveCo
 const { fans, fansListError, fansListLoaded, managedConfig, managedLoading, overview, rawConfig } = taskPage
 const keepaliveEnabled = ref(false)
 const keepaliveCron = ref(DEFAULT_KEEPALIVE_CRON)
-const keepaliveModel = ref<1 | 2>(DEFAULT_KEEPALIVE_MODEL)
+const keepaliveModel = ref<1 | 2>(allocationModeToModel(DEFAULT_KEEPALIVE_ALLOCATION_MODE, DEFAULT_KEEPALIVE_ALLOCATION_MODE))
 const fanRows = ref<KeepaliveFanRow[]>([])
 const { cronPreviewText: keepaliveCronPreviewText, ensureCronPreview, loadCronPreview: loadKeepaliveCronPreview } = useCronPreview(() => keepaliveCron.value)
 
 const KEEPALIVE_CONFIG_FALLBACK: JobConfig = {
-  active: true,
+  enabled: true,
   cron: DEFAULT_KEEPALIVE_CRON,
-  model: DEFAULT_KEEPALIVE_MODEL,
-  send: {},
+  allocationMode: DEFAULT_KEEPALIVE_ALLOCATION_MODE,
+  roomAllocations: {},
 }
 
-function normalizeModel(model: unknown): 1 | 2 {
-  return normalizeAllocationModel(model, DEFAULT_KEEPALIVE_MODEL)
+function normalizeModel(mode: unknown): 1 | 2 {
+  return allocationModeToModel(mode, DEFAULT_KEEPALIVE_ALLOCATION_MODE)
 }
 
 const getKeepaliveConfig = createTaskConfigAccessor<JobConfig, RawKeepaliveConfig>({
@@ -50,10 +50,10 @@ const getKeepaliveConfig = createTaskConfigAccessor<JobConfig, RawKeepaliveConfi
 })
 
 function buildFanRows(nextFans: Fans[], config: JobConfig): KeepaliveFanRow[] {
-  const model = normalizeModel(config.model)
+  const model = normalizeModel(config.allocationMode)
   return buildAllocationFanRows(nextFans, {
     model,
-    send: config.send,
+    roomAllocations: config.roomAllocations,
     defaultValue: () => 1,
   })
 }
@@ -61,19 +61,18 @@ function buildFanRows(nextFans: Fans[], config: JobConfig): KeepaliveFanRow[] {
 function applyResourceState(): void {
   taskPage.syncResourceState()
   const keepaliveConfig = getKeepaliveConfig()
-  keepaliveEnabled.value = isTaskActive(keepaliveConfig)
+  keepaliveEnabled.value = isTaskEnabled(keepaliveConfig)
   keepaliveCron.value = keepaliveConfig.cron || DEFAULT_KEEPALIVE_CRON
-  keepaliveModel.value = normalizeModel(keepaliveConfig.model)
+  keepaliveModel.value = normalizeModel(keepaliveConfig.allocationMode)
   fanRows.value = buildFanRows(fans.value, keepaliveConfig)
   void ensureCronPreview()
 }
 
 function buildSendPayload(): JobConfig {
   return {
-    active: true,
+    enabled: true,
     cron: keepaliveCron.value.trim(),
-    model: keepaliveModel.value,
-    send: buildAllocationSendMap(fanRows.value, keepaliveModel.value),
+    ...buildAllocationConfig(fanRows.value, keepaliveModel.value),
   }
 }
 
@@ -96,10 +95,7 @@ async function disableKeepaliveConfig(): Promise<void> {
   const currentConfig = getKeepaliveConfig()
   await disableEnabledTask({
     payload: {
-      keepalive: createDisabledAllocationTaskConfig(currentConfig, {
-        defaultCron: DEFAULT_KEEPALIVE_CRON,
-        normalizeModel,
-      }),
+      keepalive: createDisabledAllocationTaskConfig(currentConfig),
     },
     successMessage: '保活任务已停用',
     failurePrefix: '停用保活任务失败：',
@@ -147,9 +143,9 @@ export function useKeepaliveTaskPage() {
   }
 
   function handleKeepaliveModelChange(): void {
-    fanRows.value = buildFanRows(fans.value, {
-      ...getKeepaliveConfig(),
+    fanRows.value = buildAllocationFanRows(fans.value, {
       model: keepaliveModel.value,
+      defaultValue: () => 1,
     })
   }
 

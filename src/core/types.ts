@@ -53,24 +53,27 @@ export interface ExpiringGiftSelection {
 }
 
 export type CookieCloudCryptoType = 'legacy'
-export type DockerCookieSource = 'none' | 'manual' | 'cookieCloud' | 'hybrid'
+export type DockerCookieSource = 'none' | 'local' | 'cookieCloud' | 'hybrid'
 
-export interface CookieCloudConfig {
-  active?: boolean
-  endpoint: string
-  uuid: string
-  password: string
-  cron?: string
-  cryptoType?: CookieCloudCryptoType
-}
-
-export interface ManualCookieConfig {
+export interface LoginCookiesConfig {
+  passport: string
   main: string
   yuba: string
 }
 
-export interface ManualPassportConfig {
-  cookie: string
+export interface LoginCookieValues {
+  passportCookie: string
+  mainCookie: string
+  yubaCookie: string
+}
+
+export interface CookieCloudConfig {
+  enabled: boolean
+  endpoint: string
+  uuid: string
+  password: string
+  cron: string
+  cryptoType: CookieCloudCryptoType
 }
 
 export interface CookieCloudCookie {
@@ -86,25 +89,32 @@ export interface CookieCloudCookie {
 }
 
 export interface CookieDiagnostics {
-  source: 'manual' | 'cookieCloud'
-  mainCookieReady: boolean
-  yubaDyTokenReady: boolean
-  yubaCookieReady: boolean
-  missingMainKeys: string[]
-  missingYubaDyTokenKeys: string[]
-  missingYubaCookieKeys: string[]
-  missingYubaKeys: string[]
-  cookieCount: number
-  domains: string[]
-  updateTime?: string
-  passportLtp0Present?: boolean
+  source: 'local' | 'cookieCloud'
+  passport: {
+    ltp0Present: boolean
+  }
+  main: {
+    ready: boolean
+    missingKeys: string[]
+  }
+  yuba: {
+    dyTokenReady: boolean
+    cookieReady: boolean
+    missingDyTokenKeys: string[]
+    missingCookieKeys: string[]
+  }
+  snapshot: {
+    cookieCount: number
+    domains: string[]
+    updatedAt?: string
+  }
 }
 
 export interface EffectiveCookiePreview {
   source: DockerCookieSource
   mainCookie: string
   yubaCookie: string
-  cookieCloudActive: boolean
+  cookieCloudEnabled: boolean
   persistedLocally: boolean
   passportLtp0Present?: boolean
 }
@@ -182,68 +192,81 @@ export interface YubaStatusResponse {
   groups: YubaGroupStatus[]
 }
 
-export interface SendGift {
-  roomId: number
-  number: number
-  giftId: number
+export type AllocationMode = 'weighted' | 'fixed'
+
+export interface WeightedRoomAllocation {
   weight: number
-  count?: number
 }
 
-export type sendConfig = Record<string, SendGift>
+export interface FixedRoomAllocation {
+  count: number
+}
+
+export interface WeightedAllocationConfig {
+  allocationMode: 'weighted'
+  roomAllocations: Record<string, WeightedRoomAllocation>
+}
+
+export interface FixedAllocationConfig {
+  allocationMode: 'fixed'
+  roomAllocations: Record<string, FixedRoomAllocation>
+}
+
+export type GiftAllocationConfig = WeightedAllocationConfig | FixedAllocationConfig
+
+export interface GiftSendJob {
+  roomId: number
+  giftId: number
+  count: number
+}
+
+export type GiftSendJobs = Record<string, GiftSendJob>
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type YubaCheckInMode = 'followed'
 export type DoubleCardGiftScope = 'glowStick' | 'limitedTime'
 
-export interface sendArgs {
+export interface SendGiftRequestArgs {
   sid?: string
   dy?: string
   did?: string
 }
 
-export interface DockerConfig {
-  cookie: string
-  manualCookies?: ManualCookieConfig
-  manualPassport?: ManualPassportConfig
-  cookieCloud?: CookieCloudConfig
-  ui?: DockerUiConfig
-  collectGift?: CollectGiftConfig
-  keepalive?: JobConfig
-  doubleCard?: DoubleCardConfig
-  expiringGift?: ExpiringGiftConfig
-  yubaCheckIn?: YubaCheckInConfig
-}
-
-export interface CollectGiftConfig {
-  active?: boolean
+export interface ScheduledTaskConfig {
+  enabled: boolean
   cron: string
 }
 
-export interface JobConfig {
-  active?: boolean
-  cron: string
-  model: 1 | 2
-  send: sendConfig
+export type JobConfig = ScheduledTaskConfig & GiftAllocationConfig
+
+export type DoubleCardConfig = JobConfig & {
+  giftScope: DoubleCardGiftScope
+  participatingRoomIds: number[]
 }
 
-export interface DoubleCardConfig extends JobConfig {
-  enabled?: Record<string, boolean>
-  giftScope?: DoubleCardGiftScope
+export type ExpiringGiftConfig = JobConfig & {
+  thresholdHours: number
 }
 
-export interface ExpiringGiftConfig extends JobConfig {
-  thresholdHours?: number
-}
+export interface CollectGiftConfig extends ScheduledTaskConfig {}
 
-export interface YubaCheckInConfig {
-  active?: boolean
-  cron: string
-  mode?: YubaCheckInMode
+export interface YubaCheckInConfig extends ScheduledTaskConfig {
+  mode: YubaCheckInMode
 }
 
 export interface DockerUiConfig {
-  themeMode?: ThemeMode
+  themeMode: ThemeMode
+}
+
+export interface DockerConfig {
+  loginCookies: LoginCookiesConfig
+  cookieCloud: CookieCloudConfig
+  ui: DockerUiConfig
+  collectGift: CollectGiftConfig
+  keepalive: JobConfig
+  doubleCard: DoubleCardConfig
+  expiringGift: ExpiringGiftConfig
+  yubaCheckIn: YubaCheckInConfig
 }
 
 export interface DoubleCardInfo {

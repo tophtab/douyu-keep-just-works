@@ -1,5 +1,4 @@
-import type { Fans, SendGift } from '../../core/types'
-import { DEFAULT_GIFT_ID } from '../../core/task-defaults'
+import type { AllocationMode, Fans, GiftAllocationConfig } from '../../core/types'
 import type { FanDisplayRow } from './fan-display'
 import { buildFanDisplayRows } from './fan-display'
 
@@ -13,12 +12,16 @@ interface BuildAllocationFanRowsOptions<TFan extends Fans, TExtra extends object
   defaultValue: (fan: TFan, index: number, model: AllocationTaskModel) => number
   extra?: (fan: TFan, index: number, model: AllocationTaskModel) => TExtra
   model: AllocationTaskModel
-  send?: Record<string, SendGift>
+  roomAllocations?: Record<string, { weight?: number; count?: number }>
 }
 
-export function normalizeAllocationModel(model: unknown, defaultModel: AllocationTaskModel): AllocationTaskModel {
-  const parsed = Number(model)
-  return parsed === 1 || parsed === 2 ? parsed : defaultModel
+export function allocationModeToModel(mode: unknown, defaultMode: AllocationMode): AllocationTaskModel {
+  const normalized = mode === 'weighted' || mode === 'fixed' ? mode : defaultMode
+  return normalized === 'weighted' ? 1 : 2
+}
+
+export function modelToAllocationMode(model: AllocationTaskModel): AllocationMode {
+  return model === 1 ? 'weighted' : 'fixed'
 }
 
 export function buildAllocationFanRows<TFan extends Fans, TExtra extends object = Record<string, never>>(
@@ -26,10 +29,9 @@ export function buildAllocationFanRows<TFan extends Fans, TExtra extends object 
   options: BuildAllocationFanRowsOptions<TFan, TExtra>,
 ): Array<AllocationFanRow & TExtra> {
   return buildFanDisplayRows<TFan, { value: number } & TExtra>(fans, (fan, index) => {
-    const key = String(fan.roomId)
-    const sendItem = options.send?.[key]
-    const value = sendItem
-      ? getSendValue(sendItem, options.model)
+    const allocation = options.roomAllocations?.[String(fan.roomId)]
+    const value = allocation
+      ? getAllocationValue(allocation, options.model)
       : options.defaultValue(fan, index, options.model)
 
     return {
@@ -39,27 +41,21 @@ export function buildAllocationFanRows<TFan extends Fans, TExtra extends object 
   })
 }
 
-export function buildAllocationSendMap(rows: AllocationFanRow[], model: AllocationTaskModel): Record<string, SendGift> {
-  const send: Record<string, SendGift> = {}
-  for (const row of rows) {
-    const value = Number(row.value || 0)
-    send[String(row.roomId)] = {
-      roomId: row.roomId,
-      giftId: DEFAULT_GIFT_ID,
-      number: model === 2 ? value : 0,
-      weight: model === 1 ? value : 0,
-      count: 0,
+export function buildAllocationConfig(rows: AllocationFanRow[], model: AllocationTaskModel): GiftAllocationConfig {
+  if (model === 2) {
+    return {
+      allocationMode: 'fixed',
+      roomAllocations: Object.fromEntries(rows.map(row => [String(row.roomId), { count: Number(row.value || 0) }])),
     }
   }
-  return send
+  return {
+    allocationMode: 'weighted',
+    roomAllocations: Object.fromEntries(rows.map(row => [String(row.roomId), { weight: Number(row.value || 0) }])),
+  }
 }
 
-export function buildEnabledRoomMap(rows: Array<AllocationFanRow & { enabled?: boolean }>): Record<string, boolean> {
-  const enabled: Record<string, boolean> = {}
-  for (const row of rows) {
-    enabled[String(row.roomId)] = Boolean(row.enabled)
-  }
-  return enabled
+export function buildParticipatingRoomIds(rows: Array<AllocationFanRow & { enabled?: boolean }>): number[] {
+  return rows.filter(row => row.enabled).map(row => row.roomId)
 }
 
 export function updateAllocationRowEnabled<T extends { enabled?: boolean }>(row: T, value: boolean): void {
@@ -75,6 +71,6 @@ export function formatRatioPercent(value: number): string {
   return `${rounded.toFixed(1).replace(/\.0$/, '')}%`
 }
 
-function getSendValue(sendItem: SendGift, model: AllocationTaskModel): number {
-  return model === 2 ? Number(sendItem.number || 0) : Number(sendItem.weight || 0)
+function getAllocationValue(allocation: { weight?: number; count?: number }, model: AllocationTaskModel): number {
+  return model === 2 ? Number(allocation.count || 0) : Number(allocation.weight || 0)
 }

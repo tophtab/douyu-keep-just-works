@@ -1,4 +1,4 @@
-import type { BackpackGiftRow, BackpackStatus, DoubleCardConfig, ExpiringGiftSelection, sendConfig } from './types'
+import type { BackpackGiftRow, BackpackStatus, DoubleCardConfig, ExpiringGiftSelection, GiftAllocationConfig, GiftSendJobs } from './types'
 
 export interface GiftSendGroup {
   giftCount: number
@@ -6,37 +6,37 @@ export interface GiftSendGroup {
   giftName: string
 }
 
-export function buildEnabledSendConfig(config: Pick<DoubleCardConfig, 'enabled' | 'send'>): sendConfig {
-  return Object.values(config.send).reduce((prev, item) => {
-    const roomKey = String(item.roomId)
-    if (config.enabled && !config.enabled[roomKey]) {
-      return prev
+export function buildParticipatingAllocation(config: DoubleCardConfig): GiftAllocationConfig {
+  const participatingRoomIds = new Set(config.participatingRoomIds.map(String))
+  if (config.allocationMode === 'fixed') {
+    return {
+      allocationMode: 'fixed',
+      roomAllocations: Object.fromEntries(Object.entries(config.roomAllocations).filter(([roomId]) => participatingRoomIds.has(roomId))),
     }
-    prev[roomKey] = item
-    return prev
-  }, {} as sendConfig)
+  }
+  return {
+    allocationMode: 'weighted',
+    roomAllocations: Object.fromEntries(Object.entries(config.roomAllocations).filter(([roomId]) => participatingRoomIds.has(roomId))),
+  }
 }
 
 export function buildGiftSendGroups(selection: Pick<ExpiringGiftSelection, 'giftCounts' | 'giftNames'>): GiftSendGroup[] {
-  return Object.entries(selection.giftCounts).map(([giftIdText, giftCount]) => {
-    const giftId = Number(giftIdText)
-    return {
-      giftId,
-      giftName: selection.giftNames[giftIdText] || '未知礼物',
-      giftCount,
-    }
-  })
+  return Object.entries(selection.giftCounts).map(([giftIdText, giftCount]) => ({
+    giftId: Number(giftIdText),
+    giftName: selection.giftNames[giftIdText] || '未知礼物',
+    giftCount,
+  }))
 }
 
-export function applyGiftIdToSendJobs(jobs: sendConfig, giftId: number): sendConfig {
+export function applyGiftIdToSendJobs(jobs: GiftSendJobs, giftId: number): GiftSendJobs {
   for (const item of Object.values(jobs)) {
     item.giftId = giftId
   }
   return jobs
 }
 
-export function countPositiveGiftTargets(jobs: sendConfig): number {
-  return Object.values(jobs).filter(item => (item.count || 0) > 0).length
+export function countPositiveGiftTargets(jobs: GiftSendJobs): number {
+  return Object.values(jobs).filter(item => item.count > 0).length
 }
 
 export function hasActiveDoubleCardRoom(doubleCardRooms: Record<string, boolean>): boolean {
@@ -47,7 +47,6 @@ export function getEarliestPositiveGiftExpireTime(status: BackpackStatus): numbe
   const expireTimes = status.rows
     .filter(row => Number.isFinite(row.count) && row.count > 0 && row.expireTime)
     .map(row => row.expireTime!)
-
   return expireTimes.length ? Math.min(...expireTimes) : undefined
 }
 
@@ -66,17 +65,14 @@ export function selectExpiringGiftCandidates(status: BackpackStatus, options: {
     if (!Number.isFinite(row.count) || row.count <= 0) {
       continue
     }
-
     if (!row.expireTime) {
       skippedNoExpireTime += 1
       continue
     }
-
     if (!options.includeAllExpiring && row.expireTime - now > thresholdMs) {
       skippedNotExpiring += 1
       continue
     }
-
     candidates.push(row)
   }
 

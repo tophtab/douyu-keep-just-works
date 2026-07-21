@@ -7,6 +7,7 @@ import type {
   CookieCloudCookie,
   CookieCloudCryptoType,
   CookieDiagnostics,
+  LoginCookieValues,
 } from './types'
 
 interface CookieCloudResponse {
@@ -194,7 +195,7 @@ export function normalizeCookieCloudConfig(config: CookieCloudConfig | undefined
   }
 
   return {
-    active: config.active === true,
+    enabled: config.enabled === true,
     endpoint: normalizeEndpoint(config.endpoint || ''),
     uuid: normalizeString(config.uuid),
     password: normalizeString(config.password),
@@ -206,7 +207,7 @@ export function normalizeCookieCloudConfig(config: CookieCloudConfig | undefined
 export function isCookieCloudReady(config: CookieCloudConfig | undefined): boolean {
   const normalized = normalizeCookieCloudConfig(config)
   return Boolean(
-    normalized?.active
+    normalized?.enabled
     && normalized.endpoint
     && normalized.uuid
     && normalized.password,
@@ -270,28 +271,36 @@ export function getCookieCloudPassportCookie(cookies: CookieCloudCookie[]): stri
   return buildCookieHeaderForUrl(cookies, PASSPORT_DOUYU_URL)
 }
 
-export function createCookieDiagnostics(source: 'manual' | 'cookieCloud', mainCookie: string, yubaCookie: string, options: {
-  cookieCount: number
-  domains: string[]
-  updateTime?: string
-  passportLtp0Present?: boolean
+export function createCookieDiagnostics(options: {
+  source: 'local' | 'cookieCloud'
+  cookies: LoginCookieValues
+  snapshot: {
+    cookieCount: number
+    domains: string[]
+    updatedAt?: string
+  }
 }): CookieDiagnostics {
+  const { source, cookies, snapshot } = options
+  const { passportCookie, mainCookie, yubaCookie } = cookies
   const missingMainKeys = COOKIE_CLOUD_MAIN_REQUIRED_KEYS.filter(name => !getCookieValue(mainCookie, name))
   const missingYubaCookieKeys = COOKIE_CLOUD_YUBA_COOKIE_REQUIRED_KEYS.filter(name => !getCookieValue(yubaCookie, name))
   const missingYubaDyTokenKeys = COOKIE_CLOUD_YUBA_DY_TOKEN_REQUIRED_KEYS.filter(name => !getCookieValue(mainCookie, name))
 
   return {
     source,
-    mainCookieReady: missingMainKeys.length === 0,
-    yubaDyTokenReady: missingYubaDyTokenKeys.length === 0,
-    yubaCookieReady: missingYubaCookieKeys.length === 0,
-    missingMainKeys,
-    missingYubaDyTokenKeys,
-    missingYubaCookieKeys,
-    missingYubaKeys: missingYubaCookieKeys,
-    cookieCount: options.cookieCount,
-    domains: options.domains,
-    updateTime: options.updateTime,
-    passportLtp0Present: options.passportLtp0Present,
+    passport: {
+      ltp0Present: Boolean(getCookieValue(passportCookie, 'LTP0')),
+    },
+    main: {
+      ready: missingMainKeys.length === 0,
+      missingKeys: missingMainKeys,
+    },
+    yuba: {
+      dyTokenReady: missingYubaDyTokenKeys.length === 0,
+      cookieReady: missingYubaCookieKeys.length === 0,
+      missingDyTokenKeys: missingYubaDyTokenKeys,
+      missingCookieKeys: missingYubaCookieKeys,
+    },
+    snapshot,
   }
 }

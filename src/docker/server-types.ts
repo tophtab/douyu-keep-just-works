@@ -1,4 +1,5 @@
-import type { CollectGiftConfig, CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, ManualCookieConfig, ManualPassportConfig, PassportQrLoginPublicStatus, YubaCheckInConfig, YubaStatusResponse } from '../core/types'
+import type { CookieDiagnostics, DockerConfig, EffectiveCookiePreview, Fans, FansStatusResponse, LoginCookiesConfig, PassportQrLoginPublicStatus, YubaStatusResponse } from '../core/types'
+import type { DockerConfigUpdate } from './config-store'
 import type { LogEntry } from './logger'
 import type { TaskType } from './task-metadata'
 
@@ -15,18 +16,8 @@ export interface CacheRefreshOptions {
 export interface AppContext {
   webPassword: string
   getConfig(): DockerConfig | null
-  saveCookie(cookies: ManualCookieConfig): void
-  saveTaskConfig(config: {
-    manualCookies?: ManualCookieConfig
-    manualPassport?: ManualPassportConfig
-    cookieCloud?: DockerConfig['cookieCloud']
-    collectGift?: CollectGiftConfig | null
-    keepalive?: JobConfig | null
-    doubleCard?: DoubleCardConfig | null
-    expiringGift?: ExpiringGiftConfig | null
-    yubaCheckIn?: YubaCheckInConfig | null
-    ui?: DockerConfig['ui']
-  }): Promise<{ config: DockerConfig; fans: Fans[] }>
+  saveCookie(cookies: Pick<LoginCookiesConfig, 'main' | 'yuba'>): void
+  saveTaskConfig(config: DockerConfigUpdate): Promise<{ config: DockerConfig; fans: Fans[] }>
   syncWithFans(): Promise<{ config: DockerConfig; fans: Fans[] }>
   getStatus(): { collectGift: JobStatus; keepalive: JobStatus; doubleCard: JobStatus; expiringGift: JobStatus; yubaCheckIn: JobStatus }
   getLogs(): LogEntry[]

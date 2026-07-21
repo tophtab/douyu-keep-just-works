@@ -22,15 +22,13 @@ export class DockerCookieSnapshotStore {
     effective: EffectiveCookiePreview
     updated: boolean
   } {
-    const { effective, manualPassportCookie } = material
+    const { effective, passportCookie } = material
     const nextConfig = buildConfigWithPartialUpdate(this.deps.getConfig(), {
-      manualCookies: {
+      loginCookies: {
+        passport: passportCookie?.trim() || this.deps.getConfig()?.loginCookies.passport || '',
         main: effective.mainCookie.trim(),
         yuba: effective.yubaCookie.trim(),
       },
-      ...(manualPassportCookie
-        ? { manualPassport: { cookie: manualPassportCookie } }
-        : {}),
     })
 
     if (configsEqual(this.deps.getConfig(), nextConfig)) {
@@ -60,14 +58,12 @@ export class DockerCookieSnapshotStore {
     mainCookie: string
     yubaCookie?: string
   }): DockerConfig {
-    const currentYubaCookie = this.deps.getConfig()?.manualCookies?.yuba?.trim() || ''
+    const currentYubaCookie = this.deps.getConfig()?.loginCookies.yuba.trim() || ''
     const nextConfig = buildConfigWithPartialUpdate(this.deps.getConfig(), {
-      manualCookies: {
+      loginCookies: {
+        passport: args.passportCookie.trim(),
         main: args.mainCookie.trim(),
         yuba: args.yubaCookie?.trim() || currentYubaCookie,
-      },
-      manualPassport: {
-        cookie: args.passportCookie.trim(),
       },
     })
 
@@ -80,9 +76,11 @@ export class DockerCookieSnapshotStore {
     return nextConfig
   }
 
-  persistManualCookieSnapshot(mainCookie: string, yubaCookie: string): DockerConfig {
+  persistLocalCookieSnapshot(mainCookie: string, yubaCookie: string): DockerConfig {
+    const passportCookie = this.deps.getConfig()?.loginCookies.passport || ''
     const nextConfig = buildConfigWithPartialUpdate(this.deps.getConfig(), {
-      manualCookies: {
+      loginCookies: {
+        passport: passportCookie,
         main: mainCookie.trim(),
         yuba: yubaCookie.trim(),
       },

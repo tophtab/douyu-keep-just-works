@@ -20,9 +20,7 @@ export interface DockerRuntimeFansSyncDeps {
 }
 
 export function cookieSnapshotEqual(a: DockerConfig | null | undefined, b: DockerConfig | null | undefined): boolean {
-  return (a?.cookie || '') === (b?.cookie || '')
-    && jsonEquals(a?.manualCookies || null, b?.manualCookies || null)
-    && jsonEquals(a?.manualPassport || null, b?.manualPassport || null)
+  return jsonEquals(a?.loginCookies || null, b?.loginCookies || null)
 }
 
 export class DockerRuntimeFansSyncService {
@@ -57,15 +55,14 @@ export class DockerRuntimeFansSyncService {
       return config
     }
 
-    const latestManualCookies = latestConfig.manualCookies
-    if (!latestManualCookies?.main?.trim() && !latestManualCookies?.yuba?.trim() && !latestConfig.cookie?.trim()) {
+    const latestLoginCookies = latestConfig.loginCookies
+    if (!latestLoginCookies.main.trim() && !latestLoginCookies.yuba.trim()) {
       return config
     }
 
     return normalizeDockerConfig({
       ...config,
-      cookie: latestManualCookies?.main?.trim() || latestConfig.cookie || config.cookie,
-      ...(latestManualCookies ? { manualCookies: latestManualCookies } : {}),
+      loginCookies: latestLoginCookies,
     })
   }
 }

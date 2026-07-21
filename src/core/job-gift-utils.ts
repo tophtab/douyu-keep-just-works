@@ -1,25 +1,29 @@
 import { getBackpackStatus, getDid, getGiftNumber, parseDyAndSidFromCookie, sendGift, sleep } from './api'
 import { errorMessage } from './errors'
-import type { BackpackStatus, Logger, sendArgs, sendConfig } from './types'
+import type { BackpackStatus, GiftSendJobs, Logger, SendGiftRequestArgs } from './types'
 
 export type RoomDidResolver = (roomId: number) => Promise<string>
 
 export function createRoomDidResolver(cookie: string): RoomDidResolver {
   const didByRoom = new Map<number, string>()
-
   return async (roomId) => {
     const cached = didByRoom.get(roomId)
     if (cached !== undefined) {
       return cached
     }
-
     const did = await getDid(String(roomId), cookie)
     didByRoom.set(roomId, did)
     return did
   }
 }
 
-export async function loadGiftNumber(cookie: string, log: Logger, prefix?: string, candidateRoomIds: number[] = []): Promise<number | null> {
+export async function loadGiftNumber(options: {
+  cookie: string
+  log: Logger
+  prefix?: string
+  candidateRoomIds?: number[]
+}): Promise<number | null> {
+  const { cookie, log, prefix, candidateRoomIds = [] } = options
   if (prefix) {
     log(prefix)
   }
@@ -39,11 +43,16 @@ export async function loadGiftNumber(cookie: string, log: Logger, prefix?: strin
   return number
 }
 
-export async function loadBackpackStatus(cookie: string, log: Logger, prefix?: string, candidateRoomIds: number[] = []): Promise<BackpackStatus | null> {
+export async function loadBackpackStatus(options: {
+  cookie: string
+  log: Logger
+  prefix?: string
+  candidateRoomIds?: number[]
+}): Promise<BackpackStatus | null> {
+  const { cookie, log, prefix, candidateRoomIds = [] } = options
   if (prefix) {
     log(prefix)
   }
-
   try {
     const status = await getBackpackStatus(cookie, candidateRoomIds)
     log(`背包可见礼物行数: ${status.totalRows}，荧光棒数量: ${status.glowStickCount}`)
@@ -67,15 +76,23 @@ export function formatShanghaiTime(value: number): string {
   }).format(new Date(value)).replace(/\//g, '-')
 }
 
-export async function sendGifts(
-  jobs: sendConfig,
-  cookie: string,
-  log: Logger,
-  giftLabel = '荧光棒',
-  completionLabel = '任务',
-  options: { resolveDid?: RoomDidResolver } = {},
-): Promise<void> {
-  let args: sendArgs
+export async function sendGifts(options: {
+  jobs: GiftSendJobs
+  cookie: string
+  log: Logger
+  giftLabel?: string
+  completionLabel?: string
+  resolveDid?: RoomDidResolver
+}): Promise<void> {
+  const {
+    jobs,
+    cookie,
+    log,
+    giftLabel = '荧光棒',
+    completionLabel = '任务',
+    resolveDid: providedResolveDid,
+  } = options
+  let args: SendGiftRequestArgs
   try {
     args = parseDyAndSidFromCookie(cookie)
   } catch (error: unknown) {
@@ -84,12 +101,11 @@ export async function sendGifts(
   }
 
   let failedNumber = 0
-  const resolveDid = options.resolveDid || createRoomDidResolver(cookie)
+  const resolveDid = providedResolveDid || createRoomDidResolver(cookie)
   const sendJobs = Object.values(jobs).filter(item => item.count !== 0)
   for (const [index, item] of sendJobs.entries()) {
     try {
-      item.count = (item.count ?? 0) + failedNumber
-
+      item.count += failedNumber
       log(`即将赠送${item.roomId}房间${item.count}个${giftLabel}`)
       const did = await resolveDid(item.roomId)
       args.did = did
@@ -97,7 +113,7 @@ export async function sendGifts(
       failedNumber = 0
       log(`赠送${item.roomId}房间${item.count}个${giftLabel}成功`)
     } catch (error) {
-      failedNumber += item?.count ?? 0
+      failedNumber += item.count
       log(`${item.roomId}房间赠送失败: ${error}, ${item.count}个${giftLabel}自动移交给下一个房间`)
     }
     if (index < sendJobs.length - 1) {

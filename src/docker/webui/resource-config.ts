@@ -15,16 +15,13 @@ export interface ConfigMutationResult {
 }
 
 export interface CookieSourceConfig {
-  cookie?: string
-  manualCookies?: {
+  loginCookies?: {
+    passport?: string
     main?: string
     yuba?: string
   }
-  manualPassport?: {
-    cookie?: string
-  }
   cookieCloud?: {
-    active?: boolean
+    enabled?: boolean
     endpoint?: string
     uuid?: string
     password?: string
@@ -43,11 +40,11 @@ export function getRawConfig(): DockerConfig {
 
 export function hasCookieSourceConfigured(config: CookieSourceConfig | null = getRawConfig()): boolean {
   const cookieCloud = config?.cookieCloud
-  const manualCookies = config?.manualCookies
+  const loginCookies = config?.loginCookies
   return Boolean(
-    String(manualCookies?.main || config?.cookie || '').trim()
-    || String(manualCookies?.yuba || '').trim()
-    || (cookieCloud?.active && String(cookieCloud.endpoint || '').trim() && String(cookieCloud.uuid || '').trim() && String(cookieCloud.password || '').trim()),
+    String(loginCookies?.main || '').trim()
+    || String(loginCookies?.yuba || '').trim()
+    || (cookieCloud?.enabled && String(cookieCloud.endpoint || '').trim() && String(cookieCloud.uuid || '').trim() && String(cookieCloud.password || '').trim()),
   )
 }
 

@@ -1,4 +1,4 @@
-import type { JobConfig, sendConfig } from '../../core/types'
+import type { JobConfig } from '../../core/types'
 import { formatDate } from './datetime'
 import { hasCookieSourceConfigured, saveConfigPatch } from './resource-config'
 import type { ConfigMutationResult, CookieSourceConfig } from './resource-config'
@@ -75,11 +75,6 @@ interface TaskConfigAccessorOptions<TConfig, RawConfig extends object> {
   getRawConfig: () => RawConfig | null
 }
 
-interface DisabledAllocationTaskOptions {
-  defaultCron: string
-  normalizeModel: (model: unknown) => 1 | 2
-}
-
 export function getTaskTriggerEndpoint(type: WebUiTaskType): string {
   return `/api/trigger/${type}`
 }
@@ -112,8 +107,8 @@ export function formatOptionalNumber(value: unknown): number | string {
   return value !== undefined && value !== null && value !== '' ? Number(value) : '-'
 }
 
-export function isTaskActive(config: { active?: boolean } | undefined): boolean {
-  return Boolean(config && config.active !== false)
+export function isTaskEnabled(config: { enabled?: boolean } | undefined): boolean {
+  return Boolean(config?.enabled)
 }
 
 export function createPendingTaskCard(thirdLabel: string): TaskStatusCardState {
@@ -166,16 +161,8 @@ export function createTaskConfigAccessor<TConfig, RawConfig extends object>(
   })
 }
 
-export function createDisabledAllocationTaskConfig<TConfig extends { cron?: string; model?: unknown; send?: sendConfig }>(
-  config: TConfig,
-  options: DisabledAllocationTaskOptions,
-): JobConfig {
-  return {
-    active: false,
-    cron: config.cron || options.defaultCron,
-    model: options.normalizeModel(config.model),
-    send: config.send || {},
-  }
+export function createDisabledAllocationTaskConfig(config: JobConfig): JobConfig {
+  return { ...config, enabled: false }
 }
 
 export function createScheduledTaskCard(configured: boolean, status: TaskRunStatus, thirdCell: TaskCardCell): TaskStatusCardState {

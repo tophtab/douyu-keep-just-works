@@ -1,36 +1,35 @@
 import type express from 'express'
 import { isCookieCloudReady } from '../core/cookie-cloud'
 import type { DockerConfig } from '../core/types'
+import type { DockerConfigUpdate } from './config-store'
 import { getNextCronRuns, validateCronExpression } from './cron'
 import { validateCookieCloudConfig } from './config-validation'
 import { sendJsonOk } from './server-route-utils'
 import type { AppContext } from './server-types'
-import { collectTaskUpdatePayload, getTaskOverviewSummary, hasActiveTaskConfig, TASK_TYPES, validateTaskConfig } from './task-metadata'
+import { getTaskOverviewSummary, hasEnabledTaskConfig, TASK_TYPES, validateTaskConfig } from './task-metadata'
 
 function hasConfiguredCookieSource(config: DockerConfig | null | undefined): boolean {
   return Boolean(
-    config?.manualCookies?.main?.trim()
-    || config?.manualCookies?.yuba?.trim()
-    || config?.cookie?.trim(),
+    config?.loginCookies.main.trim()
+    || config?.loginCookies.yuba.trim(),
   ) || isCookieCloudReady(config?.cookieCloud)
 }
 
 function summarizeCookieSource(config: DockerConfig | null | undefined): string {
-  const hasManualCookie = Boolean(
-    config?.manualCookies?.main?.trim()
-    || config?.manualCookies?.yuba?.trim()
-    || config?.cookie?.trim(),
+  const hasLocalCookie = Boolean(
+    config?.loginCookies.main.trim()
+    || config?.loginCookies.yuba.trim(),
   )
   const hasCookieCloud = isCookieCloudReady(config?.cookieCloud)
 
-  if (hasManualCookie && hasCookieCloud) {
+  if (hasLocalCookie && hasCookieCloud) {
     return 'hybrid'
   }
   if (hasCookieCloud) {
     return 'cookieCloud'
   }
-  if (hasManualCookie) {
-    return 'manual'
+  if (hasLocalCookie) {
+    return 'local'
   }
   return 'none'
 }
@@ -40,12 +39,12 @@ function summarizeConfig(config: DockerConfig | null) {
     cookieSaved: hasConfiguredCookieSource(config),
     cookieSource: summarizeCookieSource(config),
     cookieCloudConfigured: isCookieCloudReady(config?.cookieCloud),
-    manualPassportConfigured: Boolean(config?.manualPassport?.cookie?.trim()),
+    passportConfigured: Boolean(config?.loginCookies.passport.trim()),
     ...getTaskOverviewSummary(config),
   }
 }
 
-function validateConfigPayload(payload: Partial<DockerConfig>): string | null {
+function validateConfigPayload(payload: DockerConfigUpdate): string | null {
   for (const type of TASK_TYPES) {
     const taskConfig = payload[type]
     if (!taskConfig) {
@@ -55,6 +54,9 @@ function validateConfigPayload(payload: Partial<DockerConfig>): string | null {
     if (error) {
       return error
     }
+  }
+  if (payload.loginCookies && (typeof payload.loginCookies !== 'object' || Array.isArray(payload.loginCookies))) {
+    return 'loginCookies 配置无效'
   }
   if (payload.manualCookies && (typeof payload.manualCookies !== 'object' || Array.isArray(payload.manualCookies))) {
     return 'manualCookies 配置无效'
@@ -97,7 +99,7 @@ export function registerConfigRoutes(app: express.Express, ctx: AppContext): voi
     res.json({
       ...summarizeConfig(config),
       timezone: 'Asia/Shanghai',
-      ready: Boolean(hasConfiguredCookieSource(config) && hasActiveTaskConfig(config)),
+      ready: Boolean(hasConfiguredCookieSource(config) && hasEnabledTaskConfig(config)),
       status,
       recentLogs,
     })
@@ -114,7 +116,7 @@ export function registerConfigRoutes(app: express.Express, ctx: AppContext): voi
   })
 
   app.post('/api/config', async (req, res) => {
-    const payload = req.body as Partial<DockerConfig>
+    const payload = req.body as DockerConfigUpdate
     const validationError = validateConfigPayload(payload)
     if (validationError) {
       return res.status(400).json({ error: validationError })
@@ -122,13 +124,7 @@ export function registerConfigRoutes(app: express.Express, ctx: AppContext): voi
 
     await sendJsonOk(
       res,
-      () => ctx.saveTaskConfig({
-        manualCookies: payload.manualCookies,
-        manualPassport: payload.manualPassport,
-        cookieCloud: payload.cookieCloud,
-        ...collectTaskUpdatePayload(payload),
-        ui: payload.ui,
-      }),
+      () => ctx.saveTaskConfig(payload),
       resolveConfigRouteErrorStatus,
     )
   })

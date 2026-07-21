@@ -73,7 +73,7 @@ export function useCookieLoginPage() {
   }
 
   function handleCookieCloudToggle(): void {
-    if (cookieCloud.active) {
+    if (cookieCloud.enabled) {
       void saveCookieCloudToggle({ revertCheckboxOnError: true })
       return
     }

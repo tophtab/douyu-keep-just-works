@@ -1,14 +1,14 @@
 import type { ExpiringGiftConfig, Fans, GiftStatus } from '../../core/types'
 import { computed, ref } from 'vue'
-import { DEFAULT_EXPIRING_GIFT_CRON, DEFAULT_EXPIRING_GIFT_MODEL, DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS } from '../../core/task-defaults'
+import { DEFAULT_EXPIRING_GIFT_ALLOCATION_MODE, DEFAULT_EXPIRING_GIFT_CRON, DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS } from '../../core/task-defaults'
 import type { AllocationFanRow } from './allocation-task'
-import { buildAllocationFanRows, buildAllocationSendMap, normalizeAllocationModel } from './allocation-task'
+import { allocationModeToModel, buildAllocationConfig, buildAllocationFanRows } from './allocation-task'
 import { buildBackpackDisplayRows, normalizeExpiringThresholdHours } from './backpack-display'
 import { useCronPreview } from './composables/use-cron-preview'
 import { createFansBackedTaskPageState } from './fans-backed-task-page'
 import { fansStatusDetailsLoading as sharedFansStatusDetailsLoading, fansStatusLoaded as sharedFansStatusLoaded, giftStatus as sharedGiftStatus } from './resource-fans'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
-import { createDisabledAllocationTaskConfig, createFanListEmptyText, createTaskConfigAccessor, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isTaskActive } from './task-shared'
+import { createDisabledAllocationTaskConfig, createFanListEmptyText, createTaskConfigAccessor, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isTaskEnabled } from './task-shared'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface ExpiringOverview {
@@ -33,20 +33,20 @@ const giftStatus = ref<GiftStatus | null>(null)
 const expiringEnabled = ref(false)
 const expiringCron = ref(DEFAULT_EXPIRING_GIFT_CRON)
 const expiringThresholdHours = ref(DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS)
-const expiringModel = ref<1 | 2>(DEFAULT_EXPIRING_GIFT_MODEL)
+const expiringModel = ref<1 | 2>(allocationModeToModel(DEFAULT_EXPIRING_GIFT_ALLOCATION_MODE, DEFAULT_EXPIRING_GIFT_ALLOCATION_MODE))
 const fanRows = ref<ExpiringFanRow[]>([])
 const { cronPreviewText: expiringCronPreviewText, ensureCronPreview, loadCronPreview: loadExpiringCronPreview } = useCronPreview(() => expiringCron.value)
 
 const EXPIRING_CONFIG_FALLBACK: ExpiringGiftConfig = {
-  active: false,
+  enabled: false,
   cron: DEFAULT_EXPIRING_GIFT_CRON,
   thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
-  model: DEFAULT_EXPIRING_GIFT_MODEL,
-  send: {},
+  allocationMode: DEFAULT_EXPIRING_GIFT_ALLOCATION_MODE,
+  roomAllocations: {},
 }
 
-function normalizeModel(model: unknown): 1 | 2 {
-  return normalizeAllocationModel(model, DEFAULT_EXPIRING_GIFT_MODEL)
+function normalizeModel(mode: unknown): 1 | 2 {
+  return allocationModeToModel(mode, DEFAULT_EXPIRING_GIFT_ALLOCATION_MODE)
 }
 
 function normalizeThresholdHours(value: unknown): number {
@@ -61,19 +61,19 @@ const getExpiringConfig = createTaskConfigAccessor<ExpiringGiftConfig, RawExpiri
 })
 
 function buildFanRows(nextFans: Fans[], config: ExpiringGiftConfig): ExpiringFanRow[] {
-  const model = normalizeModel(config.model)
+  const model = normalizeModel(config.allocationMode)
   return buildAllocationFanRows(nextFans, {
     model,
-    send: config.send,
+    roomAllocations: config.roomAllocations,
     defaultValue: (_fan, index, currentModel) => currentModel === 2 ? 1 : (index === 0 ? 1 : 0),
   })
 }
 
 function applyExpiringConfig(config: ExpiringGiftConfig): void {
-  expiringEnabled.value = isTaskActive(config)
+  expiringEnabled.value = isTaskEnabled(config)
   expiringCron.value = config.cron || DEFAULT_EXPIRING_GIFT_CRON
   expiringThresholdHours.value = normalizeThresholdHours(config.thresholdHours)
-  expiringModel.value = normalizeModel(config.model)
+  expiringModel.value = normalizeModel(config.allocationMode)
   fanRows.value = buildFanRows(fans.value, config)
   void ensureCronPreview()
 }
@@ -88,11 +88,10 @@ function applyResourceState(): void {
 
 function buildExpiringPayload(): ExpiringGiftConfig {
   return {
-    active: true,
+    enabled: true,
     cron: expiringCron.value.trim(),
     thresholdHours: normalizeThresholdHours(expiringThresholdHours.value),
-    model: expiringModel.value,
-    send: buildAllocationSendMap(fanRows.value, expiringModel.value),
+    ...buildAllocationConfig(fanRows.value, expiringModel.value),
   }
 }
 
@@ -116,10 +115,7 @@ async function disableExpiringGiftConfig(): Promise<void> {
   await disableEnabledTask({
     payload: {
       expiringGift: {
-        ...createDisabledAllocationTaskConfig(currentConfig, {
-          defaultCron: DEFAULT_EXPIRING_GIFT_CRON,
-          normalizeModel,
-        }),
+        ...createDisabledAllocationTaskConfig(currentConfig),
         thresholdHours: normalizeThresholdHours(currentConfig.thresholdHours),
       },
     },
@@ -194,9 +190,9 @@ export function useExpiringGiftTaskPage() {
   }
 
   function handleExpiringModelChange(): void {
-    fanRows.value = buildFanRows(fans.value, {
-      ...getExpiringConfig(),
+    fanRows.value = buildAllocationFanRows(fans.value, {
       model: expiringModel.value,
+      defaultValue: (_fan, index, currentModel) => currentModel === 2 ? 1 : (index === 0 ? 1 : 0),
     })
   }
 

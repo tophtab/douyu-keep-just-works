@@ -1,4 +1,4 @@
-import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, ManualCookieConfig, ManualPassportConfig, PassportQrLoginPublicStatus } from '../../core/types'
+import type { CookieCloudConfig, CookieDiagnostics, DockerConfig, LoginCookiesConfig, PassportQrLoginPublicStatus } from '../../core/types'
 import { reactive, ref } from 'vue'
 import { DEFAULT_COOKIE_CLOUD_SYNC_CRON } from '../../core/task-defaults'
 import { useCronPreview } from './composables/use-cron-preview'
@@ -11,7 +11,7 @@ export const cookieDiagnostics = ref<CookieDiagnostics | null>(null)
 export const passportQrLogin = ref<PassportQrLoginPublicStatus | null>(null)
 export const passportQrLoginBusy = ref(false)
 export const cookieCloud = reactive({
-  active: false,
+  enabled: false,
   endpoint: '',
   uuid: '',
   cron: DEFAULT_COOKIE_CLOUD_SYNC_CRON,
@@ -23,16 +23,13 @@ const { cronPreviewText, ensureCronPreview, loadCronPreview } = useCronPreview((
 export { cronPreviewText }
 export const loadCookieCloudCronPreview = loadCronPreview
 
-function getManualCookiesConfig(config: DockerConfig | null): ManualCookieConfig {
-  return config?.manualCookies || {
-    main: String(config?.cookie || ''),
-    yuba: '',
-  }
+function getLoginCookiesConfig(config: DockerConfig | null): LoginCookiesConfig {
+  return config?.loginCookies || { passport: '', main: '', yuba: '' }
 }
 
 export function getCookieCloudConfig(config: DockerConfig | null): CookieCloudConfig {
   return config?.cookieCloud || {
-    active: false,
+    enabled: false,
     endpoint: '',
     uuid: '',
     password: '',
@@ -41,18 +38,12 @@ export function getCookieCloudConfig(config: DockerConfig | null): CookieCloudCo
   }
 }
 
-function getManualPassportConfig(config: DockerConfig | null): ManualPassportConfig {
-  return config?.manualPassport || {
-    cookie: '',
-  }
-}
-
-export function hasManualPassport(config: DockerConfig | null): boolean {
-  return Boolean(getManualPassportConfig(config).cookie.trim())
+export function hasLocalPassportCookie(config: DockerConfig | null): boolean {
+  return Boolean(getLoginCookiesConfig(config).passport.trim())
 }
 
 export function getCookieSourceLabel(config: DockerConfig | null): string {
-  return getCookieCloudConfig(config).active ? 'CookieCloud' : '手填'
+  return getCookieCloudConfig(config).enabled ? 'CookieCloud' : '本地'
 }
 
 export function clearCookieDiagnostics(): void {
@@ -60,25 +51,21 @@ export function clearCookieDiagnostics(): void {
 }
 
 export function applyRawConfig(config: DockerConfig | null): void {
-  const manualCookies = getManualCookiesConfig(config)
-  mainCookie.value = manualCookies.main || ''
-  yubaCookie.value = manualCookies.yuba || ''
-  passportCookie.value = getManualPassportConfig(config).cookie || ''
+  const loginCookies = getLoginCookiesConfig(config)
+  passportCookie.value = loginCookies.passport
+  mainCookie.value = loginCookies.main
+  yubaCookie.value = loginCookies.yuba
 
   const nextCookieCloud = getCookieCloudConfig(config)
-  cookieCloud.active = nextCookieCloud.active === true
-  cookieCloud.endpoint = nextCookieCloud.endpoint || ''
-  cookieCloud.uuid = nextCookieCloud.uuid || ''
+  cookieCloud.enabled = nextCookieCloud.enabled
+  cookieCloud.endpoint = nextCookieCloud.endpoint
+  cookieCloud.uuid = nextCookieCloud.uuid
   cookieCloud.cron = nextCookieCloud.cron || DEFAULT_COOKIE_CLOUD_SYNC_CRON
-  cookieCloud.password = nextCookieCloud.password || ''
+  cookieCloud.password = nextCookieCloud.password
   void ensureCronPreview()
 }
 
-export function applyManualPassportSaveResponse(config: DockerConfig, rawPassportCookie: string): void {
-  const nextConfig = {
-    ...config,
-    manualPassport: rawPassportCookie ? { cookie: rawPassportCookie } : undefined,
-  }
-  setRawConfig(nextConfig)
-  applyRawConfig(nextConfig)
+export function applyLoginCookieSaveResponse(config: DockerConfig): void {
+  setRawConfig(config)
+  applyRawConfig(config)
 }

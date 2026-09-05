@@ -1209,3 +1209,39 @@ Finalized and committed the deferred Douyu intimacy research, restored the histo
 ### Next Steps
 
 - No documentation work remains. Cap-aware functionality stays deferred until the user explicitly resumes it.
+
+
+## Session 96: Finalize Trellis 0.6.16 upgrade
+<!-- trellis-session: v=2 fp=c52109f6603f61c3 -->
+
+**Date**: 2026-09-05
+**Task**: Finalize Trellis 0.6.16 upgrade
+**Branch**: `master`
+
+### Summary
+
+Committed the 45 pre-existing Trellis upgrade changes from 0.6.9 to 0.6.16 and prepared all local handoff commits for the user-authorized push to origin/master. The earlier research task is already archived.
+
+### Main Changes
+
+- Included the generated workflow, shared skills, Cursor hooks and skills, Python tooling, version marker, and template hashes.
+- Kept the upgrade contents as supplied; no application or deferred intimacy-feature changes were made.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `06d3f14ad9d5270e432b3ec8b311c25f632cb102` | chore: update Trellis to 0.6.16 |
+
+### Testing
+
+- [OK] Basic commit checks passed: project and installed CLI versions both report 0.6.16; template metadata parses; all 45 changed paths belong to the upgrade; no added conflict markers or whitespace errors.
+- [OK] No application lint, type-check, test, or build command was run. These commit checks are not a full review or test of Trellis itself.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- No implementation work remains; intimacy-cap functionality stays deferred.

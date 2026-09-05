@@ -18,6 +18,9 @@ build
 # Local runtime config
 config/
 
+# Local browser captures may contain cookies and personal request data.
+.temp/
+
 # fnOS package metadata is an installable resource, not local runtime state.
 !packaging/fnos/config/
 !packaging/fnos/config/privilege

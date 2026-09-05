@@ -14,6 +14,7 @@
 | Passport QR login, safeAuth, CookieCloud authority, or Yuba SSO | [Passport, Main-Site, And Yuba Cookie Authority](#passport-main-site-and-yuba-cookie-authority) |
 | Backend-owned QR login route/session behavior | [Project-Owned Passport QR Login Snapshots](#project-owned-passport-qr-login-snapshots) |
 | Glow-stick double-card detection or Douyu pocket card fields | [Glow-Stick Double-Card Detection](#glow-stick-double-card-detection) |
+| Daily intimacy caps, cap-aware gift sending, or authenticated Douyu sockets | [Deferred Douyu Fan Intimacy Research](./douyu-fan-intimacy.md) |
 | Gift send DID lookup reuse or `sendGifts` resolver behavior | [Task-Local Room DID Reuse](#task-local-room-did-reuse) |
 | Docker image stages, context, or workflow path filters | [Docker Image Build Cache](#docker-image-build-cache) |
 | GitHub Actions validation steps or quality-gate path filters | [Docker CI Quality Gate](#docker-ci-quality-gate) |
@@ -273,6 +274,13 @@ intimacy multiplier interpretation, or gift-scope behavior in
 
 Source status: live Douyu API observations from June 7, 2026. Re-check APIs
 before broadening accepted card types.
+
+Daily-cap follow-up (September 5, 2026): see
+[Douyu Fan Intimacy](./douyu-fan-intimacy.md) for authenticated `wsproxy` / `blst`
+fields, invocation details, UI units, and session-interruption evidence. Cap-aware
+allocation and pre-send checks are **deferred by user decision, not implemented**.
+Do not add background cap queries or derive a final personal cap from card
+multipliers as part of maintaining this detection contract.
 
 Contracts:
 

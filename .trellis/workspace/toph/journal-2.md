@@ -1136,3 +1136,76 @@ Prepared the 3.10.0 changelog and npm metadata, passed lint/type-check/43 contra
 ### Next Steps
 
 - None - task complete
+
+
+## Session 94: Record deferred Douyu intimacy-cap research
+<!-- trellis-session: v=2 fp=0920b990a18202aa -->
+
+**Date**: 2026-09-05
+**Task**: Record deferred Douyu intimacy-cap research
+**Branch**: `master`
+
+### Summary
+
+Recorded the authenticated Douyu badge-cap research, invocation details, sanitized observations, and session-interruption risk. The cap-aware feature remains deferred by user decision and is not implemented.
+
+### Main Changes
+
+- Added the deferred Douyu fan-intimacy spec with WebSocket blst fields, HTTP endpoint findings, framing notes, safety gates, and future test assertions.
+- Linked the research from the backend spec index and double-card contract without changing runtime behavior.
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] Documentation-only review: checked internal links, ignored capture paths, and secret-boundary wording; no live socket, browser, CookieCloud, or gift-send test was run.
+- [OK] Confirmed .temp/ and .playwright-cli/ remain ignored and untracked.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Keep cap polling, persistent authenticated sockets, browser bridges, reconnect loops, and cap-aware allocation disabled until the user explicitly resumes the feature.
+- If resumed, revalidate upstream protocol and use an explicitly approved viewing-impact window; begin with offline STT fixtures before any live connection.
+
+
+## Session 95: Finish deferred intimacy research handoff
+<!-- trellis-session: v=2 fp=999d9dd6c154ec55 -->
+
+**Date**: 2026-09-05
+**Task**: Finish deferred intimacy research handoff
+**Branch**: `master`
+
+### Summary
+
+Finalized and committed the deferred Douyu intimacy research, restored the historical 2500-cap evidence, and completed the audit of unnecessary application checks and SPEC history. The feature remains deferred; the existing Trellis tooling upgrade is separate.
+
+### Main Changes
+
+- Preserved room 71415 evidence as an offline historical capture, with mafim=250000 mapping to display cap 2500.
+- Completed the [recovery audit](../../tasks/archive/2026-09/09-05-resume-review-followup/research/session-recovery.md), checked all acceptance criteria, and archived the approved task.
+- Preserved session 94's documentation-complete status and the 45 pre-existing Trellis upgrade changes.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fbb174bc592c473f0fb966c4a9b9f1d8c5070f47` | docs: finalize deferred intimacy research |
+
+### Testing
+
+- [OK] Static documentation review passed: 44 local file links, 10 same-document links, and 22 fragment targets resolve; scoped whitespace and context-manifest validation passed.
+- [OK] Private captures remain ignored and untracked; no credentials or raw login frames were added.
+- [OK] No application lint, type-check, test, build, or live integration check was run for this continuation.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- No documentation work remains. Cap-aware functionality stays deferred until the user explicitly resumes it.

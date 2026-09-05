@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 93
-- **Last Active**: 2026-07-21
+- **Total Sessions**: 95
+- **Last Active**: 2026-09-05
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1138 | Active |
+| `journal-2.md` | ~1211 | Active |
 | `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,8 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 95 | 2026-09-05 | Finish deferred intimacy research handoff | `fbb174bc592c473f0fb966c4a9b9f1d8c5070f47` | `master` |
+| 94 | 2026-09-05 | Record deferred Douyu intimacy-cap research | - | `master` |
 | 93 | 2026-07-21 | Release v3.10.0 | `6abbcc1`, `6753873` | `master` |
 | 92 | 2026-07-21 | Converge TypeScript config contracts | `a24d676`, `bf7e2bd` | `master` |
 | 91 | 2026-07-19 | Restore fixed fnOS service port | `3fa9dc2` | `master` |

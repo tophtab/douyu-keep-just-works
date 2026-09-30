@@ -21,7 +21,7 @@
 - [x] Run `npm run lint` and `npm run type-check`.
 - [x] Run `npm test` (all contract tests then `npm run build:docker`; avoid a duplicate build).
 - [x] Review diff/whitespace; confirm runtime config and pre-existing Trellis changes were not modified by this task.
-- [ ] Complete project finish workflow and report checks and limitations.
+- [x] Prepare verified handoff for task archive and session journal; push and GitHub Release follow local finish-work.
 
 ## Risk and Recovery Boundaries
 
@@ -64,3 +64,7 @@ Existing Trellis files explicitly authorized for the separate tooling commit:
 ## Verification Results
 
 Implementation and independent full-scope review completed on 2026-09-30. No reviewer findings or changes. Lint and backend/WebUI type checks passed; all 49 contract tests passed with no skips; Docker application build passed (Vite WebUI and backend TypeScript). Task whitespace/residual-compatibility searches passed. Temporary test/build log: `/tmp/remove-legacy-config-check-test.log`. Runtime config was not accessed and the nine pre-existing dirty paths were preserved. The user has now authorized all commits, release 3.11.0, finish-work and push, including the existing Trellis files.
+
+## Local Release Completion
+
+Committed configuration changes (`7350d7a`), existing Trellis 0.6.17 updates (`89cff74`), CHANGELOG (`930c9ed`), and npm-generated version metadata (`7311083`). Annotated `v3.11.0` points to the release commit. Package and lockfile root versions are all 3.11.0. Trellis review passed Python AST, metadata JSON, mirrored skills and whitespace checks. Finish-work archives this task and records the session next; master/tag push and GitHub Release publication follow.

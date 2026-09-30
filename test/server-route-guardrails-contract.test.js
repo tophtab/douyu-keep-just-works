@@ -256,7 +256,7 @@ test('createServer protects config route and keeps overview summary free of conf
   })
 })
 
-test('createServer returns complete config in config mutation responses', async () => {
+test('createServer config round trips preserve unspecified cookies and allow explicit clearing', async () => {
   const { context, getLastSavePayload } = createRouteTestContext()
   const nextPassportCookie = 'dy_did=did-next-redacted; LTP0=next-passport-ltp0-redacted-secret-value'
 
@@ -270,20 +270,31 @@ test('createServer returns complete config in config mutation responses', async 
         Cookie: sessionCookie,
       },
       body: JSON.stringify({
-        manualCookies: {
-          main: MAIN_COOKIE,
-          yuba: YUBA_COOKIE,
-        },
-        manualPassport: {
-          cookie: nextPassportCookie,
+        loginCookies: {
+          passport: nextPassportCookie,
         },
       }),
     })
 
     assert.equal(saveResult.response.status, 200)
-    assert.equal(getLastSavePayload().manualPassport.cookie, nextPassportCookie)
-    assert.equal(saveResult.body.data.config.loginCookies.passport, nextPassportCookie)
+    assert.equal(getLastSavePayload().loginCookies.passport, nextPassportCookie)
+    assert.deepEqual(saveResult.body.data.config.loginCookies, {
+      passport: nextPassportCookie,
+      main: MAIN_COOKIE,
+      yuba: YUBA_COOKIE,
+    })
     assert.equal(saveResult.body.data.config.manualPassport, undefined)
+
+    const cleared = await requestJson(`${baseUrl}/api/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: sessionCookie },
+      body: JSON.stringify({ loginCookies: { main: '', yuba: ' ' } }),
+    })
+    assert.equal(cleared.response.status, 200)
+    assert.deepEqual(cleared.body.data.config.loginCookies, { passport: nextPassportCookie, main: '', yuba: '' })
+    const saved = await requestJson(`${baseUrl}/api/config`, { headers: { Cookie: sessionCookie } })
+    assert.equal(saved.response.status, 200)
+    assert.deepEqual(saved.body.data, cleared.body.data.config)
   })
 })
 
@@ -305,6 +316,15 @@ test('createServer config mutations validate before save and return JSON envelop
     })
     assert.equal(missingCookie.response.status, 400)
     assert.deepEqual(missingCookie.body, { error: '缺少 cookie' })
+    assert.deepEqual(calls.saveCookie, [])
+
+    const oldCookieAlias = await requestJson(`${baseUrl}/api/cookie`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: sessionCookie },
+      body: JSON.stringify({ cookie: nextMainCookie }),
+    })
+    assert.equal(oldCookieAlias.response.status, 400)
+    assert.deepEqual(oldCookieAlias.body, { error: '缺少 cookie' })
     assert.deepEqual(calls.saveCookie, [])
 
     const saveCookie = await requestJson(`${baseUrl}/api/cookie`, {
@@ -331,10 +351,10 @@ test('createServer config mutations validate before save and return JSON envelop
         'Content-Type': 'application/json',
         Cookie: sessionCookie,
       },
-      body: JSON.stringify({ manualPassport: [] }),
+      body: JSON.stringify({ loginCookies: [] }),
     })
     assert.equal(invalidConfig.response.status, 400)
-    assert.deepEqual(invalidConfig.body, { error: 'manualPassport 配置无效' })
+    assert.deepEqual(invalidConfig.body, { error: 'loginCookies 配置无效' })
     assert.deepEqual(calls.saveTaskConfig, [])
 
     const validConfig = await requestJson(`${baseUrl}/api/config`, {
@@ -344,7 +364,7 @@ test('createServer config mutations validate before save and return JSON envelop
         Cookie: sessionCookie,
       },
       body: JSON.stringify({
-        manualCookies: {
+        loginCookies: {
           main: MAIN_COOKIE,
           yuba: YUBA_COOKIE,
         },
@@ -357,7 +377,7 @@ test('createServer config mutations validate before save and return JSON envelop
     assert.equal(validConfig.body.ok, true)
     assert.equal(validConfig.body.data.config.ui.themeMode, 'dark')
     assert.deepEqual(calls.saveTaskConfig, [{
-      manualCookies: {
+      loginCookies: {
         main: MAIN_COOKIE,
         yuba: YUBA_COOKIE,
       },
@@ -365,6 +385,50 @@ test('createServer config mutations validate before save and return JSON envelop
         themeMode: 'dark',
       },
     }])
+  })
+})
+
+test('createServer ignores obsolete credential aliases and rejects old task shapes before saving', async () => {
+  const { calls, context } = createRouteTestContext()
+  const initial = context.getConfig()
+
+  await withServer(createServer(context), async (baseUrl) => {
+    const sessionCookie = await loginAndGetSessionCookie(baseUrl)
+    const headers = { 'Content-Type': 'application/json', Cookie: sessionCookie }
+    const keepalive = initial.keepalive
+    const invalidPayloads = [
+      { keepalive: { active: true, cron: keepalive.cron, model: 2, send: { 100: { number: -1 } } } },
+      { keepalive: { ...keepalive, roomAllocations: undefined, send: { 100: { number: -1 } } } },
+      { keepalive: { ...keepalive, roomAllocations: { 100: { number: -1 } } } },
+      { doubleCard: { ...initial.doubleCard, enabled: { 100: true } } },
+      { collectGift: { ...initial.collectGift, enabled: 'yes' } },
+      { keepalive: { ...keepalive, cron: 'invalid' } },
+    ]
+    for (const payload of invalidPayloads) {
+      const result = await requestJson(`${baseUrl}/api/config`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      })
+      assert.equal(result.response.status, 400)
+      assert.equal(typeof result.body.error, 'string')
+      assert.deepEqual(calls.saveTaskConfig, [])
+    }
+
+    for (const payload of [
+      { cookie: 'old-main-redacted', manualCookies: { main: 'old-main-redacted', yuba: 'old-yuba-redacted' }, manualPassport: { cookie: 'old-passport-redacted' } },
+      { manualCookies: [], manualPassport: [] },
+    ]) {
+      const result = await requestJson(`${baseUrl}/api/config`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      })
+      assert.equal(result.response.status, 200)
+      assert.deepEqual(result.body.data.config, initial)
+    }
+    const saved = await requestJson(`${baseUrl}/api/config`, { headers })
+    assert.deepEqual(saved.body.data, initial)
   })
 })
 

@@ -9,27 +9,11 @@ function asRecord(value: unknown): UnknownRecord | undefined {
     : undefined
 }
 
-export function validateCronConfig(name: string, config: { cron?: unknown; enabled?: unknown; active?: unknown }): string | null {
+export function validateCronConfig(name: string, config: { cron?: unknown; enabled?: unknown }): string | null {
   if (config.enabled !== undefined && typeof config.enabled !== 'boolean') {
     return `${name} 启用状态无效`
   }
-  if (config.active !== undefined && typeof config.active !== 'boolean') {
-    return `${name} 启用状态无效`
-  }
   return validateCronExpression(name, typeof config.cron === 'string' ? config.cron : '')
-}
-
-function resolveAllocationMode(config: UnknownRecord): 'weighted' | 'fixed' | null {
-  if (config.allocationMode === 'weighted' || config.allocationMode === 'fixed') {
-    return config.allocationMode
-  }
-  if (config.model === 1) {
-    return 'weighted'
-  }
-  if (config.model === 2) {
-    return 'fixed'
-  }
-  return null
 }
 
 export function validateJobConfig(name: string, input: JobConfig | unknown): string | null {
@@ -42,13 +26,12 @@ export function validateJobConfig(name: string, input: JobConfig | unknown): str
     return cronError
   }
 
-  const allocationMode = resolveAllocationMode(config)
-  if (!allocationMode) {
+  const allocationMode = config.allocationMode
+  if (allocationMode !== 'weighted' && allocationMode !== 'fixed') {
     return `${name} 分配模式无效`
   }
 
-  const hasCanonicalAllocations = config.roomAllocations !== undefined
-  const allocations = asRecord(hasCanonicalAllocations ? config.roomAllocations : config.send)
+  const allocations = asRecord(config.roomAllocations)
   if (!allocations) {
     return `${name} 房间配置无效`
   }
@@ -59,7 +42,7 @@ export function validateJobConfig(name: string, input: JobConfig | unknown): str
       if (!item) {
         return `${name} 房间 ${key} 的配置无效`
       }
-      if (hasCanonicalAllocations && item.count !== undefined) {
+      if (item.count !== undefined) {
         return `${name} 房间 ${key} 的固定数量字段不适用于按权重模式`
       }
       if (!Number.isFinite(item.weight) || Number(item.weight) < 0) {
@@ -75,10 +58,10 @@ export function validateJobConfig(name: string, input: JobConfig | unknown): str
     if (!item) {
       return `${name} 房间 ${key} 的配置无效`
     }
-    if (hasCanonicalAllocations && item.weight !== undefined) {
+    if (item.weight !== undefined) {
       return `${name} 房间 ${key} 的权重字段不适用于固定数量模式`
     }
-    const value = hasCanonicalAllocations ? item.count : item.number
+    const value = item.count
     if (!Number.isInteger(value) || Number(value) < -1) {
       return `${name} 房间 ${key} 的数量无效`
     }
@@ -97,10 +80,7 @@ export function validateDoubleCardConfig(input: DoubleCardConfig | unknown): str
   if (!config) {
     return 'doubleCard 配置无效'
   }
-  const legacyParticipatingRooms = asRecord(config.enabled)
-  const error = validateJobConfig('doubleCard', legacyParticipatingRooms
-    ? { ...config, enabled: undefined }
-    : config)
+  const error = validateJobConfig('doubleCard', config)
   if (error) {
     return error
   }
@@ -110,19 +90,15 @@ export function validateDoubleCardConfig(input: DoubleCardConfig | unknown): str
   if (Array.isArray(config.participatingRoomIds) && config.participatingRoomIds.some(roomId => !Number.isInteger(Number(roomId)))) {
     return 'doubleCard 勾选配置无效'
   }
-  if (config.enabled !== undefined && typeof config.enabled !== 'boolean' && !asRecord(config.enabled)) {
-    return 'doubleCard 勾选配置无效'
-  }
   if (config.giftScope !== undefined && config.giftScope !== 'glowStick' && config.giftScope !== 'limitedTime') {
     return 'doubleCard 礼物范围无效'
   }
 
-  const mode = resolveAllocationMode(config)
-  const allocationSource = asRecord(config.roomAllocations) || asRecord(config.send) || {}
+  const allocationSource = asRecord(config.roomAllocations)!
   const participatingRoomIds = Array.isArray(config.participatingRoomIds)
     ? config.participatingRoomIds.map(String)
-    : Object.entries(asRecord(config.enabled) || {}).filter(([, enabled]) => Boolean(enabled)).map(([roomId]) => roomId)
-  if (mode === 'weighted' && participatingRoomIds.length > 0) {
+    : []
+  if (config.allocationMode === 'weighted' && participatingRoomIds.length > 0) {
     const totalWeight = participatingRoomIds.reduce((sum, roomId) => {
       const item = asRecord(allocationSource[roomId])
       return sum + (typeof item?.weight === 'number' ? item.weight : 0)
@@ -168,9 +144,6 @@ export function validateCookieCloudConfig(input: CookieCloudConfig | unknown): s
   if (config.enabled !== undefined && typeof config.enabled !== 'boolean') {
     return 'CookieCloud 启用状态无效'
   }
-  if (config.active !== undefined && typeof config.active !== 'boolean') {
-    return 'CookieCloud 启用状态无效'
-  }
   if (config.cryptoType !== undefined && config.cryptoType !== 'legacy') {
     return 'CookieCloud 加密算法无效'
   }
@@ -180,8 +153,7 @@ export function validateCookieCloudConfig(input: CookieCloudConfig | unknown): s
       return cronError
     }
   }
-  const enabled = typeof config.enabled === 'boolean' ? config.enabled : config.active === true
-  if (enabled) {
+  if (config.enabled) {
     if (!String(config.endpoint || '').trim()) {
       return 'CookieCloud 服务器地址不能为空'
     }

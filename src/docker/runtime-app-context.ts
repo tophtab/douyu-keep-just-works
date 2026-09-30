@@ -57,8 +57,6 @@ function hasSendRooms(config: JobConfig | DoubleCardConfig | ExpiringGiftConfig 
 function hasCookieSourcePayload(config: DockerConfigUpdate): boolean {
   return config.cookieCloud !== undefined
     || config.loginCookies !== undefined
-    || config.manualCookies !== undefined
-    || config.manualPassport !== undefined
 }
 
 function hasTaskPayload(config: DockerConfigUpdate): boolean {

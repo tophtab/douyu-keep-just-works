@@ -408,13 +408,11 @@ test('Yuba SSO rejects missing passport bridge location with a Yuba-specific err
 
 test('Docker config normalizes passport cookie as optional recovery material', () => {
   assert.equal(normalizeDockerConfig({
-    cookie: '',
-    manualPassport: { cookie: '  dy_did=did-redacted; LTP0=ltp0-redacted  ' },
+    loginCookies: { passport: '  dy_did=did-redacted; LTP0=ltp0-redacted  ' },
   }).loginCookies.passport, 'dy_did=did-redacted; LTP0=ltp0-redacted')
 
   assert.equal(normalizeDockerConfig({
-    cookie: '',
-    manualPassport: { cookie: '   ' },
+    loginCookies: { passport: '   ' },
   }).loginCookies.passport, '')
 })
 

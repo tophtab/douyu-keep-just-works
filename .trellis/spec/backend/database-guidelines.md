@@ -31,22 +31,25 @@ When applying partial WebUI updates, merge through `buildConfigWithPartialUpdate
 
 ---
 
-## Migrations
+## Config Normalization
 
-There is no formal migration system. Current config snapshots are normalized when loading or saving:
+Only the current `DockerConfig` format is supported. Config snapshots are normalized when loading or saving:
 
 - `loadConfigFromDisk` parses JSON and passes it to `normalizeDockerConfig`.
 - runtime startup rewrites normalized config back to disk after a successful load.
 - `createDefaultDockerConfig` supplies new default config shape.
 
-If a future config shape changes and requires a compatibility window, update the normalization path and contract tests rather than adding a separate migration directory.
+Normalization trims values, fills missing current fields, and drops unknown
+properties; it does not migrate old configuration fields. Credentials come from
+`loginCookies` only. Task switches use `enabled`, allocations use
+`allocationMode`/`roomAllocations`, and double-card selection uses
+`participatingRoomIds`. Explicit saved cron expressions are preserved after
+trimming, including former defaults.
 
-Normal runtime state and writes use only canonical `DockerConfig`. Legacy
-`cookie`, `manualCookies`, `manualPassport`, task `active`, `model`, and `send`
-fields may be read only by `normalizeDockerConfig` or the API partial-update
-boundary. Do not dual-write legacy fields. Because canonical writes are
-one-way, rollback to an older image requires restoring a pre-upgrade config
-backup.
+Partial updates preserve unspecified current fields. An explicit empty cookie
+clears that value; old aliases cannot overwrite saved credentials or task
+settings. Do not reintroduce old-field readers in either disk normalization or
+API merging. See the validation contract below for malformed current fields.
 
 ---
 

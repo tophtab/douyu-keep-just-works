@@ -12,7 +12,6 @@ import {
   DEFAULT_THEME_MODE,
   DEFAULT_YUBA_CHECK_IN_CRON,
   DEFAULT_YUBA_CHECK_IN_MODE,
-  LEGACY_DEFAULT_KEEPALIVE_CRON,
   createDefaultRawDockerConfig,
 } from './task-defaults'
 import type {
@@ -37,7 +36,6 @@ interface FanBackedTaskDefaults {
   enabled: boolean
   cron: string
   allocationMode: AllocationMode
-  legacyCron?: string
   resolveMissingWeight?: (index: number) => number
 }
 
@@ -45,7 +43,6 @@ const KEEPALIVE_TASK_DEFAULTS: FanBackedTaskDefaults = {
   enabled: true,
   cron: DEFAULT_KEEPALIVE_CRON,
   allocationMode: DEFAULT_KEEPALIVE_ALLOCATION_MODE,
-  legacyCron: LEGACY_DEFAULT_KEEPALIVE_CRON,
 }
 
 const DOUBLE_CARD_TASK_DEFAULTS: FanBackedTaskDefaults = {
@@ -67,28 +64,13 @@ function asRecord(value: unknown): UnknownRecord | undefined {
     : undefined
 }
 
-function hasOwn(record: UnknownRecord | undefined, key: string): boolean {
-  return Boolean(record && Object.prototype.hasOwnProperty.call(record, key))
-}
-
 function normalizeString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
-}
-
-function normalizeCron(value: unknown, defaults: Pick<FanBackedTaskDefaults, 'cron' | 'legacyCron'>): string {
-  const cron = normalizeString(value)
-  if (!cron || cron === defaults.legacyCron) {
-    return defaults.cron
-  }
-  return cron
 }
 
 function normalizeEnabled(config: UnknownRecord | undefined, fallback: boolean): boolean {
   if (typeof config?.enabled === 'boolean') {
     return config.enabled
-  }
-  if (typeof config?.active === 'boolean') {
-    return config.active
   }
   return fallback
 }
@@ -97,25 +79,11 @@ function normalizeAllocationMode(config: UnknownRecord | undefined, fallback: Al
   if (config?.allocationMode === 'weighted' || config?.allocationMode === 'fixed') {
     return config.allocationMode
   }
-  if (config?.model === 1) {
-    return 'weighted'
-  }
-  if (config?.model === 2) {
-    return 'fixed'
-  }
   return fallback
 }
 
 function normalizeFiniteNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
-}
-
-function selectAllocationSource(config: UnknownRecord | undefined): { source: UnknownRecord; legacy: boolean } {
-  const roomAllocations = asRecord(config?.roomAllocations)
-  if (roomAllocations) {
-    return { source: roomAllocations, legacy: false }
-  }
-  return { source: asRecord(config?.send) || {}, legacy: true }
 }
 
 function normalizeWeightedAllocations(source: UnknownRecord, resolveMissingWeight: (index: number) => number): WeightedAllocationConfig {
@@ -129,14 +97,12 @@ function normalizeWeightedAllocations(source: UnknownRecord, resolveMissingWeigh
   return { allocationMode: 'weighted', roomAllocations }
 }
 
-function normalizeFixedAllocations(source: UnknownRecord, legacy: boolean): FixedAllocationConfig {
+function normalizeFixedAllocations(source: UnknownRecord): FixedAllocationConfig {
   const roomAllocations: FixedAllocationConfig['roomAllocations'] = {}
   for (const [roomId, rawItem] of Object.entries(source)) {
     const item = asRecord(rawItem)
     roomAllocations[roomId] = {
-      count: legacy
-        ? normalizeFiniteNumber(item?.number) ?? 1
-        : normalizeFiniteNumber(item?.count) ?? 1,
+      count: normalizeFiniteNumber(item?.count) ?? 1,
     }
   }
   return { allocationMode: 'fixed', roomAllocations }
@@ -144,9 +110,9 @@ function normalizeFixedAllocations(source: UnknownRecord, legacy: boolean): Fixe
 
 function normalizeAllocation(config: UnknownRecord | undefined, defaults: FanBackedTaskDefaults): GiftAllocationConfig {
   const allocationMode = normalizeAllocationMode(config, defaults.allocationMode)
-  const { source, legacy } = selectAllocationSource(config)
+  const source = asRecord(config?.roomAllocations) || {}
   return allocationMode === 'fixed'
-    ? normalizeFixedAllocations(source, legacy)
+    ? normalizeFixedAllocations(source)
     : normalizeWeightedAllocations(source, defaults.resolveMissingWeight || (() => 1))
 }
 
@@ -179,7 +145,7 @@ function normalizeFanBackedTaskConfig(rawConfig: unknown, defaults: FanBackedTas
   const config = asRecord(rawConfig)
   return {
     enabled: normalizeEnabled(config, defaults.enabled),
-    cron: normalizeCron(config?.cron, defaults),
+    cron: normalizeString(config?.cron) || defaults.cron,
     ...normalizeAllocation(config, defaults),
   }
 }
@@ -194,21 +160,10 @@ function reconcileFanBackedTaskConfig(config: JobConfig, fans: Fans[], defaults:
 
 function normalizeLoginCookies(config: UnknownRecord): LoginCookiesConfig {
   const loginCookies = asRecord(config.loginCookies)
-  const manualCookies = asRecord(config.manualCookies)
-  const manualPassport = asRecord(config.manualPassport)
-
   return {
-    passport: hasOwn(loginCookies, 'passport')
-      ? normalizeString(loginCookies?.passport)
-      : normalizeString(manualPassport?.cookie),
-    main: hasOwn(loginCookies, 'main')
-      ? normalizeString(loginCookies?.main)
-      : (hasOwn(manualCookies, 'main')
-          ? normalizeString(manualCookies?.main)
-          : normalizeString(config.cookie)),
-    yuba: hasOwn(loginCookies, 'yuba')
-      ? normalizeString(loginCookies?.yuba)
-      : normalizeString(manualCookies?.yuba),
+    passport: normalizeString(loginCookies?.passport),
+    main: normalizeString(loginCookies?.main),
+    yuba: normalizeString(loginCookies?.yuba),
   }
 }
 
@@ -259,14 +214,7 @@ function normalizeParticipatingRoomIds(config: UnknownRecord | undefined): numbe
       .map(value => Number(value))
       .filter(value => Number.isFinite(value))))
   }
-  const legacyEnabledMap = asRecord(config?.enabled)
-  if (!legacyEnabledMap) {
-    return []
-  }
-  return Object.entries(legacyEnabledMap)
-    .filter(([, enabled]) => Boolean(enabled))
-    .map(([roomId]) => Number(roomId))
-    .filter(roomId => Number.isFinite(roomId))
+  return []
 }
 
 function normalizeThresholdHours(value: unknown): number {
@@ -354,7 +302,7 @@ function normalizeExpiringGiftConfig(rawConfig: unknown): ExpiringGiftConfig {
   }
 }
 
-export function normalizeDockerConfig(input: unknown, _options: { ensureCollectGift?: boolean } = {}): DockerConfig {
+export function normalizeDockerConfig(input: unknown): DockerConfig {
   const config = asRecord(input) || {}
   const themeMode = asRecord(config.ui)?.themeMode
   return {

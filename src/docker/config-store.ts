@@ -7,11 +7,7 @@ import { TASK_TYPES } from './task-metadata'
 
 type UnknownRecord = Record<string, unknown>
 
-export interface DockerConfigUpdate extends Partial<DockerConfig> {
-  cookie?: unknown
-  manualCookies?: unknown
-  manualPassport?: unknown
-}
+export type DockerConfigUpdate = Partial<DockerConfig>
 
 function asRecord(value: unknown): UnknownRecord | undefined {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -29,7 +25,7 @@ export function loadConfigFromDisk(configPath: string): DockerConfig | null {
     return null
   }
   const raw = fs.readFileSync(resolvedConfigPath, 'utf-8')
-  return normalizeDockerConfig(JSON.parse(raw) as unknown, { ensureCollectGift: true })
+  return normalizeDockerConfig(JSON.parse(raw) as unknown)
 }
 
 export function saveConfigToDisk(configPath: string, config: DockerConfig): void {
@@ -47,20 +43,16 @@ export function configsEqual(a: DockerConfig | null, b: DockerConfig): boolean {
 
 function mergeLoginCookies(current: LoginCookiesConfig, updates: UnknownRecord): LoginCookiesConfig {
   const loginCookies = asRecord(updates.loginCookies)
-  const manualCookies = asRecord(updates.manualCookies)
-  const manualPassport = asRecord(updates.manualPassport)
   return {
     passport: hasOwn(loginCookies, 'passport')
       ? String(loginCookies?.passport ?? '')
-      : (hasOwn(manualPassport, 'cookie') ? String(manualPassport?.cookie ?? '') : current.passport),
+      : current.passport,
     main: hasOwn(loginCookies, 'main')
       ? String(loginCookies?.main ?? '')
-      : (hasOwn(manualCookies, 'main')
-          ? String(manualCookies?.main ?? '')
-          : (hasOwn(updates, 'cookie') ? String(updates.cookie ?? '') : current.main)),
+      : current.main,
     yuba: hasOwn(loginCookies, 'yuba')
       ? String(loginCookies?.yuba ?? '')
-      : (hasOwn(manualCookies, 'yuba') ? String(manualCookies?.yuba ?? '') : current.yuba),
+      : current.yuba,
   }
 }
 
@@ -73,21 +65,7 @@ function mergeConfigSection(current: unknown, update: unknown): unknown {
   if (!updateRecord) {
     return update
   }
-  const merged: UnknownRecord = { ...(currentRecord || {}), ...updateRecord }
-
-  if (hasOwn(updateRecord, 'active') && !hasOwn(updateRecord, 'enabled')) {
-    delete merged.enabled
-  }
-  if (hasOwn(updateRecord, 'model') && !hasOwn(updateRecord, 'allocationMode')) {
-    delete merged.allocationMode
-  }
-  if (hasOwn(updateRecord, 'send') && !hasOwn(updateRecord, 'roomAllocations')) {
-    delete merged.roomAllocations
-  }
-  if (asRecord(updateRecord.enabled)) {
-    delete merged.enabled
-  }
-  return merged
+  return { ...(currentRecord || {}), ...updateRecord }
 }
 
 export function buildConfigWithPartialUpdate(current: DockerConfig | null, updates: DockerConfigUpdate): DockerConfig {

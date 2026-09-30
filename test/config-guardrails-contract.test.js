@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
+const os = require('node:os')
 const path = require('node:path')
 const { test } = require('node:test')
 const { loadTypeScriptModule } = require('./helpers/typescript-module-loader')
@@ -17,12 +18,18 @@ const {
   DEFAULT_EXPIRING_GIFT_CRON,
   DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
   DEFAULT_KEEPALIVE_CRON,
-  LEGACY_DEFAULT_KEEPALIVE_CRON,
 } = loadTypeScriptModule('src/core/task-defaults.ts')
 const {
+  validateCookieCloudConfig,
+  validateCronConfig,
   validateDoubleCardConfig,
   validateJobConfig,
 } = loadTypeScriptModule('src/docker/config-validation.ts')
+const {
+  buildConfigWithPartialUpdate,
+  loadConfigFromDisk,
+  saveConfigToDisk,
+} = loadTypeScriptModule('src/docker/config-store.ts')
 
 function createFan(roomId, name) {
   return {
@@ -90,7 +97,7 @@ test('Example config is canonical and stable after normalization', () => {
   assert.deepEqual(JSON.parse(JSON.stringify(normalizeDockerConfig(example))), example)
 })
 
-test('Docker config normalization migrates legacy fields with canonical precedence and order', () => {
+test('Docker config normalization keeps current fields and order while ignoring old aliases', () => {
   const normalized = normalizeDockerConfig({
     cookie: ' legacy-main ',
     loginCookies: {
@@ -161,7 +168,7 @@ test('Docker config normalization migrates legacy fields with canonical preceden
   assert.deepEqual(JSON.parse(JSON.stringify(normalized.loginCookies)), {
     passport: 'new-passport',
     main: '',
-    yuba: 'legacy-yuba',
+    yuba: '',
   })
   assert.deepEqual(JSON.parse(JSON.stringify(normalized.cookieCloud)), {
     enabled: false,
@@ -180,23 +187,19 @@ test('Docker config normalization migrates legacy fields with canonical preceden
     },
   })
   assert.deepEqual(JSON.parse(JSON.stringify(normalized.doubleCard)), {
-    enabled: true,
+    enabled: false,
     cron: DEFAULT_DOUBLE_CARD_CRON,
     giftScope: DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
-    participatingRoomIds: [102],
-    allocationMode: 'fixed',
-    roomAllocations: {
-      102: { count: -1 },
-    },
+    participatingRoomIds: [],
+    allocationMode: 'weighted',
+    roomAllocations: {},
   })
   assert.deepEqual(JSON.parse(JSON.stringify(normalized.expiringGift)), {
     enabled: false,
     cron: DEFAULT_EXPIRING_GIFT_CRON,
     thresholdHours: DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
     allocationMode: 'weighted',
-    roomAllocations: {
-      103: { weight: 4 },
-    },
+    roomAllocations: {},
   })
   assert.equal(JSON.stringify(normalized).includes('manualCookies'), false)
   assert.equal(JSON.stringify(normalized).includes('manualPassport'), false)
@@ -206,24 +209,62 @@ test('Docker config normalization migrates legacy fields with canonical preceden
   assert.equal(JSON.stringify(normalized).includes('roomId'), false)
 })
 
-test('Keepalive cron migration changes only the exact old default', () => {
+test('Old config aliases do not supply missing current settings', () => {
+  const normalized = normalizeDockerConfig({
+    cookie: 'old-main-redacted',
+    manualCookies: { main: 'old-manual-main-redacted', yuba: 'old-yuba-redacted' },
+    manualPassport: { cookie: 'old-passport-redacted' },
+    cookieCloud: { active: true },
+    collectGift: { active: false },
+    keepalive: { active: false, model: 1, send: { 100: { weight: 9 } } },
+    doubleCard: { active: true, model: 2, enabled: { 100: true }, send: { 100: { number: -1 } } },
+    expiringGift: { active: true, model: 2, send: { 100: { number: -1 } } },
+    yubaCheckIn: { active: true },
+  })
+  assert.deepEqual(normalized, normalizeDockerConfig({}))
+
+  const fixed = normalizeDockerConfig({
+    keepalive: {
+      allocationMode: 'fixed',
+      roomAllocations: { 100: { number: -1 }, 200: { count: 3, number: 9 } },
+    },
+  })
+  assert.deepEqual(fixed.keepalive.roomAllocations, { 100: { count: 1 }, 200: { count: 3 } })
+})
+
+test('Keepalive cron preserves saved expressions and fills only missing or blank values', () => {
   assert.equal(DEFAULT_KEEPALIVE_CRON, '0 0 8 * * 3')
   assert.equal(normalizeDockerConfig({
-    keepalive: { cron: LEGACY_DEFAULT_KEEPALIVE_CRON },
-  }).keepalive.cron, DEFAULT_KEEPALIVE_CRON)
+    keepalive: { cron: ' 0 0 8 */7 * * ' },
+  }).keepalive.cron, '0 0 8 */7 * *')
   assert.equal(normalizeDockerConfig({
     keepalive: { cron: ' 0 30 9 * * 5 ' },
   }).keepalive.cron, '0 30 9 * * 5')
+  for (const cron of [undefined, '', '   ']) {
+    assert.equal(normalizeDockerConfig({ keepalive: { cron } }).keepalive.cron, DEFAULT_KEEPALIVE_CRON)
+  }
 })
 
-test('Allocation validation accepts the legacy boundary shape and rejects mixed canonical entries', () => {
-  assert.equal(validateDoubleCardConfig({
+test('Allocation validation requires current fields and rejects old double-card maps', () => {
+  assert.match(validateDoubleCardConfig({
     active: true,
     cron: DEFAULT_DOUBLE_CARD_CRON,
     model: 1,
     enabled: { 100: true },
     send: { 100: { weight: 1 } },
-  }), null)
+  }), /启用状态无效/)
+
+  const fixed = {
+    enabled: true,
+    cron: DEFAULT_KEEPALIVE_CRON,
+    allocationMode: 'fixed',
+    roomAllocations: { 100: { count: -1 }, 200: { count: 3 } },
+  }
+  assert.equal(validateJobConfig('keepalive', fixed), null)
+  assert.match(validateJobConfig('keepalive', { ...fixed, allocationMode: undefined, model: 2 }), /分配模式无效/)
+  assert.match(validateJobConfig('keepalive', { ...fixed, roomAllocations: undefined, send: { 100: { number: -1 } } }), /房间配置无效/)
+  assert.match(validateJobConfig('keepalive', { ...fixed, roomAllocations: { 100: { number: -1 } } }), /数量无效/)
+  assert.match(validateDoubleCardConfig({ ...fixed, enabled: { 100: true } }), /启用状态无效/)
 
   assert.match(validateJobConfig('keepalive', {
     enabled: true,
@@ -238,6 +279,142 @@ test('Allocation validation accepts the legacy boundary shape and rejects mixed 
     allocationMode: 'fixed',
     roomAllocations: { 100: { count: -1 }, 200: { count: -1 } },
   }), /最多只能有一个房间/)
+
+  assert.match(validateJobConfig('keepalive', {
+    ...fixed,
+    roomAllocations: { 100: { count: 1, weight: 1 } },
+  }), /权重字段不适用/)
+
+  for (const count of [-2, 0.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert.match(validateJobConfig('keepalive', { ...fixed, roomAllocations: { 100: { count } } }), /数量无效/)
+  }
+  for (const weight of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert.match(validateJobConfig('keepalive', {
+      ...fixed,
+      allocationMode: 'weighted',
+      roomAllocations: { 100: { weight } },
+    }), /权重值无效/)
+  }
+
+  const weighted = { ...fixed, allocationMode: 'weighted', roomAllocations: { 100: { weight: 1 } }, participatingRoomIds: [100] }
+  assert.equal(validateDoubleCardConfig(weighted), null)
+  assert.match(validateDoubleCardConfig({ ...weighted, roomAllocations: { 100: { weight: 0 } } }), /大于 0 的权重值/)
+})
+
+test('Current switches and cron are validated without interpreting active aliases', () => {
+  assert.match(validateCronConfig('keepalive', { enabled: 'yes', cron: DEFAULT_KEEPALIVE_CRON }), /启用状态无效/)
+  assert.match(validateCronConfig('keepalive', { enabled: false, cron: 'invalid' }), /cron/i)
+  assert.equal(validateCronConfig('keepalive', { active: 'ignored', cron: '0 0 8 */7 * *' }), null)
+  assert.equal(validateCookieCloudConfig({ active: true }), null)
+  assert.match(validateCookieCloudConfig({ enabled: 'yes' }), /启用状态无效/)
+  assert.match(validateCookieCloudConfig({ enabled: true }), /服务器地址不能为空/)
+  assert.match(validateCookieCloudConfig({ enabled: false, cron: 'invalid' }), /cron/i)
+  assert.equal(validateCookieCloudConfig({ enabled: false, cryptoType: 'legacy' }), null)
+})
+
+test('Partial updates ignore old aliases and preserve unspecified current settings', () => {
+  const current = normalizeDockerConfig({
+    loginCookies: { passport: 'passport-redacted', main: 'main-redacted', yuba: 'yuba-redacted' },
+    keepalive: { enabled: false, cron: '0 0 8 */7 * *', allocationMode: 'weighted', roomAllocations: { 100: { weight: 3 } } },
+    doubleCard: { enabled: true, participatingRoomIds: [100], allocationMode: 'fixed', roomAllocations: { 100: { count: -1 } } },
+    expiringGift: { enabled: true, allocationMode: 'fixed', roomAllocations: { 100: { count: 2 } } },
+  })
+  const before = JSON.stringify(current)
+  const unchanged = buildConfigWithPartialUpdate(current, {
+    cookie: 'old-main-redacted',
+    manualCookies: { main: 'old-main-redacted', yuba: 'old-yuba-redacted' },
+    manualPassport: { cookie: 'old-passport-redacted' },
+    cookieCloud: { active: true },
+    collectGift: { active: false },
+    keepalive: { active: true, model: 2, send: { 999: { number: -1 } } },
+    doubleCard: { active: false, model: 1, send: { 999: { weight: 9 } } },
+    expiringGift: { active: false, model: 1, send: { 999: { weight: 9 } } },
+    yubaCheckIn: { active: true },
+  })
+  assert.deepEqual(unchanged, current)
+
+  const patched = buildConfigWithPartialUpdate(current, {
+    loginCookies: { main: ' next-main-redacted ' },
+    cookieCloud: { uuid: ' next-uuid ' },
+    keepalive: { enabled: true },
+    doubleCard: { participatingRoomIds: [] },
+    ui: { themeMode: 'dark' },
+  })
+  assert.deepEqual(patched.loginCookies, { ...current.loginCookies, main: 'next-main-redacted' })
+  assert.deepEqual(patched.cookieCloud, { ...current.cookieCloud, uuid: 'next-uuid' })
+  assert.deepEqual(patched.keepalive, { ...current.keepalive, enabled: true })
+  assert.deepEqual(patched.doubleCard, { ...current.doubleCard, participatingRoomIds: [] })
+  assert.deepEqual(patched.ui, { themeMode: 'dark' })
+  assert.equal(JSON.stringify(current), before)
+
+  for (const field of ['passport', 'main', 'yuba']) {
+    const cleared = buildConfigWithPartialUpdate(current, { loginCookies: { [field]: ' ' } })
+    assert.deepEqual(cleared.loginCookies, { ...current.loginCookies, [field]: '' })
+  }
+  assert.deepEqual(buildConfigWithPartialUpdate(null, { loginCookies: { main: ' new-main-redacted ' } }), normalizeDockerConfig({ loginCookies: { main: 'new-main-redacted' } }))
+})
+
+test('Disk config round trips preserve current values and ignore obsolete input fields', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'douyu-config-contract-'))
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }))
+  const configPath = path.join(dir, 'nested', 'config.json')
+  assert.equal(loadConfigFromDisk(configPath), null)
+
+  const current = normalizeDockerConfig({
+    loginCookies: { passport: 'passport-redacted', main: 'main-redacted', yuba: 'yuba-redacted' },
+    keepalive: { enabled: false, cron: '0 0 8 */7 * *', allocationMode: 'fixed', roomAllocations: { 100: { count: -1 } } },
+    doubleCard: { enabled: true, participatingRoomIds: [100], roomAllocations: { 100: { weight: 3 } } },
+  })
+  saveConfigToDisk(configPath, current)
+  assert.deepEqual(loadConfigFromDisk(configPath), current)
+  assert.deepEqual(JSON.parse(fs.readFileSync(configPath, 'utf8')), current)
+
+  fs.writeFileSync(configPath, JSON.stringify({
+    cookie: 'old-main-redacted',
+    manualPassport: { cookie: 'old-passport-redacted' },
+    manualCookies: { yuba: 'old-yuba-redacted' },
+    keepalive: { active: false, model: 1, send: { 100: { weight: 9 } }, cron: ' 0 0 8 */7 * * ' },
+    doubleCard: { active: true, enabled: { 100: true } },
+  }))
+  const loaded = loadConfigFromDisk(configPath)
+  const expected = normalizeDockerConfig({ keepalive: { cron: '0 0 8 */7 * *' } })
+  assert.deepEqual(loaded, expected)
+  saveConfigToDisk(configPath, loaded)
+  assert.deepEqual(JSON.parse(fs.readFileSync(configPath, 'utf8')), expected)
+})
+
+test('Runtime config updates reapply cookie sources only for current credential fields', async () => {
+  const { createRuntimeAppContext } = loadTypeScriptModule('src/docker/runtime-app-context.ts')
+  let config = normalizeDockerConfig({ loginCookies: { main: 'main-redacted' } })
+  const applied = []
+  const saved = []
+  const context = createRuntimeAppContext({
+    getCurrentConfig: () => config,
+    getConfigPath: () => 'unused-config-path',
+    saveConfig: (_path, next) => saved.push(next),
+    setCurrentConfig: (next) => {
+      config = next
+    },
+    applyConfig: (next, reason) => {
+      config = next
+      applied.push(reason)
+    },
+    logSystem: () => {},
+  })
+  const initial = config
+  await context.saveTaskConfig({
+    cookie: 'old-main-redacted',
+    manualCookies: { main: 'old-main-redacted' },
+    manualPassport: { cookie: 'old-passport-redacted' },
+  })
+  assert.deepEqual(config, initial)
+  assert.deepEqual(saved, [initial])
+  assert.deepEqual(applied, [])
+
+  await context.saveTaskConfig({ loginCookies: { main: 'next-main-redacted' } })
+  assert.equal(config.loginCookies.main, 'next-main-redacted')
+  await context.saveTaskConfig({ cookieCloud: { enabled: false } })
+  assert.deepEqual(applied, ['cookie_saved', 'cookie_saved'])
 })
 
 test('Docker config reconciliation follows fans and preserves canonical settings', () => {

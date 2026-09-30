@@ -72,13 +72,6 @@ amd64/arm64 Docker 镜像，再自动构建飞牛安装包并上传到该 tag �
 - 手填 Cookie 只作为兜底，适合临时修复登录态或保存独立的 passport Cookie。
 - 建议把 `WEB_PASSWORD` 改成只有自己知道的值，并避免把 `config.json`、Cookie、CookieCloud 密码或 WebUI 密码贴到公开 issue。
 
-### 配置升级与回滚
-
-- 升级前请备份持久化目录中的 `config/config.json`。程序加载旧配置后会写回新的 canonical 格式，旧字段不会双写。
-- 新格式使用 `loginCookies`、任务 `enabled`、`allocationMode` 和 `roomAllocations`。旧配置会在读取时自动迁移，但旧版本程序无法读取写回后的新格式。
-- 如需回滚到旧版本镜像，必须同时恢复升级前备份的 `config/config.json`；仅回滚镜像版本不够。
-- Cron 继续使用 npm `cron` 的六字段格式：`秒 分 时 日 月 星期`。保活默认在上海时区每周三 08:00 执行，对应 `0 0 8 * * 3`；旧默认值 `0 0 8 */7 * *` 会自动迁移，其他自定义表达式保持不变。
-
 ## 理念：it just works
 
 纯 vibe coding，能用就行。（出自 Todd Howard 超级小陶）

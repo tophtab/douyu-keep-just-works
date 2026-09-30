@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend routing and checklist"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Persistence and merging; task supersedes legacy migration clauses"}
+{"file": ".trellis/spec/backend/contracts.md", "reason": "Preserve current config/auth/allocation contracts"}
+{"file": ".trellis/spec/backend/testing-guidelines.md", "reason": "Observable module/server tests and meaningful guardrails"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Lint, type checks, contract tests and Docker build"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Route validation and JSON errors"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Trace normalization through API and persistence"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Simplify existing owners"}
+{"file": ".trellis/tasks/09-30-remove-legacy-config-compat/research/legacy-config-boundaries.md", "reason": "Inspected owners, behavior seams and exclusions"}

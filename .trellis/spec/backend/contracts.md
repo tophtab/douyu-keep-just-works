@@ -37,7 +37,7 @@ Contracts:
 - WebUI fallback state must call a core factory or consume a backend response
   derived from core defaults; do not hand-write a second `DEFAULT_RAW_CONFIG`.
 - Runtime user config is user-owned state. Default changes must not overwrite
-  saved cron or active settings.
+  saved cron or enabled settings.
 - `config.example.json` is sample input, not runtime state; keep it aligned
   with core default cron constants through contract tests.
 - Missing saved fields may be filled by normalization; existing saved values are
@@ -55,9 +55,9 @@ Contracts:
 - Canonical persisted credentials are `DockerConfig.loginCookies` in the order
   `{ passport, main, yuba }`. The complete Passport cookie remains one string;
   recovery parses `LTP0` and `dy_did` from it.
-- `normalizeDockerConfig` is the only legacy constructor. It accepts
-  `manualCookies`, `manualPassport`, and top-level `cookie` only at disk/API
-  boundaries, with canonical values taking precedence.
+- `normalizeDockerConfig` reads credentials only from `loginCookies`.
+  `manualCookies`, `manualPassport`, and top-level `cookie` are unknown
+  configuration fields and must not supply or overwrite credentials.
 - CookieCloud persistence writes Passport material to `loginCookies.passport`
   only when fresh data contains `LTP0`, and preserves existing local values when
   a remote snapshot is incomplete.
@@ -65,11 +65,11 @@ Contracts:
   diagnostics, logs, and QR status expose only booleans or structural facts;
   `GET /api/config/raw` stays deleted.
 
-Tests: cover canonical ordering, legacy/mixed precedence, partial updates,
+Tests: cover canonical ordering, ignored old aliases, partial updates/clearing,
 authenticated config round trips, secret boundaries, CookieCloud persistence,
 and the frontend visible cookie fields.
 
-### Canonical Config And Legacy Boundary
+### Current Config Boundary
 
 #### 1. Scope / Trigger
 
@@ -78,10 +78,12 @@ normalization, persistence, API routes, or WebUI config state.
 
 #### 2. Signatures
 
-- `normalizeDockerConfig(input: unknown, options?): DockerConfig`
+- `normalizeDockerConfig(input: unknown): DockerConfig`
 - `buildConfigWithPartialUpdate(current: DockerConfig | null, updates: DockerConfigUpdate): DockerConfig`
 - `loadConfigFromDisk(configPath: string): DockerConfig | null`
 - `saveConfigToDisk(configPath: string, config: DockerConfig): void`
+- `POST /api/config` accepts current configuration sections.
+- `POST /api/cookie` accepts `mainCookie` and `yubaCookie`.
 
 #### 3. Contracts
 
@@ -96,19 +98,30 @@ normalization, persistence, API routes, or WebUI config state.
   selected `giftId`, and actual `count`; they must not be persisted as config.
 - `doubleCard.participatingRoomIds` stores selected rooms. `DoubleCardInfo.active`
   remains runtime detection state.
-- Cron remains npm `cron` six-field syntax. Missing keepalive cron and the exact
-  old default `0 0 8 */7 * *` normalize to `0 0 8 * * 3`; other expressions are
-  trimmed and preserved.
+- Cron remains npm `cron` six-field syntax. Missing/blank keepalive cron
+  normalizes to `0 0 8 * * 3`; explicitly saved expressions are trimmed and
+  preserved, including the former default `0 0 8 */7 * *`.
 - Successful API responses and disk writes contain canonical fields only.
+- Normalization fills missing current fields without interpreting old aliases.
+  Partial updates preserve unspecified fields and allow explicit empty cookies
+  to clear saved values. CookieCloud `cryptoType: 'legacy'` remains a supported
+  external protocol and is unrelated to removed configuration compatibility.
 
 #### 4. Validation & Error Matrix
 
-- Canonical fields win over legacy aliases when both are present.
+- Old fields (`cookie`, `manualCookies`, `manualPassport`, task/CookieCloud
+  `active`, `model`, `send`, and allocation `number`) have no migration meaning.
+  Unknown extra properties do not by themselves cause errors; existing current
+  field validation still applies. Legacy credential patches do not change
+  saved credentials.
 - Weighted entries containing `count`, fixed entries containing `weight`,
   non-finite/negative weights, non-integer counts below `-1`, or multiple `-1`
   entries -> `400` validation error.
-- Legacy double-card room maps are accepted only at the API/disk boundary and
-  are converted to `participatingRoomIds`.
+- An object in `doubleCard.enabled` fails boolean switch validation (`400`);
+  disk normalization does not convert it to `participatingRoomIds`.
+- Old `model`/`send`/`number` values cannot satisfy required allocation fields.
+- `/api/cookie` ignores the old `cookie` alias; absent/blank current cookie
+  values return `400` with `缺少 cookie` before saving.
 - Invalid cron, task switches, CookieCloud fields, or allocation mode -> `400`;
   no invalid payload reaches persistence.
 
@@ -116,17 +129,20 @@ normalization, persistence, API routes, or WebUI config state.
 
 - Good: WebUI sends canonical config and applies the authoritative normalized
   response; runtime modules consume only `DockerConfig` and `GiftSendJobs`.
-- Base: a legacy snapshot is normalized once, then rewritten canonically.
-- Bad: a scheduler, task runner, or WebUI state module reads `manualCookies`,
-  `model`, `send`, or `active` as a normal configuration field.
+- Base: an incomplete current snapshot receives defaults; existing values are
+  preserved and obsolete properties are dropped without migration.
+- Bad: normalization, API merging, a task runner, or WebUI state reads old
+  fields as fallbacks for current configuration.
 
 #### 6. Tests Required
 
-- Assert canonical top-level/nested order and mixed-precedence fixtures.
+- Assert canonical top-level/nested order, ignored old aliases, and stable
+  current example config.
 - Assert fixed/weighted validation, `-1`, participating rooms, and stable gift
   counts.
 - Assert config API validation, canonical response/persistence, Cookie masking,
-  WebUI save-response application, and six-field cron migration.
+  WebUI save-response application, partial-update preservation/clearing,
+  temporary-file disk round trips, and preservation of saved six-field cron.
 - Run backend/frontend type checks, lint, contract tests, and Docker build.
 
 #### 7. Wrong vs Correct

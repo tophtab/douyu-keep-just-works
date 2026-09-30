@@ -58,12 +58,6 @@ function validateConfigPayload(payload: DockerConfigUpdate): string | null {
   if (payload.loginCookies && (typeof payload.loginCookies !== 'object' || Array.isArray(payload.loginCookies))) {
     return 'loginCookies 配置无效'
   }
-  if (payload.manualCookies && (typeof payload.manualCookies !== 'object' || Array.isArray(payload.manualCookies))) {
-    return 'manualCookies 配置无效'
-  }
-  if (payload.manualPassport && (typeof payload.manualPassport !== 'object' || Array.isArray(payload.manualPassport))) {
-    return 'manualPassport 配置无效'
-  }
   if (payload.cookieCloud) {
     const error = validateCookieCloudConfig(payload.cookieCloud)
     if (error) {
@@ -106,7 +100,7 @@ export function registerConfigRoutes(app: express.Express, ctx: AppContext): voi
   })
 
   app.post('/api/cookie', async (req, res) => {
-    const mainCookie = String(req.body?.mainCookie ?? req.body?.cookie ?? '').trim()
+    const mainCookie = String(req.body?.mainCookie ?? '').trim()
     const yubaCookie = String(req.body?.yubaCookie || '').trim()
     if (!mainCookie && !yubaCookie) {
       return res.status(400).json({ error: '缺少 cookie' })

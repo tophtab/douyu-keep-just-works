@@ -60,9 +60,10 @@ Use `Record<string, unknown>` only for truly dynamic response summaries, such as
 
 WebUI normal state consumes `DockerConfig` only: login credentials are under
 `loginCookies`, task switches use `enabled`, and allocation forms read/write
-`allocationMode` plus `roomAllocations`. Legacy `manualCookies`, `manualPassport`,
-`model`, `send`, and task `active` fields belong to backend disk/API migration
-only and must not be used as normal-path fallbacks.
+`allocationMode` plus `roomAllocations`. The backend also accepts only current
+configuration fields; it does not migrate `manualCookies`, `manualPassport`,
+`model`, `send`, or task `active`. Do not add these as frontend or backend
+fallbacks.
 
 `saveConfigPatch` owns the `/api/config` mutation transport and replaces
 `rawConfig` with the backend's complete canonical response before feature-local

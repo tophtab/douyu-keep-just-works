@@ -1245,3 +1245,42 @@ Committed the 45 pre-existing Trellis upgrade changes from 0.6.9 to 0.6.16 and p
 ### Next Steps
 
 - No implementation work remains; intimacy-cap functionality stays deferred.
+
+
+## Session 97: Remove legacy config compatibility and release 3.11.0
+<!-- trellis-session: v=2 fp=f435c6bc0193ff20 -->
+
+**Date**: 2026-09-30
+**Task**: Remove legacy config compatibility and release 3.11.0
+**Branch**: `master`
+
+### Summary
+
+Removed old config aliases and cron migration; deleted README upgrade/rollback section; updated contracts, tests and changelog. Included existing Trellis 0.6.17 changes and created v3.11.0 for release.
+
+### Main Changes
+
+- Current-format-only configuration across normalization, API validation and partial persistence; current defaults and explicit cookie clearing preserved.
+- Committed Trellis tooling updates; prepared CHANGELOG and GitHub Release notes; npm version synchronized package metadata at 3.11.0.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7350d7a` | refactor: remove legacy config compatibility |
+| `89cff74` | chore: update Trellis to 0.6.17 |
+| `930c9ed` | chore: prepare release 3.11.0 |
+| `7311083` | chore: release 3.11.0 |
+
+### Testing
+
+- [OK] 49 contract tests passed; lint and backend/WebUI type checks passed; Docker application build passed, including verification at 3.11.0.
+- [OK] Trellis Python AST syntax, metadata JSON, skill mirrors and whitespace checks passed.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Push master and v3.11.0, publish GitHub Release notes, and verify Docker/fnOS release workflow.

@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 96
-- **Last Active**: 2026-09-05
+- **Total Sessions**: 97
+- **Last Active**: 2026-09-30
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1247 | Active |
+| `journal-2.md` | ~1286 | Active |
 | `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 97 | 2026-09-30 | Remove legacy config compatibility and release 3.11.0 | `7350d7a`, `89cff74`, `930c9ed`, `7311083` | `master` |
 | 96 | 2026-09-05 | Finalize Trellis 0.6.16 upgrade | `06d3f14ad9d5270e432b3ec8b311c25f632cb102` | `master` |
 | 95 | 2026-09-05 | Finish deferred intimacy research handoff | `fbb174bc592c473f0fb966c4a9b9f1d8c5070f47` | `master` |
 | 94 | 2026-09-05 | Record deferred Douyu intimacy-cap research | - | `master` |

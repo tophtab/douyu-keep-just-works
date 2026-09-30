@@ -9,24 +9,15 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ## 3.11.0 - 2026-09-30
 
-### Changed
+### 变更
 
-- Configuration now supports only the current format. Canonical normalization,
-  default filling, partial updates, explicit Cookie clearing, and persistence
-  remain supported.
-- Explicitly saved keepalive cron expressions, including the former default
-  `0 0 8 */7 * *`, are now preserved after trimming. Missing or blank values
-  still use the current Wednesday 08:00 default.
+- 配置统一使用现行格式，继续支持配置规范化、默认值补全、部分更新、主动清空 Cookie 和持久化保存。
+- 保活任务中已保存的 cron 表达式会在去掉两端空白后原样保留，包括旧默认值 `0 0 8 */7 * *`；未填写或留空时，仍默认在北京时间每周三 08:00 执行。
 
-### Removed
+### 移除
 
-- **Breaking compatibility change:** removed legacy configuration migration
-  and aliases, including `cookie`, `manualCookies`, `manualPassport`, task and
-  CookieCloud `active`, numeric `model`, `send`, allocation `number`, and
-  double-card `enabled` room maps. Old fields no longer supply configuration
-  values, and old task payloads cannot satisfy current API validation. The
-  `/api/cookie` endpoint now accepts only `mainCookie` and `yubaCookie`.
-- Removed the entire README section titled `配置升级与回滚`.
+- **不兼容变更**：移除旧配置自动迁移及字段别名支持，包括 `cookie`、`manualCookies`、`manualPassport`、任务及 CookieCloud 的 `active`、数字形式的 `model`、`send`、分配数量字段 `number`，以及双倍任务中以 `enabled` 对象保存的房间勾选配置。旧字段不再提供配置值，旧格式任务请求也无法通过现行 API 校验。`/api/cookie` 接口仅接受 `mainCookie` 和 `yubaCookie`。
+- 完整删除 README 中的“配置升级与回滚”小节。
 
 ## 3.10.0 - 2026-07-21
 

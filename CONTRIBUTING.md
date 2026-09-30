@@ -58,6 +58,8 @@ images from a normal contribution branch.
 
 ## Release Process
 
+Write CHANGELOG entries and GitHub Release notes in Chinese.
+
 Maintainers should use the standard `npm version <version>` release flow so
 package metadata, lockfile metadata, the release commit, and the git tag stay in
 sync.

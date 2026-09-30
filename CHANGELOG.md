@@ -7,6 +7,27 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ## Unreleased
 
+## 3.11.0 - 2026-09-30
+
+### Changed
+
+- Configuration now supports only the current format. Canonical normalization,
+  default filling, partial updates, explicit Cookie clearing, and persistence
+  remain supported.
+- Explicitly saved keepalive cron expressions, including the former default
+  `0 0 8 */7 * *`, are now preserved after trimming. Missing or blank values
+  still use the current Wednesday 08:00 default.
+
+### Removed
+
+- **Breaking compatibility change:** removed legacy configuration migration
+  and aliases, including `cookie`, `manualCookies`, `manualPassport`, task and
+  CookieCloud `active`, numeric `model`, `send`, allocation `number`, and
+  double-card `enabled` room maps. Old fields no longer supply configuration
+  values, and old task payloads cannot satisfy current API validation. The
+  `/api/cookie` endpoint now accepts only `mainCookie` and `yubaCookie`.
+- Removed the entire README section titled `配置升级与回滚`.
+
 ## 3.10.0 - 2026-07-21
 
 ### Changed

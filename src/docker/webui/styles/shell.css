@@ -183,8 +183,10 @@
   font-size:13px;
   line-height:1.75;
 }
-.brand-source{
-  display:block;
+.brand-star-link{
+  color:var(--accent);
+  text-decoration:underline;
+  text-underline-offset:3px;
 }
 .tab-list{
   display:flex;

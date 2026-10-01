@@ -11,7 +11,7 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ### 变更
 
-- 将侧栏原有功能描述替换为 GitHub Star 支持文案，整句均可点击，并在新标签页打开项目仓库。
+- 将侧栏原有功能描述替换为 GitHub Star 支持文案，整句以无下划线的链接展示，点击后在新标签页打开项目仓库。
 
 ## 3.11.0 - 2026-09-30
 

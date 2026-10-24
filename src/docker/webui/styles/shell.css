@@ -461,16 +461,10 @@ body.drawer-locked{
   stroke-linecap:round;
   stroke-linejoin:round;
 }
-.mobile-bar-refresh,
-.mobile-bar-logout{
-  stroke:none;
-  fill:currentColor;
-  stroke-width:0;
+.toolbar-icon-btn svg.spinning{
+  animation:icon-spin .9s linear infinite;
 }
-.mobile-bar-refresh.spinning{
-  animation:mobile-bar-spin .9s linear infinite;
-}
-@keyframes mobile-bar-spin{
+@keyframes icon-spin{
   to{transform:rotate(360deg)}
 }
 .mobile-bar-title{

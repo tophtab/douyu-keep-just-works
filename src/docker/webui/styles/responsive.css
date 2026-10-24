@@ -250,6 +250,12 @@
     display:grid;
     grid-template-columns:1fr;
   }
+  /* 运行日志只有一个图标按钮，窄屏也保持在标题行右侧 */
+  .section-panel.logs-panel .section-panel-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+  }
 
   .split-inline-actions{
     width:100%;
@@ -295,6 +301,36 @@
     flex:1 1 100%;
     width:100%;
     min-height:46px;
+  }
+  /* 日期选择在手机上单独成行时，与上方按钮一样占满整行并居中 */
+  .log-day-picker-end{
+    position:relative;
+    width:100%;
+    margin-left:0;
+  }
+  /* 原生下拉箭头会占掉右侧空间，导致文字看起来偏左；改为自绘箭头并让左右内边距对称 */
+  .log-day-picker-end::after{
+    content:"";
+    position:absolute;
+    right:20px;
+    top:50%;
+    width:8px;
+    height:8px;
+    border-right:2px solid var(--muted);
+    border-bottom:2px solid var(--muted);
+    transform:translateY(-65%) rotate(45deg);
+    pointer-events:none;
+  }
+  .log-day-select{
+    appearance:none;
+    -webkit-appearance:none;
+    width:100%;
+    min-height:46px;
+    padding-left:44px;
+    padding-right:44px;
+    border-radius:999px;
+    text-align:center;
+    text-align-last:center;
   }
   .toolbar-icon-btn,
   .toolbar-icon-btn-wide{

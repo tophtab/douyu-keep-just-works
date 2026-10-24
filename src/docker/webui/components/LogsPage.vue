@@ -40,7 +40,7 @@ function reloadDays(): void {
 </script>
 
 <template>
-  <PageSection title="运行日志">
+  <PageSection title="运行日志" class="logs-panel">
     <template #actions>
       <button
         class="btn logs-refresh-toggle"
@@ -70,10 +70,10 @@ function reloadDays(): void {
         type="button"
         :disabled="clearingLogs || !isToday"
         :aria-busy="clearingLogs ? 'true' : 'false'"
-        :title="isToday ? '清空今天的日志（历史日期不受影响）' : '历史日志只读，不能清空'"
+        :title="isToday ? '清空今日的日志（历史日期不受影响）' : '历史日志只读，不能清空'"
         @click="clearLogs"
       >
-        {{ clearingLogs ? '清空中…' : '清空今天' }}
+        {{ clearingLogs ? '清空中…' : '清空今日' }}
       </button>
       <label class="inline log-day-picker log-day-picker-end">
         <select
@@ -83,7 +83,7 @@ function reloadDays(): void {
           aria-label="选择要查看的日志日期"
           @change="onDayChange"
         >
-          <option value="">今天（实时）</option>
+          <option value="">今日实时</option>
           <option v-for="day in logsDays" :key="day" :value="day">{{ day }}</option>
         </select>
       </label>

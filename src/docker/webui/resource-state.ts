@@ -62,7 +62,7 @@ export const logsRefreshedAt = ref<string | null>(null)
 export const logsLoading = ref(false)
 export const logsClearing = ref(false)
 export const logsAutoRefresh = ref(true)
-/** 选中的历史日期；空串表示「今天（实时）」 */
+/** 选中的历史日期；空串表示「今日实时」 */
 export const logsSelectedDay = ref('')
 /** 有日志文件的日期列表，倒序 */
 export const logsDays = ref<string[]>([])

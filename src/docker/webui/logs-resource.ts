@@ -8,7 +8,7 @@ export function useLogsPage(activeTab: Readonly<Ref<string>>, authenticated: Rea
   let autoRefreshTimer: number | undefined
 
   const isToday = computed(() => !logsSelectedDay.value)
-  const activeDayLabel = computed(() => (logsSelectedDay.value ? logsSelectedDay.value : '今天（实时）'))
+  const activeDayLabel = computed(() => (logsSelectedDay.value ? logsSelectedDay.value : '今日实时'))
 
   const logsSummary = computed(() => {
     if (logsLoading.value && !logsRefreshedAt.value) {

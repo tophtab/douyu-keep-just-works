@@ -5,6 +5,16 @@ All notable changes to this project are documented here.
 This project follows a simple Keep a Changelog-style format and uses semantic
 version numbers. Docker release tags use the full version, such as `2.1.0`.
 
+## 3.12.3 - 2026-10-24
+
+### 变更
+
+- 定时设置选择器精简标签提示：「时」保留「多个用,分隔」，移除「分」「秒」的取值区间括号，避免窄列折行错位。
+
+### 修复
+
+- 密码输入框的眼睛按钮改为按当前状态显示图标：隐藏时显示带斜杠的眼睛并提示「显示密码」，明文时显示睁眼并提示「隐藏密码」；登录页与账号安全页文案统一，按钮悬停时不再铺底色。
+
 ## 3.12.2 - 2026-10-24
 
 ### 修复

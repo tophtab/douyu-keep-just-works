@@ -261,7 +261,7 @@ onBeforeUnmount(() => {
           </select>
         </label>
         <label class="schedule-field">
-          <span class="schedule-label">时（0~23，多选时用 , 隔开）</span>
+          <span class="schedule-label">时（多个用,分隔）</span>
           <input
             :value="hourText"
             type="text"
@@ -275,7 +275,7 @@ onBeforeUnmount(() => {
           >
         </label>
         <label class="schedule-field">
-          <span class="schedule-label">分（0~59）</span>
+          <span class="schedule-label">分</span>
           <input
             :value="minuteText"
             type="text"
@@ -288,7 +288,7 @@ onBeforeUnmount(() => {
           >
         </label>
         <label class="schedule-field">
-          <span class="schedule-label">秒（0~59）</span>
+          <span class="schedule-label">秒</span>
           <input
             :value="secondText"
             type="text"

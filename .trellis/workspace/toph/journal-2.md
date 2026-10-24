@@ -1284,3 +1284,26 @@ Removed old config aliases and cron migration; deleted README upgrade/rollback s
 ### Next Steps
 
 - Push master and v3.11.0, publish GitHub Release notes, and verify Docker/fnOS release workflow.
+
+
+## Session 98: 接管 PR #1：修复 CI 与 P1 问题并合并
+<!-- trellis-session: v=2 fp=9152057730305118 -->
+
+**Date**: 2026-10-24
+**Task**: 接管 PR #1：修复 CI 与 P1 问题并合并
+**Branch**: `master`
+
+### Summary
+
+在贡献者分支 callmenz:master 追加 b2e9565（lint/契约测试、推送设置即时生效、亲密度失败不阻塞、显式禁用渠道、日报 09:00 推前一天且手动推送标待执行、日志脱敏、窄屏表格、Dockerfile 清理，新增 6 条契约测试）；CI validate/docker 全绿后以 merge commit 25ba612 合并 PR #1，贡献者 11 个提交与作者保持不变。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b2e9565` | fix: 修复 PR #1 的 CI 与 P1 问题 |
+| `25ba612` | Merge pull request #1 from callmenz/master |
+
+### Status
+
+[OK] **Completed**

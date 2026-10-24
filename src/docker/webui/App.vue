@@ -13,6 +13,7 @@ import { useToastRegion } from './toast'
 interface WebUiBootstrap {
   appName: string
   appVersionLabel: string
+  initialAuthenticated?: boolean
   initialThemeMode?: ThemeMode
   pageRoutes: Record<string, string>
 }
@@ -26,6 +27,7 @@ declare global {
 const bootstrap: WebUiBootstrap = window.DOUYU_KEEP_WEBUI_BOOTSTRAP ?? {
   appName: 'DOUYU-KEEP',
   appVersionLabel: 'V0.0.0',
+  initialAuthenticated: false,
   initialThemeMode: 'system',
   pageRoutes: { overview: '/' },
 }
@@ -47,6 +49,7 @@ const {
   submittingLogin,
 } = useAuthSession({
   clearProtectedState,
+  initialAuthenticated: bootstrap.initialAuthenticated,
   loadProtectedData: () => loadProtectedData(activeTab.value),
 })
 

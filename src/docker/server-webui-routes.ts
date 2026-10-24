@@ -15,7 +15,11 @@ export function isDockerWebUiPagePath(path: string): boolean {
   return DOCKER_WEBUI_PAGE_PATHS.has(normalizePagePath(path))
 }
 
-export function registerWebUiRoutes(app: express.Express, ctx: AppContext): void {
+export function registerWebUiRoutes(
+  app: express.Express,
+  ctx: AppContext,
+  isAuthenticated: (req: express.Request) => boolean = () => false,
+): void {
   app.use(express.static(WEBUI_ASSET_ROOT, {
     fallthrough: true,
     index: false,
@@ -26,6 +30,8 @@ export function registerWebUiRoutes(app: express.Express, ctx: AppContext): void
       next()
       return
     }
-    res.type('html').send(getHtml(ctx.getConfig()?.ui?.themeMode))
+    // 页面 HTML 按请求会话注入登录态，不能被共享缓存复用
+    res.setHeader('Cache-Control', 'no-store')
+    res.type('html').send(getHtml(ctx.getConfig()?.ui?.themeMode, isAuthenticated(req)))
   })
 }

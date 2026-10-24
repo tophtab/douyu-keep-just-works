@@ -10,6 +10,7 @@
 | Trigger | Section |
 |---|---|
 | Theme bootstrap, `index.html`, or server-served WebUI HTML | [Server-Injected Initial WebUI Theme](#server-injected-initial-webui-theme) |
+| Auth bootstrap, login-shell first paint, `initialAuthenticated`, or `data-auth` | [Server-Injected Initial Auth State](#server-injected-initial-auth-state) |
 | Resource loaders, inline resource errors, logs refresh, or resource toasts | [WebUI Resource Error Feedback](#webui-resource-error-feedback) |
 | Top-right manual refresh or fans/Yuba cache-backed routes | [Manual Force Refresh Of Cache-Backed Resources](#manual-force-refresh-of-cache-backed-resources) |
 | `/api/config` saves or task page save/disable flows | [Applying Config Save Responses](#applying-config-save-responses) |
@@ -43,6 +44,33 @@ Contracts:
 Tests: request WebUI HTML through `createServer(ctx)`, assert valid configured
 theme injection, html/body data-theme output, invalid fallback, no leaked
 placeholders, and `App.vue` passing `bootstrap.initialThemeMode`.
+
+## Server-Injected Initial Auth State
+
+Trigger: changing WebUI auth bootstrap, `src/docker/webui/index.html` auth
+fields, `src/docker/webui/auth.ts`, `src/docker/webui.ts`, or
+`src/docker/server-webui-routes.ts`.
+
+Contracts:
+
+- WebUI page HTML is rendered per request with the session auth state:
+  `getHtml(themeMode, initialAuthenticated)` replaces `__INITIAL_AUTH_STATE__`
+  (`app` / `login` on `body[data-auth]`) and `__INITIAL_AUTHENTICATED__` (the
+  boolean `initialAuthenticated` bootstrap field). Placeholders must not leak.
+- `useAuthSession({ initialAuthenticated })` starts `authenticated` from the
+  bootstrap value, so a logged-in user's first Vue frame is the app shell. The
+  login shell must never paint before `/api/auth/status` resolves.
+- `/api/auth/status` is still fetched after mount and stays authoritative: a
+  stale initial value flips to the login shell, and 401 handling still clears
+  protected state.
+- Because the page HTML now varies by session, page responses set
+  `Cache-Control: no-store` and must not be reused by shared caches.
+- Callers that omit auth state (tests, alternate wiring) default to
+  unauthenticated, never authenticated.
+
+Tests: request `/` through `createServer(ctx)` anonymously and with a session
+cookie, assert `initialAuthenticated` / `data-auth` match the session,
+`Cache-Control: no-store` is set, and no auth placeholders leak.
 
 ## WebUI Resource Error Feedback
 

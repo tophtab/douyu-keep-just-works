@@ -71,7 +71,11 @@ function readTemplate(): string {
   return cachedTemplate
 }
 
-export function getHtml(themeMode: unknown = 'system'): string {
+/**
+ * `initialAuthenticated` 来自本次 HTML 请求的会话状态，用于首屏直接渲染正确的界面，
+ * 避免已登录用户先看到一帧登录页再被隐藏。客户端仍会请求 /api/auth/status 复核。
+ */
+export function getHtml(themeMode: unknown = 'system', initialAuthenticated = false): string {
   const initialThemeMode = resolveThemeMode(themeMode)
   const initialTheme = resolveInitialTheme(initialThemeMode)
   let html = readTemplate()
@@ -81,5 +85,7 @@ export function getHtml(themeMode: unknown = 'system'): string {
   html = replaceToken(html, '__INITIAL_THEME_MODE__', escapeHtml(initialThemeMode))
   html = replaceToken(html, '__INITIAL_THEME__', escapeHtml(initialTheme))
   html = replaceToken(html, '__INITIAL_THEME_COLOR__', escapeHtml(THEME_COLOR_BY_MODE[initialTheme]))
+  html = replaceToken(html, '__INITIAL_AUTH_STATE__', initialAuthenticated ? 'app' : 'login')
+  html = replaceToken(html, '__INITIAL_AUTHENTICATED__', initialAuthenticated ? 'true' : 'false')
   return html
 }

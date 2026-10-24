@@ -19,13 +19,14 @@
 <title>__APP_NAME__</title>
 <link rel="icon" type="image/png" href="/icon.png">
 </head>
-<body data-theme="__INITIAL_THEME__" data-auth="login">
+<body data-theme="__INITIAL_THEME__" data-auth="__INITIAL_AUTH_STATE__">
 <div id="app"></div>
 <script>
 window.DOUYU_KEEP_WEBUI_BOOTSTRAP = {
   appName: '__APP_NAME__',
   appVersionLabel: '__APP_VERSION_LABEL__',
   initialThemeMode: '__INITIAL_THEME_MODE__',
+  initialAuthenticated: __INITIAL_AUTHENTICATED__,
   pageRoutes: __DOCKER_WEBUI_PAGE_ROUTES_JSON__
 }
 if (window.__INITIAL_RESOLVED_THEME__) {

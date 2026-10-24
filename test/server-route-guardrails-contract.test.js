@@ -196,6 +196,28 @@ test('createServer injects configured WebUI theme into served HTML', async () =>
   })
 })
 
+test('createServer injects session auth into served HTML so the first paint skips the login page', async () => {
+  const { context } = createRouteTestContext()
+  await withServer(createServer(context), async (baseUrl) => {
+    const anonymousResponse = await fetch(`${baseUrl}/`)
+    const anonymousHtml = await anonymousResponse.text()
+    assert.equal(anonymousResponse.status, 200)
+    assert.equal(anonymousResponse.headers.get('cache-control'), 'no-store')
+    assert.match(anonymousHtml, /initialAuthenticated: false/)
+    assert.match(anonymousHtml, /<body data-theme="light" data-auth="login">/)
+
+    const cookie = await loginAndGetSessionCookie(baseUrl)
+    const authenticatedResponse = await fetch(`${baseUrl}/`, {
+      headers: { Cookie: cookie },
+    })
+    const authenticatedHtml = await authenticatedResponse.text()
+    assert.equal(authenticatedResponse.status, 200)
+    assert.match(authenticatedHtml, /initialAuthenticated: true/)
+    assert.match(authenticatedHtml, /<body data-theme="light" data-auth="app">/)
+    assert.doesNotMatch(authenticatedHtml, /__INITIAL_AUTH/)
+  })
+})
+
 test('createServer protects config route and keeps overview summary free of config secrets', async () => {
   const { context } = createRouteTestContext()
   await withServer(createServer(context), async (baseUrl) => {

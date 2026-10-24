@@ -13,6 +13,8 @@ interface AuthStateDetail {
 
 interface AuthSessionOptions {
   clearProtectedState: () => void
+  /** 服务端注入的首帧登录态，避免已登录用户先渲染出登录页再切换 */
+  initialAuthenticated?: boolean
   loadProtectedData: () => Promise<void>
 }
 
@@ -51,7 +53,7 @@ function getRequestErrorMessage(error: unknown): string {
 
 export function useAuthSession(options: AuthSessionOptions) {
   const authChecked = ref(false)
-  const authenticated = ref(false)
+  const authenticated = ref(Boolean(options.initialAuthenticated))
   const loginError = ref('')
   const password = ref('')
   const submittingLogin = ref(false)

@@ -37,6 +37,7 @@ Use this table before opening every frontend spec file.
 | Adding composables, event handlers, or task page actions | [Hook Guidelines](./hook-guidelines.md) |
 | Changing local/shared/server state ownership, resource loaders, or protected shell mounting | [State Management](./state-management.md) |
 | Theme bootstrap, resource error feedback, manual force refresh, save-response application, local cookie diagnostics, or Passport QR polling | [Frontend Contracts](./contracts.md) |
+| Auth bootstrap, first-paint login state, or `initialAuthenticated` | [Frontend Contracts](./contracts.md) |
 | Changing API/config shapes or validation | [Type Safety](./type-safety.md), [Frontend Contracts](./contracts.md) when a scenario trigger matches |
 | Final frontend verification, Vue-only runtime, build behavior, or accessibility checks | [Quality Guidelines](./quality-guidelines.md) |
 

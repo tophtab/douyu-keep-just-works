@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "检查样式是否复用全局类、密码控件 aria 与文案是否一致"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "检查前端验证命令与可访问性门槛"}

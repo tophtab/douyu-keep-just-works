@@ -111,5 +111,5 @@ still make the contract obvious.
 - If the test verifies route or helper behavior, could it use `createServer(ctx)`
   or `loadTypeScriptModule(...)` instead of regex?
 - If a `Mixed` block is being changed, are the guardrail assertions preserved?
-- Are raw cookies, WebUI passwords, CookieCloud passwords, `LTP0`, and returned
+- Are raw cookies, WebUI passwords, `LTP0`, and returned
   auth tokens absent from public responses, logs, docs, and visible UI fixtures?

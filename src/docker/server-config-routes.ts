@@ -1,9 +1,7 @@
 import type express from 'express'
-import { isCookieCloudReady } from '../core/cookie-cloud'
 import type { DockerConfig } from '../core/types'
 import type { DockerConfigUpdate } from './config-store'
 import { getNextCronRuns, validateCronExpression } from './cron'
-import { validateCookieCloudConfig } from './config-validation'
 import { sendJsonOk } from './server-route-utils'
 import type { AppContext } from './server-types'
 import { getTaskOverviewSummary, hasEnabledTaskConfig, TASK_TYPES, validateTaskConfig } from './task-metadata'
@@ -12,33 +10,17 @@ function hasConfiguredCookieSource(config: DockerConfig | null | undefined): boo
   return Boolean(
     config?.loginCookies.main.trim()
     || config?.loginCookies.yuba.trim(),
-  ) || isCookieCloudReady(config?.cookieCloud)
+  )
 }
 
 function summarizeCookieSource(config: DockerConfig | null | undefined): string {
-  const hasLocalCookie = Boolean(
-    config?.loginCookies.main.trim()
-    || config?.loginCookies.yuba.trim(),
-  )
-  const hasCookieCloud = isCookieCloudReady(config?.cookieCloud)
-
-  if (hasLocalCookie && hasCookieCloud) {
-    return 'hybrid'
-  }
-  if (hasCookieCloud) {
-    return 'cookieCloud'
-  }
-  if (hasLocalCookie) {
-    return 'local'
-  }
-  return 'none'
+  return hasConfiguredCookieSource(config) ? 'local' : 'none'
 }
 
 function summarizeConfig(config: DockerConfig | null) {
   return {
     cookieSaved: hasConfiguredCookieSource(config),
     cookieSource: summarizeCookieSource(config),
-    cookieCloudConfigured: isCookieCloudReady(config?.cookieCloud),
     passportConfigured: Boolean(config?.loginCookies.passport.trim()),
     ...getTaskOverviewSummary(config),
   }
@@ -57,12 +39,6 @@ function validateConfigPayload(payload: DockerConfigUpdate): string | null {
   }
   if (payload.loginCookies && (typeof payload.loginCookies !== 'object' || Array.isArray(payload.loginCookies))) {
     return 'loginCookies 配置无效'
-  }
-  if (payload.cookieCloud) {
-    const error = validateCookieCloudConfig(payload.cookieCloud)
-    if (error) {
-      return error
-    }
   }
   if (payload.ui && typeof payload.ui !== 'object') {
     return 'ui 配置无效'

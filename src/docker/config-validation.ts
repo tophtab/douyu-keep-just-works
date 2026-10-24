@@ -1,4 +1,4 @@
-import type { CookieCloudConfig, DoubleCardConfig, ExpiringGiftConfig, JobConfig, YubaCheckInConfig } from '../core/types'
+import type { DoubleCardConfig, ExpiringGiftConfig, JobConfig, YubaCheckInConfig } from '../core/types'
 import { validateCronExpression } from './cron'
 
 type UnknownRecord = Record<string, unknown>
@@ -134,35 +134,4 @@ export function validateYubaCheckInConfig(input: YubaCheckInConfig | unknown): s
   return config.mode !== undefined && config.mode !== 'followed'
     ? 'yubaCheckIn 模式无效'
     : null
-}
-
-export function validateCookieCloudConfig(input: CookieCloudConfig | unknown): string | null {
-  const config = asRecord(input)
-  if (!config) {
-    return 'CookieCloud 配置无效'
-  }
-  if (config.enabled !== undefined && typeof config.enabled !== 'boolean') {
-    return 'CookieCloud 启用状态无效'
-  }
-  if (config.cryptoType !== undefined && config.cryptoType !== 'legacy') {
-    return 'CookieCloud 加密算法无效'
-  }
-  if (config.cron !== undefined) {
-    const cronError = validateCronConfig('cookieCloud', { cron: config.cron })
-    if (cronError) {
-      return cronError
-    }
-  }
-  if (config.enabled) {
-    if (!String(config.endpoint || '').trim()) {
-      return 'CookieCloud 服务器地址不能为空'
-    }
-    if (!String(config.uuid || '').trim()) {
-      return 'CookieCloud UUID 不能为空'
-    }
-    if (!String(config.password || '').trim()) {
-      return 'CookieCloud 密码不能为空'
-    }
-  }
-  return null
 }

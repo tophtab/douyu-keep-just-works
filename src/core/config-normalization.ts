@@ -1,6 +1,5 @@
 import {
   DEFAULT_COLLECT_GIFT_CRON,
-  DEFAULT_COOKIE_CLOUD_SYNC_CRON,
   DEFAULT_DOUBLE_CARD_ALLOCATION_MODE,
   DEFAULT_DOUBLE_CARD_CRON,
   DEFAULT_DOUBLE_CARD_GIFT_SCOPE,
@@ -169,18 +168,6 @@ function normalizeLoginCookies(config: UnknownRecord): LoginCookiesConfig {
   }
 }
 
-function normalizeCookieCloud(rawConfig: unknown): DockerConfig['cookieCloud'] {
-  const config = asRecord(rawConfig)
-  return {
-    enabled: normalizeEnabled(config, false),
-    endpoint: normalizeString(config?.endpoint).replace(/\/+$/, ''),
-    uuid: normalizeString(config?.uuid),
-    password: normalizeString(config?.password),
-    cron: normalizeString(config?.cron) || DEFAULT_COOKIE_CLOUD_SYNC_CRON,
-    cryptoType: 'legacy',
-  }
-}
-
 function normalizePushChannelConfig(rawConfig: unknown): DockerConfig['pushChannel'] {
   const config = asRecord(rawConfig)
   const mode = config?.mode === 'text' ? 'text' : DEFAULT_PUSH_CHANNEL_MODE
@@ -328,7 +315,6 @@ export function normalizeDockerConfig(input: unknown): DockerConfig {
   const themeMode = asRecord(config.ui)?.themeMode
   return {
     loginCookies: normalizeLoginCookies(config),
-    cookieCloud: normalizeCookieCloud(config.cookieCloud),
     ui: {
       themeMode: themeMode === 'light' || themeMode === 'dark' ? themeMode : DEFAULT_THEME_MODE,
     },
@@ -345,7 +331,6 @@ export function normalizeDockerConfig(input: unknown): DockerConfig {
 export function reconcileDockerConfig(config: DockerConfig, fans: Fans[]): DockerConfig {
   return {
     loginCookies: { ...config.loginCookies },
-    cookieCloud: { ...config.cookieCloud },
     ui: { ...config.ui },
     pushChannel: { ...config.pushChannel },
     pushReport: { ...config.pushReport },

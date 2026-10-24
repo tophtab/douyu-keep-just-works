@@ -20,7 +20,6 @@ const {
   DEFAULT_KEEPALIVE_CRON,
 } = loadTypeScriptModule('src/core/task-defaults.ts')
 const {
-  validateCookieCloudConfig,
   validateCronConfig,
   validateDoubleCardConfig,
   validateJobConfig,
@@ -86,7 +85,6 @@ test('Example config is canonical and stable after normalization', () => {
   const example = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../config.example.json'), 'utf8'))
   assert.deepEqual(Object.keys(example), [
     'loginCookies',
-    'cookieCloud',
     'ui',
     'pushChannel',
     'pushReport',
@@ -112,13 +110,6 @@ test('Docker config normalization keeps current fields and order while ignoring 
     },
     manualPassport: {
       cookie: ' legacy-passport ',
-    },
-    cookieCloud: {
-      enabled: false,
-      active: true,
-      endpoint: ' https://cookie.example/ ',
-      uuid: ' uuid ',
-      password: ' password ',
     },
     keepalive: {
       enabled: true,
@@ -159,7 +150,6 @@ test('Docker config normalization keeps current fields and order while ignoring 
 
   assert.deepEqual(Object.keys(normalized), [
     'loginCookies',
-    'cookieCloud',
     'ui',
     'pushChannel',
     'pushReport',
@@ -173,14 +163,6 @@ test('Docker config normalization keeps current fields and order while ignoring 
     passport: 'new-passport',
     main: '',
     yuba: '',
-  })
-  assert.deepEqual(JSON.parse(JSON.stringify(normalized.cookieCloud)), {
-    enabled: false,
-    endpoint: 'https://cookie.example',
-    uuid: 'uuid',
-    password: 'password',
-    cron: '0 5 0 * * *',
-    cryptoType: 'legacy',
   })
   assert.deepEqual(JSON.parse(JSON.stringify(normalized.keepalive)), {
     enabled: true,
@@ -309,11 +291,6 @@ test('Current switches and cron are validated without interpreting active aliase
   assert.match(validateCronConfig('keepalive', { enabled: 'yes', cron: DEFAULT_KEEPALIVE_CRON }), /启用状态无效/)
   assert.match(validateCronConfig('keepalive', { enabled: false, cron: 'invalid' }), /cron/i)
   assert.equal(validateCronConfig('keepalive', { active: 'ignored', cron: '0 0 8 */7 * *' }), null)
-  assert.equal(validateCookieCloudConfig({ active: true }), null)
-  assert.match(validateCookieCloudConfig({ enabled: 'yes' }), /启用状态无效/)
-  assert.match(validateCookieCloudConfig({ enabled: true }), /服务器地址不能为空/)
-  assert.match(validateCookieCloudConfig({ enabled: false, cron: 'invalid' }), /cron/i)
-  assert.equal(validateCookieCloudConfig({ enabled: false, cryptoType: 'legacy' }), null)
 })
 
 test('Partial updates ignore old aliases and preserve unspecified current settings', () => {
@@ -339,13 +316,11 @@ test('Partial updates ignore old aliases and preserve unspecified current settin
 
   const patched = buildConfigWithPartialUpdate(current, {
     loginCookies: { main: ' next-main-redacted ' },
-    cookieCloud: { uuid: ' next-uuid ' },
     keepalive: { enabled: true },
     doubleCard: { participatingRoomIds: [] },
     ui: { themeMode: 'dark' },
   })
   assert.deepEqual(patched.loginCookies, { ...current.loginCookies, main: 'next-main-redacted' })
-  assert.deepEqual(patched.cookieCloud, { ...current.cookieCloud, uuid: 'next-uuid' })
   assert.deepEqual(patched.keepalive, { ...current.keepalive, enabled: true })
   assert.deepEqual(patched.doubleCard, { ...current.doubleCard, participatingRoomIds: [] })
   assert.deepEqual(patched.ui, { themeMode: 'dark' })
@@ -387,6 +362,33 @@ test('Disk config round trips preserve current values and ignore obsolete input 
   assert.deepEqual(JSON.parse(fs.readFileSync(configPath, 'utf8')), expected)
 })
 
+test('Disk config drops the removed cookieCloud field on load and save', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'douyu-config-legacy-'))
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }))
+  const configPath = path.join(dir, 'config.json')
+
+  fs.writeFileSync(configPath, JSON.stringify({
+    loginCookies: { passport: '', main: 'main-redacted', yuba: '' },
+    cookieCloud: {
+      enabled: true,
+      endpoint: 'https://cookiecloud.example.com',
+      uuid: 'uuid-redacted',
+      password: 'password-redacted',
+      cron: '0 5 0 * * *',
+      cryptoType: 'legacy',
+    },
+  }))
+
+  const loaded = loadConfigFromDisk(configPath)
+  assert.ok(loaded)
+  assert.equal(Object.prototype.hasOwnProperty.call(loaded, 'cookieCloud'), false)
+
+  saveConfigToDisk(configPath, loaded)
+  const persisted = fs.readFileSync(configPath, 'utf8')
+  assert.equal(persisted.includes('cookieCloud'), false)
+  assert.equal(JSON.parse(persisted).loginCookies.main, 'main-redacted')
+})
+
 test('Runtime config updates reapply cookie sources only for current credential fields', async () => {
   const { createRuntimeAppContext } = loadTypeScriptModule('src/docker/runtime-app-context.ts')
   let config = normalizeDockerConfig({ loginCookies: { main: 'main-redacted' } })
@@ -417,8 +419,8 @@ test('Runtime config updates reapply cookie sources only for current credential 
 
   await context.saveTaskConfig({ loginCookies: { main: 'next-main-redacted' } })
   assert.equal(config.loginCookies.main, 'next-main-redacted')
-  await context.saveTaskConfig({ cookieCloud: { enabled: false } })
-  assert.deepEqual(applied, ['cookie_saved', 'cookie_saved'])
+  await context.saveTaskConfig({ cookieCloud: { active: true } })
+  assert.deepEqual(applied, ['cookie_saved'])
 })
 
 test('Docker config reconciliation follows fans and preserves canonical settings', () => {

@@ -25,7 +25,7 @@ body:
       options:
         - Docker deployment
         - WebUI
-        - CookieCloud/login
+        - Cookie/login
         - Task scheduling
         - Douyu task behavior
         - Documentation

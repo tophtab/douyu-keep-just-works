@@ -178,7 +178,7 @@ export function useDoubleTaskPage() {
       rowCount: fanRows.value.length,
       fansListError: fansListError.value,
       fansListLoaded: fansListLoaded.value,
-      emptyMissingCredentialText: '保存 Cookie 或启用 CookieCloud 后再同步粉丝牌，这里才会出现房间列表。',
+      emptyMissingCredentialText: '保存 Cookie 后再同步粉丝牌，这里才会出现房间列表。',
     })
   })
 

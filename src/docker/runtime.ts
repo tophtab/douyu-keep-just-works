@@ -11,7 +11,6 @@ import { createRuntimeAppContext } from './runtime-app-context'
 import { DockerRuntimeCache } from './runtime-cache'
 import { DockerRuntimeConfigService } from './runtime-config-service'
 import type { DockerRuntimeConfigApplyReason } from './runtime-config-service'
-import { DockerCookieCloudSyncService } from './runtime-cookie-cloud-sync'
 import { DockerRuntimeCookieRecoveryService } from './runtime-cookie-recovery'
 import { DockerCookieSourceManager } from './runtime-cookie-source'
 import { DockerRuntimeFansSyncService } from './runtime-fans-sync'
@@ -39,7 +38,7 @@ const cookieSource = new DockerCookieSourceManager({
 })
 
 const cookieRecovery = new DockerRuntimeCookieRecoveryService({
-  hasPassportRecoveryMaterial: () => cookieSource.hasPassportRecoveryMaterial(),
+  hasLocalPassportCookie: () => cookieSource.hasLocalPassportCookie(),
   recoverCredentialSnapshot: async options => await cookieSource.recoverCredentialSnapshot(options),
   validateMainCookie: async (mainCookie) => {
     await runtimeCache.getFansList(mainCookie)
@@ -72,21 +71,13 @@ function updateCurrentConfig(config: DockerConfig): void {
   reportScheduler.reconcile(config)
 }
 
-const cookieCloudSync = new DockerCookieCloudSyncService({
-  hasCookieCloudSource: config => cookieSource.hasCookieCloudSource(config),
-  logSystem,
-  persistEffectiveCookies: async forceRefresh => await cookieSource.persistEffectiveCookies(forceRefresh),
-})
-
 const runtimeConfigService = new DockerRuntimeConfigService({
-  clearCookieCloudCache: () => cookieSource.clearCookieCloudCache(),
   clearFansListCache: () => runtimeCache.clearFansList(),
   getCurrentConfig: () => currentConfig,
   hasConfiguredCookieSource: config => cookieSource.hasConfiguredCookieSource(config),
   invalidateStatusCaches: scope => runtimeCache.invalidateStatus(scope),
   logSystem,
   logTaskReloadSummary: (reason, summary) => scheduler.logTaskReloadSummary(reason, summary),
-  reconcileCookieCloudSync: (prevConfig, nextConfig) => cookieCloudSync.reconcile(prevConfig, nextConfig),
   reconcileTaskJobs: (prevConfig, nextConfig, hasCookieSource) => scheduler.reconcileTaskJobs(prevConfig, nextConfig, hasCookieSource),
   setCurrentConfig: updateCurrentConfig,
   stopTaskJobs: () => scheduler.stopJobs(),
@@ -95,7 +86,6 @@ const runtimeConfigService = new DockerRuntimeConfigService({
 const fansSync = new DockerRuntimeFansSyncService({
   getCurrentConfig: () => currentConfig,
   getConfigPath: () => activeConfigPath,
-  hasCookieCloudSource: config => cookieSource.hasCookieCloudSource(config),
   resolveCookieForUrlFromConfig: (targetUrl, config) => cookieSource.resolveCookieForUrlFromConfig(targetUrl, config),
   getFansList: async cookie => await runtimeCache.getFansList(cookie),
   invalidateStatusCaches: scope => runtimeCache.invalidateStatus(scope),
@@ -157,8 +147,6 @@ export function startDockerRuntime(options: DockerRuntimeOptions): void {
     hasConfiguredCookieSource: config => cookieSource.hasConfiguredCookieSource(config),
     resolveCookieForUrl: targetUrl => cookieSource.resolveCookieForUrl(targetUrl),
     inspectCookieSource: async () => await cookieSource.inspectCookieSource(),
-    getEffectiveCookies: async forceRefresh => await cookieSource.getEffectiveCookies(forceRefresh),
-    persistEffectiveCookies: async forceRefresh => await cookieSource.persistEffectiveCookies(forceRefresh),
     startPassportQrLogin: async () => await cookieSource.startPassportQrLogin(),
     getPassportQrLoginStatus: () => cookieSource.getPassportQrLoginStatus(),
     pollPassportQrLogin: async () => await cookieSource.pollPassportQrLogin(),
@@ -220,7 +208,6 @@ export function startDockerRuntime(options: DockerRuntimeOptions): void {
 
   const shutdown = () => {
     logSystem('收到停止信号，正在关闭...')
-    cookieCloudSync.stop()
     scheduler.stopJobs()
     reportScheduler.stop()
     process.exit(0)

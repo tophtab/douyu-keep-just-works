@@ -473,7 +473,7 @@ function cookieStatusRows(status: CookieStatusSummary): Array<{ item: string, st
   rows.push({
     item: 'Cookie 数量',
     state: String(status.cookieCount),
-    detail: status.source === 'cookieCloud' ? '来源 CookieCloud' : '来源本地扫码快照',
+    detail: '来源本地扫码快照',
   })
 
   return rows

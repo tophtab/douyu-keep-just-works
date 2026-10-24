@@ -24,7 +24,7 @@ Timestamps are formatted for `Asia/Shanghai`, matching runtime scheduling.
 
 There are no explicit log levels. Use categories instead:
 
-- `系统` for runtime lifecycle, config, CookieCloud sync, and scheduler reconciliation.
+- `系统` for runtime lifecycle, config, credential recovery, and scheduler reconciliation.
 - task categories from `TASK_LOG_CATEGORIES` for task-specific execution messages.
 
 Use `console.log` only through `addLog`/`createLogger` so logs are available in the WebUI.
@@ -60,7 +60,7 @@ Log operational state changes that help a Docker user understand what happened:
 
 - startup and config load result
 - missing login credentials
-- CookieCloud sync start/failure/update status
+- credential recovery start/success/failure status
 - task start, manual trigger, busy-skip, and execution failure
 - targeted task reload summaries after config, cookie, or medal-list changes
 
@@ -71,7 +71,7 @@ Keep user-facing runtime messages in Chinese, matching the current WebUI and log
 ## What NOT to Log
 
 - Raw Douyu cookies.
-- CookieCloud password values.
+- Passport `LTP0` or auth token values.
 - Full config JSON.
 - WebUI password values.
 - Large Douyu API response bodies unless a task explicitly introduces sanitized diagnostics.

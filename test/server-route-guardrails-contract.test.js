@@ -9,7 +9,6 @@ const { buildConfigWithPartialUpdate } = loadTypeScriptModule('src/docker/config
 const MAIN_COOKIE = 'acf_uid=uid-redacted; dy_did=did-redacted; acf_auth=main-auth-redacted-secret-value; acf_stk=main-stk-redacted'
 const YUBA_COOKIE = 'acf_yb_uid=yb-uid-redacted; acf_yb_t=yuba-token-redacted-secret-value; acf_yb_auth=yuba-auth-redacted'
 const PASSPORT_COOKIE = 'dy_did=did-redacted; LTP0=passport-ltp0-redacted-secret-value'
-const COOKIE_CLOUD_PASSWORD = 'cookiecloud-password-redacted-secret-value'
 
 function createJobStatus() {
   return {
@@ -25,14 +24,6 @@ function createInitialConfig() {
       passport: PASSPORT_COOKIE,
       main: MAIN_COOKIE,
       yuba: YUBA_COOKIE,
-    },
-    cookieCloud: {
-      enabled: true,
-      endpoint: 'https://cookiecloud.example.com',
-      uuid: 'uuid-redacted',
-      password: COOKIE_CLOUD_PASSWORD,
-      cron: '0 0 */6 * * *',
-      cryptoType: 'legacy',
     },
   })
 }
@@ -59,9 +50,7 @@ function createRouteTestContext() {
     ...createInitialConfig(),
   }
   const calls = {
-    getEffectiveCookies: [],
     inspectCookieSource: [],
-    persistEffectiveCookies: [],
     saveCookie: [],
     saveTaskConfig: [],
   }
@@ -100,7 +89,6 @@ function createRouteTestContext() {
       inspectCookieSource: async (...args) => {
         calls.inspectCookieSource.push(args)
         return {
-          source: 'local',
           passport: { ltp0Present: true },
           main: { ready: true, missingKeys: [] },
           yuba: {
@@ -109,31 +97,7 @@ function createRouteTestContext() {
             missingDyTokenKeys: [],
             missingCookieKeys: [],
           },
-          snapshot: { cookieCount: 3, domains: ['local'] },
-        }
-      },
-      getEffectiveCookies: async (...args) => {
-        calls.getEffectiveCookies.push(args)
-        return {
-          source: 'local',
-          mainCookie: config.loginCookies.main,
-          yubaCookie: config.loginCookies.yuba,
-          cookieCloudEnabled: Boolean(config.cookieCloud?.enabled),
-          persistedLocally: true,
-        }
-      },
-      persistEffectiveCookies: async (...args) => {
-        calls.persistEffectiveCookies.push(args)
-        return {
-          config,
-          effective: {
-            source: 'local',
-            mainCookie: config.loginCookies.main,
-            yubaCookie: config.loginCookies.yuba,
-            cookieCloudEnabled: Boolean(config.cookieCloud?.enabled),
-            persistedLocally: true,
-          },
-          updated: false,
+          snapshot: { cookieCount: 3 },
         }
       },
       triggerTask: async () => {},
@@ -254,7 +218,7 @@ test('createServer protects config route and keeps overview summary free of conf
     assert.equal(config.body.data.loginCookies.passport, PASSPORT_COOKIE)
     assert.equal(config.body.data.manualCookies, undefined)
     assert.equal(config.body.data.manualPassport, undefined)
-    assert.equal(config.body.data.cookieCloud.password, COOKIE_CLOUD_PASSWORD)
+    assert.equal(config.body.data.cookieCloud, undefined)
 
     const removedRawConfig = await fetch(`${baseUrl}/api/config/raw`, {
       headers: { Cookie: sessionCookie },
@@ -266,10 +230,10 @@ test('createServer protects config route and keeps overview summary free of conf
     })
     assert.equal(overview.response.status, 200)
     assert.equal(overview.body.passportConfigured, true)
+    assert.equal(Object.prototype.hasOwnProperty.call(overview.body, 'cookieCloudConfigured'), false)
     const overviewJson = JSON.stringify(overview.body)
     assert.equal(overviewJson.includes('main-auth-redacted-secret-value'), false)
     assert.equal(overviewJson.includes('passport-ltp0-redacted-secret-value'), false)
-    assert.equal(overviewJson.includes('cookiecloud-password-redacted-secret-value'), false)
   })
 })
 
@@ -449,8 +413,8 @@ test('createServer ignores obsolete credential aliases and rejects old task shap
   })
 })
 
-test('createServer cookie-source routes keep diagnostics local and persist with force refresh', async () => {
-  const { calls, context, setConfig } = createRouteTestContext()
+test('createServer keeps local cookie diagnostics and removes cloud-only routes', async () => {
+  const { calls, context } = createRouteTestContext()
 
   await withServer(createServer(context), async (baseUrl) => {
     const sessionCookie = await loginAndGetSessionCookie(baseUrl)
@@ -460,43 +424,20 @@ test('createServer cookie-source routes keep diagnostics local and persist with 
       headers: { Cookie: sessionCookie },
     })
     assert.equal(check.response.status, 200)
-    assert.equal(check.body.source, 'local')
+    assert.equal(check.body.main.ready, true)
+    assert.equal(check.body.yuba.cookieReady, true)
+    assert.equal(Object.prototype.hasOwnProperty.call(check.body, 'source'), false)
     assert.deepEqual(calls.inspectCookieSource, [[]])
 
-    const effective = await requestJson(`${baseUrl}/api/cookie-source/effective`, {
-      headers: { Cookie: sessionCookie },
-    })
-    assert.equal(effective.response.status, 200)
-    assert.equal(effective.body.persistedLocally, true)
-    assert.deepEqual(calls.getEffectiveCookies, [[true]])
-
-    setConfig({
-      ...createInitialConfig(),
-      cookieCloud: {
-        enabled: false,
-        endpoint: 'https://cookiecloud.example.com',
-        uuid: 'uuid-redacted',
-        password: COOKIE_CLOUD_PASSWORD,
-        cron: '0 0 */6 * * *',
-        cryptoType: 'legacy',
-      },
-    })
-    const inactivePersist = await requestJson(`${baseUrl}/api/cookie-source/persist`, {
+    const persist = await fetch(`${baseUrl}/api/cookie-source/persist`, {
       method: 'POST',
       headers: { Cookie: sessionCookie },
     })
-    assert.equal(inactivePersist.response.status, 400)
-    assert.deepEqual(inactivePersist.body, { error: 'CookieCloud 未启用' })
-    assert.deepEqual(calls.persistEffectiveCookies, [])
+    assert.equal(persist.status, 404)
 
-    setConfig(createInitialConfig())
-    const activePersist = await requestJson(`${baseUrl}/api/cookie-source/persist`, {
-      method: 'POST',
+    const effective = await fetch(`${baseUrl}/api/cookie-source/effective`, {
       headers: { Cookie: sessionCookie },
     })
-    assert.equal(activePersist.response.status, 200)
-    assert.equal(activePersist.body.ok, true)
-    assert.equal(activePersist.body.data.updated, false)
-    assert.deepEqual(calls.persistEffectiveCookies, [[true]])
+    assert.equal(effective.status, 404)
   })
 })

@@ -29,8 +29,8 @@ function hasGiftStatusError(status: GiftStatus | null): status is GiftStatus & {
 function buildOverviewStatusCell(
   label: string,
   enabled: unknown,
-  enabledText = '已开启',
-  disabledText = '未开启',
+  enabledText = '已启动',
+  disabledText = '未启动',
 ): OverviewStatusCell {
   return {
     label,
@@ -57,7 +57,7 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
     }
 
     return [
-      buildOverviewStatusCell('登录', overview.value.cookieSaved, '已就绪', '未配置'),
+      buildOverviewStatusCell('登录', overview.value.cookieSaved, '已登录', '未登录'),
       buildOverviewStatusCell('领取', overview.value.collectGiftConfigured),
       buildOverviewStatusCell('保活', overview.value.keepaliveConfigured),
       buildOverviewStatusCell('双倍', overview.value.doubleCardConfigured),
@@ -72,7 +72,7 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
     }
 
     if (!hasCookieSource.value) {
-      return '保存 Cookie 或启用 CookieCloud 后再点击顶部“刷新”，这里会展示背包礼物明细。'
+      return '保存 Cookie 后再点击顶部“刷新”，这里会展示背包礼物明细。'
     }
 
     if ((managedLoading.value || fansStatusLoading.value) && !fansStatusLoaded.value) {
@@ -107,7 +107,7 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
       return '请稍候…'
     }
     if (!hasCookieSource.value) {
-      return '保存 Cookie 或启用 CookieCloud 后再点击顶部“刷新”，这里会直接展示粉丝牌与双倍状态。'
+      return '保存 Cookie 后再点击顶部“刷新”，这里会直接展示粉丝牌与双倍状态。'
     }
     if ((managedLoading.value || fansStatusLoading.value) && !fansStatusLoaded.value) {
       return '请稍候，列表正在更新。'

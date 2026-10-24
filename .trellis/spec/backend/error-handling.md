@@ -85,7 +85,7 @@ await this.runTaskWithLock(type, async () => {
 Use status-specific JSON errors:
 
 - `400` for validation and malformed config.
-- `400` for missing or invalid Douyu login credentials, including local CookieCloud snapshot gaps and cookie fields that Douyu APIs require.
+- `400` for missing or invalid Douyu login credentials, including local login snapshot gaps and cookie fields that Douyu APIs require.
 - `401` for WebUI auth failures.
 - `500` for unexpected runtime failures.
 
@@ -102,8 +102,8 @@ Keep messages stable when frontend code or tests rely on them.
 ## Scenario Contracts
 
 Read [Backend Contracts](./contracts.md#credential-recovery-retry) before
-changing CookieCloud-backed recovery, manual-passport recovery, safeAuth/Yuba
-retry behavior, or task-runner retry integration.
+changing manual-passport recovery, safeAuth/Yuba retry behavior, or task-runner
+retry integration.
 
 ---
 
@@ -113,5 +113,5 @@ retry behavior, or task-runner retry integration.
 - Do not throw raw Douyu response objects.
 - Do not let scheduled task errors escape out of cron callbacks.
 - Do not return stack traces or raw config secrets in public/status API responses. Authenticated `/api/config` is the explicit complete-config editing endpoint.
-- Do not hide remote CookieCloud fetches inside local-only diagnostics such as `/api/cookie-source/check`.
+- Do not hide remote cookie fetches inside local-only diagnostics such as `/api/cookie-source/check`.
 - Do not add direct `LTP0` / passport refresh without a separate config, secret-masking, validation, and test plan.

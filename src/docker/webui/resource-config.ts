@@ -20,12 +20,6 @@ export interface CookieSourceConfig {
     main?: string
     yuba?: string
   }
-  cookieCloud?: {
-    enabled?: boolean
-    endpoint?: string
-    uuid?: string
-    password?: string
-  }
 }
 
 interface ConfigMutationResponse {
@@ -39,12 +33,10 @@ export function getRawConfig(): DockerConfig {
 }
 
 export function hasCookieSourceConfigured(config: CookieSourceConfig | null = getRawConfig()): boolean {
-  const cookieCloud = config?.cookieCloud
   const loginCookies = config?.loginCookies
   return Boolean(
     String(loginCookies?.main || '').trim()
-    || String(loginCookies?.yuba || '').trim()
-    || (cookieCloud?.enabled && String(cookieCloud.endpoint || '').trim() && String(cookieCloud.uuid || '').trim() && String(cookieCloud.password || '').trim()),
+    || String(loginCookies?.yuba || '').trim(),
   )
 }
 

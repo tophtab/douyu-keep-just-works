@@ -34,7 +34,7 @@ bridge/userscript would be a new external component, not existing infrastructure
   and untracked. These files are not required to understand this record.
 - Keep only field names, placeholders, and reduced numeric observations in
   shared documentation. Never copy raw HARs, cookies, login packets, tokens,
-  account identifiers, device IDs, or CookieCloud connection credentials.
+  account identifiers, device IDs, or remote cookie-sync credentials.
 
 ## 2. Signatures
 
@@ -81,8 +81,8 @@ resolver and `makeHeaders(cookie, ...)` for requests that require authentication
   `getFansList`, backpack calls, and `sendGift`.
 - [runtime-effective-cookies.ts](../../../src/docker/runtime-effective-cookies.ts)
   and [runtime-cookie-source.ts](../../../src/docker/runtime-cookie-source.ts):
-  existing cookie selection/recovery ownership; do not add a second CookieCloud
-  client or copy secrets into a standalone checked-in script.
+  existing cookie selection/recovery ownership; do not add a second cookie
+  source or copy secrets into a standalone checked-in script.
 - [double-card-job.ts](../../../src/core/double-card-job.ts),
   [gift.ts](../../../src/core/gift.ts), and
   [job-gift-utils.ts](../../../src/core/job-gift-utils.ts): future allocation/send

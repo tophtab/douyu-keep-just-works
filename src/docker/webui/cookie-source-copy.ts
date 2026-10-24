@@ -34,8 +34,7 @@ export function buildLoginStatus() {
 
   return {
     pills: [
-      { label: overview.value.cookieSaved ? '已就绪' : '未配置', kind: overview.value.cookieSaved ? 'ok' : 'off' },
-      { label: overview.value.ready ? '可运行' : '待配置', kind: overview.value.ready ? 'warn' : 'off' },
+      { label: overview.value.cookieSaved ? '已登录' : '未登录', kind: overview.value.cookieSaved ? 'ok' : 'off' },
     ],
     cells,
   }

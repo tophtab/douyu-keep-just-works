@@ -39,8 +39,8 @@ Use this table before opening every backend spec file.
 |---|---|
 | Adding, moving, or splitting backend modules | [Directory Structure](./directory-structure.md) |
 | Config persistence, default config, manual passport config, normalization, or examples | [Database Guidelines](./database-guidelines.md), [Backend Contracts](./contracts.md#config-and-persistence-contracts) |
-| Routes, task runners, CookieCloud, credential errors, or Douyu API failures | [Error Handling](./error-handling.md), [Backend Contracts](./contracts.md#credential-recovery-retry) |
-| Passport QR login, safeAuth, CookieCloud authority, Yuba SSO, or cookie lifetime assumptions | [Backend Contracts](./contracts.md#passport-main-site-and-yuba-cookie-authority), [Backend Contracts](./contracts.md#project-owned-passport-qr-login-snapshots) |
+| Routes, task runners, credential errors, or Douyu API failures | [Error Handling](./error-handling.md), [Backend Contracts](./contracts.md#credential-recovery-retry) |
+| Passport QR login, safeAuth, Yuba SSO, or cookie lifetime assumptions | [Backend Contracts](./contracts.md#passport-main-site-and-yuba-cookie-authority), [Backend Contracts](./contracts.md#project-owned-passport-qr-login-snapshots) |
 | Glow-stick double-card detection or Douyu pocket card interpretation | [Backend Contracts](./contracts.md#glow-stick-double-card-detection) |
 | Daily intimacy caps, cap-aware allocation/pre-send checks, or authenticated Douyu sockets | [Douyu Fan Intimacy](./douyu-fan-intimacy.md) (research and deferral decision; not an implemented feature) |
 | Gift sending, room DID reuse, or multi-gift task sequencing | [Backend Contracts](./contracts.md#task-local-room-did-reuse), [Testing Guidelines](./testing-guidelines.md) |

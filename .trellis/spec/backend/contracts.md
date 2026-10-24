@@ -11,7 +11,7 @@
 |---|---|
 | Defaults, config normalization, examples, or login-cookie persistence | [Config And Persistence Contracts](#config-and-persistence-contracts) |
 | Runtime retry after login-cookie failures | [Credential Recovery Retry](#credential-recovery-retry) |
-| Passport QR login, safeAuth, CookieCloud authority, or Yuba SSO | [Passport, Main-Site, And Yuba Cookie Authority](#passport-main-site-and-yuba-cookie-authority) |
+| Passport QR login, safeAuth, or Yuba SSO | [Passport, Main-Site, And Yuba Cookie Authority](#passport-main-site-and-yuba-cookie-authority) |
 | Backend-owned QR login route/session behavior | [Project-Owned Passport QR Login Snapshots](#project-owned-passport-qr-login-snapshots) |
 | Glow-stick double-card detection or Douyu pocket card fields | [Glow-Stick Double-Card Detection](#glow-stick-double-card-detection) |
 | Daily intimacy caps, cap-aware gift sending, or authenticated Douyu sockets | [Deferred Douyu Fan Intimacy Research](./douyu-fan-intimacy.md) |
@@ -28,7 +28,7 @@
 ### Default Config Ownership
 
 Trigger: changing Docker/WebUI default task config, cron values, enabled defaults,
-CookieCloud defaults, or `config.example.json`.
+or `config.example.json`.
 
 Contracts:
 
@@ -58,15 +58,14 @@ Contracts:
 - `normalizeDockerConfig` reads credentials only from `loginCookies`.
   `manualCookies`, `manualPassport`, and top-level `cookie` are unknown
   configuration fields and must not supply or overwrite credentials.
-- CookieCloud persistence writes Passport material to `loginCookies.passport`
-  only when fresh data contains `LTP0`, and preserves existing local values when
-  a remote snapshot is incomplete.
+- QR login and manual saves write Passport material to `loginCookies.passport`
+  only; there is no external cookie-sync source.
 - Authenticated `/api/config` responses may contain raw saved cookies. Overview,
   diagnostics, logs, and QR status expose only booleans or structural facts;
   `GET /api/config/raw` stays deleted.
 
 Tests: cover canonical ordering, ignored old aliases, partial updates/clearing,
-authenticated config round trips, secret boundaries, CookieCloud persistence,
+authenticated config round trips, secret boundaries, QR/manual persistence,
 and the frontend visible cookie fields.
 
 ### Current Config Boundary
@@ -87,7 +86,7 @@ normalization, persistence, API routes, or WebUI config state.
 
 #### 3. Contracts
 
-- Public top-level order is `loginCookies`, `cookieCloud`, `ui`,
+- Public top-level order is `loginCookies`, `ui`, `pushChannel`, `pushReport`,
   `collectGift`, `keepalive`, `doubleCard`, `expiringGift`, `yubaCheckIn`.
 - Scheduled task switches use `enabled`. Runtime card state and Vue tab/CSS
   state may still use `active`; do not use `active` for normal config.
@@ -104,16 +103,16 @@ normalization, persistence, API routes, or WebUI config state.
 - Successful API responses and disk writes contain canonical fields only.
 - Normalization fills missing current fields without interpreting old aliases.
   Partial updates preserve unspecified fields and allow explicit empty cookies
-  to clear saved values. CookieCloud `cryptoType: 'legacy'` remains a supported
-  external protocol and is unrelated to removed configuration compatibility.
+  to clear saved values. Unknown top-level sections, including removed remote
+  cookie-sync configuration, are dropped by the normalization whitelist.
 
 #### 4. Validation & Error Matrix
 
-- Old fields (`cookie`, `manualCookies`, `manualPassport`, task/CookieCloud
-  `active`, `model`, `send`, and allocation `number`) have no migration meaning.
-  Unknown extra properties do not by themselves cause errors; existing current
-  field validation still applies. Legacy credential patches do not change
-  saved credentials.
+- Old fields (`cookie`, `manualCookies`, `manualPassport`, task `active`,
+  `model`, `send`, allocation `number`, and removed remote cookie-sync sections)
+  have no migration meaning. Unknown extra properties do not by themselves cause
+  errors; existing current field validation still applies. Legacy credential
+  patches do not change saved credentials.
 - Weighted entries containing `count`, fixed entries containing `weight`,
   non-finite/negative weights, non-integer counts below `-1`, or multiple `-1`
   entries -> `400` validation error.
@@ -122,7 +121,7 @@ normalization, persistence, API routes, or WebUI config state.
 - Old `model`/`send`/`number` values cannot satisfy required allocation fields.
 - `/api/cookie` ignores the old `cookie` alias; absent/blank current cookie
   values return `400` with `缺少 cookie` before saving.
-- Invalid cron, task switches, CookieCloud fields, or allocation mode -> `400`;
+- Invalid cron, task switches, or allocation mode -> `400`;
   no invalid payload reaches persistence.
 
 #### 5. Good/Base/Bad Cases
@@ -176,36 +175,38 @@ Contracts:
 
 - Recovery eligibility is message-based; there is no custom error class
   hierarchy.
-- Recovery runs only when CookieCloud is fully configured and enabled or saved
-  `loginCookies.passport` exists.
+- Recovery runs only when saved `loginCookies.passport` exists. There is no
+  remote cookie-sync source.
 - `DockerRuntimeCookieRecoveryService` owns runtime retry eligibility, logging,
   and delegation to `DockerCookieSourceManager.recoverCredentialSnapshot(...)`.
   Task runners use `RuntimeTaskRunnerDeps.refreshCookieSourceAfterFailure`;
   they do not call `safeAuth`, inspect `LTP0`, or implement Yuba refresh.
 - Recovery validates the current main cookie first with required-key checks and
   `getFansList()`.
-- CookieCloud mode may force-persist the effective snapshot, then validate the
-  synced main cookie before retrying.
+- `safeAuth` runs only after local main-cookie validation fails. When the local
+  main cookie is already valid, Yuba recovery must call Yuba SSO directly and
+  must not rotate the main cookie.
 - Passport `safeAuth` may run only when `LTP0` and `dy_did` are available from
-  CookieCloud passport material, manual passport material, or the local main
-  cookie. Persist the refreshed main snapshot only after validation passes.
+  the manual passport cookie or the local main cookie. Persist the refreshed
+  main snapshot only after validation passes.
 - Yuba-related failures pass `recoverYubaCookie: true`; recovery reuses
   `fetchDouyuYubaCookiesWithPassport` and persists the refreshed Yuba snapshot
   with the validated main snapshot.
 - If Yuba SSO fails after main recovery succeeds, keep the existing Yuba cookie,
   report the reason, and retry once only if the main snapshot changed.
 - The original operation is retried exactly once.
-- Recovery never writes refreshed cookies to CookieCloud/browser storage and
-  never logs raw cookies, `LTP0`, passwords, or returned auth token values.
+- `CredentialSnapshotRecoveryResult.refreshedBy` is `'safeAuth' | null`.
+- Recovery never logs raw cookies, `LTP0`, passwords, or returned auth token
+  values.
 
 Tests: assert shared retry hooks exist, task runners do not directly reference
 Passport refresh internals, recovery validates before persisting, safeAuth/Yuba
-paths are covered, missing `dy_did` is explicit, and fan reconcile merges the
-latest local cookie snapshot.
+paths are covered, missing `dy_did` is explicit, and recovery uses only the
+local main cookie plus the manual passport cookie.
 
 ## Passport, Main-Site, And Yuba Cookie Authority
 
-Trigger: changing Passport QR login, CookieCloud persistence, credential
+Trigger: changing Passport QR login, manual cookie persistence, credential
 recovery, task cookie selection, or Yuba SSO behavior.
 
 Contracts:
@@ -225,9 +226,9 @@ Contracts:
   day. Do not assume safeAuth refreshes `LTP0`.
 - Main-site business cookies are effectively single-active for the observed
   Passport/device flow. A newly minted main snapshot supersedes previous local
-  or browser snapshots and should invalidate local caches.
-- CookieCloud/browser snapshots and backend Passport refresh are not equal
-  independent write authorities for `loginCookies.main`.
+  snapshots and should invalidate local caches.
+- Backend Passport refresh is the single write authority for
+  `loginCookies.main`; there is no second cookie-sync source.
 - Full recovery should rebuild a coherent set: refresh main from Passport,
   validate it, run Yuba SSO with that main snapshot, validate Yuba, then persist
   both snapshots together.
@@ -248,7 +249,7 @@ Contracts:
 
 - QR login creates project-owned local snapshots in `loginCookies.passport`,
   `loginCookies.main`, and `loginCookies.yuba`; it never writes back to browser
-  profiles or CookieCloud.
+  profiles or external services.
 - `scan_code`, login ticket/code, `LTP0`, raw cookies, and login URLs are
   service-private. Public route responses may expose a rendered QR image data
   URL, derived booleans, status, message, and retry flags only.
@@ -274,8 +275,6 @@ Contracts:
   centralized safeAuth recovery.
 - If Yuba SSO fails after main success, preserve the previous Yuba snapshot and
   expose retryability; do not discard working local Yuba cookies.
-- CookieCloud persistence remains completeness-aware: incomplete fresh snapshots
-  do not overwrite complete local main/Yuba snapshots.
 
 Tests: cover QR session device material, public secret boundaries, QR main URL
 normalization, `client_id=5` Yuba SSO redirect handling, stale Yuba exclusion,

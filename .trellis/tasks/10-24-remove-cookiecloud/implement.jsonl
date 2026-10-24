@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend read-routing for routes, runtime wiring, config, and cookie recovery changes"}
+{"file": ".trellis/spec/backend/contracts.md", "reason": "Credential recovery, config canonical shape, secret boundaries, and API contracts that must be rewritten"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Module ownership rules; CookieCloud modules are being deleted and facades simplified"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Credential/config error status and message conventions for removed routes and recovery branches"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend read-routing for login page state, actions, and copy changes"}
+{"file": ".trellis/spec/frontend/contracts.md", "reason": "CookieCloud sync/check scenarios must be removed while preserving local diagnostics"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Shared vs server state ownership for cookie source and login flows"}

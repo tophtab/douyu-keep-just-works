@@ -1,9 +1,9 @@
 import * as fs from 'node:fs'
 import { parseCookieRecord } from '../core/api'
-import { createCookieDiagnostics } from '../core/cookie-cloud'
+import { createCookieDiagnostics } from '../core/cookie-diagnostics'
 import type { CookieStatusSummary, DockerConfig } from '../core/types'
 import { MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
-import { getLocalCookieForUrl, hasCookieCloudSource, hasLocalLoginCookies } from './runtime-effective-cookies'
+import { getLocalCookieForUrl, hasLocalLoginCookies } from './runtime-effective-cookies'
 
 /**
  * 汇总推送/WebUI 用的登录态摘要。
@@ -11,7 +11,6 @@ import { getLocalCookieForUrl, hasCookieCloudSource, hasLocalLoginCookies } from
  */
 export function buildCookieStatus(config: DockerConfig | null, configPath: string): CookieStatusSummary {
   const empty: CookieStatusSummary = {
-    source: 'local',
     ltp0Present: false,
     mainReady: false,
     mainMissingKeys: [],
@@ -28,7 +27,6 @@ export function buildCookieStatus(config: DockerConfig | null, configPath: strin
     const mainCookie = getLocalCookieForUrl(MAIN_DOUYU_URL, config)
     const yubaCookie = getLocalCookieForUrl(YUBA_DOUYU_URL, config)
     const diagnostics = createCookieDiagnostics({
-      source: hasCookieCloudSource(config) ? 'cookieCloud' : 'local',
       cookies: {
         passportCookie: config.loginCookies.passport.trim(),
         mainCookie,
@@ -39,7 +37,6 @@ export function buildCookieStatus(config: DockerConfig | null, configPath: strin
           ...parseCookieRecord(mainCookie),
           ...parseCookieRecord(yubaCookie),
         }).length,
-        domains: ['local'],
       },
     })
 
@@ -56,7 +53,6 @@ export function buildCookieStatus(config: DockerConfig | null, configPath: strin
     ]))
 
     return {
-      source: diagnostics.source,
       ltp0Present: diagnostics.passport.ltp0Present,
       mainReady: diagnostics.main.ready,
       mainMissingKeys: diagnostics.main.missingKeys,

@@ -31,7 +31,7 @@ export async function loadYubaStatus(showSuccessToast = false, forceRefresh = fa
   if (!hasCookieSourceConfigured(config)) {
     clearYubaCookieBackedData()
     if (showSuccessToast) {
-      showToast('请先保存 Cookie 或启用 CookieCloud', false)
+      showToast('请先保存 Cookie', false)
     }
     return false
   }

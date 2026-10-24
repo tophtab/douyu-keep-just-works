@@ -52,9 +52,6 @@ export interface ExpiringGiftSelection {
   giftNames: Record<string, string>
 }
 
-export type CookieCloudCryptoType = 'legacy'
-export type DockerCookieSource = 'none' | 'local' | 'cookieCloud' | 'hybrid'
-
 export interface LoginCookiesConfig {
   passport: string
   main: string
@@ -67,29 +64,7 @@ export interface LoginCookieValues {
   yubaCookie: string
 }
 
-export interface CookieCloudConfig {
-  enabled: boolean
-  endpoint: string
-  uuid: string
-  password: string
-  cron: string
-  cryptoType: CookieCloudCryptoType
-}
-
-export interface CookieCloudCookie {
-  name: string
-  value: string
-  domain: string
-  path?: string
-  secure?: boolean
-  httpOnly?: boolean
-  hostOnly?: boolean
-  sameSite?: string
-  expirationDate?: number
-}
-
 export interface CookieDiagnostics {
-  source: 'local' | 'cookieCloud'
   passport: {
     ltp0Present: boolean
   }
@@ -105,18 +80,7 @@ export interface CookieDiagnostics {
   }
   snapshot: {
     cookieCount: number
-    domains: string[]
-    updatedAt?: string
   }
-}
-
-export interface EffectiveCookiePreview {
-  source: DockerCookieSource
-  mainCookie: string
-  yubaCookie: string
-  cookieCloudEnabled: boolean
-  persistedLocally: boolean
-  passportLtp0Present?: boolean
 }
 
 export type PassportQrLoginStatus
@@ -260,7 +224,6 @@ export interface DockerUiConfig {
 
 export interface DockerConfig {
   loginCookies: LoginCookiesConfig
-  cookieCloud: CookieCloudConfig
   ui: DockerUiConfig
   pushChannel: PushChannelConfig
   pushReport: PushReportConfig
@@ -322,7 +285,6 @@ export interface TaskRunRecord {
 
 /** 汇总推送里展示的登录态摘要 */
 export interface CookieStatusSummary {
-  source: 'local' | 'cookieCloud'
   /** LTP0（长效续期凭证）是否存在 */
   ltp0Present: boolean
   /** 主站登录字段是否齐全 */

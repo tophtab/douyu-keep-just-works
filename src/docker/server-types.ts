@@ -1,4 +1,4 @@
-import type { CookieDiagnostics, DockerConfig, EffectiveCookiePreview, Fans, FansStatusResponse, LoginCookiesConfig, PassportQrLoginPublicStatus, PushReportSnapshot, YubaStatusResponse } from '../core/types'
+import type { CookieDiagnostics, DockerConfig, Fans, FansStatusResponse, LoginCookiesConfig, PassportQrLoginPublicStatus, PushReportSnapshot, YubaStatusResponse } from '../core/types'
 import type { WebPasswordStore } from './auth-password'
 import type { DockerConfigUpdate } from './config-store'
 import type { LogEntry } from './logger'
@@ -27,12 +27,6 @@ export interface AppContext {
   listLogDays(): string[]
   clearLogs(): void
   inspectCookieSource(): Promise<CookieDiagnostics>
-  getEffectiveCookies(forceRefresh?: boolean): Promise<EffectiveCookiePreview>
-  persistEffectiveCookies(forceRefresh?: boolean): Promise<{
-    config: DockerConfig
-    effective: EffectiveCookiePreview
-    updated: boolean
-  }>
   startPassportQrLogin(): Promise<PassportQrLoginPublicStatus>
   getPassportQrLoginStatus(): PassportQrLoginPublicStatus | null
   pollPassportQrLogin(): Promise<PassportQrLoginPublicStatus>

@@ -7,6 +7,10 @@ version numbers. Docker release tags use the full version, such as `2.1.0`.
 
 ## Unreleased
 
+### 移除
+
+- 移除 CookieCloud 同步功能：删除远程 Cookie 抓取/解密、定时同步、WebUI 配置面板，以及仅服务于该功能的 `/api/cookie-source/persist` 与 `/api/cookie-source/effective` 路由。登录凭证仍可通过扫码登录、手填 Cookie、safeAuth 主站刷新与鱼吧 SSO 恢复。旧配置中的 `cookieCloud` 字段在加载时静默忽略，并在下次保存时从文件剥离。
+
 ## 3.11.1 - 2026-10-01
 
 ### 变更

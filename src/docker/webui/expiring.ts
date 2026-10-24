@@ -153,13 +153,13 @@ export function useExpiringGiftTaskPage() {
       rowCount: fanRows.value.length,
       fansListError: fansListError.value,
       fansListLoaded: fansStatusLoaded.value || fansListLoaded.value,
-      emptyMissingCredentialText: '保存 Cookie 或启用 CookieCloud 后再同步粉丝牌，这里才会出现临期赠送房间列表。',
+      emptyMissingCredentialText: '保存 Cookie 后再同步粉丝牌，这里才会出现临期赠送房间列表。',
     })
   })
 
   const expiringBackpackEmptyText = computed(() => {
     if (!hasCookieSourceConfigured(rawConfig.value)) {
-      return '保存 Cookie 或启用 CookieCloud 后，这里会展示背包临期明细。'
+      return '保存 Cookie 后，这里会展示背包临期明细。'
     }
     if (!giftStatus.value) {
       if (fansStatusDetailsLoading.value) {

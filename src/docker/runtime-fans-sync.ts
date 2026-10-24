@@ -1,7 +1,6 @@
 import { createDefaultDockerConfig, normalizeDockerConfig, reconcileDockerConfig } from '../core/config-normalization'
 import type { DockerConfig, Fans } from '../core/types'
 import { configsEqual } from './config-store'
-import { jsonEquals } from './config-equality'
 import { MAIN_DOUYU_URL } from './runtime-constants'
 import type { DockerRuntimeConfigApplyReason } from './runtime-config-service'
 
@@ -10,7 +9,6 @@ export type DockerRuntimeFansSyncReason = Extract<DockerRuntimeConfigApplyReason
 export interface DockerRuntimeFansSyncDeps {
   getCurrentConfig: () => DockerConfig | null
   getConfigPath: () => string
-  hasCookieCloudSource: (config: DockerConfig | null | undefined) => boolean
   resolveCookieForUrlFromConfig: (targetUrl: string, config: DockerConfig | null | undefined) => string
   getFansList: (cookie: string) => Promise<Fans[]>
   invalidateStatusCaches: (scope: 'fans') => void
@@ -19,22 +17,15 @@ export interface DockerRuntimeFansSyncDeps {
   runWithCookieSourceRetry: <T>(context: string, run: () => Promise<T>) => Promise<T>
 }
 
-export function cookieSnapshotEqual(a: DockerConfig | null | undefined, b: DockerConfig | null | undefined): boolean {
-  return jsonEquals(a?.loginCookies || null, b?.loginCookies || null)
-}
-
 export class DockerRuntimeFansSyncService {
   constructor(private readonly deps: DockerRuntimeFansSyncDeps) {}
 
   async syncConfigWithFans(reason: DockerRuntimeFansSyncReason, baseConfig?: DockerConfig): Promise<{ config: DockerConfig; fans: Fans[] }> {
-    const shouldMergeLatestCookieSnapshot = Boolean(baseConfig && cookieSnapshotEqual(baseConfig, this.deps.getCurrentConfig()))
-
     return await this.deps.runWithCookieSourceRetry('同步粉丝牌', async () => {
       const sourceConfig = normalizeDockerConfig(baseConfig || this.deps.getCurrentConfig() || createDefaultDockerConfig())
-      const cookieConfig = shouldMergeLatestCookieSnapshot ? this.mergeLatestCookieSnapshot(sourceConfig) : sourceConfig
-      const cookie = this.deps.resolveCookieForUrlFromConfig(MAIN_DOUYU_URL, cookieConfig)
+      const cookie = this.deps.resolveCookieForUrlFromConfig(MAIN_DOUYU_URL, sourceConfig)
       const fans = await this.deps.getFansList(cookie)
-      const nextConfig = reconcileDockerConfig(cookieConfig, fans)
+      const nextConfig = reconcileDockerConfig(sourceConfig, fans)
       this.deps.invalidateStatusCaches('fans')
 
       if (!configsEqual(this.deps.getCurrentConfig(), nextConfig)) {
@@ -46,23 +37,6 @@ export class DockerRuntimeFansSyncService {
         config: nextConfig,
         fans,
       }
-    })
-  }
-
-  private mergeLatestCookieSnapshot(config: DockerConfig): DockerConfig {
-    const latestConfig = this.deps.getCurrentConfig()
-    if (!latestConfig || !this.deps.hasCookieCloudSource(latestConfig)) {
-      return config
-    }
-
-    const latestLoginCookies = latestConfig.loginCookies
-    if (!latestLoginCookies.main.trim() && !latestLoginCookies.yuba.trim()) {
-      return config
-    }
-
-    return normalizeDockerConfig({
-      ...config,
-      loginCookies: latestLoginCookies,
     })
   }
 }

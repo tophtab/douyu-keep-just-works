@@ -169,7 +169,6 @@ export function createScheduledTaskCard(configured: boolean, status: TaskRunStat
   return {
     pills: [
       { label: configured ? '已启动' : '未启动', kind: configured ? 'ok' : 'off' },
-      { label: configured ? (status.running ? '调度中' : '已停止') : '未启用', kind: configured ? (status.running ? 'warn' : 'off') : 'off' },
     ],
     cells: [
       { label: '上次执行', value: formatDate(status.lastRun || null) },

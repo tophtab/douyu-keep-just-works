@@ -2,18 +2,12 @@
 import type { PassportQrLoginPublicStatus } from '../../../core/types'
 import { useCookieLoginPage } from '../cookie'
 import ActionBar from './ActionBar.vue'
-import CronField from './CronField.vue'
-import EnableSwitch from './EnableSwitch.vue'
 import PageSection from './PageSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
 
 const {
   cancelPassportLogin,
   checkCookieSource,
-  cookieCloud,
-  cronPreviewText,
-  handleCookieCloudToggle,
-  loadCookieCloudCronPreview,
   loginStatus,
   mainCookie,
   passportCookie,
@@ -21,7 +15,6 @@ const {
   passportQrLoginBusy,
   passportQrLoginText,
   retryPassportYubaLogin,
-  saveAndEnableCookieCloud,
   saveCookie,
   startPassportLogin,
   yubaCookie,
@@ -32,12 +25,8 @@ function handleManualCookieAction(index: number): void {
     void startPassportLogin()
     return
   }
-  void saveCookie()
-}
-
-function handleCookieCloudAction(index: number): void {
-  if (index === 0) {
-    void saveAndEnableCookieCloud()
+  if (index === 1) {
+    void saveCookie()
     return
   }
   void checkCookieSource()
@@ -88,6 +77,7 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
         :actions="[
           { label: passportQrLoginBusy ? '扫码中' : '扫码登录', kind: 'primary' },
           { label: '手填保存', kind: 'secondary' },
+          { label: '诊断检查', kind: 'secondary' },
         ]"
         @action="handleManualCookieAction"
       />
@@ -131,48 +121,6 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
           </div>
         </div>
       </div>
-    </PageSection>
-
-    <PageSection title="CookieCloud 同步">
-      <template #actions>
-        <EnableSwitch
-          v-model="cookieCloud.enabled"
-          input-id="cookie-cloud-enable"
-          name="cookie-cloud-enable"
-          label="启用 CookieCloud 同步"
-          @change="handleCookieCloudToggle"
-        />
-      </template>
-      <div class="grid cols-2 section-form-grid">
-        <div class="field-block">
-          <label class="field-label" for="cookie-cloud-endpoint">服务器地址</label>
-          <input id="cookie-cloud-endpoint" v-model="cookieCloud.endpoint" name="cookie-cloud-endpoint" type="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="https://cookiecloud.example.com">
-        </div>
-        <div class="field-block">
-          <label class="field-label" for="cookie-cloud-uuid">UUID</label>
-          <input id="cookie-cloud-uuid" v-model="cookieCloud.uuid" name="cookie-cloud-uuid" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="CookieCloud UUID">
-        </div>
-        <CronField
-          v-model="cookieCloud.cron"
-          input-id="cookie-cloud-cron"
-          name="cookie-cloud-cron"
-          preview-id="cookie-cloud-cron-preview"
-          :preview-text="cronPreviewText"
-          @input="loadCookieCloudCronPreview"
-        />
-        <div class="field-block">
-          <label class="field-label" for="cookie-cloud-password">密码</label>
-          <input id="cookie-cloud-password" v-model="cookieCloud.password" name="cookie-cloud-password" type="password" autocomplete="current-password" spellcheck="false" placeholder="CookieCloud Password">
-        </div>
-      </div>
-      <ActionBar
-        class="cookie-cloud-actions section-actions"
-        :actions="[
-          { label: '保存并启用', kind: 'success' },
-          { label: '同步并校验', kind: 'secondary' },
-        ]"
-        @action="handleCookieCloudAction"
-      />
     </PageSection>
   </div>
 </template>

@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Do not paste Douyu cookies, CookieCloud credentials, WebUI passwords, or raw config files.
+        Do not paste Douyu cookies, WebUI passwords, or raw config files.
   - type: input
     id: image-tag
     attributes:
@@ -51,7 +51,6 @@ body:
       label: Affected area
       options:
         - Login/manual cookies
-        - CookieCloud sync
         - Glow stick collection
         - Medal keepalive
         - Double task allocation

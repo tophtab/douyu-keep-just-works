@@ -3,21 +3,15 @@ import { buildLoginStatus, buildPassportQrLoginText } from './cookie-source-copy
 import {
   cancelPassportQrLogin,
   checkCookieSource,
-  disableCookieCloud,
   pollPassportQrLogin,
   refreshCookieDiagnostics,
   retryPassportQrLoginYuba,
-  saveAndEnableCookieCloud,
   saveCookie,
-  saveCookieCloudToggle,
   startPassportQrLogin,
 } from './cookie-source-actions'
 import {
   applyRawConfig,
   clearCookieDiagnostics,
-  cookieCloud,
-  cronPreviewText,
-  loadCookieCloudCronPreview,
   mainCookie,
   passportCookie,
   passportQrLogin,
@@ -25,8 +19,6 @@ import {
   yubaCookie,
 } from './cookie-source-state'
 import { rawConfig } from './resource-config'
-
-export { syncCookieCloudToLoginCookies } from './cookie-source-actions'
 
 export function useCookieLoginPage() {
   let passportQrPollingTimer: ReturnType<typeof window.setInterval> | null = null
@@ -72,14 +64,6 @@ export function useCookieLoginPage() {
     stopPassportQrPolling()
   }
 
-  function handleCookieCloudToggle(): void {
-    if (cookieCloud.enabled) {
-      void saveCookieCloudToggle({ revertCheckboxOnError: true })
-      return
-    }
-    void disableCookieCloud()
-  }
-
   watch(rawConfig, (config) => {
     applyRawConfig(config)
     if (!config) {
@@ -94,10 +78,6 @@ export function useCookieLoginPage() {
   return {
     cancelPassportLogin,
     checkCookieSource,
-    cookieCloud,
-    cronPreviewText,
-    handleCookieCloudToggle,
-    loadCookieCloudCronPreview,
     loginStatus,
     mainCookie,
     passportCookie,
@@ -105,7 +85,6 @@ export function useCookieLoginPage() {
     passportQrLoginBusy,
     passportQrLoginText,
     retryPassportYubaLogin,
-    saveAndEnableCookieCloud,
     saveCookie,
     startPassportLogin,
     yubaCookie,

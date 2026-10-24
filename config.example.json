@@ -4,14 +4,6 @@
     "main": "acf_uid=YOUR_UID; dy_did=YOUR_DY_DID; acf_stk=YOUR_STK; ...",
     "yuba": "acf_yb_uid=YOUR_UID; acf_yb_t=YOUR_YUBA_TOKEN; ..."
   },
-  "cookieCloud": {
-    "enabled": false,
-    "endpoint": "https://your-cookie-cloud.example.com",
-    "uuid": "YOUR_COOKIE_CLOUD_UUID",
-    "password": "YOUR_COOKIE_CLOUD_PASSWORD",
-    "cron": "0 5 0 * * *",
-    "cryptoType": "legacy"
-  },
   "ui": {
     "themeMode": "system"
   },

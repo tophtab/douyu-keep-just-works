@@ -12,7 +12,7 @@ WebUI API through Vue-owned resource helpers.
 
 Read [Frontend Contracts](./contracts.md) for high-risk scenario contracts such
 as theme bootstrap, resource error feedback, force refresh, config-save
-responses, CookieCloud sync/check, and Passport QR polling.
+responses, local cookie diagnostics, and Passport QR polling.
 
 ---
 

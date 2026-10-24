@@ -13,7 +13,7 @@
 | Resource loaders, inline resource errors, logs refresh, or resource toasts | [WebUI Resource Error Feedback](#webui-resource-error-feedback) |
 | Top-right manual refresh or fans/Yuba cache-backed routes | [Manual Force Refresh Of Cache-Backed Resources](#manual-force-refresh-of-cache-backed-resources) |
 | `/api/config` saves or task page save/disable flows | [Applying Config Save Responses](#applying-config-save-responses) |
-| CookieCloud "sync and check" or cookie diagnostics | [CookieCloud Sync-And-Local-Check](#cookiecloud-sync-and-local-check) |
+| Local cookie diagnostics, login-page cookie actions, or QR login state | [Local Cookie Diagnostics](#local-cookie-diagnostics) |
 | Login page Passport QR flow or QR status consumption | [Passport QR Login Polling](#passport-qr-login-polling) |
 
 ---
@@ -109,7 +109,7 @@ manual refresh passing `forceRefresh: true`.
 ### 1. Scope / Trigger
 
 Trigger: changing `/api/config` save handling, `saveConfigPatch`, or task,
-Cookie, CookieCloud, and theme save flows.
+cookie, and theme save flows.
 
 ### 2. Signatures
 
@@ -141,7 +141,7 @@ Cookie, CookieCloud, and theme save flows.
 
 ### 5. Good/Base/Bad Cases
 
-- Good: CookieCloud save uses `saveConfigPatch`, then applies form state and
+- Good: manual cookie save uses `saveConfigPatch`, then applies form state and
   invalidates cookie-backed resources locally.
 - Base: task save receives `{ config, fans: [] }` and the fans-backed page
   applies the authoritative empty list.
@@ -174,35 +174,28 @@ if (result?.config) {
 }
 ```
 
-## CookieCloud Sync-And-Local-Check
+## Local Cookie Diagnostics
 
-Trigger: changing WebUI CookieCloud "同步并校验",
-`/api/cookie-source/persist`, or CookieCloud diagnostics.
+Trigger: changing the WebUI cookie "诊断检查" action, `cookie-source-actions.ts`,
+or `/api/cookie-source/check` consumption.
 
 Contracts:
 
-- When CookieCloud `enabled` is true, `/api/cookie-source/persist` force-refreshes
-  CookieCloud once and persists the effective local login snapshot.
-- Persist keeps existing local cookies as fallback when the fresh CookieCloud
-  snapshot misses one side; the result may be a hybrid effective snapshot.
-- Persist writes `passport.douyu.com` material into `loginCookies.passport` only
-  when the fresh snapshot contains `LTP0`, and preserves existing local passport
-  material when remote material lacks `LTP0`.
-- `/api/cookie-source/check` inspects only saved local login cookies. It must
-  not fetch CookieCloud or force-refresh remote data.
-- The WebUI action runs persist first, then the local-only check endpoint.
-- When CookieCloud is disabled, the same check endpoint diagnoses saved local
-  login cookies.
-- Diagnostics are structural: required keys, cookie count, domains, and
-  CookieCloud update time. The WebUI summary should show source, update time,
-  readiness, missing keys, and passport recovery-material state; do not expose
-  raw cookie values or raw `cookieCount` as user-facing status.
+- `/api/cookie-source/check` inspects only saved local login cookies. It must not
+  perform remote requests.
+- The WebUI action calls the check endpoint directly; there is no sync step and
+  no remote persistence route.
+- Diagnostics are structural: passport LTP0 presence, main/Yuba required keys,
+  and local cookie count. Do not expose raw cookie values or raw `cookieCount` as
+  user-facing status.
+- The login page keeps `扫码登录`, `手填保存`, `诊断检查`, the status card, and the
+  QR panel. It has no cloud-sync form or enable switch.
+- `/api/cookie-source/persist` and `/api/cookie-source/effective` are removed and
+  must stay `404`.
 
-Tests: assert `/api/cookie-source/check` calls local inspection without
-force-refresh, `inspectCookieSource` does not call `loadCookieCloudSnapshot`,
-CookieCloud persist keeps local fallbacks and writes complete passport material,
-diagnostics do not expose raw passport material, frontend sync runs before
-check, and the summary omits raw "Cookie 数" status.
+Tests: assert `/api/cookie-source/check` calls local inspection without remote
+requests, removed cloud routes return `404`, and diagnostics do not expose raw
+passport material.
 
 ## Passport QR Login Polling
 

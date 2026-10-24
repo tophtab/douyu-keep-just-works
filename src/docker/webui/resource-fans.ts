@@ -182,7 +182,7 @@ export async function syncFans(showSuccessToast = false): Promise<unknown> {
     fansStatusLoading.value = false
     fansStatusDetailsLoading.value = false
     if (showSuccessToast) {
-      showToast('请先保存 Cookie 或启用 CookieCloud', false)
+      showToast('请先保存 Cookie', false)
     }
     return false
   }
@@ -232,7 +232,7 @@ export async function loadFansList(showSuccessToast = false, forceRefresh = fals
     managedLoading.value = false
     fansListLoaded.value = false
     if (showSuccessToast) {
-      showToast('请先保存 Cookie 或启用 CookieCloud', false)
+      showToast('请先保存 Cookie', false)
     }
     return false
   }
@@ -282,7 +282,7 @@ export async function loadFansStatus(showSuccessToast = false, forceRefresh = fa
     fansStatusDetailsLoaded.value = false
     fansStatusDetailsLoading.value = false
     if (showSuccessToast) {
-      showToast('请先保存 Cookie 或启用 CookieCloud', false)
+      showToast('请先保存 Cookie', false)
     }
     return false
   }

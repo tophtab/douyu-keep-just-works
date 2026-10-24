@@ -107,16 +107,16 @@ FPK and attaches it with a checksum to the tag's GitHub Release.
 
 ## Reporting Bugs
 
-For login, cookie, CookieCloud, or task failures, include:
+For login, cookie, or task failures, include:
 
 - Docker image tag
 - Deployment method, such as Docker Compose or another container platform
 - Sanitized logs
 - Which task failed
-- Whether manual cookies or CookieCloud is used
+- Whether manual cookies or QR login is used
 - Relevant cron/config shape with secrets removed
 
-Never paste Douyu cookies, CookieCloud passwords, WebUI passwords, or a raw
+Never paste Douyu cookies, WebUI passwords, or a raw
 `config.json` file into a public issue.
 
 ## Requesting Features

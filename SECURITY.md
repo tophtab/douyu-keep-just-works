@@ -17,7 +17,7 @@ private security contact and do not include exploit details.
 Do not post any of the following in public issues, discussions, screenshots, or
 logs:
 
-- Douyu cookies or CookieCloud credentials
+- Douyu cookies
 - WebUI passwords
 - Raw `config.json` files
 - Full request headers or browser storage dumps

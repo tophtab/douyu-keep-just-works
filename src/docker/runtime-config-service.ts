@@ -23,22 +23,19 @@ export function analyzeDockerRuntimeConfigChange(
     .map(getTaskConfigChangeScope)
 
   return {
-    cookieSourceChanged: !jsonEquals(prevConfig?.loginCookies || null, nextConfig.loginCookies)
-      || !jsonEquals(prevConfig?.cookieCloud || null, nextConfig.cookieCloud || null),
+    cookieSourceChanged: !jsonEquals(prevConfig?.loginCookies || null, nextConfig.loginCookies),
     fansTaskConfigChanged: changedTaskScopes.includes('fans'),
     yubaTaskConfigChanged: changedTaskScopes.includes('yuba'),
   }
 }
 
 interface DockerRuntimeConfigServiceDeps {
-  clearCookieCloudCache: () => void
   clearFansListCache: () => void
   getCurrentConfig: () => DockerConfig | null
   hasConfiguredCookieSource: (config: DockerConfig | null | undefined) => boolean
   invalidateStatusCaches: (scope: StatusCacheScope) => void
   logSystem: (message: string) => void
   logTaskReloadSummary: (reason: DockerRuntimeConfigApplyReason, summary: TaskReloadSummary) => void
-  reconcileCookieCloudSync: (prevConfig: DockerConfig | null, nextConfig: DockerConfig) => void
   reconcileTaskJobs: (prevConfig: DockerConfig | null, nextConfig: DockerConfig, hasCookieSource: boolean) => TaskReloadSummary
   setCurrentConfig: (config: DockerConfig) => void
   stopTaskJobs: () => void
@@ -54,7 +51,6 @@ export class DockerRuntimeConfigService {
     this.deps.setCurrentConfig(nextConfig)
 
     this.applyCacheInvalidation(analyzeDockerRuntimeConfigChange(prevConfig, nextConfig))
-    this.deps.reconcileCookieCloudSync(prevConfig, nextConfig)
 
     const hasCookieSource = this.deps.hasConfiguredCookieSource(nextConfig)
     if (!hasCookieSource) {
@@ -73,7 +69,6 @@ export class DockerRuntimeConfigService {
 
   private applyCacheInvalidation(change: DockerRuntimeConfigChange): void {
     if (change.cookieSourceChanged) {
-      this.deps.clearCookieCloudCache()
       this.deps.clearFansListCache()
       this.deps.invalidateStatusCaches('all')
       return
@@ -89,16 +84,16 @@ export class DockerRuntimeConfigService {
 
   private handleMissingCookieSource(config: DockerConfig, reason: DockerRuntimeConfigApplyReason): void {
     if (reason === 'startup') {
-      this.deps.logSystem('配置已加载，但登录凭证为空，请通过 WebUI 填写 Cookie 或启用 CookieCloud')
+      this.deps.logSystem('配置已加载，但登录凭证为空，请通过 WebUI 扫码登录或填写 Cookie')
     } else if (hasEnabledTaskConfig(config)) {
       this.deps.stopTaskJobs()
       this.deps.logSystem('任务配置已保存，但登录凭证为空，任务未启动')
     } else if (reason === 'tasks_saved') {
       this.deps.stopTaskJobs()
-      this.deps.logSystem('任务配置已保存，可继续保存 Cookie 或启用 CookieCloud')
+      this.deps.logSystem('任务配置已保存，可继续保存 Cookie')
     } else {
       this.deps.stopTaskJobs()
-      this.deps.logSystem('登录凭证为空，请先保存 Cookie 或启用 CookieCloud')
+      this.deps.logSystem('登录凭证为空，请先保存 Cookie')
     }
   }
 

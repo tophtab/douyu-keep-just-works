@@ -1,5 +1,5 @@
 import { getFollowedYubaStatusesWithDyToken } from '../core/yuba'
-import type { CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, LoginCookiesConfig, PassportQrLoginPublicStatus, PushReportSnapshot, YubaStatusResponse } from '../core/types'
+import type { CookieDiagnostics, DockerConfig, DoubleCardConfig, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, LoginCookiesConfig, PassportQrLoginPublicStatus, PushReportSnapshot, YubaStatusResponse } from '../core/types'
 import type { WebPasswordStore } from './auth-password'
 import { assertDockerConfigCrons } from './cron'
 import { buildConfigWithPartialUpdate } from './config-store'
@@ -25,12 +25,6 @@ interface DockerRuntimeAppContextDeps {
   hasConfiguredCookieSource: (config: DockerConfig | null | undefined) => boolean
   resolveCookieForUrl: (targetUrl: string) => string
   inspectCookieSource: () => Promise<CookieDiagnostics>
-  getEffectiveCookies: (forceRefresh?: boolean) => Promise<EffectiveCookiePreview>
-  persistEffectiveCookies: (forceRefresh?: boolean) => Promise<{
-    config: DockerConfig
-    effective: EffectiveCookiePreview
-    updated: boolean
-  }>
   startPassportQrLogin: () => Promise<PassportQrLoginPublicStatus>
   getPassportQrLoginStatus: () => PassportQrLoginPublicStatus | null
   pollPassportQrLogin: () => Promise<PassportQrLoginPublicStatus>
@@ -59,8 +53,7 @@ function hasSendRooms(config: JobConfig | DoubleCardConfig | ExpiringGiftConfig 
 }
 
 function hasCookieSourcePayload(config: DockerConfigUpdate): boolean {
-  return config.cookieCloud !== undefined
-    || config.loginCookies !== undefined
+  return config.loginCookies !== undefined
 }
 
 function hasTaskPayload(config: DockerConfigUpdate): boolean {
@@ -116,8 +109,6 @@ export function createRuntimeAppContext(deps: DockerRuntimeAppContextDeps): AppC
     listLogDays: () => listLogDays(),
     clearLogs: () => clearLogs(),
     inspectCookieSource: async () => await deps.inspectCookieSource(),
-    getEffectiveCookies: async (forceRefresh?: boolean) => await deps.getEffectiveCookies(forceRefresh),
-    persistEffectiveCookies: async (forceRefresh?: boolean) => await deps.persistEffectiveCookies(forceRefresh),
     startPassportQrLogin: async () => await deps.startPassportQrLogin(),
     getPassportQrLoginStatus: () => deps.getPassportQrLoginStatus(),
     pollPassportQrLogin: async () => await deps.pollPassportQrLogin(),

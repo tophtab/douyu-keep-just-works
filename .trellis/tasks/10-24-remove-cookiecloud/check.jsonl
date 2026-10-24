@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/testing-guidelines.md", "reason": "Contract test expectations and secret-scan requirements for updated suites"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend verification, build, and accessibility checks after UI removal"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Ensure removed routes return 404 and local-only diagnostics do not fetch remotely"}
+{"file": ".trellis/spec/backend/contracts.md", "reason": "Verify final API/config contracts contain no CookieCloud remnants"}

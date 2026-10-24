@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 98
+- **Total Sessions**: 99
 - **Last Active**: 2026-10-24
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1309 | Active |
+| `journal-2.md` | ~1331 | Active |
 | `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 99 | 2026-10-24 | 移除 CookieCloud 功能 | `44918ce` | `master` |
 | 98 | 2026-10-24 | 接管 PR #1：修复 CI 与 P1 问题并合并 | `b2e9565`, `25ba612` | `master` |
 | 97 | 2026-09-30 | Remove legacy config compatibility and release 3.11.0 | `7350d7a`, `89cff74`, `930c9ed`, `7311083` | `master` |
 | 96 | 2026-09-05 | Finalize Trellis 0.6.16 upgrade | `06d3f14ad9d5270e432b3ec8b311c25f632cb102` | `master` |

@@ -1307,3 +1307,25 @@ Removed old config aliases and cron migration; deleted README upgrade/rollback s
 ### Status
 
 [OK] **Completed**
+
+
+## Session 99: 移除 CookieCloud 功能
+<!-- trellis-session: v=2 fp=f4f384513a7e151b -->
+
+**Date**: 2026-10-24
+**Task**: 移除 CookieCloud 功能
+**Branch**: `master`
+
+### Summary
+
+删除 CookieCloud 客户端、定时同步、缓存、配置字段、WebUI 面板与 persist/effective API；诊断迁至 core/cookie-diagnostics.ts，凭证恢复仅保留本地主站 + 手填 passport 的 safeAuth/鱼吧 SSO；旧配置字段静默剥离并补契约测试；lint、type-check、54 项契约测试与构建全绿。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `44918ce` | refactor: 移除 CookieCloud 同步功能 |
+
+### Status
+
+[OK] **Completed**

@@ -5,6 +5,20 @@ All notable changes to this project are documented here.
 This project follows a simple Keep a Changelog-style format and uses semantic
 version numbers. Docker release tags use the full version, such as `2.1.0`.
 
+## 3.12.4 - 2026-10-24
+
+### 变更
+
+- 推送设置与密码设置页统一使用全局样式与设计令牌：密码设置页更名为「密码设置」，状态卡改为「密码状态 / 密码」，推送设置页补充「推送状态」小标题。
+- 推送设置页的 Endpoint 令牌输入框支持切换明文；两组操作按钮改用共享的 `ActionBar`，请求期间按钮统一禁用。
+- 定时选择器的「时 / 分 / 秒」输入框统一为 100px，弹层宽度贴合内容，左右留白对称。
+- 运行日志页的自动刷新按钮样式移入全局样式表，全站不再使用组件级 scoped 样式。
+
+### 修复
+
+- 密码强度与「两次输入的新密码不一致」提示改用主题色变量，亮色主题下不再显示为暗色配色。
+- 定时弹层右侧多余空白已移除，左右间距保持一致。
+
 ## 3.12.3 - 2026-10-24
 
 ### 变更

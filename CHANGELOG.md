@@ -5,6 +5,20 @@ All notable changes to this project are documented here.
 This project follows a simple Keep a Changelog-style format and uses semantic
 version numbers. Docker release tags use the full version, such as `2.1.0`.
 
+## 3.12.1 - 2026-10-24
+
+### 变更
+
+- WebUI 品牌名统一为 `DOUYU-KEEP`，登录页品牌区改为三列布局，标题居中显示。
+- 移动端顶栏操作按钮复用 `TopToolbar`，刷新与退出按钮的尺寸、样式和刷新旋转动效与桌面端保持一致。
+- 运行日志页文案调整：「清空今天」改为「清空今日」，「今天（实时）」改为「今日实时」。
+- 窄屏下运行日志标题行的操作按钮保持右对齐，日期选择器独占整行并居中。
+
+### 修复
+
+- 登录页品牌图标在窄屏下不再顶出卡片边界。
+- 手机端运行日志日期选择器的下拉箭头改为自绘，文字不再因原生箭头占位而偏左。
+
 ## 3.12.0 - 2026-10-24
 
 ### 新增

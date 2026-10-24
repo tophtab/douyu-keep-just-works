@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 99
+- **Total Sessions**: 100
 - **Last Active**: 2026-10-24
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1331 | Active |
+| `journal-2.md` | ~1353 | Active |
 | `journal-1.md` | ~1993 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 100 | 2026-10-24 | 恢复 WEB_PASSWORD 兜底并修复密码明文切换 | `872b1f5` | `master` |
 | 99 | 2026-10-24 | 移除 CookieCloud 功能 | `44918ce` | `master` |
 | 98 | 2026-10-24 | 接管 PR #1：修复 CI 与 P1 问题并合并 | `b2e9565`, `25ba612` | `master` |
 | 97 | 2026-09-30 | Remove legacy config compatibility and release 3.11.0 | `7350d7a`, `89cff74`, `930c9ed`, `7311083` | `master` |

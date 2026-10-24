@@ -1329,3 +1329,25 @@ Removed old config aliases and cron migration; deleted README upgrade/rollback s
 ### Status
 
 [OK] **Completed**
+
+
+## Session 100: 恢复 WEB_PASSWORD 兜底并修复密码明文切换
+<!-- trellis-session: v=2 fp=8348ca4087349650 -->
+
+**Date**: 2026-10-24
+**Task**: 恢复 WEB_PASSWORD 兜底并修复密码明文切换
+**Branch**: `master`
+
+### Summary
+
+修复 3.12.0 移除 WEB_PASSWORD 后升级用户回落到默认 password；恢复 config/auth.json > WEB_PASSWORD > 内置 password 优先级，账号安全页可识别环境变量来源。密码眼睛按钮加 tabindex=-1，登录页不再持久化明文状态，登录成功/退出后自动复位；新增密码来源与信息暴露边界契约测试，并补充前后端 spec。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `872b1f5` | fix(auth): 恢复 WEB_PASSWORD 兜底并修复密码明文切换体验 |
+
+### Status
+
+[OK] **Completed**

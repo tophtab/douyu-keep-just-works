@@ -101,6 +101,12 @@
     margin-bottom:12px;
   }
 }
+@media (max-width: 480px){
+  /* 窄屏放不下三个等宽时间框：只保留「时」列宽，分 / 秒等分剩余空间 */
+  .schedule-popover{
+    grid-template-columns:max-content var(--schedule-time-width) minmax(0,1fr) minmax(0,1fr);
+  }
+}
 @media (max-width: 1100px){
   .grid.cols-3{
     grid-template-columns:1fr;

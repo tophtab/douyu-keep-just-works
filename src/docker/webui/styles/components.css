@@ -108,9 +108,6 @@
   font-size:16px;
   font-weight:700;
 }
-.tone-success{color:var(--success)}
-.tone-danger{color:var(--danger)}
-.tone-muted{color:var(--muted)}
 /* 窄屏下表格的 min-width 会通过 flex/grid 的 min-width:auto 反向撑破容器，
    这里统一给容器链加 min-width:0，让 .table-shell 的横向滚动真正生效。 */
 .shell,
@@ -250,10 +247,15 @@
   stroke-linejoin:round;
 }
 .schedule-popover{
+  /* 时 / 分 / 秒输入框的固定宽度：与「时（多个用,分隔）」标签文字等长 */
+  --schedule-time-width:100px;
   position:fixed;
   z-index:1000;
   display:grid;
-  grid-template-columns:1.1fr 1.8fr 1fr 1fr;
+  /* 宽度贴合内容，左右 padding 对称，避免右侧多出一块空白 */
+  width:max-content;
+  max-width:calc(100vw - 32px);
+  grid-template-columns:max-content repeat(3, var(--schedule-time-width));
   gap:8px;
   padding:14px;
   border:1px solid var(--line-strong);
@@ -275,6 +277,7 @@
   color:var(--muted);
   font-size:12px;
   line-height:1.5;
+  white-space:nowrap;
 }
 .schedule-popover select,
 .schedule-popover input{
@@ -309,6 +312,59 @@ input:focus,textarea:focus,select:focus{
 textarea{
   min-height:150px;
   resize:vertical;
+}
+/* 密码框：右侧留出明文切换按钮的位置，按钮定位在包裹层内 */
+.auth-input-wrap{
+  position:relative;
+  display:block;
+}
+.auth-input-wrap input{
+  width:100%;
+  padding-right:56px;
+}
+.auth-password-toggle{
+  position:absolute;
+  top:50%;
+  right:5px;
+  transform:translateY(-50%);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:44px;
+  height:44px;
+  padding:0;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:var(--muted);
+  cursor:pointer;
+  transition:color .15s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+/* 图标按钮不铺底色：只做颜色反馈，避免在主色方块盖住输入框内容区 */
+.auth-password-toggle:hover,
+.auth-password-toggle:focus-visible{
+  color:var(--accent);
+}
+.auth-password-toggle:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:1px;
+}
+.auth-password-toggle[aria-pressed="true"]{
+  color:var(--accent);
+}
+.auth-password-toggle:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+.auth-password-toggle svg{
+  width:21px;
+  height:21px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.7;
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 .cookie-input-frame{
   height:150px;
@@ -411,6 +467,11 @@ textarea{
   font-size:13px;
   line-height:1.7;
 }
+/* 语义色放在 .helper 之后，便于用 .helper.tone-* 覆盖默认弱化色 */
+.tone-success{color:var(--success)}
+.tone-danger{color:var(--danger)}
+.tone-warning{color:var(--warning)}
+.tone-muted{color:var(--muted)}
 .cron-preview{
   margin-top:8px;
   max-width:100%;
@@ -456,6 +517,25 @@ textarea{
   display:flex;
   flex-wrap:wrap;
   gap:10px;
+}
+/* 日志页标题右侧的自动刷新开关：圆形图标按钮 */
+.logs-refresh-toggle{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:38px;
+  height:38px;
+  padding:0;
+  border-radius:50%;
+}
+.logs-refresh-toggle svg{
+  width:18px;
+  height:18px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 .split-inline{
   display:grid;

@@ -37,7 +37,6 @@ const hourText = ref('09')
 const minuteText = ref('00')
 const secondText = ref('00')
 
-const POPOVER_WIDTH = 460
 const POPOVER_HEIGHT = 160
 
 /** 本组件刚写出的表达式回到 watch 时不必再回填，避免打断正在输入的文本框。 */
@@ -167,7 +166,8 @@ function updatePosition(): void {
     return
   }
   const rect = anchor.getBoundingClientRect()
-  const width = Math.min(POPOVER_WIDTH, window.innerWidth - 32)
+  // 宽度由内容决定（CSS width:max-content），这里只负责把弹层夹在视口内
+  const width = popover.value?.offsetWidth ?? 0
   const height = popover.value?.offsetHeight || POPOVER_HEIGHT
   const left = Math.max(16, Math.min(rect.left, window.innerWidth - width - 16))
   const below = rect.bottom + 8
@@ -177,7 +177,6 @@ function updatePosition(): void {
   popoverStyle.value = {
     left: `${left}px`,
     top: `${top}px`,
-    width: `${width}px`,
   }
 }
 

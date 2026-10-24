@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
 import PageSection from './PageSection.vue'
+import PasswordToggle from './PasswordToggle.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
 import { formatPasswordTime, useSecurityPage } from '../security'
 
@@ -32,6 +33,13 @@ const passwordCells = computed(() => [
   { label: '上次修改', value: formatPasswordTime(info.value?.updatedAt) },
 ])
 
+const strengthTone = computed(() => {
+  if (strength.value.level === 'weak') {
+    return 'tone-danger'
+  }
+  return strength.value.level === 'medium' ? 'tone-warning' : 'tone-success'
+})
+
 // 三个密码框各自独立的小眼睛；本页是敏感操作，不记忆状态，刷新后一律回到隐藏
 const visible = reactive({ current: false, next: false, confirm: false })
 
@@ -44,18 +52,18 @@ function toggleVisible(key: keyof typeof visible): void {
   <div class="page-stack">
     <TaskStatusCard
       card-id="password-status-card"
-      kicker=""
-      title="登录密码"
+      kicker="密码状态"
+      title="密码"
       :pills="passwordPills"
       :cells="passwordCells"
     />
 
     <PageSection title="修改密码">
-      <form class="security-form" @submit.prevent="submit">
+      <form class="grid" @submit.prevent="submit">
         <div class="grid cols-3 section-form-grid">
           <div class="field-block">
             <label class="field-label" for="security-current">当前密码</label>
-            <div class="field-with-eye">
+            <div class="auth-input-wrap">
               <input
                 id="security-current"
                 v-model="currentPassword"
@@ -64,26 +72,7 @@ function toggleVisible(key: keyof typeof visible): void {
                 autocomplete="current-password"
                 spellcheck="false"
               >
-              <button
-                class="auth-password-toggle"
-                type="button"
-                tabindex="-1"
-                :aria-pressed="visible.current ? 'true' : 'false'"
-                :aria-label="visible.current ? '隐藏密码' : '显示密码'"
-                :title="visible.current ? '隐藏密码' : '显示密码'"
-                @click="toggleVisible('current')"
-              >
-                <svg v-if="visible.current" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M2.6 12S6.2 5.6 12 5.6 21.4 12 21.4 12 17.8 18.4 12 18.4 2.6 12 2.6 12z" />
-                  <circle cx="12" cy="12" r="3.1" />
-                </svg>
-                <svg v-else viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M3 3l18 18" />
-                  <path d="M10.7 6.1A10 10 0 0 1 12 6c5.8 0 9.4 6 9.4 6a17.6 17.6 0 0 1-3.1 3.8" />
-                  <path d="M6.4 7.8A17.4 17.4 0 0 0 2.6 12S6.2 18 12 18a10 10 0 0 0 4-.85" />
-                  <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
-                </svg>
-              </button>
+              <PasswordToggle :pressed="visible.current" @toggle="toggleVisible('current')" />
             </div>
             <div v-if="info?.source === 'env'" class="helper">
               当前密码来自 WEB_PASSWORD 环境变量；在此修改后会写入 config/auth.json，之后以新密码为准，环境变量不再生效。
@@ -92,7 +81,7 @@ function toggleVisible(key: keyof typeof visible): void {
 
           <div class="field-block">
             <label class="field-label" for="security-new">新密码</label>
-            <div class="field-with-eye">
+            <div class="auth-input-wrap">
               <input
                 id="security-new"
                 v-model="newPassword"
@@ -102,35 +91,16 @@ function toggleVisible(key: keyof typeof visible): void {
                 spellcheck="false"
                 placeholder="至少 6 位"
               >
-              <button
-                class="auth-password-toggle"
-                type="button"
-                tabindex="-1"
-                :aria-pressed="visible.next ? 'true' : 'false'"
-                :aria-label="visible.next ? '隐藏密码' : '显示密码'"
-                :title="visible.next ? '隐藏密码' : '显示密码'"
-                @click="toggleVisible('next')"
-              >
-                <svg v-if="visible.next" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M2.6 12S6.2 5.6 12 5.6 21.4 12 21.4 12 17.8 18.4 12 18.4 2.6 12 2.6 12z" />
-                  <circle cx="12" cy="12" r="3.1" />
-                </svg>
-                <svg v-else viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M3 3l18 18" />
-                  <path d="M10.7 6.1A10 10 0 0 1 12 6c5.8 0 9.4 6 9.4 6a17.6 17.6 0 0 1-3.1 3.8" />
-                  <path d="M6.4 7.8A17.4 17.4 0 0 0 2.6 12S6.2 18 12 18a10 10 0 0 0 4-.85" />
-                  <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
-                </svg>
-              </button>
+              <PasswordToggle :pressed="visible.next" @toggle="toggleVisible('next')" />
             </div>
-            <div v-if="strength.text" class="helper" :class="`strength-${strength.level}`">
+            <div v-if="strength.text" class="helper" :class="strengthTone">
               {{ strength.text }}
             </div>
           </div>
 
           <div class="field-block">
             <label class="field-label" for="security-confirm">确认新密码</label>
-            <div class="field-with-eye">
+            <div class="auth-input-wrap">
               <input
                 id="security-confirm"
                 v-model="confirmPassword"
@@ -139,28 +109,9 @@ function toggleVisible(key: keyof typeof visible): void {
                 autocomplete="new-password"
                 spellcheck="false"
               >
-              <button
-                class="auth-password-toggle"
-                type="button"
-                tabindex="-1"
-                :aria-pressed="visible.confirm ? 'true' : 'false'"
-                :aria-label="visible.confirm ? '隐藏密码' : '显示密码'"
-                :title="visible.confirm ? '隐藏密码' : '显示密码'"
-                @click="toggleVisible('confirm')"
-              >
-                <svg v-if="visible.confirm" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M2.6 12S6.2 5.6 12 5.6 21.4 12 21.4 12 17.8 18.4 12 18.4 2.6 12 2.6 12z" />
-                  <circle cx="12" cy="12" r="3.1" />
-                </svg>
-                <svg v-else viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M3 3l18 18" />
-                  <path d="M10.7 6.1A10 10 0 0 1 12 6c5.8 0 9.4 6 9.4 6a17.6 17.6 0 0 1-3.1 3.8" />
-                  <path d="M6.4 7.8A17.4 17.4 0 0 0 2.6 12S6.2 18 12 18a10 10 0 0 0 4-.85" />
-                  <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
-                </svg>
-              </button>
+              <PasswordToggle :pressed="visible.confirm" @toggle="toggleVisible('confirm')" />
             </div>
-            <div v-if="mismatch" class="helper security-error">
+            <div v-if="mismatch" class="helper tone-danger">
               两次输入的新密码不一致
             </div>
           </div>
@@ -175,28 +126,3 @@ function toggleVisible(key: keyof typeof visible): void {
     </PageSection>
   </div>
 </template>
-
-<style scoped>
-.field-with-eye{
-  position:relative;
-  display:block;
-}
-.field-with-eye input{
-  width:100%;
-  padding-right:56px;
-}
-.security-form{
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-}
-.security-form .field-block{
-  margin-bottom:0;
-}
-.security-error{
-  color:#ff6b6b;
-}
-.strength-weak{color:#ff6b6b}
-.strength-medium{color:#ffb454}
-.strength-strong{color:#3ddc84}
-</style>

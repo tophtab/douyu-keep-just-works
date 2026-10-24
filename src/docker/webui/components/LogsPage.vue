@@ -104,24 +104,3 @@ function reloadDays(): void {
     </div>
   </PageSection>
 </template>
-
-<style scoped>
-.logs-refresh-toggle{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:38px;
-  height:38px;
-  padding:0;
-  border-radius:50%;
-}
-.logs-refresh-toggle svg{
-  width:18px;
-  height:18px;
-  fill:none;
-  stroke:currentColor;
-  stroke-width:2;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-}
-</style>

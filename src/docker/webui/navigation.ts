@@ -84,8 +84,8 @@ export const WEBUI_PAGE_TABS: WebUiPageMeta[] = [
   },
   {
     key: 'security',
-    label: '账号安全',
-    title: '账号安全',
+    label: '密码设置',
+    title: '密码设置',
   },
   {
     key: 'logs',

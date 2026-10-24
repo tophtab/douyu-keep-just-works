@@ -1,5 +1,6 @@
 <script setup lang="ts">
 interface ActionButton {
+  disabled?: boolean
   kind?: 'danger' | 'primary' | 'secondary' | 'success'
   label: string
 }
@@ -21,6 +22,7 @@ const emit = defineEmits<{
       class="btn"
       :class="`btn-${action.kind || 'secondary'}`"
       type="button"
+      :disabled="action.disabled"
       @click="emit('action', index)"
     >
       {{ action.label }}

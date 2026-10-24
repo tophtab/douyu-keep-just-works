@@ -84,58 +84,6 @@
   background:var(--surface-strong);
   box-shadow:var(--focus-ring);
 }
-.auth-input-wrap{
-  position:relative;
-  display:block;
-}
-.auth-field .auth-input-wrap input{
-  width:100%;
-  padding-right:56px;
-}
-.auth-password-toggle{
-  position:absolute;
-  top:50%;
-  right:5px;
-  transform:translateY(-50%);
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:44px;
-  height:44px;
-  padding:0;
-  border:0;
-  border-radius:8px;
-  background:transparent;
-  color:var(--muted);
-  cursor:pointer;
-  transition:color .15s ease;
-  -webkit-tap-highlight-color:transparent;
-}
-/* 图标按钮不铺底色：只做颜色反馈，避免在主色方块盖住输入框内容区 */
-.auth-password-toggle:hover,
-.auth-password-toggle:focus-visible{
-  color:var(--accent);
-}
-.auth-password-toggle:focus-visible{
-  outline:2px solid var(--accent);
-  outline-offset:1px;
-}
-.auth-password-toggle[aria-pressed="true"]{
-  color:var(--accent);
-}
-.auth-password-toggle:disabled{
-  opacity:.45;
-  cursor:not-allowed;
-}
-.auth-password-toggle svg{
-  width:21px;
-  height:21px;
-  fill:none;
-  stroke:currentColor;
-  stroke-width:1.7;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-}
 .auth-error{
   margin-top:12px;
   padding:10px 12px;

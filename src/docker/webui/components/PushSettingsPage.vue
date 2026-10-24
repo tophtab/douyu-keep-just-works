@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import ActionBar from './ActionBar.vue'
 import CronField from './CronField.vue'
 import EnableSwitch from './EnableSwitch.vue'
 import PageSection from './PageSection.vue'
+import PasswordToggle from './PasswordToggle.vue'
 import TaskSettingsSection from './TaskSettingsSection.vue'
 import TaskStatusCard from './TaskStatusCard.vue'
 import { usePushReportPage } from '../push-report'
@@ -66,13 +68,42 @@ const pushCells = computed(() => {
     { label: '下次推送', value: snapshot.value?.nextRun ? formatRunTime({ finishedAt: snapshot.value.nextRun } as never) : '—' },
   ]
 })
+
+const pushActions = computed(() => [
+  { label: saving.value ? '保存中…' : '保存并启用', kind: 'success' as const, disabled: saving.value },
+  { label: sending.value ? '推送中…' : '立即推送', kind: 'secondary' as const, disabled: sending.value },
+])
+
+const channelActions = computed(() => [
+  { label: channelSaving.value ? '保存中…' : '保存并启用', kind: 'success' as const, disabled: channelSaving.value },
+  { label: channelTesting.value ? '发送中…' : '测试消息', kind: 'secondary' as const, disabled: channelTesting.value },
+])
+
+// 令牌框与登录页一致：默认隐藏，仅本次页面内切换明文
+const tokenVisible = ref(false)
+
+function handlePushAction(index: number): void {
+  if (index === 0) {
+    void save()
+    return
+  }
+  void sendNow()
+}
+
+function handleChannelAction(index: number): void {
+  if (index === 0) {
+    void saveChannel()
+    return
+  }
+  void testChannel()
+}
 </script>
 
 <template>
   <div class="page-stack">
     <TaskStatusCard
       card-id="push-status-card"
-      kicker=""
+      kicker="推送状态"
       title="推送"
       :pills="pushPills"
       :cells="pushCells"
@@ -96,14 +127,7 @@ const pushCells = computed(() => {
         />
       </template>
       <template #actions>
-        <div class="actions">
-          <button class="btn btn-success" type="button" :disabled="saving" @click="save()">
-            {{ saving ? '保存中…' : '保存并启用' }}
-          </button>
-          <button class="btn btn-secondary" type="button" :disabled="sending" @click="sendNow">
-            {{ sending ? '推送中…' : '立即推送' }}
-          </button>
-        </div>
+        <ActionBar :actions="pushActions" @action="handlePushAction" />
       </template>
     </TaskSettingsSection>
 
@@ -117,67 +141,50 @@ const pushCells = computed(() => {
           @change="handleChannelToggle"
         />
       </template>
-      <div class="channel-form">
-        <div class="grid cols-3 section-form-grid">
-          <div class="field-block">
-            <label class="field-label" for="push-channel-url">网关地址</label>
-            <input
-              id="push-channel-url"
-              v-model="channelBaseUrl"
-              name="push-channel-url"
-              type="text"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="http://magicpush.example.com:818"
-            >
-          </div>
+      <div class="grid cols-3 section-form-grid">
+        <div class="field-block">
+          <label class="field-label" for="push-channel-url">网关地址</label>
+          <input
+            id="push-channel-url"
+            v-model="channelBaseUrl"
+            name="push-channel-url"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="http://magicpush.example.com:818"
+          >
+        </div>
 
-          <div class="field-block">
-            <label class="field-label" for="push-channel-token">Endpoint 令牌</label>
+        <div class="field-block">
+          <label class="field-label" for="push-channel-token">Endpoint 令牌</label>
+          <div class="auth-input-wrap">
             <input
               id="push-channel-token"
               v-model="channelToken"
               name="push-channel-token"
-              type="password"
+              :type="tokenVisible ? 'text' : 'password'"
               autocomplete="new-password"
               spellcheck="false"
               :placeholder="channel?.tokenSet ? `已配置 ${channel.tokenPreview}（留空不修改）` : '粘贴 MagicPush endpoint token'"
             >
-          </div>
-
-          <div class="field-block">
-            <label class="field-label" for="push-channel-mode">消息格式</label>
-            <select id="push-channel-mode" v-model="channelMode" name="push-channel-mode">
-              <option value="card">
-                飞书交互卡片
-              </option>
-              <option value="text">
-                Markdown 文本
-              </option>
-            </select>
+            <PasswordToggle :pressed="tokenVisible" @toggle="tokenVisible = !tokenVisible" />
           </div>
         </div>
 
-        <div class="actions">
-          <button class="btn btn-success" type="button" :disabled="channelSaving" @click="saveChannel">
-            {{ channelSaving ? '保存中…' : '保存并启用' }}
-          </button>
-          <button class="btn btn-secondary" type="button" :disabled="channelTesting" @click="testChannel">
-            {{ channelTesting ? '发送中…' : '测试消息' }}
-          </button>
+        <div class="field-block">
+          <label class="field-label" for="push-channel-mode">消息格式</label>
+          <select id="push-channel-mode" v-model="channelMode" name="push-channel-mode">
+            <option value="card">
+              飞书交互卡片
+            </option>
+            <option value="text">
+              Markdown 文本
+            </option>
+          </select>
         </div>
       </div>
+
+      <ActionBar :actions="channelActions" @action="handleChannelAction" />
     </PageSection>
   </div>
 </template>
-
-<style scoped>
-.channel-form{
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-}
-.channel-form .field-block{
-  margin-bottom:0;
-}
-</style>

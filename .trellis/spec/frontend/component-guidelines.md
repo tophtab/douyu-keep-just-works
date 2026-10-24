@@ -84,6 +84,8 @@ Use `PageSection.vue` for reusable panel sections that need consistent heading, 
 
 For scheduled task pages that share the same two-button "保存并启用" plus immediate-run action, use `TaskActionBar.vue` instead of rebuilding `ActionBar` arrays and page-local index dispatch functions. The component emits `save` and `trigger`; call the same task composable functions the page already owns.
 
+`ActionBar.vue` accepts `disabled` per action. When a button shows an in-flight label such as `保存中…` or `推送中…`, build the action array from a computed that also sets `disabled` for that action; do not hand-write `.actions` + `.btn` markup for the same two-button shape. A `<form>` submit button that must keep Enter-to-submit semantics may stay native.
+
 For optional tables that use the exact `section-block` + `empty` + `table-shell` structure, use `TableSection.vue`. Keep table rendering in the specific table component passed through the slot, and pass wrapper IDs as normal attributes so they inherit onto the root `section-block`.
 
 Good:
@@ -149,6 +151,9 @@ Current patterns to preserve:
 
 Use an eye toggle inside the password field. Keep these rules:
 
+- Render the toggle through `PasswordToggle.vue` and wrap the input in the global
+  `.auth-input-wrap` class (`styles/components.css`). Do not copy the SVG markup
+  or redefine the wrapper in page-local styles.
 - The toggle is a real `<button type="button">`; never let it submit the form.
 - Set `tabindex="-1"` on the eye toggle. Tab should move from the password input
   to the next field, not to an icon that looks decorative. Accept that

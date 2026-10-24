@@ -1390,3 +1390,41 @@ Removed old config aliases and cron migration; deleted README upgrade/rollback s
 ### Next Steps
 
 - 如需发布，按发布流程更新版本号与 CHANGELOG
+
+
+## Session 102: 修复已登录用户首屏闪回登录页
+<!-- trellis-session: v=2 fp=38f30caa658d7090 -->
+
+**Date**: 2026-10-24
+**Task**: 修复已登录用户首屏闪回登录页
+**Branch**: `master`
+
+### Summary
+
+已登录用户打开或刷新 WebUI 时会先渲染一帧登录页。改为服务端按本次请求会话把 initialAuthenticated 注入 index.html，前端据此初始化 authenticated，首帧直接渲染 App；/api/auth/status 仍做二次校验。页面 HTML 增加 Cache-Control: no-store。
+
+### Main Changes
+
+- getHtml 新增 initialAuthenticated 参数，注入 __INITIAL_AUTH_STATE__ 与 __INITIAL_AUTHENTICATED__
+- registerWebUiRoutes 接入 auth.isAuthenticated，页面 HTML 设置 no-store
+- useAuthSession 用 bootstrap.initialAuthenticated 作为 authenticated 初值
+- 补充首屏鉴权注入契约测试与 frontend spec
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4e84152` | fix(webui): 已登录用户首屏不再闪回登录页 |
+
+### Testing
+
+- [OK] npm run lint / type-check / build:docker 通过
+- [OK] npm test：63 项契约测试全部通过
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 发布 3.12.5：更新 CHANGELOG 后 npm version 3.12.5

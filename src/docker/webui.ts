@@ -15,7 +15,7 @@ export const DOCKER_WEBUI_PAGE_ROUTES = {
   'logs': '/Logs',
 } as const
 
-const APP_NAME = 'douyu-keep'
+const APP_NAME = 'DOUYU-KEEP'
 const APP_VERSION = readPackageVersion()
 const APP_VERSION_LABEL = `V${APP_VERSION}`
 export const WEBUI_ASSET_ROOT = path.join(__dirname, 'webui')

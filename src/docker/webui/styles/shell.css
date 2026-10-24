@@ -21,17 +21,22 @@
   backdrop-filter:blur(18px);
 }
 .auth-brand{
-  display:flex;
+  /* 三列：左右等宽留白，标题独占中间列，保证文字居中且不被图标挤偏 */
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
   align-items:center;
-  justify-content:center;
-  gap:14px;
+  column-gap:14px;
   min-width:0;
   margin-bottom:34px;
 }
 .auth-logo{
-  flex:0 0 auto;
+  justify-self:end;
   width:50px;
-  height:50px;
+  height:auto;
+  /* 窄屏时随左侧列收缩，避免图标顶出卡片 */
+  min-width:0;
+  max-width:100%;
+  aspect-ratio:1;
   border-radius:8px;
   object-fit:contain;
   background:transparent;

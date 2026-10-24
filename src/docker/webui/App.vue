@@ -24,7 +24,7 @@ declare global {
 }
 
 const bootstrap: WebUiBootstrap = window.DOUYU_KEEP_WEBUI_BOOTSTRAP ?? {
-  appName: 'douyu-keep',
+  appName: 'DOUYU-KEEP',
   appVersionLabel: 'V0.0.0',
   initialThemeMode: 'system',
   pageRoutes: { overview: '/' },

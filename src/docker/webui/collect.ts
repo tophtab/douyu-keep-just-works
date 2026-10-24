@@ -5,7 +5,7 @@ import { useCronPreview } from './composables/use-cron-preview'
 import { rawConfig } from './resource-config'
 import { overview } from './resource-state'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
-import { isTaskEnabled } from './task-shared'
+import { isScheduledTaskReady, isTaskEnabled } from './task-shared'
 
 interface RawCollectConfig {
   collectGift?: CollectGiftConfig
@@ -72,9 +72,10 @@ export function useCollectTaskPage() {
     const configured = Boolean(currentOverview?.collectGiftConfigured)
     const status = currentOverview?.status?.collectGift || {}
     return createOverviewTaskCard({
-      overviewReady: Boolean(currentOverview),
+      overviewReady: Boolean(currentOverview) && Boolean(rawConfig.value),
       pendingThirdLabel: '执行方式',
       configured,
+      ready: isScheduledTaskReady('collectGift', rawConfig.value),
       status,
       thirdCell: { label: '执行方式', value: configured ? '独立任务' : '等待启用' },
     })

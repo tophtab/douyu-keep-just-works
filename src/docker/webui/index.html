@@ -5,6 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="__INITIAL_THEME__" id="color-scheme-meta">
 <meta name="theme-color" content="__INITIAL_THEME_COLOR__" id="theme-color-meta">
+<script>
+  (function () {
+    var mode = '__INITIAL_THEME_MODE__';
+    var systemDark = !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    var theme = mode === 'dark' || (mode === 'system' && systemDark) ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    document.getElementById('color-scheme-meta').setAttribute('content', theme);
+    document.getElementById('theme-color-meta').setAttribute('content', theme === 'dark' ? '#000000' : '#f4ede4');
+    window.__INITIAL_RESOLVED_THEME__ = theme;
+  })();
+</script>
 <title>__APP_NAME__</title>
 <link rel="icon" type="image/png" href="/icon.png">
 </head>
@@ -16,6 +27,9 @@ window.DOUYU_KEEP_WEBUI_BOOTSTRAP = {
   appVersionLabel: '__APP_VERSION_LABEL__',
   initialThemeMode: '__INITIAL_THEME_MODE__',
   pageRoutes: __DOCKER_WEBUI_PAGE_ROUTES_JSON__
+}
+if (window.__INITIAL_RESOLVED_THEME__) {
+  document.body.setAttribute('data-theme', window.__INITIAL_RESOLVED_THEME__)
 }
 </script>
 <script type="module" src="/main.ts"></script>

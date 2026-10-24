@@ -9,4 +9,3 @@ services:
       - "${TRIM_PKGVAR}:/app/config"
     environment:
       TZ: Asia/Shanghai
-      WEB_PASSWORD: password

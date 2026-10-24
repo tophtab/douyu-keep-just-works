@@ -5,7 +5,7 @@ import { useCronPreview } from './composables/use-cron-preview'
 import { rawConfig as sharedRawConfig, setRawConfig } from './resource-config'
 import { loadLogs, loadOverview, overview as sharedOverview, refreshOverviewSurface } from './resource-state'
 import { loadYubaStatus as loadResourceYubaStatus, yubaStatus as sharedYubaStatus, yubaStatusError as sharedYubaStatusError, yubaStatusLoaded as sharedYubaStatusLoaded, yubaStatusLoading as sharedYubaStatusLoading } from './resource-yuba'
-import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isHttpUnauthorized, isTaskEnabled, saveTaskConfig, triggerTask } from './task-shared'
+import { createPendingTaskCard, createScheduledTaskCard, disableTaskConfig, hasCookieSourceConfigured, isHttpUnauthorized, isScheduledTaskReady, isTaskEnabled, saveTaskConfig, triggerTask } from './task-shared'
 import type { CookieSourceConfig, SaveTaskConfigResult, TaskRunStatus } from './task-shared'
 
 interface YubaOverview {
@@ -125,13 +125,17 @@ function formatOptionalNumber(value: unknown): string {
 
 export function useYubaTaskPage() {
   const yubaTaskCard = computed(() => {
-    if (!overview.value) {
+    if (!overview.value || !rawConfig.value) {
       return createPendingTaskCard('模式')
     }
 
     const configured = Boolean(overview.value.yubaCheckInConfigured)
     const status = overview.value.status?.yubaCheckIn || {}
-    return createScheduledTaskCard(configured, status, { label: '模式', value: yubaMode.value === 'followed' ? '签到全部已关注鱼吧' : String(yubaMode.value || '-') })
+    return createScheduledTaskCard(
+      { enabled: configured, ready: isScheduledTaskReady('yubaCheckIn', rawConfig.value) },
+      status,
+      { label: '模式', value: yubaMode.value === 'followed' ? '签到全部已关注鱼吧' : String(yubaMode.value || '-') },
+    )
   })
 
   const yubaEmptyText = computed(() => {

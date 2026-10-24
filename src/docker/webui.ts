@@ -55,8 +55,9 @@ function resolveThemeMode(value: unknown): ThemeMode {
   return value === 'light' || value === 'dark' || value === 'system' ? value : 'system'
 }
 
+/** 服务端不知道客户端配色偏好，system 先给中性浅色，页面内联脚本会在首屏绘制前按系统偏好纠正。 */
 function resolveInitialTheme(themeMode: ThemeMode): 'light' | 'dark' {
-  return themeMode === 'light' ? 'light' : 'dark'
+  return themeMode === 'dark' ? 'dark' : 'light'
 }
 
 function readTextFile(filePath: string): string {

@@ -30,7 +30,7 @@ const {
             {{ cell.label }}
           </div>
           <div class="mini-value">
-            <span class="pill" :class="cell.enabled ? 'ok' : 'off'">{{ cell.enabled ? cell.enabledText : cell.disabledText }}</span>
+            <span class="pill" :class="cell.kind">{{ cell.text }}</span>
           </div>
         </div>
       </div>

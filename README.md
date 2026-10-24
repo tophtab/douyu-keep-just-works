@@ -36,7 +36,6 @@ services:
       - ./config:/app/config
     environment:
       - TZ=Asia/Shanghai
-      - WEB_PASSWORD=password
 ```
 
 ### 飞牛 fnOS

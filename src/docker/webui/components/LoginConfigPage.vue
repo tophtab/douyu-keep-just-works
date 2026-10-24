@@ -7,7 +7,6 @@ import TaskStatusCard from './TaskStatusCard.vue'
 
 const {
   cancelPassportLogin,
-  checkCookieSource,
   loginStatus,
   mainCookie,
   passportCookie,
@@ -27,9 +26,7 @@ function handleManualCookieAction(index: number): void {
   }
   if (index === 1) {
     void saveCookie()
-    return
   }
-  void checkCookieSource()
 }
 
 function isPassportQrScanned(status: PassportQrLoginPublicStatus): boolean {
@@ -77,7 +74,6 @@ function isPassportQrConfirmed(status: PassportQrLoginPublicStatus): boolean {
         :actions="[
           { label: passportQrLoginBusy ? '扫码中' : '扫码登录', kind: 'primary' },
           { label: '手填保存', kind: 'secondary' },
-          { label: '诊断检查', kind: 'secondary' },
         ]"
         @action="handleManualCookieAction"
       />

@@ -6,7 +6,7 @@ import { allocationModeToModel, buildAllocationConfig, buildAllocationFanRows, b
 import { useCronPreview } from './composables/use-cron-preview'
 import { createFansBackedTaskPageState } from './fans-backed-task-page'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
-import { createDisabledAllocationTaskConfig, createFanListEmptyText, createTaskConfigAccessor, getAllocationValueLabel, hasFanTaskTableRows, isTaskEnabled } from './task-shared'
+import { createDisabledAllocationTaskConfig, createFanListEmptyText, createTaskConfigAccessor, getAllocationValueLabel, hasFanTaskTableRows, isScheduledTaskReady, isTaskEnabled } from './task-shared'
 import { showToast } from './toast'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
@@ -163,9 +163,10 @@ export function useDoubleTaskPage() {
     const configured = Boolean(currentOverview?.doubleCardConfigured)
     const status = currentOverview?.status?.doubleCard || {}
     return createOverviewTaskCard({
-      overviewReady: Boolean(currentOverview),
+      overviewReady: Boolean(currentOverview) && Boolean(rawConfig.value),
       pendingThirdLabel: '房间数',
       configured,
+      ready: isScheduledTaskReady('doubleCard', rawConfig.value, currentOverview?.doubleCardRooms),
       status,
       thirdCell: { label: '房间数', value: configured ? formatDoubleRoomCount(currentOverview, fanRows.value) : '0' },
     })

@@ -29,6 +29,10 @@ function onDayChange(event: Event): void {
   selectDay((event.target as HTMLSelectElement).value)
 }
 
+function toggleAutoRefresh(): void {
+  logsAutoRefresh.value = !logsAutoRefresh.value
+}
+
 function reloadDays(): void {
   refreshLogDays()
   refreshLogs()
@@ -37,23 +41,27 @@ function reloadDays(): void {
 
 <template>
   <PageSection title="运行日志">
+    <template #actions>
+      <button
+        class="btn logs-refresh-toggle"
+        :class="logsAutoRefresh ? 'btn-success' : 'btn-secondary'"
+        type="button"
+        :disabled="!isToday"
+        :aria-pressed="logsAutoRefresh ? 'true' : 'false'"
+        :aria-label="logsAutoRefresh ? '关闭自动刷新' : '开启自动刷新'"
+        :title="isToday ? (logsAutoRefresh ? '自动刷新已开启' : '自动刷新已关闭') : '历史日志不支持自动刷新'"
+        @click="toggleAutoRefresh"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+          <path d="M20 4v6h-6" />
+        </svg>
+      </button>
+    </template>
     <p id="logs-summary" class="subtle" role="status" aria-live="polite">
       {{ logsSummary }}
     </p>
     <div class="actions">
-      <label class="inline log-day-picker">
-        <span>日期</span>
-        <select
-          id="logs-day-select"
-          class="input log-day-select"
-          :value="logsSelectedDay"
-          aria-label="选择要查看的日志日期"
-          @change="onDayChange"
-        >
-          <option value="">今天（实时）</option>
-          <option v-for="day in logsDays" :key="day" :value="day">{{ day }}</option>
-        </select>
-      </label>
       <button class="btn btn-secondary" type="button" :disabled="logsLoading" :aria-busy="logsLoading ? 'true' : 'false'" @click="reloadDays">
         {{ logsLoading ? '刷新中…' : '手动刷新' }}
       </button>
@@ -67,9 +75,17 @@ function reloadDays(): void {
       >
         {{ clearingLogs ? '清空中…' : '清空今天' }}
       </button>
-      <label class="inline">
-        <input id="logs-auto-refresh" v-model="logsAutoRefresh" type="checkbox" name="logs-auto-refresh" :disabled="!isToday">
-        <span>自动刷新</span>
+      <label class="inline log-day-picker log-day-picker-end">
+        <select
+          id="logs-day-select"
+          class="input log-day-select"
+          :value="logsSelectedDay"
+          aria-label="选择要查看的日志日期"
+          @change="onDayChange"
+        >
+          <option value="">今天（实时）</option>
+          <option v-for="day in logsDays" :key="day" :value="day">{{ day }}</option>
+        </select>
       </label>
     </div>
     <div class="log-box">
@@ -88,3 +104,24 @@ function reloadDays(): void {
     </div>
   </PageSection>
 </template>
+
+<style scoped>
+.logs-refresh-toggle{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:38px;
+  height:38px;
+  padding:0;
+  border-radius:50%;
+}
+.logs-refresh-toggle svg{
+  width:18px;
+  height:18px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+</style>

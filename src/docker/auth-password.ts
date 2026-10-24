@@ -6,10 +6,10 @@ import * as path from 'node:path'
 /**
  * WebUI 登录密码存储。
  *
- * 优先级：`config/auth.json`（界面里改过） > 环境变量 WEB_PASSWORD > 内置默认值。
+ * 优先级：`config/auth.json`（界面里改过） > 内置默认密码。
  * 落盘只存 scrypt 派生值 + 随机盐，不保存明文；文件权限 0600。
  */
-export type PasswordSource = 'file' | 'env' | 'default'
+export type PasswordSource = 'file' | 'default'
 
 export interface PasswordInfo {
   source: PasswordSource
@@ -51,11 +51,11 @@ function safeEqual(a: string, b: string): boolean {
 
 export class WebPasswordStore {
   private file: PasswordFile | null = null
-  // 提示单独存文件：与「是否改过密码」解耦，用环境变量密码时也能设置提示
+  // 提示单独存文件：与「是否改过密码」解耦，未改过密码时也能设置提示
   private hintValue = ''
   private hintPath = ''
 
-  constructor(private readonly options: { filePath: string, initialPassword: string }) {
+  constructor(private readonly options: { filePath: string }) {
     this.hintPath = path.join(path.dirname(options.filePath), 'auth-hint.json')
     this.loadFromDisk()
     this.loadHint()
@@ -113,7 +113,7 @@ export class WebPasswordStore {
         hint: typeof parsed.hint === 'string' ? parsed.hint.slice(0, MAX_HINT_LENGTH) : undefined,
       }
     } catch {
-      // 文件损坏时回退到环境变量密码，不让整个服务起不来
+      // 文件损坏时回退到内置默认密码，不让整个服务起不来
       this.file = null
     }
   }
@@ -126,10 +126,6 @@ export class WebPasswordStore {
         hint: this.hintValue || undefined,
       }
     }
-    const initial = this.options.initialPassword || ''
-    if (initial && initial !== DEFAULT_PASSWORD) {
-      return { source: 'env', hint: this.hintValue || undefined }
-    }
     return { source: 'default', hint: this.hintValue || undefined }
   }
 
@@ -140,7 +136,7 @@ export class WebPasswordStore {
     if (this.file) {
       return safeEqual(derive(password, this.file.salt), this.file.hash)
     }
-    return safeEqual(password, this.options.initialPassword || '')
+    return safeEqual(password, DEFAULT_PASSWORD)
   }
 
   /** 登录页用：只返回提示文本，不暴露任何账号状态 */

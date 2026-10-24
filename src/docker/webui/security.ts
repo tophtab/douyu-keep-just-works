@@ -3,15 +3,14 @@ import { requestJson } from './request'
 import { showToast } from './toast'
 
 export interface PasswordInfo {
-  source: 'file' | 'env' | 'default'
+  source: 'file' | 'default'
   updatedAt?: string
   hint?: string
 }
 
 const SOURCE_LABELS: Record<PasswordInfo['source'], string> = {
-  file: '已在界面自定义',
-  env: '来自环境变量 WEB_PASSWORD',
-  default: '仍在使用默认密码',
+  file: '非初始密码',
+  default: '初始密码',
 }
 
 export function formatPasswordTime(value?: string): string {
@@ -66,16 +65,11 @@ function passwordStrength(password: string): { level: 'weak' | 'medium' | 'stron
 
 export function useSecurityPage() {
   const info = ref<PasswordInfo | null>(null)
-  const loading = ref(false)
   const saving = ref(false)
 
   const currentPassword = ref('')
   const newPassword = ref('')
   const confirmPassword = ref('')
-
-  const hintInput = ref('')
-  const hintSaving = ref(false)
-  const hintSaved = ref(false)
 
   const strength = computed(() => passwordStrength(newPassword.value))
   const sourceLabel = computed(() => (info.value ? SOURCE_LABELS[info.value.source] : '—'))
@@ -89,41 +83,28 @@ export function useSecurityPage() {
   ))
 
   async function loadInfo(): Promise<void> {
-    loading.value = true
     try {
       info.value = await requestJson<PasswordInfo>('/api/auth/password-info', {
         errorToast: '加载密码状态失败：',
       })
-      hintInput.value = info.value?.hint || ''
     } catch {
       // 错误提示已由 requestJson 处理
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function saveHint(): Promise<void> {
-    hintSaving.value = true
-    hintSaved.value = false
-    try {
-      await requestJson('/api/auth/hint', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hint: hintInput.value.trim() }),
-        errorToast: '保存密码提示失败：',
-      })
-      hintSaved.value = true
-      showToast(hintInput.value.trim() ? '密码提示已保存' : '密码提示已清除', true)
-      await loadInfo()
-    } catch {
-      // 错误提示已由 requestJson 处理
-    } finally {
-      hintSaving.value = false
     }
   }
 
   async function submit(): Promise<void> {
+    if (saving.value) {
+      return
+    }
     if (!canSubmit.value) {
+      showToast(
+        !currentPassword.value
+          ? '请输入当前密码'
+          : newPassword.value.length < 6
+            ? '新密码至少 6 位'
+            : '两次输入的新密码不一致',
+        false,
+      )
       return
     }
     saving.value = true
@@ -157,16 +138,10 @@ export function useSecurityPage() {
     canSubmit,
     confirmPassword,
     currentPassword,
-    hintInput,
-    hintSaved,
-    hintSaving,
     info,
     isDefaultPassword,
-    loadInfo,
-    loading,
     mismatch,
     newPassword,
-    saveHint,
     saving,
     sourceLabel,
     strength,

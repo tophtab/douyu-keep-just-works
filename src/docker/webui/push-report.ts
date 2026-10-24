@@ -41,57 +41,9 @@ export function formatRunTime(record?: TaskRunRecord): string {
   }).format(date)
 }
 
-export function formatDuration(record?: TaskRunRecord): string {
-  if (!record) {
-    return '—'
-  }
-  const ms = new Date(record.finishedAt).getTime() - new Date(record.startedAt).getTime()
-  if (!Number.isFinite(ms) || ms < 0) {
-    return '—'
-  }
-  return ms < 1000 ? `${ms}ms` : `${Math.round(ms / 1000)}s`
-}
-
-export function lastLog(record?: TaskRunRecord): string {
-  if (!record?.logs?.length) {
-    return '—'
-  }
-  return record.logs[record.logs.length - 1]
-}
-
-function cronToTime(cron: string): string {
-  const match = /^0\s+(\d{1,2})\s+(\d{1,2})\s+\*\s+\*\s+\*$/.exec(cron.trim())
-  if (!match) {
-    return ''
-  }
-  const minute = Number(match[1])
-  const hour = Number(match[2])
-  if (minute > 59 || hour > 23) {
-    return ''
-  }
-  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
-}
-
-function timeToCron(time: string): string {
-  const match = /^(\d{2}):(\d{2})$/.exec(time)
-  if (!match) {
-    return DEFAULT_PUSH_REPORT_CRON
-  }
-  return `0 ${Number(match[2])} ${Number(match[1])} * * *`
-}
-
 export function usePushReportPage() {
   const enabled = ref(true)
   const cron = ref(DEFAULT_PUSH_REPORT_CRON)
-  // 时间选择器与 cron 双向映射：只处理「每天 HH:MM」这种简单表达式
-  const time = computed({
-    get: () => cronToTime(cron.value),
-    set: (value: string) => {
-      if (value) {
-        cron.value = timeToCron(value)
-      }
-    },
-  })
 
   function syncFromConfig(): void {
     const config = currentConfig()
@@ -117,7 +69,34 @@ export function usePushReportPage() {
     }
   }
 
-  async function save(): Promise<void> {
+  async function save(options?: { revertCheckboxOnError?: boolean }): Promise<void> {
+    saving.value = true
+    enabled.value = true
+    try {
+      await requestJson('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pushReport: {
+            enabled: true,
+            cron: cron.value.trim() || DEFAULT_PUSH_REPORT_CRON,
+          },
+        }),
+        errorToast: '保存并启用推送汇总失败：',
+      })
+      showToast('推送汇总已保存并启用', true)
+      await loadSnapshot()
+    } catch {
+      if (options?.revertCheckboxOnError) {
+        enabled.value = false
+      }
+      // 错误提示已由 requestJson 处理
+    } finally {
+      saving.value = false
+    }
+  }
+
+  async function disable(): Promise<void> {
     saving.value = true
     try {
       await requestJson('/api/config', {
@@ -125,19 +104,28 @@ export function usePushReportPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pushReport: {
-            enabled: enabled.value,
+            enabled: false,
             cron: cron.value.trim() || DEFAULT_PUSH_REPORT_CRON,
           },
         }),
-        errorToast: '保存推送设置失败：',
+        errorToast: '停用推送汇总失败：',
       })
-      showToast(enabled.value ? '推送设置已保存' : '推送汇总已停用', true)
+      showToast('推送汇总已停用', true)
       await loadSnapshot()
     } catch {
+      enabled.value = true
       // 错误提示已由 requestJson 处理
     } finally {
       saving.value = false
     }
+  }
+
+  function handleToggle(): void {
+    if (enabled.value) {
+      void save({ revertCheckboxOnError: true })
+      return
+    }
+    void disable()
   }
 
   // ---- 渠道配置表单（令牌只显示掩码，留空表示不修改）
@@ -156,28 +144,45 @@ export function usePushReportPage() {
     channelToken.value = ''
   }
 
-  async function saveChannel(): Promise<void> {
+  async function persistChannel(enabled: boolean, options?: { quietSuccess?: boolean, revertEnabled?: boolean }): Promise<void> {
     channelSaving.value = true
     try {
       await requestJson('/api/push-report/channel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          enabled: channelEnabled.value,
+          enabled,
           baseUrl: channelBaseUrl.value.trim(),
           mode: channelMode.value,
           token: channelToken.value.trim(),
         }),
-        errorToast: '保存推送渠道失败：',
+        errorToast: enabled ? '保存并启用推送渠道失败：' : '停用推送渠道失败：',
       })
-      showToast('推送渠道已保存', true)
+      if (!options?.quietSuccess) {
+        showToast(enabled ? '推送渠道已保存并启用' : '推送渠道已停用', true)
+      }
       await loadSnapshot()
       syncChannelForm()
     } catch {
+      if (options?.revertEnabled !== undefined) {
+        channelEnabled.value = options.revertEnabled
+      }
       // 错误提示已由 requestJson 处理
     } finally {
       channelSaving.value = false
     }
+  }
+
+  function saveChannel(): Promise<void> {
+    return persistChannel(true)
+  }
+
+  function handleChannelToggle(): void {
+    if (channelEnabled.value) {
+      void persistChannel(true, { quietSuccess: true, revertEnabled: false })
+      return
+    }
+    void persistChannel(false, { quietSuccess: true, revertEnabled: true })
   }
 
   async function testChannel(): Promise<void> {
@@ -212,8 +217,6 @@ export function usePushReportPage() {
   }
 
   const channel = computed(() => snapshot.value?.channel)
-  const cookie = computed(() => snapshot.value?.cookie)
-  const cookieHealthy = computed(() => Boolean(cookie.value && !cookie.value.error && cookie.value.ltp0Present && cookie.value.mainReady))
   const tasks = computed(() => snapshot.value?.tasks ?? [])
   const enabledTasks = computed(() => tasks.value.filter(task => task.enabled))
   const summary = computed(() => {
@@ -241,17 +244,14 @@ export function usePushReportPage() {
     channelSaving,
     channelTesting,
     channelToken,
-    cookie,
-    cookieHealthy,
     saveChannel,
     testChannel,
     cron,
+    disable,
     enabled,
-    time,
-    enabledTasks,
-    formatDuration,
     formatRunTime,
-    lastLog,
+    handleChannelToggle,
+    handleToggle,
     loadSnapshot,
     loading,
     save,

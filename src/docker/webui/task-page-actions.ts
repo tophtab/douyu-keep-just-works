@@ -13,6 +13,7 @@ interface ScheduledTaskCardOptions {
   configured: boolean
   overviewReady: boolean
   pendingThirdLabel: string
+  ready: boolean
   status?: TaskRunStatus
   thirdCell: TaskCardCell
 }
@@ -43,7 +44,11 @@ export function createOverviewTaskCard(options: ScheduledTaskCardOptions): TaskS
     return createPendingTaskCard(options.pendingThirdLabel)
   }
 
-  return createScheduledTaskCard(options.configured, options.status || {}, options.thirdCell)
+  return createScheduledTaskCard(
+    { enabled: options.configured, ready: options.ready },
+    options.status || {},
+    options.thirdCell,
+  )
 }
 
 export async function refreshTaskSurface(activeTab: WebUiPageTab, result: SaveTaskConfigResult | null = null): Promise<void> {

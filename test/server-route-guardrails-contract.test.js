@@ -33,7 +33,7 @@ function createPasswordStore(password = 'secret') {
   return {
     verify: candidate => candidate === current,
     hint: () => '',
-    info: () => ({ source: 'env' }),
+    info: () => ({ source: 'file' }),
     setHint: () => ({ ok: true, hint: '' }),
     change: (currentPassword, nextPassword) => {
       if (currentPassword !== current) {
@@ -189,9 +189,10 @@ test('createServer injects configured WebUI theme into served HTML', async () =>
 
     assert.equal(fallbackResponse.status, 200)
     assert.match(fallbackHtml, /initialThemeMode: 'system'/)
-    assert.match(fallbackHtml, /<html lang="zh-CN" data-theme="dark">/)
-    assert.match(fallbackHtml, /<body data-theme="dark" data-auth="login">/)
-    assert.match(fallbackHtml, /<meta name="theme-color" content="#000000" id="theme-color-meta">/)
+    assert.match(fallbackHtml, /<html lang="zh-CN" data-theme="light">/)
+    assert.match(fallbackHtml, /<body data-theme="light" data-auth="login">/)
+    assert.match(fallbackHtml, /<meta name="theme-color" content="#f4ede4" id="theme-color-meta">/)
+    assert.match(fallbackHtml, /prefers-color-scheme: dark/)
   })
 })
 

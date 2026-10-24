@@ -68,6 +68,35 @@ export interface FanListMessageOptions {
 
 export type WebUiTaskType = 'collectGift' | 'keepalive' | 'doubleCard' | 'expiringGift' | 'yubaCheckIn'
 
+interface TaskReadinessRule {
+  cookie: 'main' | 'yuba'
+  requiresRooms: boolean
+}
+
+/** 只描述判断启动状态所需的配置字段，页面自带的窄类型也能直接传入。 */
+export interface TaskReadinessConfig {
+  loginCookies?: { main?: string, yuba?: string }
+  collectGift?: { cron?: string }
+  keepalive?: { cron?: string, roomAllocations?: Record<string, unknown> }
+  doubleCard?: { cron?: string, roomAllocations?: Record<string, unknown> }
+  expiringGift?: { cron?: string, roomAllocations?: Record<string, unknown> }
+  yubaCheckIn?: { cron?: string }
+}
+
+/** 每个任务跑起来必需的配置：对应 Cookie、Cron，以及可选的房间分配。 */
+const TASK_READINESS_RULES: Record<WebUiTaskType, TaskReadinessRule> = {
+  collectGift: { cookie: 'main', requiresRooms: false },
+  keepalive: { cookie: 'main', requiresRooms: true },
+  doubleCard: { cookie: 'main', requiresRooms: true },
+  expiringGift: { cookie: 'main', requiresRooms: true },
+  yubaCheckIn: { cookie: 'yuba', requiresRooms: false },
+}
+
+export interface ScheduledTaskCardInput {
+  enabled: boolean
+  ready: boolean
+}
+
 interface TaskConfigAccessorOptions<TConfig, RawConfig extends object> {
   configKey: keyof RawConfig
   fallback: TConfig
@@ -165,11 +194,45 @@ export function createDisabledAllocationTaskConfig(config: JobConfig): JobConfig
   return { ...config, enabled: false }
 }
 
-export function createScheduledTaskCard(configured: boolean, status: TaskRunStatus, thirdCell: TaskCardCell): TaskStatusCardState {
+export function isScheduledTaskReady(
+  type: WebUiTaskType,
+  config: TaskReadinessConfig | null | undefined,
+  roomCount?: number,
+): boolean {
+  if (!config) {
+    return false
+  }
+  const rule = TASK_READINESS_RULES[type]
+  const taskConfig = config[type] as { cron?: string, roomAllocations?: Record<string, unknown> } | undefined
+  if (!taskConfig || !String(taskConfig.cron || '').trim()) {
+    return false
+  }
+  const cookie = rule.cookie === 'yuba' ? config.loginCookies?.yuba : config.loginCookies?.main
+  if (!String(cookie || '').trim()) {
+    return false
+  }
+  if (rule.requiresRooms) {
+    const count = roomCount ?? Object.keys(taskConfig.roomAllocations || {}).length
+    if (count <= 0) {
+      return false
+    }
+  }
+  return true
+}
+
+export function resolveTaskPill(enabled: boolean, ready: boolean): TaskCardPill {
+  if (!enabled) {
+    return { label: '未启动', kind: 'off' }
+  }
+  if (!ready) {
+    return { label: '未配置', kind: 'warn' }
+  }
+  return { label: '已启动', kind: 'ok' }
+}
+
+export function createScheduledTaskCard(input: ScheduledTaskCardInput, status: TaskRunStatus, thirdCell: TaskCardCell): TaskStatusCardState {
   return {
-    pills: [
-      { label: configured ? '已启动' : '未启动', kind: configured ? 'ok' : 'off' },
-    ],
+    pills: [resolveTaskPill(input.enabled, input.ready)],
     cells: [
       { label: '上次执行', value: formatDate(status.lastRun || null) },
       { label: '下次执行', value: formatDate(status.nextRun || null) },

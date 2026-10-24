@@ -20,13 +20,13 @@ function isThemeMode(value: unknown): value is ThemeMode {
 
 function getSystemPrefersDark(): boolean {
   if (!window.matchMedia) {
-    return true
+    return false
   }
 
   try {
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   } catch {
-    return true
+    return false
   }
 }
 

@@ -5,16 +5,16 @@ import { buildBackpackDisplayRows, normalizeExpiringThresholdHours } from './bac
 import type { FanDisplayRow } from './fan-display'
 import { buildFanDisplayRows } from './fan-display'
 import { fansStatus, fansStatusDetailsLoaded, fansStatusDetailsLoading, fansStatusError, fansStatusLoaded, fansStatusLoading, giftStatus, managedLoading } from './resource-fans'
-import { getRawConfig, hasCookieSourceConfigured } from './resource-config'
+import { getRawConfig, hasCookieSourceConfigured, rawConfig } from './resource-config'
 import { isActiveRefreshLoading, overview, refreshOverviewSurface } from './resource-state'
 import type { WebUiPageTab } from './navigation'
 import type { WebUiOverview } from './resource-state'
+import { isScheduledTaskReady } from './task-shared'
 
 interface OverviewStatusCell {
-  enabled: boolean
-  enabledText: string
-  disabledText: string
+  kind: string
   label: string
+  text: string
 }
 
 interface OverviewFansRow extends FanDisplayRow {
@@ -26,18 +26,21 @@ function hasGiftStatusError(status: GiftStatus | null): status is GiftStatus & {
   return Boolean(status?.error)
 }
 
-function buildOverviewStatusCell(
-  label: string,
-  enabled: unknown,
-  enabledText = '已启动',
-  disabledText = '未启动',
-): OverviewStatusCell {
-  return {
-    label,
-    enabled: Boolean(enabled),
-    enabledText,
-    disabledText,
+function buildOverviewStatusCell(label: string, kind: string, text: string): OverviewStatusCell {
+  return { label, kind, text }
+}
+
+function buildOverviewTaskStatusCell(label: string, enabled: boolean, ready: boolean): OverviewStatusCell {
+  if (!enabled) {
+    return buildOverviewStatusCell(label, 'off', '未启动')
   }
+  return ready
+    ? buildOverviewStatusCell(label, 'ok', '已启动')
+    : buildOverviewStatusCell(label, 'warn', '未配置')
+}
+
+function buildPendingOverviewStatusCell(label: string): OverviewStatusCell {
+  return buildOverviewStatusCell(label, 'off', '-')
 }
 
 export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
@@ -47,22 +50,28 @@ export function useOverviewPage(activeTab: Readonly<Ref<WebUiPageTab>>) {
   const overviewStatusCells = computed(() => {
     if (!overview.value) {
       return [
-        buildOverviewStatusCell('登录', false, '-', '-'),
-        buildOverviewStatusCell('领取', false, '-', '-'),
-        buildOverviewStatusCell('保活', false, '-', '-'),
-        buildOverviewStatusCell('双倍', false, '-', '-'),
-        buildOverviewStatusCell('临期', false, '-', '-'),
-        buildOverviewStatusCell('鱼吧签到', false, '-', '-'),
+        buildPendingOverviewStatusCell('登录'),
+        buildPendingOverviewStatusCell('领取'),
+        buildPendingOverviewStatusCell('保活'),
+        buildPendingOverviewStatusCell('双倍'),
+        buildPendingOverviewStatusCell('临期'),
+        buildPendingOverviewStatusCell('鱼吧签到'),
       ]
     }
 
+    const current = overview.value
+    const config = rawConfig.value
     return [
-      buildOverviewStatusCell('登录', overview.value.cookieSaved, '已登录', '未登录'),
-      buildOverviewStatusCell('领取', overview.value.collectGiftConfigured),
-      buildOverviewStatusCell('保活', overview.value.keepaliveConfigured),
-      buildOverviewStatusCell('双倍', overview.value.doubleCardConfigured),
-      buildOverviewStatusCell('临期', overview.value.expiringGiftConfigured),
-      buildOverviewStatusCell('鱼吧签到', overview.value.yubaCheckInConfigured),
+      buildOverviewStatusCell(
+        '登录',
+        current.cookieSaved ? 'ok' : 'off',
+        current.cookieSaved ? '已登录' : '未登录',
+      ),
+      buildOverviewTaskStatusCell('领取', Boolean(current.collectGiftConfigured), isScheduledTaskReady('collectGift', config)),
+      buildOverviewTaskStatusCell('保活', Boolean(current.keepaliveConfigured), isScheduledTaskReady('keepalive', config, current.keepaliveRooms)),
+      buildOverviewTaskStatusCell('双倍', Boolean(current.doubleCardConfigured), isScheduledTaskReady('doubleCard', config, current.doubleCardRooms)),
+      buildOverviewTaskStatusCell('临期', Boolean(current.expiringGiftConfigured), isScheduledTaskReady('expiringGift', config, current.expiringGiftRooms)),
+      buildOverviewTaskStatusCell('鱼吧签到', Boolean(current.yubaCheckInConfigured), isScheduledTaskReady('yubaCheckIn', config)),
     ]
   })
 

@@ -6,7 +6,7 @@ import { allocationModeToModel, buildAllocationConfig, buildAllocationFanRows } 
 import { useCronPreview } from './composables/use-cron-preview'
 import { createFansBackedTaskPageState } from './fans-backed-task-page'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
-import { createDisabledAllocationTaskConfig, createFanListEmptyText, createTaskConfigAccessor, getAllocationValueLabel, hasFanTaskTableRows, isTaskEnabled } from './task-shared'
+import { createDisabledAllocationTaskConfig, createFanListEmptyText, createTaskConfigAccessor, getAllocationValueLabel, hasFanTaskTableRows, isScheduledTaskReady, isTaskEnabled } from './task-shared'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface KeepaliveOverview {
@@ -116,9 +116,10 @@ export function useKeepaliveTaskPage() {
     const configured = Boolean(currentOverview?.keepaliveConfigured)
     const status = currentOverview?.status?.keepalive || {}
     return createOverviewTaskCard({
-      overviewReady: Boolean(currentOverview),
+      overviewReady: Boolean(currentOverview) && Boolean(rawConfig.value),
       pendingThirdLabel: '房间数',
       configured,
+      ready: isScheduledTaskReady('keepalive', rawConfig.value, currentOverview?.keepaliveRooms),
       status,
       thirdCell: { label: '房间数', value: configured ? String(currentOverview?.keepaliveRooms ?? 0) : '0' },
     })

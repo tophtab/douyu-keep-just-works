@@ -302,6 +302,7 @@
 }
 .tab-btn:focus-visible,
 .btn:focus-visible,
+.mobile-bar-btn:focus-visible,
 .theme-option:focus-visible,
 .page:focus-visible,
 input:focus-visible,

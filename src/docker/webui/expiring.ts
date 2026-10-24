@@ -8,7 +8,7 @@ import { useCronPreview } from './composables/use-cron-preview'
 import { createFansBackedTaskPageState } from './fans-backed-task-page'
 import { fansStatusDetailsLoading as sharedFansStatusDetailsLoading, fansStatusLoaded as sharedFansStatusLoaded, giftStatus as sharedGiftStatus } from './resource-fans'
 import { createOverviewTaskCard, disableEnabledTask, refreshTaskSurface, saveEnabledTask, toggleEnabledTask, triggerFansBackedTask } from './task-page-actions'
-import { createDisabledAllocationTaskConfig, createFanListEmptyText, createTaskConfigAccessor, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isTaskEnabled } from './task-shared'
+import { createDisabledAllocationTaskConfig, createFanListEmptyText, createTaskConfigAccessor, getAllocationValueLabel, hasCookieSourceConfigured, hasFanTaskTableRows, isScheduledTaskReady, isTaskEnabled } from './task-shared'
 import type { CookieSourceConfig, TaskRunStatus } from './task-shared'
 
 interface ExpiringOverview {
@@ -138,9 +138,10 @@ export function useExpiringGiftTaskPage() {
     const configured = Boolean(currentOverview?.expiringGiftConfigured)
     const status = currentOverview?.status?.expiringGift || {}
     return createOverviewTaskCard({
-      overviewReady: Boolean(currentOverview),
+      overviewReady: Boolean(currentOverview) && Boolean(rawConfig.value),
       pendingThirdLabel: '阈值',
       configured,
+      ready: isScheduledTaskReady('expiringGift', rawConfig.value, currentOverview?.expiringGiftRooms),
       status,
       thirdCell: { label: '阈值', value: `${normalizeThresholdHours(getExpiringConfig().thresholdHours)} 小时` },
     })

@@ -108,6 +108,9 @@
   font-size:16px;
   font-weight:700;
 }
+.tone-success{color:var(--success)}
+.tone-danger{color:var(--danger)}
+.tone-muted{color:var(--muted)}
 /* 窄屏下表格的 min-width 会通过 flex/grid 的 min-width:auto 反向撑破容器，
    这里统一给容器链加 min-width:0，让 .table-shell 的横向滚动真正生效。 */
 .shell,
@@ -167,6 +170,9 @@
 .summary-grid.quad{
   grid-template-columns:repeat(4,minmax(0,1fr));
 }
+.summary-grid.dual{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
 .summary-cell{
   border-top:1px solid var(--line);
   padding-top:10px;
@@ -195,6 +201,90 @@
   color:var(--muted);
 }
 .field-block{margin-bottom:16px}
+.field-with-prefix{
+  display:flex;
+  align-items:stretch;
+}
+.field-with-prefix > input{
+  flex:1 1 auto;
+  min-width:0;
+}
+.field-with-prefix.has-prefix > input{
+  border-top-left-radius:0;
+  border-bottom-left-radius:0;
+}
+.schedule-picker{
+  position:relative;
+  display:flex;
+}
+.schedule-trigger{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:46px;
+  padding:0;
+  border:1px solid var(--line-strong);
+  border-right:0;
+  border-radius:16px 0 0 16px;
+  background:var(--surface-strong);
+  color:var(--accent);
+  cursor:pointer;
+  transition:background .18s ease, color .18s ease, border-color .18s ease;
+}
+.schedule-trigger:hover,
+.schedule-trigger[aria-expanded="true"]{
+  background:var(--accent-soft);
+  border-color:var(--accent);
+}
+.schedule-trigger:focus-visible{
+  outline:none;
+  box-shadow:var(--focus-ring);
+}
+.schedule-trigger svg{
+  width:20px;
+  height:20px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.schedule-popover{
+  position:fixed;
+  z-index:1000;
+  display:grid;
+  grid-template-columns:1.1fr 1.8fr 1fr 1fr;
+  gap:8px;
+  padding:14px;
+  border:1px solid var(--line-strong);
+  border-radius:18px;
+  background:var(--surface-strong);
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(18px);
+}
+.schedule-field{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-width:0;
+}
+.schedule-field .schedule-label{
+  flex:1;
+}
+.schedule-label{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
+.schedule-popover select,
+.schedule-popover input{
+  padding:8px;
+  border-radius:12px;
+  font-size:13px;
+}
+.schedule-popover input.is-invalid{
+  border-color:var(--danger);
+}
 .field-label{
   display:block;
   margin-bottom:6px;

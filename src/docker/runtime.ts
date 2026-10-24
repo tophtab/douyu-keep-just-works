@@ -100,19 +100,17 @@ function applyConfig(config: DockerConfig, reason: DockerRuntimeConfigApplyReaso
 
 export interface DockerRuntimeOptions {
   configPath: string
-  webPassword: string
   webPort: number
 }
 
 export function startDockerRuntime(options: DockerRuntimeOptions): void {
-  const { configPath, webPassword, webPort } = options
+  const { configPath, webPort } = options
   activeConfigPath = configPath
 
-  // 密码存储：config/auth.json 优先（界面改过），否则回退 WEB_PASSWORD
+  // 密码存储：config/auth.json 优先（界面改过），否则使用内置默认密码
   const configDir = path.dirname(path.resolve(configPath))
   const passwordStore = new WebPasswordStore({
     filePath: path.join(configDir, 'auth.json'),
-    initialPassword: webPassword,
   })
 
   // 日志与任务历史落盘：必须在第一条日志之前初始化，否则重启后首屏是空的

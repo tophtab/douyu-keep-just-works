@@ -21,6 +21,13 @@ config/
 # Local browser captures may contain cookies and personal request data.
 .temp/
 
+# Ad-hoc browser snapshots / screenshots written to the repo root while debugging.
+/*.yml
+/*.yaml
+/*.png
+!docker-compose.yml
+!icon.png
+
 # Crash dumps
 /core
 core.*

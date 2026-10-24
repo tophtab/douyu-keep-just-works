@@ -1351,3 +1351,42 @@ Removed old config aliases and cron migration; deleted README upgrade/rollback s
 ### Status
 
 [OK] **Completed**
+
+
+## Session 101: WebUI 推送设置/密码设置页样式与文案统一
+<!-- trellis-session: v=2 fp=ca48b0d107cb85bb -->
+
+**Date**: 2026-10-24
+**Task**: WebUI 推送设置/密码设置页样式与文案统一
+**Branch**: `master`
+
+### Summary
+
+推送设置与密码设置页全部改用全局样式与设计令牌，修正导航/状态卡文案，统一定时选择器时间框与弹层留白。
+
+### Main Changes
+
+- 删除 PushSettingsPage/SecurityPage 的 scoped 样式，颜色改用 --danger/--warning/--success
+- 新增 PasswordToggle.vue，登录页、密码页三框、推送令牌框共用；ActionBar 支持 disabled
+- 导航与页面标题改为「密码设置」，状态卡补「推送状态」「密码状态」kicker
+- 定时弹层时/分/秒输入框统一 100px，弹层宽度贴合内容、左右留白对称
+- LogsPage 刷新按钮样式移入 components.css，全站不再有组件级 scoped 样式
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6b4558e` | fix(webui): 统一推送设置与密码设置页样式并修正文案 |
+
+### Testing
+
+- [OK] npm run lint / type-check / test:contracts（62 项）/ build:docker 全部通过
+- [OK] 本地容器实测：三输入框 100/100/100px，弹层 431px 且左右留白各 15px
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 如需发布，按发布流程更新版本号与 CHANGELOG

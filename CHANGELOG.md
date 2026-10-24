@@ -5,13 +5,13 @@ All notable changes to this project are documented here.
 This project follows a simple Keep a Changelog-style format and uses semantic
 version numbers. Docker release tags use the full version, such as `2.1.0`.
 
-## Unreleased
+## 3.12.2 - 2026-10-24
 
 ### 修复
 
 - 恢复 `WEB_PASSWORD` 环境变量作为 WebUI 密码的兜底来源：优先使用 `config/auth.json`，其次读取 `WEB_PASSWORD`，都未提供时使用内置默认密码 `password`；在 WebUI 修改密码后写入的 `auth.json` 仍优先，环境变量不再生效。
 - 登录页与账号安全页的密码明文切换按钮不再进入 Tab 焦点顺序，Tab 会从密码框直接跳到下一个可输入控件；鼠标或触屏点击仍可切换明文。
-- 登录页不再通过 `localStorage` 记忆密码明文显示状态，刷新或重新进入后默认隐藏。
+- 登录页不再通过 `localStorage` 记忆密码明文显示状态，刷新、重新进入、登录成功或退出后均默认隐藏。
 
 ## 3.12.1 - 2026-10-24
 

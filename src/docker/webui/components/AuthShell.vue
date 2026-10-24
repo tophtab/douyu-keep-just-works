@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { requestJson } from '../request'
 
-defineProps<{
+const props = defineProps<{
   appName: string
   loginError: string
   password: string
@@ -26,24 +26,19 @@ onMounted(async () => {
   }
 })
 
-// 密码明文显示：点右侧眼睛切换，偏好存 localStorage（下次进来仍是上次的状态）
-const SHOW_PASSWORD_KEY = 'douyu.keep.showPassword'
-function readShowPassword(): boolean {
-  try {
-    return window.localStorage.getItem(SHOW_PASSWORD_KEY) === '1'
-  } catch {
-    return false
+// 密码明文显示：点右侧眼睛切换，只在本次页面内生效，刷新或重新进入后默认隐藏
+const showPassword = ref(false)
+
+// App.vue 用 v-show 保持登录页挂载；登录成功或退出会清空密码输入。
+// 此时同步复位明文状态，避免再次回到登录页时仍停在明文。
+watch(() => props.password === '', (isEmpty) => {
+  if (isEmpty) {
+    showPassword.value = false
   }
-}
-const showPassword = ref(readShowPassword())
+})
 
 function togglePassword(): void {
   showPassword.value = !showPassword.value
-  try {
-    window.localStorage.setItem(SHOW_PASSWORD_KEY, showPassword.value ? '1' : '0')
-  } catch {
-    // 隐私模式或存储被禁用时忽略，不影响本次切换
-  }
 }
 
 function updatePassword(event: Event): void {
@@ -82,6 +77,7 @@ function updatePassword(event: Event): void {
               <button
                 class="auth-password-toggle"
                 type="button"
+                tabindex="-1"
                 :aria-pressed="showPassword ? 'true' : 'false'"
                 :aria-label="showPassword ? '隐藏密码' : '显示密码明文'"
                 :title="showPassword ? '隐藏密码' : '显示密码明文'"

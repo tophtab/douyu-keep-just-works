@@ -145,6 +145,27 @@ Current patterns to preserve:
 
 ---
 
+## Password Reveal Controls
+
+Use an eye toggle inside the password field. Keep these rules:
+
+- The toggle is a real `<button type="button">`; never let it submit the form.
+- Set `tabindex="-1"` on the eye toggle. Tab should move from the password input
+  to the next field, not to an icon that looks decorative. Accept that
+  keyboard-only users cannot toggle plaintext; do not add a second control.
+- Use action semantics for icons and labels: open eye while hidden with
+  `显示密码明文`; slashed eye while shown with `隐藏密码`. Keep `aria-pressed`
+  in sync. Focus alone must never reveal the value.
+- Do not persist the reveal state in `localStorage` / `sessionStorage`. Default
+  to hidden on every page entry.
+- `App.vue` keeps `AuthShell` mounted with `v-show`. Reset the reveal state when
+  the password prop becomes empty, so a successful login and later logout do not
+  bring the field back in plaintext.
+- Keep `autocomplete="current-password"` on login/current-password fields and
+  `autocomplete="new-password"` on new-password fields for password managers.
+
+Related contract: [WebUI Password Source Contract](../backend/contracts.md#webui-password-source-contract).
+
 ## Common Mistakes
 
 - Do not place runtime constants before `defineProps` or `defineEmits` in `<script setup>`; Vue macros must come immediately after imports/type definitions to satisfy lint ordering.

@@ -3,13 +3,14 @@ import { requestJson } from './request'
 import { showToast } from './toast'
 
 export interface PasswordInfo {
-  source: 'file' | 'default'
+  source: 'file' | 'env' | 'default'
   updatedAt?: string
   hint?: string
 }
 
 const SOURCE_LABELS: Record<PasswordInfo['source'], string> = {
   file: '非初始密码',
+  env: '环境变量密码',
   default: '初始密码',
 }
 

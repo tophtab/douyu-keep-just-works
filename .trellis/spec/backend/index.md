@@ -45,6 +45,7 @@ Use this table before opening every backend spec file.
 | Daily intimacy caps, cap-aware allocation/pre-send checks, or authenticated Douyu sockets | [Douyu Fan Intimacy](./douyu-fan-intimacy.md) (research and deferral decision; not an implemented feature) |
 | Gift sending, room DID reuse, or multi-gift task sequencing | [Backend Contracts](./contracts.md#task-local-room-did-reuse), [Testing Guidelines](./testing-guidelines.md) |
 | Dockerfile, `.dockerignore`, build workflow, fnOS FPK packaging, task metadata, type safety, or route architecture | [Quality Guidelines](./quality-guidelines.md), [Docker Image Build Cache](./contracts.md#docker-image-build-cache), [Docker CI Quality Gate](./contracts.md#docker-ci-quality-gate), [fnOS FPK Release](./contracts.md#fnos-fpk-release), [Docker Task Metadata Ownership](./contracts.md#docker-task-metadata-ownership) |
+| WebUI login password, `config/auth.json`, or `WEB_PASSWORD` | [Backend Contracts](./contracts.md#webui-password-source-contract) |
 | Runtime log messages or log categories | [Logging Guidelines](./logging-guidelines.md) |
 | Contract tests or source-inspection test modernization | [Testing Guidelines](./testing-guidelines.md) |
 

@@ -9,3 +9,4 @@ services:
       - ./config:/app/config
     environment:
       - TZ=Asia/Shanghai
+      - WEB_PASSWORD=password

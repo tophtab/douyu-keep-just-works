@@ -67,6 +67,7 @@ function toggleVisible(key: keyof typeof visible): void {
               <button
                 class="auth-password-toggle"
                 type="button"
+                tabindex="-1"
                 :aria-pressed="visible.current ? 'true' : 'false'"
                 :aria-label="visible.current ? '隐藏当前密码' : '显示当前密码明文'"
                 :title="visible.current ? '隐藏当前密码' : '显示当前密码明文'"
@@ -83,6 +84,9 @@ function toggleVisible(key: keyof typeof visible): void {
                   <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
                 </svg>
               </button>
+            </div>
+            <div v-if="info?.source === 'env'" class="helper">
+              当前密码来自 WEB_PASSWORD 环境变量；在此修改后会写入 config/auth.json，之后以新密码为准，环境变量不再生效。
             </div>
           </div>
 
@@ -101,6 +105,7 @@ function toggleVisible(key: keyof typeof visible): void {
               <button
                 class="auth-password-toggle"
                 type="button"
+                tabindex="-1"
                 :aria-pressed="visible.next ? 'true' : 'false'"
                 :aria-label="visible.next ? '隐藏新密码' : '显示新密码明文'"
                 :title="visible.next ? '隐藏新密码' : '显示新密码明文'"
@@ -137,6 +142,7 @@ function toggleVisible(key: keyof typeof visible): void {
               <button
                 class="auth-password-toggle"
                 type="button"
+                tabindex="-1"
                 :aria-pressed="visible.confirm ? 'true' : 'false'"
                 :aria-label="visible.confirm ? '隐藏确认密码' : '显示确认密码明文'"
                 :title="visible.confirm ? '隐藏确认密码' : '显示确认密码明文'"

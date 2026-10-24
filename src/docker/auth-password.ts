@@ -6,10 +6,10 @@ import * as path from 'node:path'
 /**
  * WebUI 登录密码存储。
  *
- * 优先级：`config/auth.json`（界面里改过） > 内置默认密码。
+ * 优先级：`config/auth.json`（界面里改过） > `WEB_PASSWORD` 环境变量 > 内置默认密码。
  * 落盘只存 scrypt 派生值 + 随机盐，不保存明文；文件权限 0600。
  */
-export type PasswordSource = 'file' | 'default'
+export type PasswordSource = 'file' | 'env' | 'default'
 
 export interface PasswordInfo {
   source: PasswordSource
@@ -54,8 +54,11 @@ export class WebPasswordStore {
   // 提示单独存文件：与「是否改过密码」解耦，未改过密码时也能设置提示
   private hintValue = ''
   private hintPath = ''
+  // 环境变量为空或未设置时回落到内置默认密码
+  private readonly initialPassword: string
 
-  constructor(private readonly options: { filePath: string }) {
+  constructor(private readonly options: { filePath: string, initialPassword?: string }) {
+    this.initialPassword = options.initialPassword || DEFAULT_PASSWORD
     this.hintPath = path.join(path.dirname(options.filePath), 'auth-hint.json')
     this.loadFromDisk()
     this.loadHint()
@@ -126,7 +129,10 @@ export class WebPasswordStore {
         hint: this.hintValue || undefined,
       }
     }
-    return { source: 'default', hint: this.hintValue || undefined }
+    return {
+      source: this.initialPassword === DEFAULT_PASSWORD ? 'default' : 'env',
+      hint: this.hintValue || undefined,
+    }
   }
 
   verify(password: string): boolean {
@@ -136,7 +142,7 @@ export class WebPasswordStore {
     if (this.file) {
       return safeEqual(derive(password, this.file.salt), this.file.hash)
     }
-    return safeEqual(password, DEFAULT_PASSWORD)
+    return safeEqual(password, this.initialPassword)
   }
 
   /** 登录页用：只返回提示文本，不暴露任何账号状态 */

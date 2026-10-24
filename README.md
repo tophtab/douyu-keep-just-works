@@ -36,7 +36,12 @@ services:
       - ./config:/app/config
     environment:
       - TZ=Asia/Shanghai
+      - WEB_PASSWORD=password
 ```
+
+`WEB_PASSWORD` 是 WebUI 的初始 / 兜底登录密码；未设置时默认密码为 `password`。
+在 WebUI「账号安全」页修改密码后会写入 `config/auth.json`，该文件优先于环境变量，
+之后环境变量中的密码不再生效。
 
 ### 飞牛 fnOS
 

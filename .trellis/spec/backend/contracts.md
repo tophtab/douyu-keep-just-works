@@ -20,6 +20,7 @@
 | GitHub Actions validation steps or quality-gate path filters | [Docker CI Quality Gate](#docker-ci-quality-gate) |
 | fnOS FPK package source or release workflow | [fnOS FPK Release](#fnos-fpk-release) |
 | Docker task labels, schedule summaries, and active checks | [Docker Task Metadata Ownership](#docker-task-metadata-ownership) |
+| WebUI login password source, `auth.json`, or `WEB_PASSWORD` | [WebUI Password Source Contract](#webui-password-source-contract) |
 
 ---
 
@@ -590,6 +591,92 @@ fnos-fpk:
 # In the reusable workflow:
 build:
   if: inputs.release_tag != ''
+```
+
+## WebUI Password Source Contract
+
+### 1. Scope / Trigger
+
+Trigger: changing WebUI login password handling, `config/auth.json`, the
+`WEB_PASSWORD` environment variable, or the password status API.
+
+### 2. Signatures
+
+```typescript
+type PasswordSource = 'file' | 'env' | 'default'
+
+class WebPasswordStore {
+  constructor(options: { filePath: string, initialPassword?: string })
+  verify(password: string): boolean
+  info(): { source: PasswordSource, updatedAt?: string, hint?: string }
+  change(currentPassword: string, nextPassword: string): { ok: boolean, error?: string }
+}
+```
+
+`src/docker/index.ts` reads `process.env.WEB_PASSWORD || 'password'` and passes
+it through `DockerRuntimeOptions.webPassword` into `initialPassword`.
+
+### 3. Contracts
+
+- Priority is exactly: `config/auth.json` > `WEB_PASSWORD` > built-in
+  `password`.
+- An absent, `undefined`, or empty `WEB_PASSWORD` falls back to `password`;
+  never treat an empty string as a valid comparison password.
+- Once the user changes the password in the WebUI, `auth.json` exists and must
+  win over any environment value, including a stale one in `.env` or compose.
+- `info()` may return only `source`, `updatedAt`, and `hint`. It must never
+  return the password, its hash, or its salt.
+- `source` values map to UI as: `file` = 非初始密码, `env` = 环境变量密码,
+  `default` = 初始密码. Only `default` counts as "using the default password".
+- A corrupt `auth.json` falls back to `WEB_PASSWORD` / `password` so the
+  service can still boot.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+|---|---|
+| `auth.json` valid, password matches | `verify()` true, `source: 'file'` |
+| `auth.json` valid, password differs | `verify()` false |
+| no `auth.json`, `WEB_PASSWORD=secret` | `verify('secret')` true, `source: 'env'` |
+| no `auth.json`, `WEB_PASSWORD` unset/empty | `verify('password')` true, `source: 'default'` |
+| `auth.json` corrupt | fall back to env/default, do not crash startup |
+| `info()` called on any source | no plaintext, hash, or salt in the payload |
+
+### 5. Good/Base/Bad Cases
+
+- Good: compose sets `WEB_PASSWORD=my-pass`; first login uses `my-pass`;
+  after a WebUI change, `auth.json` wins and the old env value stops working.
+- Base: no env, no `auth.json`; login uses `password` and the UI shows
+  初始密码.
+- Bad: removing the env fallback without a migration, leaving upgraded users
+  on the insecure default `password`.
+
+### 6. Tests Required
+
+`test/auth-password-contract.test.js` must assert:
+
+- env fallback when `auth.json` is absent;
+- unset and empty `WEB_PASSWORD` fall back to `password`;
+- `auth.json` wins after `change()`, including across a restart with a
+  different `initialPassword`;
+- `info()` keys are only `source` (`env`/`default`) or `source` +
+  `updatedAt` (`file`), and never contain the plaintext password.
+
+### 7. Wrong vs Correct
+
+Wrong:
+
+```typescript
+// Removing the env fallback, or allowing empty env to compare as ''
+if (!this.file) return safeEqual(password, '')
+```
+
+Correct:
+
+```typescript
+this.initialPassword = options.initialPassword || DEFAULT_PASSWORD
+// ...
+return safeEqual(password, this.initialPassword)
 ```
 
 ## Docker Task Metadata Ownership

@@ -33,7 +33,7 @@ Use this table before opening every frontend spec file.
 | Change area | Read |
 |---|---|
 | Adding or moving WebUI files | [Directory Structure](./directory-structure.md) |
-| Editing Vue components, shared section/table components, UI copy, or accessibility markup | [Component Guidelines](./component-guidelines.md) |
+| Editing Vue components, shared section/table components, UI copy, accessibility markup, or password reveal controls | [Component Guidelines](./component-guidelines.md) |
 | Adding composables, event handlers, or task page actions | [Hook Guidelines](./hook-guidelines.md) |
 | Changing local/shared/server state ownership, resource loaders, or protected shell mounting | [State Management](./state-management.md) |
 | Theme bootstrap, resource error feedback, manual force refresh, save-response application, local cookie diagnostics, or Passport QR polling | [Frontend Contracts](./contracts.md) |

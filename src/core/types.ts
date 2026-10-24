@@ -262,11 +262,106 @@ export interface DockerConfig {
   loginCookies: LoginCookiesConfig
   cookieCloud: CookieCloudConfig
   ui: DockerUiConfig
+  pushChannel: PushChannelConfig
+  pushReport: PushReportConfig
   collectGift: CollectGiftConfig
   keepalive: JobConfig
   doubleCard: DoubleCardConfig
   expiringGift: ExpiringGiftConfig
   yubaCheckIn: YubaCheckInConfig
+}
+
+/**
+ * 推送渠道：自建 MagicPush 网关。留空时回退到 MAGICPUSH_URL / MAGICPUSH_TOKEN 环境变量。
+ * mode=card 走飞书交互卡片，mode=text 走 markdown 文本。
+ */
+export interface PushChannelConfig {
+  enabled: boolean
+  baseUrl: string
+  token: string
+  mode: 'card' | 'text'
+}
+
+/**
+ * 推送设置：每天固定时间把「所有已启用任务」当天的执行情况汇总成一张飞书卡片推出去。
+ * 定时任务执行完不单独推送；手动触发的任务会即时推送单次结果。
+ */
+export interface PushReportConfig {
+  enabled: boolean
+  cron: string
+}
+
+/** 一次任务执行记录，用于汇总推送与 WebUI 展示 */
+/** 单次送礼任务里某个房间的亲密度变化（任务前后各读一次粉丝牌得出） */
+export interface TaskRunIntimacy {
+  roomId: string
+  /** 主播名，取粉丝牌列表里的名字 */
+  name: string
+  level: number
+  /** 当前亲密度（intimacy 字段 "/" 前那段） */
+  current: number
+  /** 升级门槛（intimacy 字段 "/" 后那段） */
+  threshold: number
+  /** 本次任务带来的亲密度增量 */
+  delta: number
+  /** 本次任务是否发生了升级 */
+  levelUp: boolean
+}
+
+export interface TaskRunRecord {
+  type: string
+  label: string
+  startedAt: string
+  finishedAt: string
+  ok: boolean
+  error?: string
+  logs: string[]
+  /** 送礼类任务的亲密度变化；非送礼任务或读取失败时缺省 */
+  intimacy?: TaskRunIntimacy[]
+}
+
+/** 汇总推送里展示的登录态摘要 */
+export interface CookieStatusSummary {
+  source: 'local' | 'cookieCloud'
+  /** LTP0（长效续期凭证）是否存在 */
+  ltp0Present: boolean
+  /** 主站登录字段是否齐全 */
+  mainReady: boolean
+  mainMissingKeys: string[]
+  /** 鱼吧登录态是否齐全 */
+  yubaReady: boolean
+  yubaMissingKeys: string[]
+  /** 快照内 cookie 条数 */
+  cookieCount: number
+  /** 登录快照更新时间（配置文件 mtime） */
+  updatedAt?: string
+  /** 读取失败时的原因 */
+  error?: string
+}
+
+/** 推送设置页的实时数据 */
+export interface PushReportSnapshot {
+  enabled: boolean
+  cron: string
+  configured: boolean
+  nextRun?: string
+  cookie: CookieStatusSummary
+  channel: {
+    enabled: boolean
+    baseUrl: string
+    mode: 'card' | 'text'
+    tokenSet: boolean
+    tokenPreview: string
+    /** 生效来源：config 表示界面里配的，env 表示环境变量，disabled 表示已在界面显式关闭 */
+    source: 'config' | 'env' | 'none' | 'disabled'
+  }
+  tasks: Array<{
+    type: string
+    label: string
+    enabled: boolean
+    cron: string
+    lastRun?: TaskRunRecord
+  }>
 }
 
 export interface DoubleCardInfo {

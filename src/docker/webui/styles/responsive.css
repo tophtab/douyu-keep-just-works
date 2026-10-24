@@ -13,64 +13,42 @@
     transform:none;
   }
 }
-@media (max-width: 720px){
+@media (max-width: 860px){
   .table{
     --table-cell-x:10px;
     --table-cell-y:8px;
   }
-  .fans-status-table,
-  .yuba-status-table,
-  .backpack-table{
+
+  /* 窄屏：宽表统一转成「每行一张卡片」的键值列表，包含可编辑的分配表 */
+  :is(.fans-status-table, .yuba-status-table, .backpack-table, .keepalive-table, .double-table, .expiring-table){
     min-width:0;
     table-layout:auto;
+    display:block;
+    width:100%;
   }
-  .fans-status-table thead,
-  .yuba-status-table thead,
-  .backpack-table thead,
-  .fans-status-table colgroup,
-  .yuba-status-table colgroup,
-  .backpack-table colgroup{
+  :is(.fans-status-table, .yuba-status-table, .backpack-table, .keepalive-table, .double-table, .expiring-table) :is(thead, colgroup){
     display:none;
   }
-  .fans-status-table,
-  .fans-status-table tbody,
-  .yuba-status-table,
-  .yuba-status-table tbody,
-  .backpack-table,
-  .backpack-table tbody{
-    display:block;
-    width:100%;
-  }
-  .fans-status-table tbody,
-  .yuba-status-table tbody,
-  .backpack-table tbody{
+  :is(.fans-status-table, .yuba-status-table, .backpack-table, .keepalive-table, .double-table, .expiring-table) tbody{
     display:grid;
     gap:10px;
-    padding:10px;
+    padding:0;
   }
-  .fans-status-table tr,
-  .fans-status-table td,
-  .yuba-status-table tr,
-  .yuba-status-table td,
-  .backpack-table tr,
-  .backpack-table td{
+  :is(.fans-status-table, .yuba-status-table, .backpack-table, .keepalive-table, .double-table, .expiring-table) :is(tr, td){
     display:block;
     width:100%;
   }
-  .fans-status-table tr,
-  .yuba-status-table tr,
-  .backpack-table tr{
+  :is(.fans-status-table, .yuba-status-table, .backpack-table, .keepalive-table, .double-table, .expiring-table) tr{
     padding:10px 12px;
     border:1px solid var(--line);
     border-radius:16px;
     background:var(--surface-soft);
   }
-  .fans-status-table td,
-  .yuba-status-table td,
-  .backpack-table td{
+  :is(.fans-status-table, .yuba-status-table, .backpack-table, .keepalive-table, .double-table, .expiring-table) td{
     display:grid;
-    grid-template-columns:minmax(88px, 32%) minmax(0, 1fr);
-    gap:12px;
+    grid-template-columns:minmax(84px, 34%) minmax(0, 1fr);
+    align-items:center;
+    gap:10px;
     padding:7px 0;
     border-bottom:0;
     white-space:normal;
@@ -79,27 +57,34 @@
     text-align:left;
     word-break:break-word;
   }
-  .fans-status-table td + td,
-  .yuba-status-table td + td,
-  .backpack-table td + td{
+  :is(.fans-status-table, .yuba-status-table, .backpack-table, .keepalive-table, .double-table, .expiring-table) td + td{
     border-top:1px solid var(--line);
   }
-  .fans-status-table td::before,
-  .yuba-status-table td::before,
-  .backpack-table td::before{
+  :is(.fans-status-table, .yuba-status-table, .backpack-table, .keepalive-table, .double-table, .expiring-table) td::before{
     content:attr(data-label);
     color:var(--muted);
     font-size:12px;
     font-weight:700;
   }
-  .fans-status-table .num-cell,
-  .fans-status-table .index-cell,
-  .yuba-status-table .num-cell,
-  .yuba-status-table .index-cell,
-  .backpack-table .num-cell,
-  .backpack-table .index-cell{
+  :is(.fans-status-table, .yuba-status-table, .backpack-table, .keepalive-table, .double-table, .expiring-table) :is(.num-cell, .index-cell){
     text-align:left;
   }
+  /* 分配表里的输入框在卡片里占满右侧，方便手指点按 */
+  :is(.keepalive-table, .double-table, .expiring-table) :is(input[type="number"], input[type="checkbox"]){
+    width:100%;
+    min-height:38px;
+  }
+  :is(.keepalive-table, .double-table, .expiring-table) input[type="checkbox"]{
+    width:22px;
+    height:22px;
+    min-height:22px;
+  }
+  /* 表格卡片化后不再需要外层横向滚动，去掉 gutter 留白 */
+  .table-shell{
+    scrollbar-gutter:auto;
+    overflow:visible;
+  }
+
   .log-line{
     grid-template-columns:max-content minmax(0,1fr);
   }
@@ -141,21 +126,106 @@
   .auth-brand{
     margin-bottom:28px;
   }
+  /* ---------- 移动端：侧栏改为抽屉，顶栏提供入口 ---------- */
   .shell{display:block}
-  .sidebar{
-    position:static;
-    width:auto;
-    height:auto;
-    overflow-y:visible;
-    border-right:none;
+  .mobile-bar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    position:sticky;
+    top:0;
+    z-index:30;
+    margin:-14px -14px 12px;
+    padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
+    background:var(--surface-strong);
+    backdrop-filter:blur(18px);
     border-bottom:1px solid var(--line);
   }
-  .main{
-    padding:18px;
+  .drawer-backdrop{
+    display:block;
+    position:fixed;
+    inset:0;
+    z-index:40;
+    background:rgba(0,0,0,.45);
+    opacity:0;
+    visibility:hidden;
+    transition:opacity .2s ease, visibility .2s ease;
   }
-  .header{display:block}
-  .toolbar{
-    margin-top:16px;
+  .drawer-backdrop-visible{
+    opacity:1;
+    visibility:visible;
+  }
+  .sidebar{
+    position:fixed;
+    top:0;
+    left:0;
+    z-index:50;
+    width:min(84vw,300px);
+    height:100vh;
+    height:100dvh;
+    flex:0 0 auto;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    padding:calc(18px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom));
+    border-right:1px solid var(--line);
+    border-bottom:none;
+    border-radius:0 20px 20px 0;
+    box-shadow:0 24px 60px rgba(0,0,0,.35);
+    transform:translateX(-100%);
+    visibility:hidden;
+    transition:transform .24s ease, visibility .24s ease;
+  }
+  .sidebar-drawer-open{
+    transform:translateX(0);
+    visibility:visible;
+  }
+  .tab-list{
+    gap:6px;
+    margin-bottom:18px;
+  }
+  .tab-btn{
+    padding:14px 16px;
+    font-size:15px;
+    border-radius:14px;
+  }
+  .tab-btn:hover{
+    transform:none;
+  }
+  .brand-copy{
+    margin-bottom:18px;
+  }
+  .theme-box{
+    margin-top:auto;
+  }
+  .main{
+    padding:14px;
+    padding-bottom:calc(14px + env(safe-area-inset-bottom));
+  }
+  /* 顶栏已提供标题 + 刷新 + 退出，页头整体隐藏，避免出现两套重复按钮 */
+  .header{
+    display:none;
+  }
+  .page-title{
+    font-size:22px;
+  }
+  /* 概况的 6 个状态卡：单列太松散，窄屏改 2 列 */
+  .summary-grid,
+  .summary-grid.quad{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  .strip-metric{
+    padding:12px;
+    border-radius:14px;
+  }
+  .mini-value{
+    font-size:15px;
+  }
+  .task-card .summary-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .task-card-title{
+    font-size:19px;
   }
   .toast{
     top:18px;
@@ -166,8 +236,7 @@
     max-width:none;
   }
   .strip-metrics,
-  .grid.cols-2,
-  .summary-grid{
+  .grid.cols-2{
     grid-template-columns:1fr;
   }
   .strip-metrics{
@@ -181,9 +250,7 @@
     display:grid;
     grid-template-columns:1fr;
   }
-  .summary-grid.quad{
-    grid-template-columns:1fr;
-  }
+
   .split-inline-actions{
     width:100%;
   }
@@ -192,5 +259,101 @@
   }
   .overview-gift-summary .strip-metric{
     min-height:auto;
+  }
+}
+
+/* ---------- 小屏手机（≤560px）：更紧凑的间距与全宽操作按钮 ---------- */
+@media (max-width: 560px){
+  .main{
+    padding:12px;
+    padding-bottom:calc(12px + env(safe-area-inset-bottom));
+  }
+  .mobile-bar{
+    margin:-12px -12px 10px;
+    padding:calc(8px + env(safe-area-inset-top)) 12px 8px;
+    gap:8px;
+  }
+  .mobile-bar-btn{
+    width:38px;
+    height:38px;
+  }
+  .panel{
+    padding:14px;
+    border-radius:18px;
+  }
+  .section-title{
+    font-size:18px;
+  }
+  .section-panel-head{
+    gap:10px;
+  }
+  .actions{
+    gap:8px;
+  }
+  .actions .btn,
+  .section-actions .btn{
+    flex:1 1 100%;
+    width:100%;
+    min-height:46px;
+  }
+  .toolbar-icon-btn,
+  .toolbar-icon-btn-wide{
+    min-width:52px;
+  }
+  .page-stack{
+    gap:12px;
+  }
+  .summary-grid,
+  .summary-grid.quad,
+  .task-card .summary-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:6px;
+  }
+  .summary-cell{
+    padding-top:8px;
+  }
+  .strip-metric{
+    padding:10px;
+  }
+  .mini-label{
+    font-size:11px;
+    margin-bottom:4px;
+  }
+  .mini-value{
+    font-size:14px;
+  }
+  .pill{
+    min-height:24px;
+    padding:3px 8px;
+    font-size:12px;
+  }
+  .task-card{
+    padding:14px;
+    border-radius:18px;
+  }
+  .table{
+    font-size:13px;
+  }
+  .field-label{
+    font-size:12px;
+  }
+  input[type="text"],
+  input[type="password"],
+  input[type="number"],
+  input[type="time"],
+  select,
+  textarea{
+    min-height:44px;
+    font-size:16px; /* 防止 iOS 聚焦时自动放大 */
+  }
+  .auth-shell{
+    padding:14px;
+  }
+  .auth-title{
+    font-size:26px;
+  }
+  .auth-panel{
+    padding:22px 18px;
+    border-radius:14px;
   }
 }

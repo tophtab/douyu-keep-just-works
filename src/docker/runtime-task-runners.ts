@@ -4,6 +4,9 @@ import type { StatusCacheScope } from './runtime-cache'
 import { MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
 import { getTaskLabel, getTaskNotConfiguredMessage, createTaskRecord, getTriggerableTaskConfig } from './task-metadata'
 import type { TaskType } from './task-metadata'
+import { recordTaskRun, sendTaskRunCard } from './runtime-notify'
+import { diffIntimacy, snapshotIntimacy } from './runtime-fans-intimacy'
+import type { IntimacySnapshot } from './runtime-fans-intimacy'
 
 type TaskLoggerMap = Record<TaskType, (message: string) => void>
 
@@ -27,6 +30,25 @@ export interface RuntimeTaskRunnerDeps {
 const manualTriggerOptions = {
   onBusy: 'throw' as const,
   busyMessage: '任务正在执行中，请稍后再试',
+}
+
+/**
+ * 会真正送出礼物的任务。只有这些任务需要读粉丝牌算亲密度增量；
+ * 领取、鱼吧签到不发礼物，多读一次只是浪费请求。
+ */
+const GIFT_TASK_TYPES = new Set<TaskType>(['expiringGift', 'doubleCard', 'keepalive'])
+
+/**
+ * 读取亲密度快照。cookie 解析失败、网络失败都只返回 null。
+ * 亲密度只是附加信息：既不能阻止任务执行，也不能阻止失败记录落盘，
+ * 更不能把原始任务错误替换成「请先配置 cookie」。
+ */
+async function safeSnapshotIntimacy(resolveCookie: () => string): Promise<IntimacySnapshot | null> {
+  try {
+    return await snapshotIntimacy(resolveCookie())
+  } catch {
+    return null
+  }
 }
 
 type RuntimeTaskRunner = (config: DockerConfig[TaskType], deps: RuntimeTaskRunnerDeps) => Promise<void>
@@ -66,7 +88,57 @@ async function triggerConfiguredTask<TConfig>(options: {
   }, manualTriggerOptions)
 }
 
-export async function runRuntimeTask(type: TaskType, config: DockerConfig[TaskType], deps: RuntimeTaskRunnerDeps): Promise<void> {
+export async function runRuntimeTask(
+  type: TaskType,
+  config: DockerConfig[TaskType],
+  deps: RuntimeTaskRunnerDeps,
+  trigger: 'manual' | 'scheduled' = 'scheduled',
+): Promise<void> {
+  const startedAt = new Date().toISOString()
+  const collected: string[] = []
+  const recordingDeps: RuntimeTaskRunnerDeps = {
+    ...deps,
+    taskLoggers: {
+      ...deps.taskLoggers,
+      [type]: (message: string) => {
+        deps.taskLoggers[type](message)
+        collected.push(message)
+        if (collected.length > 40) {
+          collected.shift()
+        }
+      },
+    },
+  }
+
+  // 送礼类任务：执行前后各读一次粉丝牌，差值即本次亲密度增量
+  const trackIntimacy = GIFT_TASK_TYPES.has(type)
+  const beforeIntimacy = trackIntimacy
+    ? await safeSnapshotIntimacy(() => deps.resolveCookieForUrl(MAIN_DOUYU_URL))
+    : null
+
+  try {
+    await executeRuntimeTask(type, config, recordingDeps)
+    const intimacy = trackIntimacy
+      ? diffIntimacy(beforeIntimacy, await safeSnapshotIntimacy(() => deps.resolveCookieForUrl(MAIN_DOUYU_URL)))
+      : undefined
+    const record = recordTaskRun({ type, ok: true, startedAt, logs: collected, intimacy })
+    // 定时任务只记录，等每日汇总统一发；手动触发立即推送单次结果
+    if (trigger === 'manual') {
+      await sendTaskRunCard(record, trigger)
+    }
+  } catch (error: unknown) {
+    const intimacy = trackIntimacy
+      ? diffIntimacy(beforeIntimacy, await safeSnapshotIntimacy(() => deps.resolveCookieForUrl(MAIN_DOUYU_URL)))
+      : undefined
+    const record = recordTaskRun({ type, ok: false, startedAt, error, logs: collected, intimacy })
+    if (trigger === 'manual') {
+      await sendTaskRunCard(record, trigger)
+    }
+    throw error
+  }
+}
+
+async function executeRuntimeTask(type: TaskType, config: DockerConfig[TaskType], deps: RuntimeTaskRunnerDeps): Promise<void> {
   try {
     await runtimeTaskRunners[type](config, deps)
   } catch (error: unknown) {
@@ -91,7 +163,7 @@ export async function triggerRuntimeTask(
     config: taskConfig,
     deps,
     taskType: type,
-    runTask: async resolvedConfig => await runRuntimeTask(type, resolvedConfig, deps),
+    runTask: async resolvedConfig => await runRuntimeTask(type, resolvedConfig, deps, 'manual'),
   })
 }
 

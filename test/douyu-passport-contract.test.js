@@ -437,7 +437,6 @@ test('manual passport cookie is returned by authenticated config without a raw a
     delete: () => {},
   }
   registerConfigRoutes(app, {
-    webPassword: '',
     getConfig: () => config,
     saveCookie: () => {},
     saveTaskConfig: async () => ({ config, fans: [] }),

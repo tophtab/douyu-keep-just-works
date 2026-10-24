@@ -3,6 +3,7 @@ import { createAuthHandlers } from './server-auth'
 import { registerConfigRoutes } from './server-config-routes'
 import { registerCookieSourceRoutes } from './server-cookie-source-routes'
 import { registerFansRoutes } from './server-fans-routes'
+import { registerPushReportRoutes } from './server-push-report-routes'
 import { registerTaskRoutes } from './server-task-routes'
 import type { AppContext, JobStatus } from './server-types'
 import { isDockerWebUiPagePath, registerWebUiRoutes } from './server-webui-routes'
@@ -22,6 +23,7 @@ export function createServer(ctx: AppContext): express.Express {
   registerFansRoutes(app, ctx)
   registerCookieSourceRoutes(app, ctx)
   registerTaskRoutes(app, ctx)
+  registerPushReportRoutes(app, ctx)
 
   return app
 }

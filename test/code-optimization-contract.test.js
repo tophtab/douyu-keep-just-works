@@ -164,7 +164,7 @@ test('protected WebUI bootstrap defers full logs until the logs tab is active', 
   assert.deepEqual(requestUrls, ['/api/overview'])
 
   await resourceState.loadActiveTabData('logs')
-  assert.deepEqual(requestUrls, ['/api/overview', '/api/logs'])
+  assert.deepEqual(requestUrls, ['/api/overview', '/api/logs', '/api/logs/days'])
 })
 
 test('WebUI config patch helper applies the authoritative full config response', async () => {

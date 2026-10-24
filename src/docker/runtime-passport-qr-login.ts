@@ -3,6 +3,7 @@ import QRCode from 'qrcode'
 import { parseCookieRecord } from '../core/api'
 import { createDouyuPassportDeviceCookie, fetchDouyuMainCookiesFromLoginUrl, fetchDouyuYubaCookiesWithPassport, generateDouyuPassportQrChallenge, pollDouyuPassportQrAuth } from '../core/douyu-passport'
 import { errorMessage } from '../core/errors'
+import { notifyLoginSuccess } from './runtime-notify'
 import type { DockerConfig, PassportQrLoginPublicStatus, PassportQrLoginStatus } from '../core/types'
 
 const PASSPORT_QR_IMAGE_SIZE = 240
@@ -151,6 +152,7 @@ export class DockerPassportQrLoginService {
     this.session = session
     session.status = 'main_saved'
     session.message = '主站已保存，正在获取鱼吧登录态'
+    void notifyLoginSuccess()
     session.error = undefined
 
     try {
@@ -210,6 +212,7 @@ export class DockerPassportQrLoginService {
     })
     session.status = 'main_saved'
     session.message = '主站已保存，正在获取鱼吧登录态'
+    void notifyLoginSuccess()
   }
 
   private async completeYubaSnapshot(session: PassportQrLoginSession): Promise<void> {

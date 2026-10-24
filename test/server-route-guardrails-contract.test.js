@@ -37,6 +37,23 @@ function createInitialConfig() {
   })
 }
 
+function createPasswordStore(password = 'secret') {
+  let current = password
+  return {
+    verify: candidate => candidate === current,
+    hint: () => '',
+    info: () => ({ source: 'env' }),
+    setHint: () => ({ ok: true, hint: '' }),
+    change: (currentPassword, nextPassword) => {
+      if (currentPassword !== current) {
+        return { ok: false, error: '当前密码不正确' }
+      }
+      current = nextPassword
+      return { ok: true }
+    },
+  }
+}
+
 function createRouteTestContext() {
   let config = {
     ...createInitialConfig(),
@@ -52,7 +69,7 @@ function createRouteTestContext() {
 
   return {
     context: {
-      webPassword: 'secret',
+      passwordStore: createPasswordStore(),
       getConfig: () => config,
       saveCookie: (cookies) => {
         calls.saveCookie.push(cookies)

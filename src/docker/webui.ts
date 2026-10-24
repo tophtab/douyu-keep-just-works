@@ -10,6 +10,8 @@ export const DOCKER_WEBUI_PAGE_ROUTES = {
   'double-card': '/Configurations/DoubleCardConfig',
   'expiring-gift': '/Configurations/ExpiringGiftConfig',
   'yuba': '/Configurations/YubaCheckInConfig',
+  'push': '/Configurations/PushReportConfig',
+  'security': '/Configurations/SecurityConfig',
   'logs': '/Logs',
 } as const
 

@@ -64,6 +64,35 @@ amd64/arm64 Docker 镜像，再自动构建飞牛安装包并上传到该 tag �
 | WebUI 管理 | 查看状态、修改配置、查看日志、手动触发任务 |
 | CookieCloud | 可作为浏览器 Cookie 同步兼容路径 |
 
+## 推送通知（MagicPush）
+
+WebUI 新增「推送设置」页，把任务执行情况推送到飞书群，无需在容器里配置飞书应用凭据。
+
+| 推送场景 | 行为 |
+| --- | --- |
+| 定时任务到点执行 | 不推送，只记录，进入每日汇总 |
+| 手动触发任务 | 立即推送单次结果（耗时、结果、最近日志） |
+| 每日汇总 | 每天固定时间推送一张卡片，列出所有已启用任务的执行情况 + 当前 Cookie 状态 |
+| 登录类事件 | 未登录 / 扫码成功时即时推送 |
+
+卡片使用斗鱼橙主题（`#FF5D23` 色系）。推送走自建 [MagicPush](https://github.com/magiccode1412/MagicPush) 网关的 `POST /api/push/<token>`，飞书卡片通过 `extraData.feishu.channelType=interactive_card` 投递，被拒收时自动降级为 markdown 文本。
+
+渠道配置有两种方式，界面配置优先于环境变量：
+
+- WebUI「推送设置 → 推送渠道」：网关地址、Endpoint 令牌、消息格式（卡片 / Markdown），可一键发送测试消息
+- 环境变量：`MAGICPUSH_URL`、`MAGICPUSH_TOKEN`
+
+> 令牌保存在 `config/config.json` 内（该目录已被 `.gitignore` 排除）。`GET /api/push-report` 只返回掩码预览，不会回传明文；保存时令牌留空表示不修改。
+
+## 修改 WebUI 密码
+
+「账号安全」页可直接修改登录密码，无需重建容器：
+
+- 首次启动沿用环境变量 `WEB_PASSWORD`；修改后写入 `config/auth.json`（`0600`，scrypt 加盐哈希，不存明文），并**优先生效**，环境变量里的旧值不再使用
+- 修改成功后其他设备的会话立即失效，当前浏览器自动换新会话
+- 登录接口带简单防爆破：同 IP 5 分钟内失败 5 次锁定 60 秒
+- 忘记密码时删除 `config/auth.json` 并重启容器，即回退到 `WEB_PASSWORD`
+
 ## 配置建议
 
 - 推荐优先使用登录页的“扫码登录”。它会通过斗鱼 passport 二维码创建本项目自己的本地登录快照，并按 passport -> 主站 -> 鱼吧的顺序保存。

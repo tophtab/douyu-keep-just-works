@@ -108,6 +108,23 @@
   font-size:16px;
   font-weight:700;
 }
+/* 窄屏下表格的 min-width 会通过 flex/grid 的 min-width:auto 反向撑破容器，
+   这里统一给容器链加 min-width:0，让 .table-shell 的横向滚动真正生效。 */
+.shell,
+.main,
+.task-card,
+.panel,
+.section-body,
+.section-block,
+.task-settings-stack,
+.overview-stack,
+.page-stack,
+.grid,
+.summary-grid,
+.strip-metrics,
+.table-shell{
+  min-width:0;
+}
 .task-card{
   padding:18px;
   border-radius:24px;
@@ -117,6 +134,10 @@
   backdrop-filter:blur(18px);
   display:flex;
   flex-direction:column;
+  overflow:hidden;
+}
+.task-card > *{
+  min-width:0;
 }
 .task-card-head{
   display:flex;

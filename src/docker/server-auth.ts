@@ -48,8 +48,14 @@ function serializeCookie(name: string, value: string, options: {
   return segments.join('; ')
 }
 
+const LOGIN_FAIL_WINDOW_MS = 5 * 60 * 1000
+const LOGIN_FAIL_LIMIT = 5
+const LOGIN_LOCK_MS = 60 * 1000
+
 export function createAuthHandlers(ctx: AppContext): AuthHandlers {
   const sessions = new Map<string, number>()
+  // 简单的暴力破解防护：同一 IP 5 分钟内失败 5 次，锁 60 秒
+  const loginFailures = new Map<string, { count: number, firstAt: number, lockedUntil: number }>()
 
   function cleanupExpiredSessions(): void {
     const now = Date.now()
@@ -102,6 +108,47 @@ export function createAuthHandlers(ctx: AppContext): AuthHandlers {
     }))
   }
 
+  function clientKey(req: express.Request): string {
+    return req.ip || req.socket?.remoteAddress || 'unknown'
+  }
+
+  function checkLoginThrottle(req: express.Request): string | null {
+    const key = clientKey(req)
+    const entry = loginFailures.get(key)
+    if (!entry) {
+      return null
+    }
+    const now = Date.now()
+    if (entry.lockedUntil > now) {
+      const seconds = Math.ceil((entry.lockedUntil - now) / 1000)
+      return `密码错误次数过多，请 ${seconds} 秒后再试`
+    }
+    if (now - entry.firstAt > LOGIN_FAIL_WINDOW_MS) {
+      loginFailures.delete(key)
+    }
+    return null
+  }
+
+  function recordLoginFailure(req: express.Request): void {
+    const key = clientKey(req)
+    const now = Date.now()
+    const entry = loginFailures.get(key)
+    if (!entry || now - entry.firstAt > LOGIN_FAIL_WINDOW_MS) {
+      loginFailures.set(key, { count: 1, firstAt: now, lockedUntil: 0 })
+      return
+    }
+    entry.count += 1
+    if (entry.count >= LOGIN_FAIL_LIMIT) {
+      entry.lockedUntil = now + LOGIN_LOCK_MS
+      entry.count = 0
+      entry.firstAt = now
+    }
+  }
+
+  function clearLoginFailures(req: express.Request): void {
+    loginFailures.delete(clientKey(req))
+  }
+
   function registerAuthRoutes(app: express.Express): void {
     app.get('/api/auth/status', (req, res) => {
       res.json({ authenticated: isAuthenticated(req) })
@@ -112,10 +159,18 @@ export function createAuthHandlers(ctx: AppContext): AuthHandlers {
       if (!password) {
         return res.status(400).json({ error: '请输入密码' })
       }
-      if (password !== ctx.webPassword) {
+
+      const throttled = checkLoginThrottle(req)
+      if (throttled) {
+        return res.status(429).json({ error: throttled })
+      }
+
+      if (!ctx.passwordStore.verify(password)) {
+        recordLoginFailure(req)
         return res.status(400).json({ error: '密码错误' })
       }
 
+      clearLoginFailures(req)
       issueSession(res)
       res.json({ ok: true })
     })
@@ -123,6 +178,62 @@ export function createAuthHandlers(ctx: AppContext): AuthHandlers {
     app.post('/api/auth/logout', (req, res) => {
       clearSession(req, res)
       res.json({ ok: true })
+    })
+
+    // 登录页展示的密码提示（未登录可读，只返回提示文本）
+    app.get('/api/auth/hint', (_req, res) => {
+      res.json({ hint: ctx.passwordStore.hint() })
+    })
+
+    // 当前密码来源（是否自定义过、更新时间），不含任何密码内容
+    app.get('/api/auth/password-info', (req, res) => {
+      if (!isAuthenticated(req)) {
+        return res.status(401).json({ error: '请先登录' })
+      }
+      res.json(ctx.passwordStore.info())
+    })
+
+    // 设置密码提示（需登录）；空串表示清除
+    app.post('/api/auth/hint', (req, res) => {
+      if (!isAuthenticated(req)) {
+        return res.status(401).json({ error: '请先登录' })
+      }
+      const hint = typeof req.body?.hint === 'string' ? req.body.hint : ''
+      const result = ctx.passwordStore.setHint(hint)
+      if (!result.ok) {
+        return res.status(400).json({ error: result.error || '保存失败' })
+      }
+      res.json({ ok: true, hint: result.hint || '' })
+    })
+
+    // 修改密码：校验旧密码 → 写 scrypt 哈希 → 注销其他会话，当前会话换新
+    app.post('/api/auth/password', (req, res) => {
+      if (!isAuthenticated(req)) {
+        return res.status(401).json({ error: '请先登录' })
+      }
+
+      const currentPassword = typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : ''
+      const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : ''
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: '请填写当前密码和新密码' })
+      }
+
+      const throttled = checkLoginThrottle(req)
+      if (throttled) {
+        return res.status(429).json({ error: throttled })
+      }
+
+      const result = ctx.passwordStore.change(currentPassword, newPassword)
+      if (!result.ok) {
+        recordLoginFailure(req)
+        return res.status(400).json({ error: result.error || '修改失败' })
+      }
+
+      clearLoginFailures(req)
+      // 改密后所有旧会话失效，给当前请求换一个新会话，避免自己被踢下线
+      sessions.clear()
+      issueSession(res)
+      res.json({ ok: true, info: ctx.passwordStore.info() })
     })
   }
 
@@ -133,6 +244,7 @@ export function createAuthHandlers(ctx: AppContext): AuthHandlers {
         || req.path === '/api/auth/status'
         || req.path === '/api/auth/login'
         || req.path === '/api/auth/logout'
+        || (req.path === '/api/auth/hint' && req.method === 'GET')
       ) {
         next()
         return

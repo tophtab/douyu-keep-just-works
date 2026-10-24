@@ -136,8 +136,23 @@ export function registerConfigRoutes(app: express.Express, ctx: AppContext): voi
     res.json({ runs: getNextCronRuns(cron) })
   })
 
-  app.get('/api/logs', (_req, res) => {
-    res.json(ctx.getLogs())
+  app.get('/api/logs', (req, res) => {
+    // 不传 date：返回内存里的实时日志（今天）
+    // 传 date=YYYY-MM-DD：读对应日期的落盘文件，供「运行日志」页看历史
+    const date = typeof req.query.date === 'string' ? req.query.date.trim() : ''
+    if (!date) {
+      res.json(ctx.getLogs())
+      return
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      res.status(400).json({ error: '日期格式应为 YYYY-MM-DD' })
+      return
+    }
+    res.json(ctx.getLogsForDay(date))
+  })
+
+  app.get('/api/logs/days', (_req, res) => {
+    res.json({ days: ctx.listLogDays() })
   })
 
   app.delete('/api/logs', (_req, res) => {

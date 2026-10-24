@@ -62,6 +62,10 @@ export const logsRefreshedAt = ref<string | null>(null)
 export const logsLoading = ref(false)
 export const logsClearing = ref(false)
 export const logsAutoRefresh = ref(true)
+/** 选中的历史日期；空串表示「今天（实时）」 */
+export const logsSelectedDay = ref('')
+/** 有日志文件的日期列表，倒序 */
+export const logsDays = ref<string[]>([])
 export const surfaceRefreshLoading = ref(false)
 
 let surfaceRefreshPending: Promise<void> | null = null
@@ -119,12 +123,25 @@ export async function loadOverview(): Promise<void> {
   overview.value = await requestJson<WebUiOverview>('/api/overview')
 }
 
+export async function loadLogDays(): Promise<void> {
+  try {
+    const res = await requestJson<{ days?: unknown }>('/api/logs/days', { errorToast: false })
+    const days = Array.isArray(res?.days) ? res.days.filter((d): d is string => typeof d === 'string') : []
+    logsDays.value = days
+  } catch {
+    // 取不到日期列表时只影响选择器，不影响日志本身
+  }
+}
+
 export async function loadLogs(showSuccessToast = false): Promise<boolean | undefined> {
   logsLoading.value = true
   logsError.value = ''
 
   try {
-    logs.value = normalizeLogs(await requestJson<RawLogEntry[]>('/api/logs'))
+    const day = logsSelectedDay.value
+    const url = day ? `/api/logs?date=${encodeURIComponent(day)}` : '/api/logs'
+    logs.value = normalizeLogs(await requestJson<RawLogEntry[]>(url))
+    void loadLogDays()
     logsRefreshedAt.value = new Date().toISOString()
     return true
   } catch (error) {

@@ -9,6 +9,8 @@ import {
   DEFAULT_EXPIRING_GIFT_THRESHOLD_HOURS,
   DEFAULT_KEEPALIVE_ALLOCATION_MODE,
   DEFAULT_KEEPALIVE_CRON,
+  DEFAULT_PUSH_CHANNEL_MODE,
+  DEFAULT_PUSH_REPORT_CRON,
   DEFAULT_THEME_MODE,
   DEFAULT_YUBA_CHECK_IN_CRON,
   DEFAULT_YUBA_CHECK_IN_MODE,
@@ -179,6 +181,25 @@ function normalizeCookieCloud(rawConfig: unknown): DockerConfig['cookieCloud'] {
   }
 }
 
+function normalizePushChannelConfig(rawConfig: unknown): DockerConfig['pushChannel'] {
+  const config = asRecord(rawConfig)
+  const mode = config?.mode === 'text' ? 'text' : DEFAULT_PUSH_CHANNEL_MODE
+  return {
+    enabled: normalizeEnabled(config, true),
+    baseUrl: normalizeString(config?.baseUrl),
+    token: normalizeString(config?.token),
+    mode,
+  }
+}
+
+function normalizePushReportConfig(rawConfig: unknown): DockerConfig['pushReport'] {
+  const config = asRecord(rawConfig)
+  return {
+    enabled: normalizeEnabled(config, true),
+    cron: normalizeString(config?.cron) || DEFAULT_PUSH_REPORT_CRON,
+  }
+}
+
 export function createDefaultCollectGiftConfig(): CollectGiftConfig {
   return { enabled: true, cron: DEFAULT_COLLECT_GIFT_CRON }
 }
@@ -311,6 +332,8 @@ export function normalizeDockerConfig(input: unknown): DockerConfig {
     ui: {
       themeMode: themeMode === 'light' || themeMode === 'dark' ? themeMode : DEFAULT_THEME_MODE,
     },
+    pushChannel: normalizePushChannelConfig(config.pushChannel),
+    pushReport: normalizePushReportConfig(config.pushReport),
     collectGift: normalizeCollectGiftConfig(config.collectGift),
     keepalive: normalizeFanBackedTaskConfig(config.keepalive, KEEPALIVE_TASK_DEFAULTS),
     doubleCard: normalizeDoubleCardConfig(config.doubleCard),
@@ -324,6 +347,8 @@ export function reconcileDockerConfig(config: DockerConfig, fans: Fans[]): Docke
     loginCookies: { ...config.loginCookies },
     cookieCloud: { ...config.cookieCloud },
     ui: { ...config.ui },
+    pushChannel: { ...config.pushChannel },
+    pushReport: { ...config.pushReport },
     collectGift: { ...config.collectGift },
     keepalive: reconcileFanBackedTaskConfig(config.keepalive, fans, KEEPALIVE_TASK_DEFAULTS),
     doubleCard: reconcileDoubleCardConfig(config.doubleCard, fans) || createDefaultDoubleCardConfig(fans),

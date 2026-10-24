@@ -6,6 +6,8 @@ export const DEFAULT_DOUBLE_CARD_CRON = '0 20 17,20,22,23 * * *'
 export const DEFAULT_EXPIRING_GIFT_CRON = '0 45 23 * * *'
 export const DEFAULT_YUBA_CHECK_IN_CRON = '0 23 0 * * *'
 export const DEFAULT_COOKIE_CLOUD_SYNC_CRON = '0 5 0 * * *'
+export const DEFAULT_PUSH_REPORT_CRON = '0 0 9 * * *'
+export const DEFAULT_PUSH_CHANNEL_MODE: 'card' | 'text' = 'card'
 
 export const DEFAULT_KEEPALIVE_ALLOCATION_MODE: AllocationMode = 'fixed'
 export const DEFAULT_DOUBLE_CARD_ALLOCATION_MODE: AllocationMode = 'weighted'
@@ -33,6 +35,8 @@ export function createDefaultRawDockerConfig(): DockerConfig {
       cryptoType: 'legacy',
     },
     ui: { themeMode: DEFAULT_THEME_MODE },
+    pushChannel: { enabled: true, baseUrl: '', token: '', mode: DEFAULT_PUSH_CHANNEL_MODE },
+    pushReport: { enabled: true, cron: DEFAULT_PUSH_REPORT_CRON },
     collectGift: { enabled: true, cron: DEFAULT_COLLECT_GIFT_CRON },
     keepalive: {
       enabled: true,

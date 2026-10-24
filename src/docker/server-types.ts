@@ -1,4 +1,5 @@
-import type { CookieDiagnostics, DockerConfig, EffectiveCookiePreview, Fans, FansStatusResponse, LoginCookiesConfig, PassportQrLoginPublicStatus, YubaStatusResponse } from '../core/types'
+import type { CookieDiagnostics, DockerConfig, EffectiveCookiePreview, Fans, FansStatusResponse, LoginCookiesConfig, PassportQrLoginPublicStatus, PushReportSnapshot, YubaStatusResponse } from '../core/types'
+import type { WebPasswordStore } from './auth-password'
 import type { DockerConfigUpdate } from './config-store'
 import type { LogEntry } from './logger'
 import type { TaskType } from './task-metadata'
@@ -14,13 +15,16 @@ export interface CacheRefreshOptions {
 }
 
 export interface AppContext {
-  webPassword: string
+  /** WebUI 登录密码存储（改密后立即生效，落盘 config/auth.json） */
+  passwordStore: WebPasswordStore
   getConfig(): DockerConfig | null
   saveCookie(cookies: Pick<LoginCookiesConfig, 'main' | 'yuba'>): void
   saveTaskConfig(config: DockerConfigUpdate): Promise<{ config: DockerConfig; fans: Fans[] }>
   syncWithFans(): Promise<{ config: DockerConfig; fans: Fans[] }>
   getStatus(): { collectGift: JobStatus; keepalive: JobStatus; doubleCard: JobStatus; expiringGift: JobStatus; yubaCheckIn: JobStatus }
   getLogs(): LogEntry[]
+  getLogsForDay(day: string): LogEntry[]
+  listLogDays(): string[]
   clearLogs(): void
   inspectCookieSource(): Promise<CookieDiagnostics>
   getEffectiveCookies(forceRefresh?: boolean): Promise<EffectiveCookiePreview>
@@ -40,4 +44,7 @@ export interface AppContext {
   fetchFansStatusDetails(options?: CacheRefreshOptions): Promise<FansStatusResponse>
   fetchFansStatus(options?: CacheRefreshOptions): Promise<FansStatusResponse>
   fetchYubaStatus(options?: CacheRefreshOptions): Promise<YubaStatusResponse>
+  getPushReportSnapshot(): PushReportSnapshot
+  sendPushReportNow(): Promise<{ ok: boolean, error?: string }>
+  sendPushTest(): Promise<{ ok: boolean, error?: string }>
 }

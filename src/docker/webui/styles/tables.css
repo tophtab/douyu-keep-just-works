@@ -1,7 +1,9 @@
 .table-shell{
   overflow:auto;
   max-width:100%;
+  min-width:0;
   scrollbar-gutter:stable both-edges;
+  /* 窄屏去掉两侧 gutter，避免白白占掉 12px 可用宽度 */
 }
 .table{
   width:100%;
@@ -143,6 +145,21 @@
   font-size:16px;
   line-height:normal;
   padding:11px 16px;
+}
+.log-day-picker{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+.log-day-picker > span{
+  color:var(--muted);
+  font-size:13px;
+}
+.log-day-select{
+  min-width:170px;
+  padding:8px 10px;
+  font-size:14px;
+  cursor:pointer;
 }
 .log-box{
   overflow:hidden;

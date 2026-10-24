@@ -1,9 +1,10 @@
 import { getFollowedYubaStatusesWithDyToken } from '../core/yuba'
-import type { CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, LoginCookiesConfig, PassportQrLoginPublicStatus, YubaStatusResponse } from '../core/types'
+import type { CookieDiagnostics, DockerConfig, DoubleCardConfig, EffectiveCookiePreview, ExpiringGiftConfig, Fans, FansStatusResponse, JobConfig, LoginCookiesConfig, PassportQrLoginPublicStatus, PushReportSnapshot, YubaStatusResponse } from '../core/types'
+import type { WebPasswordStore } from './auth-password'
 import { assertDockerConfigCrons } from './cron'
 import { buildConfigWithPartialUpdate } from './config-store'
 import type { DockerConfigUpdate } from './config-store'
-import { clearLogs, getLogs } from './logger'
+import { clearLogs, getLogs, getLogsForDay, listLogDays } from './logger'
 import { MAIN_DOUYU_URL, YUBA_DOUYU_URL } from './runtime-constants'
 import type { DockerRuntimeConfigApplyReason } from './runtime-config-service'
 import type { DockerRuntimeFansSyncReason } from './runtime-fans-sync'
@@ -15,7 +16,7 @@ import type { TaskType } from './task-metadata'
 type TaskStatusMap = Record<TaskType, JobStatus>
 
 interface DockerRuntimeAppContextDeps {
-  webPassword: string
+  passwordStore: WebPasswordStore
   getCurrentConfig: () => DockerConfig | null
   getConfigPath: () => string
   setCurrentConfig: (config: DockerConfig) => void
@@ -47,6 +48,9 @@ interface DockerRuntimeAppContextDeps {
   getFansStatus: (cookie: string, logSystem: (message: string) => void, options?: CacheRefreshOptions) => Promise<FansStatusResponse>
   getYubaStatus: (fetchStatus: () => Promise<YubaStatusResponse>, options?: CacheRefreshOptions) => Promise<YubaStatusResponse>
   runWithCookieSourceRetry: <T>(context: string, run: () => Promise<T>) => Promise<T>
+  getPushReportSnapshot: () => PushReportSnapshot
+  sendPushReportNow: () => Promise<{ ok: boolean, error?: string }>
+  sendPushTest: () => Promise<{ ok: boolean, error?: string }>
   logSystem: (message: string) => void
 }
 
@@ -69,7 +73,7 @@ function needsFansSync(config: DockerConfigUpdate): boolean {
 
 export function createRuntimeAppContext(deps: DockerRuntimeAppContextDeps): AppContext {
   return {
-    webPassword: deps.webPassword,
+    passwordStore: deps.passwordStore,
     getConfig: () => deps.getCurrentConfig(),
     saveCookie: (cookies: Pick<LoginCookiesConfig, 'main' | 'yuba'>) => {
       const currentLoginCookies = deps.getCurrentConfig()?.loginCookies
@@ -108,6 +112,8 @@ export function createRuntimeAppContext(deps: DockerRuntimeAppContextDeps): AppC
     syncWithFans: async () => await deps.syncConfigWithFans('medal_synced'),
     getStatus: () => deps.getStatus(),
     getLogs: () => getLogs(),
+    getLogsForDay: (day: string) => getLogsForDay(day),
+    listLogDays: () => listLogDays(),
     clearLogs: () => clearLogs(),
     inspectCookieSource: async () => await deps.inspectCookieSource(),
     getEffectiveCookies: async (forceRefresh?: boolean) => await deps.getEffectiveCookies(forceRefresh),
@@ -118,6 +124,9 @@ export function createRuntimeAppContext(deps: DockerRuntimeAppContextDeps): AppC
     cancelPassportQrLogin: () => deps.cancelPassportQrLogin(),
     retryPassportQrLoginYuba: async () => await deps.retryPassportQrLoginYuba(),
     triggerTask: async (type: TaskType) => await deps.triggerTask(type, deps.getCurrentConfig(), hasSendRooms),
+    getPushReportSnapshot: () => deps.getPushReportSnapshot(),
+    sendPushReportNow: async () => await deps.sendPushReportNow(),
+    sendPushTest: async () => await deps.sendPushTest(),
     fetchFans: async (options: CacheRefreshOptions = {}) => await deps.runWithCookieSourceRetry('加载粉丝牌列表', async () => {
       const cookie = deps.resolveCookieForUrl(MAIN_DOUYU_URL)
       return await deps.getFansList(cookie, options)

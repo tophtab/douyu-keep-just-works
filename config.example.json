@@ -15,6 +15,16 @@
   "ui": {
     "themeMode": "system"
   },
+  "pushChannel": {
+    "enabled": true,
+    "baseUrl": "http://your-magicpush.example.com:818",
+    "token": "YOUR_MAGICPUSH_ENDPOINT_TOKEN",
+    "mode": "card"
+  },
+  "pushReport": {
+    "enabled": true,
+    "cron": "0 0 9 * * *"
+  },
   "collectGift": {
     "enabled": true,
     "cron": "0 10 3,5 * * *"

@@ -1,9 +1,11 @@
+import * as path from 'node:path'
 import process from 'node:process'
 import { errorMessage } from '../core/errors'
 import { createDefaultDockerConfig } from '../core/config-normalization'
 import type { DockerConfig } from '../core/types'
+import { WebPasswordStore } from './auth-password'
 import { loadConfigFromDisk, saveConfigToDisk } from './config-store'
-import { createLogger } from './logger'
+import { createLogger, initLogStore } from './logger'
 import { createServer } from './server'
 import { createRuntimeAppContext } from './runtime-app-context'
 import { DockerRuntimeCache } from './runtime-cache'
@@ -14,7 +16,10 @@ import { DockerRuntimeCookieRecoveryService } from './runtime-cookie-recovery'
 import { DockerCookieSourceManager } from './runtime-cookie-source'
 import { DockerRuntimeFansSyncService } from './runtime-fans-sync'
 import { DockerTaskScheduler } from './runtime-scheduler'
-import { createTaskRecord, TASK_LOG_CATEGORIES } from './task-metadata'
+import { createTaskRecord, getTaskConfig, hasEnabledTaskConfig, isTaskEnabled, TASK_LABELS, TASK_LOG_CATEGORIES, TASK_TYPES } from './task-metadata'
+import { buildCookieStatus } from './runtime-cookie-status'
+import { currentDayKey, getPushChannelSettings, getTodayLastRun, initRunHistory, notifyLoginRequired, sendDailyReport, sendTestCard, setPushChannelConfig, setPushChannelResolver } from './runtime-notify'
+import { DockerReportScheduler } from './runtime-report'
 import type { TaskType } from './task-metadata'
 
 let currentConfig: DockerConfig | null = null
@@ -26,9 +31,7 @@ const taskLoggers: Record<TaskType, (message: string) => void> = createTaskRecor
 const runtimeCache = new DockerRuntimeCache()
 const cookieSource = new DockerCookieSourceManager({
   getConfig: () => currentConfig,
-  setConfig: (config) => {
-    currentConfig = config
-  },
+  setConfig: updateCurrentConfig,
   getConfigPath: () => activeConfigPath,
   applyConfig,
   clearFansListCache: () => runtimeCache.clearFansList(),
@@ -52,6 +55,23 @@ const scheduler = new DockerTaskScheduler({
   runAndInvalidateStatusCache: (scope, runTask) => runtimeCache.runAndInvalidateStatus(scope, runTask),
 })
 
+const reportScheduler = new DockerReportScheduler({
+  getConfig: () => currentConfig,
+  getConfigPath: () => activeConfigPath,
+  logSystem,
+})
+
+/**
+ * 所有配置变更都从这里落地。
+ * 界面偏好（例如 pushReport）不会走 applyConfig，如果只在 runtimeConfigService 里
+ * reconcile 推送调度器，修改推送时间后要重启才生效。
+ */
+function updateCurrentConfig(config: DockerConfig): void {
+  currentConfig = config
+  setPushChannelConfig(config.pushChannel)
+  reportScheduler.reconcile(config)
+}
+
 const cookieCloudSync = new DockerCookieCloudSyncService({
   hasCookieCloudSource: config => cookieSource.hasCookieCloudSource(config),
   logSystem,
@@ -68,9 +88,7 @@ const runtimeConfigService = new DockerRuntimeConfigService({
   logTaskReloadSummary: (reason, summary) => scheduler.logTaskReloadSummary(reason, summary),
   reconcileCookieCloudSync: (prevConfig, nextConfig) => cookieCloudSync.reconcile(prevConfig, nextConfig),
   reconcileTaskJobs: (prevConfig, nextConfig, hasCookieSource) => scheduler.reconcileTaskJobs(prevConfig, nextConfig, hasCookieSource),
-  setCurrentConfig: (config) => {
-    currentConfig = config
-  },
+  setCurrentConfig: updateCurrentConfig,
   stopTaskJobs: () => scheduler.stopJobs(),
 })
 
@@ -99,6 +117,18 @@ export interface DockerRuntimeOptions {
 export function startDockerRuntime(options: DockerRuntimeOptions): void {
   const { configPath, webPassword, webPort } = options
   activeConfigPath = configPath
+
+  // 密码存储：config/auth.json 优先（界面改过），否则回退 WEB_PASSWORD
+  const configDir = path.dirname(path.resolve(configPath))
+  const passwordStore = new WebPasswordStore({
+    filePath: path.join(configDir, 'auth.json'),
+    initialPassword: webPassword,
+  })
+
+  // 日志与任务历史落盘：必须在第一条日志之前初始化，否则重启后首屏是空的
+  initLogStore(path.join(configDir, 'logs'))
+  initRunHistory(configDir)
+
   logSystem('斗鱼粉丝牌续牌 Docker 版启动')
 
   try {
@@ -118,12 +148,10 @@ export function startDockerRuntime(options: DockerRuntimeOptions): void {
   }
 
   const ctx = createRuntimeAppContext({
-    webPassword,
+    passwordStore,
     getCurrentConfig: () => currentConfig,
     getConfigPath: () => activeConfigPath,
-    setCurrentConfig: (config) => {
-      currentConfig = config
-    },
+    setCurrentConfig: updateCurrentConfig,
     saveConfig: saveConfigToDisk,
     applyConfig,
     hasConfiguredCookieSource: config => cookieSource.hasConfiguredCookieSource(config),
@@ -144,6 +172,32 @@ export function startDockerRuntime(options: DockerRuntimeOptions): void {
     getFansStatus: async (cookie, logger, options) => await runtimeCache.getFansStatus(cookie, logger, options?.forceRefresh),
     getYubaStatus: async (fetchStatus, options) => await runtimeCache.getYubaStatus(fetchStatus, options?.forceRefresh),
     runWithCookieSourceRetry: async (context, run) => await cookieRecovery.runWithCookieSourceRetry(context, run),
+    getPushReportSnapshot: () => {
+      const config = currentConfig
+      const pushReport = config?.pushReport
+      return {
+        enabled: Boolean(pushReport?.enabled),
+        cron: pushReport?.cron || '',
+        configured: Boolean(pushReport?.enabled && pushReport?.cron),
+        nextRun: reportScheduler.getNextRun(),
+        cookie: buildCookieStatus(config, activeConfigPath),
+        channel: getPushChannelSettings(),
+        tasks: TASK_TYPES.map((type) => {
+          const taskConfig = getTaskConfig(config, type)
+          const lastRun = getTodayLastRun(type)
+          return {
+            type,
+            label: TASK_LABELS[type],
+            enabled: isTaskEnabled(taskConfig),
+            cron: taskConfig?.cron || '',
+            lastRun,
+          }
+        }),
+      }
+    },
+    // 手动「立即推送」看当天已跑的部分；定时日报（默认 09:00）统计前一天，口径不同
+    sendPushReportNow: async () => await sendDailyReport(currentConfig, buildCookieStatus(currentConfig, activeConfigPath), { dayKey: currentDayKey() }),
+    sendPushTest: async () => await sendTestCard(),
     logSystem,
   })
 
@@ -152,10 +206,23 @@ export function startDockerRuntime(options: DockerRuntimeOptions): void {
     logSystem(`WebUI 已启动: http://0.0.0.0:${webPort}`)
   })
 
+  // 有启用中的任务却没有任何登录态时，任务会被静默跳过；启动后主动推一条提醒
+  // 渠道配置来自 config.json（界面里可改），没配则回退环境变量。
+  // 用 resolver 而非快照，保证 WebUI 改完立刻生效（不走 applyConfig 的路径也能读到）。
+  setPushChannelResolver(() => currentConfig?.pushChannel)
+  setPushChannelConfig(currentConfig?.pushChannel)
+  reportScheduler.reconcile(currentConfig)
+
+  if (currentConfig && hasEnabledTaskConfig(currentConfig) && !cookieSource.hasConfiguredCookieSource(currentConfig)) {
+    logSystem('未检测到登录凭证，已启用任务不会执行，等待扫码登录')
+    void notifyLoginRequired(process.env.WEB_PORT || webPort)
+  }
+
   const shutdown = () => {
     logSystem('收到停止信号，正在关闭...')
     cookieCloudSync.stop()
     scheduler.stopJobs()
+    reportScheduler.stop()
     process.exit(0)
   }
   process.on('SIGTERM', shutdown)

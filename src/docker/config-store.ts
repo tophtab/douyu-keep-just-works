@@ -75,6 +75,8 @@ export function buildConfigWithPartialUpdate(current: DockerConfig | null, updat
     loginCookies: mergeLoginCookies(base.loginCookies, updateRecord),
     cookieCloud: mergeConfigSection(base.cookieCloud, updates.cookieCloud),
     ui: mergeConfigSection(base.ui, updates.ui),
+    pushChannel: mergeConfigSection(base.pushChannel, updateRecord.pushChannel),
+    pushReport: mergeConfigSection(base.pushReport, updateRecord.pushReport),
   }
 
   for (const type of TASK_TYPES) {

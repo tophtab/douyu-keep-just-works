@@ -2,9 +2,10 @@
 import type { ThemeMode } from '../../../core/types'
 import type { WebUiPageMeta, WebUiPageTab } from '../navigation'
 
-defineProps<{
+const props = defineProps<{
   activeTab: WebUiPageTab
   appName: string
+  drawerOpen: boolean
   handleTabKeydown: (event: KeyboardEvent) => void
   savingThemeMode: ThemeMode | null
   selectTab: (tab: WebUiPageTab) => void
@@ -15,11 +16,23 @@ defineProps<{
   versionLabel: string
 }>()
 
+const emit = defineEmits<{
+  close: []
+  select: [tab: WebUiPageTab]
+}>()
+
+function handleSelect(tab: WebUiPageTab): void {
+  props.selectTab(tab)
+  // 移动端抽屉里点完导航就收起，避免遮挡内容
+  emit('select', tab)
+  emit('close')
+}
+
 const PROJECT_URL = 'https://github.com/tophtab/douyu-keep-just-works'
 </script>
 
 <template>
-  <aside class="sidebar">
+  <aside id="app-sidebar" class="sidebar" :class="{ 'sidebar-drawer-open': drawerOpen }" :aria-hidden="drawerOpen ? 'false' : undefined">
     <div class="brand-row">
       <img class="brand-logo" src="/icon.png" alt="" aria-hidden="true">
       <h1 class="brand-title">
@@ -57,7 +70,7 @@ const PROJECT_URL = 'https://github.com/tophtab/douyu-keep-just-works'
         :aria-selected="activeTab === tab.key ? 'true' : 'false'"
         :aria-controls="`page-${tab.key}`"
         :tabindex="activeTab === tab.key ? 0 : -1"
-        @click="selectTab(tab.key)"
+        @click="handleSelect(tab.key)"
         @keydown="handleTabKeydown"
       >
         {{ tab.label }}

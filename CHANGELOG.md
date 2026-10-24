@@ -5,7 +5,24 @@ All notable changes to this project are documented here.
 This project follows a simple Keep a Changelog-style format and uses semantic
 version numbers. Docker release tags use the full version, such as `2.1.0`.
 
-## Unreleased
+## 3.12.0 - 2026-10-24
+
+### 新增
+
+- 接入 MagicPush 推送：支持每日任务汇总、单次任务结果卡片、日报异常与赠送明细，以及 WebUI「推送设置」页的渠道配置和测试消息。
+- WebUI 支持修改登录密码与密码提示；登录页密码框可切换明文查看。
+- 应用日志与任务历史落盘，运行日志页支持按日期查看历史日志。
+- 移动端适配：侧栏改为抽屉导航，任务页表格转为卡片布局。
+- 定时设置新增可视化选择器，可选择每日/每周及具体时、分、秒，仍保留 Cron 表达式直接编辑。
+- 任务状态区分「未启动 / 未配置 / 已启动」，根据登录 Cookie、Cron 与房间分配判断任务是否具备运行条件。
+
+### 变更
+
+- 推送设置页重做：状态卡片、每日推送开关与 MagicPush 渠道卡片（标题栏开关），保存按钮统一为「保存并启用」。
+- 账号安全页重做：密码状态卡片、三列密码表单，密码来源文案改为「初始密码 / 非初始密码」。
+- 运行日志：自动刷新改为标题栏圆形按钮，日期选择器右对齐并按内容自适应宽度。
+- 系统主题在首屏绘制前解析，避免暗色偏好下出现主题闪烁。
+- 移除 `WEB_PASSWORD` 环境变量，WebUI 密码仅来自 `config/auth.json` 或内置默认密码，并同步更新 compose 示例。
 
 ### 移除
 

@@ -108,13 +108,13 @@
   background:transparent;
   color:var(--muted);
   cursor:pointer;
-  transition:color .15s ease,background .15s ease;
+  transition:color .15s ease;
   -webkit-tap-highlight-color:transparent;
 }
+/* 图标按钮不铺底色：只做颜色反馈，避免在主色方块盖住输入框内容区 */
 .auth-password-toggle:hover,
 .auth-password-toggle:focus-visible{
   color:var(--accent);
-  background:var(--accent-soft);
 }
 .auth-password-toggle:focus-visible{
   outline:2px solid var(--accent);

@@ -69,11 +69,11 @@ function toggleVisible(key: keyof typeof visible): void {
                 type="button"
                 tabindex="-1"
                 :aria-pressed="visible.current ? 'true' : 'false'"
-                :aria-label="visible.current ? '隐藏当前密码' : '显示当前密码明文'"
-                :title="visible.current ? '隐藏当前密码' : '显示当前密码明文'"
+                :aria-label="visible.current ? '隐藏密码' : '显示密码'"
+                :title="visible.current ? '隐藏密码' : '显示密码'"
                 @click="toggleVisible('current')"
               >
-                <svg v-if="!visible.current" viewBox="0 0 24 24" aria-hidden="true">
+                <svg v-if="visible.current" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M2.6 12S6.2 5.6 12 5.6 21.4 12 21.4 12 17.8 18.4 12 18.4 2.6 12 2.6 12z" />
                   <circle cx="12" cy="12" r="3.1" />
                 </svg>
@@ -107,11 +107,11 @@ function toggleVisible(key: keyof typeof visible): void {
                 type="button"
                 tabindex="-1"
                 :aria-pressed="visible.next ? 'true' : 'false'"
-                :aria-label="visible.next ? '隐藏新密码' : '显示新密码明文'"
-                :title="visible.next ? '隐藏新密码' : '显示新密码明文'"
+                :aria-label="visible.next ? '隐藏密码' : '显示密码'"
+                :title="visible.next ? '隐藏密码' : '显示密码'"
                 @click="toggleVisible('next')"
               >
-                <svg v-if="!visible.next" viewBox="0 0 24 24" aria-hidden="true">
+                <svg v-if="visible.next" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M2.6 12S6.2 5.6 12 5.6 21.4 12 21.4 12 17.8 18.4 12 18.4 2.6 12 2.6 12z" />
                   <circle cx="12" cy="12" r="3.1" />
                 </svg>
@@ -144,11 +144,11 @@ function toggleVisible(key: keyof typeof visible): void {
                 type="button"
                 tabindex="-1"
                 :aria-pressed="visible.confirm ? 'true' : 'false'"
-                :aria-label="visible.confirm ? '隐藏确认密码' : '显示确认密码明文'"
-                :title="visible.confirm ? '隐藏确认密码' : '显示确认密码明文'"
+                :aria-label="visible.confirm ? '隐藏密码' : '显示密码'"
+                :title="visible.confirm ? '隐藏密码' : '显示密码'"
                 @click="toggleVisible('confirm')"
               >
-                <svg v-if="!visible.confirm" viewBox="0 0 24 24" aria-hidden="true">
+                <svg v-if="visible.confirm" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M2.6 12S6.2 5.6 12 5.6 21.4 12 21.4 12 17.8 18.4 12 18.4 2.6 12 2.6 12z" />
                   <circle cx="12" cy="12" r="3.1" />
                 </svg>

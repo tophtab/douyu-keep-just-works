@@ -153,8 +153,9 @@ Use an eye toggle inside the password field. Keep these rules:
 - Set `tabindex="-1"` on the eye toggle. Tab should move from the password input
   to the next field, not to an icon that looks decorative. Accept that
   keyboard-only users cannot toggle plaintext; do not add a second control.
-- Use action semantics for icons and labels: open eye while hidden with
-  `显示密码明文`; slashed eye while shown with `隐藏密码`. Keep `aria-pressed`
+- Icons reflect the current state: slashed eye while the value is hidden with
+  `显示密码`; open eye while it is shown with `隐藏密码`. Every password field
+  (login, current, new, confirm) uses these same two labels. Keep `aria-pressed`
   in sync. Focus alone must never reveal the value.
 - Do not persist the reveal state in `localStorage` / `sessionStorage`. Default
   to hidden on every page entry.

@@ -79,12 +79,12 @@ function updatePassword(event: Event): void {
                 type="button"
                 tabindex="-1"
                 :aria-pressed="showPassword ? 'true' : 'false'"
-                :aria-label="showPassword ? '隐藏密码' : '显示密码明文'"
-                :title="showPassword ? '隐藏密码' : '显示密码明文'"
+                :aria-label="showPassword ? '隐藏密码' : '显示密码'"
+                :title="showPassword ? '隐藏密码' : '显示密码'"
                 :disabled="submittingLogin"
                 @click="togglePassword"
               >
-                <svg v-if="!showPassword" viewBox="0 0 24 24" aria-hidden="true">
+                <svg v-if="showPassword" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M2.6 12S6.2 5.6 12 5.6 21.4 12 21.4 12 17.8 18.4 12 18.4 2.6 12 2.6 12z" />
                   <circle cx="12" cy="12" r="3.1" />
                 </svg>

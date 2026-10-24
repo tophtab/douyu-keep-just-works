@@ -5,6 +5,12 @@ All notable changes to this project are documented here.
 This project follows a simple Keep a Changelog-style format and uses semantic
 version numbers. Docker release tags use the full version, such as `2.1.0`.
 
+## 3.12.5 - 2026-10-24
+
+### 修复
+
+- 已登录用户打开或刷新 WebUI 时不再先闪一下登录页：服务端按当前会话把登录态注入页面，首帧直接显示已登录界面；页面 HTML 改为 `Cache-Control: no-store`，避免共享缓存复用会话状态。
+
 ## 3.12.4 - 2026-10-24
 
 ### 变更

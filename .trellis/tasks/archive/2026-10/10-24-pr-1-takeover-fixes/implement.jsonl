@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/backend/testing-guidelines.md", "reason": "Contract test taxonomy and how to update guardrail tests without weakening them"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Error handling expectations for task runners and credential failures"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Config persistence, normalization, defaults, and example-config rules"}
+{"file": ".trellis/spec/backend/contracts.md", "reason": "Config/persistence, credential recovery, and Docker CI quality-gate contracts"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend code standards, type safety, and CI expectations"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Runtime logging categories and message conventions"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend lint, type-check, and accessibility verification"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Change spans config, runtime scheduling, routes, and WebUI state"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Avoid duplicating existing helpers when adding safe snapshot or config-apply logic"}

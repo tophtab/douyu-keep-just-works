@@ -1,0 +1,31 @@
+{
+  "id": "pr-1-takeover-fixes",
+  "name": "pr-1-takeover-fixes",
+  "title": "Take over PR #1: fix CI and P1 issues",
+  "description": "Take over external PR #1: make lint/type-check/contract tests green, fix push report scheduling, cookie resolution error handling, and channel disable semantics; preserve contributor authorship and merge with a merge commit.",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P1",
+  "creator": "toph",
+  "assignee": "toph",
+  "createdAt": "2026-10-24",
+  "completedAt": "2026-10-24",
+  "branch": "pr-1-fix",
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "base_sha": "f1c157db0a3107b57eafdc78a34544e50b2b0ff8",
+    "takeover_comment_url": "https://github.com/tophtab/douyu-keep-just-works/pull/1#issuecomment-6378174884",
+    "head_sha": "b2e9565838f04439a63bc32041d3e9b9d6edaca5",
+    "merge_commit": "25ba61261b1f8a9525edddcf8b3948d1b78afa4b"
+  }
+}

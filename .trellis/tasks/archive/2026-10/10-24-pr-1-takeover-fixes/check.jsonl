@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/backend/testing-guidelines.md", "reason": "Verify updated contract tests still enforce the intended guardrails"}
+{"file": ".trellis/spec/backend/contracts.md", "reason": "Check config persistence, credential recovery, and CI quality-gate contracts"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Check backend standards and type safety"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Check task failure paths preserve original errors and always record runs"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check frontend lint, responsive behavior, and accessibility"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Verify the config-to-scheduler-to-UI flow stays consistent"}
